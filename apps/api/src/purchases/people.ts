@@ -1,23 +1,33 @@
 import { type PersonMerge, registerAccountDeletionStep, registerMergeStep } from '../auth';
+import { closeChipIn, GONE, type Row } from './chip-in-settle';
 import { transferWrites } from './revenuecat';
 
 /*
  * The shop's part of deleting an account and of merging an anonymous person into a returning one.
  * Rows keyed by the person go with `people` (foreign keys); gifts, chip-ins and book shares name
- * people without one, so they are cleared here. A merge moves everything to the kept person.
+ * people without one, so they are cleared here. A chip-in the person started closes (what friends
+ * paid becomes their credit) and forgets who started it; payments stay. A merge moves everything
+ * to the kept person.
  */
 
-const deleteShop = async (db: D1Database, person: string) => {
+const deleteShop = async (db: D1Database, person: string, now: number) => {
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM chip_ins WHERE by_id = ? AND state <> 'closed' AND completed_at IS NULL`,
+    )
+    .bind(person)
+    .all<Row>();
+  for (const row of results) await closeChipIn(db, row, now);
   await db.batch([
+    db.prepare('UPDATE chip_ins SET by_id = ? WHERE by_id = ?').bind(GONE, person),
     db.prepare('UPDATE owned_items SET from_id = NULL WHERE from_id = ?').bind(person),
     db.prepare('DELETE FROM gifts WHERE from_id = ?1 OR to_id = ?1').bind(person),
-    db.prepare('DELETE FROM chip_ins WHERE by_id = ?').bind(person),
     db.prepare('DELETE FROM book_shares WHERE person_id = ?').bind(person),
     db.prepare("UPDATE book_orders SET by_id = '' WHERE by_id = ?").bind(person),
   ]);
 };
 
-registerAccountDeletionStep('shop', (env, person) => deleteShop(env.DB, person));
+registerAccountDeletionStep('shop', (env, person) => deleteShop(env.DB, person, Date.now()));
 
 const moveRows =
   (table: string, key: string, columns: string) => (db: D1Database, m: PersonMerge) => [
