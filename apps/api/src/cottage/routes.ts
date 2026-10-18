@@ -11,12 +11,11 @@ import { type Context, Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import type { z } from 'zod';
 
-import type { Bindings } from '../env';
 import { newActionKey, storeActionKey } from './action-key';
-import { cottageAdapters } from './adapters';
+import { cottageAdapters, type SessionRouteEnv } from './adapters';
 import { cottageOf } from './stub';
 
-type RouteEnv = { Bindings: Bindings; Variables: { person: string } };
+type RouteEnv = SessionRouteEnv;
 
 /** An Expo push token, as `getExpoPushTokenAsync` gives it. */
 const EXPO_PUSH_TOKEN = /^Expo(nent)?PushToken\[[^\]]+\]$/;
@@ -37,13 +36,7 @@ async function bodyOf<S extends z.ZodType>(
 }
 
 /** Lets a request through only with a signed-in session, and names its person. */
-const signedIn = createMiddleware<RouteEnv>(async (c, next) => {
-  const person = await cottageAdapters().sessionPerson(c.req.raw, c.env);
-  if (person === null) return fail(c, 401, 'unauthorized');
-  c.set('person', person);
-  await next();
-  return undefined;
-});
+const signedIn = createMiddleware<RouteEnv>((c, next) => cottageAdapters().requireSession(c, next));
 
 /**
  * The person's cottage over HTTP: devices and their action keys, settings, hibernating,

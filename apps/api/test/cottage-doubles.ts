@@ -27,9 +27,12 @@ export function useTestSignInDouble(onHibernate?: (person: string, on: boolean) 
         match && match[2] === undefined && match[1] === scope.cottage ? match[1] : null,
       );
     },
-    sessionPerson: (request) => {
-      const match = /^Bearer test-session:(.+)$/.exec(request.headers.get('Authorization') ?? '');
-      return Promise.resolve(match?.[1] ?? null);
+    requireSession: async (c, next) => {
+      const match = /^Bearer test-session:(.+)$/.exec(c.req.header('Authorization') ?? '');
+      if (match?.[1] === undefined) return c.json({ error: { code: 'unauthorized' } }, 401);
+      c.set('person', match[1]);
+      await next();
+      return undefined;
     },
     fanOutHibernate: (_env, person, on) => {
       onHibernate?.(person, on);
