@@ -17,6 +17,7 @@ export default defineConfig(async () => {
           bindings: {
             TEST_MIGRATIONS: migrations,
             BETTER_AUTH_SECRET: `${randomUUID()}${randomUUID()}`,
+            MEDIA_SIGNING_KEY: `${randomUUID()}${randomUUID()}`,
           },
         },
       }),

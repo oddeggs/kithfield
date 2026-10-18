@@ -27,6 +27,9 @@
         "APPLE_BUNDLE_ID": "com.kithfield.app.dev",
         "GOOGLE_IOS_CLIENT_ID": "564934268570-n2lmcq3r3vc060p5hsankdnisfnalk0v.apps.googleusercontent.com",
         "GOOGLE_WEB_CLIENT_ID": "564934268570-hst5dob3msctegnpgskivamd25gh6jbc.apps.googleusercontent.com",
+        // Signed reads come from the media Worker on its own host (apps/media-worker).
+        "MEDIA_ORIGIN": "https://media-dev.kithfield.com",
+        "MEDIA_BUCKET_NAME": "kithfield-media-dev",
       },
       "durable_objects": {
         "bindings": [
@@ -98,6 +101,9 @@
         "APPLE_BUNDLE_ID": "com.kithfield.app",
         "GOOGLE_IOS_CLIENT_ID": "564934268570-jr7d94ci3jtb88sm4uqio1pjoatb3l31.apps.googleusercontent.com",
         "GOOGLE_WEB_CLIENT_ID": "564934268570-hst5dob3msctegnpgskivamd25gh6jbc.apps.googleusercontent.com",
+        // Signed reads come from the media Worker on its own host (apps/media-worker).
+        "MEDIA_ORIGIN": "https://media.kithfield.com",
+        "MEDIA_BUCKET_NAME": "kithfield-media",
       },
       "durable_objects": {
         "bindings": [

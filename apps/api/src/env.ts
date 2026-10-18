@@ -12,6 +12,13 @@ export const secretNames = [
   'EXPO_ACCESS_TOKEN',
   // Keys the waitlist's address hashes (HMAC-SHA256), so a listed address can't be brute-forced.
   'WAITLIST_EMAIL_KEY',
+  // Signs media read URLs (and local upload-proxy PUTs); the media Worker holds the same value.
+  'MEDIA_SIGNING_KEY',
+  // R2's S3-compatible API, for presigned upload URLs: the account id and an R2 API token's
+  // access key pair with Object Read & Write on the media bucket.
+  'R2_ACCOUNT_ID',
+  'R2_ACCESS_KEY_ID',
+  'R2_SECRET_ACCESS_KEY',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -38,6 +45,10 @@ export type Bindings = Secrets & {
   readonly DB: D1Database;
   /** Photos, video, voice notes, files and export bundles. */
   readonly MEDIA: R2Bucket;
+  /** The media bucket's name, for presigned URLs on R2's S3 endpoint. */
+  readonly MEDIA_BUCKET_NAME: string;
+  /** Where the media Worker serves signed reads (`https://media.kithfield.com`). */
+  readonly MEDIA_ORIGIN: string;
   /** At most 20 sign-in nonces a minute per client address. */
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Gestures at another farm's gate, per visitor. */
