@@ -1,4 +1,4 @@
-import { AgeRequest, RtTokenRequest, TermsRequest } from '@kithfield/contracts';
+import { AgeRequest, MeProfileUpdate, RtTokenRequest, TermsRequest } from '@kithfield/contracts';
 import type { Me, RtTokenResponse, SignInNonceResponse } from '@kithfield/contracts';
 import type { Context } from 'hono';
 import { Hono } from 'hono';
@@ -6,6 +6,7 @@ import type { z } from 'zod';
 
 import { checkAge } from './age';
 import { readMe } from './me';
+import { updateProfile } from './profile';
 import { AuthNotConfigured, authSecret, handleAuthRequest } from './instance';
 import { deletePerson, findPerson, recordAgeOk, recordTerms } from './people';
 import { issueSignInNonce } from './nonce';
@@ -32,6 +33,7 @@ async function parseBody<T>(c: Context, schema: z.ZodType<T>): Promise<Parsed<T>
  * Sign-in and the person's own records:
  * - `/auth/*`: Better Auth (anonymous, Apple and Google by identity token, email codes, sessions).
  * - `POST /v1/sign-in-nonce`: a single-use nonce for the next Apple or Google sign-in.
+ * - `PATCH /v1/me/profile`: the name, critter and birthday, told to every farm (`profile.ts`).
  * - `POST /v1/rt-token`: a socket token (a banned person is refused by `requireSession`).
  * - `GET /v1/me`: the person, with their settings and hibernating from their cottage.
  * - `POST /v1/me/age`, `POST /v1/me/terms`: the age check and the Terms acceptance.
@@ -71,6 +73,15 @@ export function authRoutes(): Hono<SessionEnv> {
 
   routes.get('/v1/me', requireSession, async (c) => {
     const me = await readMe(c.env, c.var.person);
+    if (me === null) return errorResponse(c, 401, 'unauthorized');
+    return c.json(me satisfies Me);
+  });
+
+  routes.patch('/v1/me/profile', requireSession, async (c) => {
+    const body = await parseBody(c, MeProfileUpdate);
+    if (!body.ok) return body.response;
+    const changed = await updateProfile(c.env, c.var.person, body.value);
+    const me = changed === null ? null : await readMe(c.env, c.var.person);
     if (me === null) return errorResponse(c, 401, 'unauthorized');
     return c.json(me satisfies Me);
   });

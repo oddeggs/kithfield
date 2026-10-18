@@ -1,0 +1,16 @@
+{
+  "name": "@kithfield/design",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Renders every screen of the design export to PNG references in design/renders",
+  "scripts": {
+    "render": "tsx src/render.ts",
+    "compare": "tsx src/compare.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "playwright": "catalog:"
+  }
+}

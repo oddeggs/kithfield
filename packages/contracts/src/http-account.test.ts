@@ -1,5 +1,8 @@
+import { describe, expect, it } from 'vitest';
+
 import * as account from './http/account';
 import * as me from './http/me';
+import { CritterChangedPayload } from './payloads/farm';
 import { at, bea, critter, farm, pip } from './samples.test-data';
 import { describeSchemas } from './schema-runner.test-data';
 
@@ -25,6 +28,22 @@ const hash = 'a'.repeat(64);
 const remember = { farm, fromSeq: 12, about: bea, title: "Bea's interview", nudgeAt: at };
 
 const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
+  MeProfileUpdate: [
+    [
+      { name: 'June', critter, birthday: '04-12' },
+      { name: 'June' },
+      { critter: { ...critter, outfit: null } },
+      { birthday: null },
+    ],
+    [
+      {},
+      { name: '' },
+      { name: 'x'.repeat(33) },
+      { critter: { ...critter, species: 'dragon' } },
+      { birthday: '12/04' },
+      { name: null },
+    ],
+  ],
   SignInNonceResponse: [
     [{ nonce: 'n'.repeat(43), expiresAt: at }],
     [
@@ -148,3 +167,20 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
 };
 
 describeSchemas('HTTP bodies for accounts and the person', { ...account, ...me }, samples);
+
+describe('a profile change on every farm', () => {
+  it('maps onto a critter_changed payload key for key', () => {
+    const updates = [
+      { name: 'June', critter, birthday: '04-12' },
+      { birthday: null },
+      { critter: { ...critter, coat: 'grey' } },
+    ];
+    for (const update of updates) {
+      const parsed = me.MeProfileUpdate.parse(update);
+      expect(CritterChangedPayload.parse(parsed)).toEqual(parsed);
+    }
+    expect(Object.keys(me.MeProfileUpdate.shape).sort()).toEqual(
+      Object.keys(CritterChangedPayload.shape).sort(),
+    );
+  });
+});

@@ -20,6 +20,8 @@ export interface CottageExport {
   readonly held: Row[];
   /** The person's settings, only if they ever set any. */
   readonly settings: MeSettings | null;
+  /** Whether the app sent their time zone. */
+  readonly zoneKnown: boolean;
 }
 
 const all = (sql: SqlStorage, table: string): Row[] => sql.exec(`SELECT * FROM ${table}`).toArray();
@@ -34,6 +36,7 @@ export function exportCottage(sql: SqlStorage): CottageExport {
     seeds: all(sql, 'seeds'),
     held: all(sql, 'held'),
     settings: stored ? readProfile(sql).settings : null,
+    zoneKnown: stored && readProfile(sql).zoneKnown,
   };
 }
 
@@ -51,17 +54,18 @@ function insertMissing(sql: SqlStorage, table: string, rows: readonly Row[]): vo
 
 /**
  * Takes another cottage's rows into this one. Chat rows: the newer seq wins, the farm's facts fill
- * what is missing, a pin or mute from either stays. Devices: the later registration wins, and a
- * push token stays on one device only. Held pushes are re-addressed to this person. Settings are
- * taken only if this person never set any.
+ * what is missing, a pin or mute from either stays, and the kept person's "Knock for" comes first.
+ * Devices: the later registration wins, and a push token stays on one device only. Held pushes are
+ * re-addressed to this person. Settings are taken only if this person never set any.
  */
 export function mergeInto(sql: SqlStorage, data: CottageExport, person: string): void {
   for (const row of data.farms) {
     sql.exec(
       `INSERT INTO farms (farm, farm_kind, name, with_json, pinned, muted_until, seq, kind, actor,
-         at, preview, for_you) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         at, preview, for_you, knock_for) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (farm) DO UPDATE SET
          farm_kind = coalesce(farms.farm_kind, excluded.farm_kind),
+         knock_for = coalesce(farms.knock_for, excluded.knock_for),
          name = coalesce(farms.name, excluded.name),
          with_json = coalesce(farms.with_json, excluded.with_json),
          pinned = max(farms.pinned, excluded.pinned),
@@ -91,6 +95,7 @@ export function mergeInto(sql: SqlStorage, data: CottageExport, person: string):
         'at',
         'preview',
         'for_you',
+        'knock_for',
       ].map((c) => row[c] ?? null),
     );
   }
@@ -130,7 +135,7 @@ export function mergeInto(sql: SqlStorage, data: CottageExport, person: string):
   const stored = sql.exec('SELECT 1 FROM profile WHERE id = 1').toArray().length > 0;
   if (!stored && data.settings !== null) {
     const settings = MeSettings.parse(data.settings);
-    updateProfile(sql, (profile) => ({ ...profile, settings }));
+    updateProfile(sql, (profile) => ({ ...profile, settings, zoneKnown: data.zoneKnown }));
   }
 }
 

@@ -2,9 +2,10 @@ import type { MeSettings, QuietHours } from '@kithfield/contracts';
 
 /*
  * The push rules, pure so each one is tested on its own. The cottage runs them when an event
- * arrives and the push consumer runs them again just before sending. In order: a muted farm or a
- * hibernating person → skip; the person has that farm open → skip; quiet hours → hold until they
- * end; over the day's budget → collapse into one "a few things" push, then fold silently.
+ * arrives and the push consumer runs them again just before sending. In order: a hibernating
+ * person, a muted farm or a kind of push turned off for that farm ("Knock for") → skip; the person
+ * has that farm open → skip; quiet hours → hold until they end; over the day's budget → collapse
+ * into one "a few things" push, then fold silently.
  */
 
 export const MINUTE_MS = 60_000;
@@ -41,6 +42,7 @@ export const NUDGES_BEFORE_LAST = 2;
 
 export type SkipReason =
   | 'muted'
+  | 'knock_off'
   | 'hibernating'
   | 'connected'
   | 'nudges_off'
@@ -65,6 +67,8 @@ export interface DecideInput {
   readonly at: number;
   /** The job's farm is muted (false for a push that belongs to no farm). */
   readonly muted: boolean;
+  /** The person's "Knock for" toggles on that farm let this kind of push through. */
+  readonly knockAllowed: boolean;
   readonly hibernating: boolean;
   /** The person has that farm open (only the farm knows; false when unknown). */
   readonly connected: boolean;
@@ -115,6 +119,7 @@ export function decide(input: DecideInput): Decision {
   const farmBound = input.category !== 'reminder';
   if (input.hibernating) return { action: 'skip', reason: 'hibernating' };
   if (farmBound && input.muted) return { action: 'skip', reason: 'muted' };
+  if (!input.knockAllowed) return { action: 'skip', reason: 'knock_off' };
   if (input.connected) return { action: 'skip', reason: 'connected' };
 
   let last = false;
