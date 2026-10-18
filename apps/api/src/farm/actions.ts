@@ -186,6 +186,14 @@ export const canTrade = (
   return host.store.tradedWith(otherFarm, host.now(), TRADE_EVERY_DAYS) ? 'limit_reached' : null;
 };
 
+/** `completing`: this write finishes a trade the other farm already recorded. */
+export type TradeOptions = { completing?: boolean };
+
+const memberCheck = (host: FarmHost, actor: PersonId): RejectReason | null =>
+  host.farm.state?.members.some((m) => m.person === host.farm.actorOf(actor)) === true
+    ? null
+    : 'not_found';
+
 /** The other farm's half of a trade, owed until it lands there. */
 export type TradeHalf = { farm: FarmId; actor: PersonId; payload: TradedPayload };
 
@@ -200,18 +208,21 @@ export const recordTrade = (
   actor: PersonId,
   payload: TradedPayload,
   half?: TradeHalf,
+  options: TradeOptions = {},
 ) =>
   finish(
     host,
     host.farm.once(
       opId,
       host.now(),
-      () =>
-        canTrade(host, payload.otherFarm, actor) ?? {
-          actor: host.farm.actorOf(actor),
-          kind: 'traded',
-          payload,
-        },
+      () => {
+        // Finishing a trade already written on the other farm isn't a new trade: no window check.
+        const blocked =
+          options.completing === true
+            ? memberCheck(host, actor)
+            : canTrade(host, payload.otherFarm, actor);
+        return blocked ?? { actor: host.farm.actorOf(actor), kind: 'traded', payload };
+      },
       () => {
         if (half !== undefined) {
           host.store.owesTradeHalf({

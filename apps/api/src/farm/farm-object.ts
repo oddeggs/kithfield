@@ -199,8 +199,9 @@ export class FarmDO extends DurableObject<Bindings> {
     actor: PersonId,
     payload: TradedPayload,
     half?: actions.TradeHalf,
+    options?: actions.TradeOptions,
   ): Promise<CommandResult> {
-    return actions.recordTrade(this.host, opId, actor, payload, half);
+    return actions.recordTrade(this.host, opId, actor, payload, half, options);
   }
 
   /** The visitor's farm wrote its half of a trade: nothing is owed any more. */

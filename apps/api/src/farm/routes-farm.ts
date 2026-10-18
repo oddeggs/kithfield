@@ -178,7 +178,7 @@ export const farmRoutes = (): Hono<SessionEnv> => {
     if (first.result === 'rejected') return c.json(first);
     let second: CommandResult;
     try {
-      second = await ours.recordTrade(req.opId, person, mine);
+      second = await ours.recordTrade(req.opId, person, mine, undefined, { completing: true });
     } catch {
       return fail(c, 503, 'unavailable');
     }

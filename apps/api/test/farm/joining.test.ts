@@ -441,6 +441,44 @@ describe('trading', () => {
     expect(await home.stub.canTrade(next.farm, pip.id)).toBeNull();
   });
 
+  it('finishes both halves when two farms trade with each other at the same moment', async () => {
+    const { pip, kit, home, next } = await neighbours();
+    const crop = { plant: 'marigold', variant: null };
+    const trade = (opId: string, actor: string, otherFarm: string, peer: string) => ({
+      opId,
+      actor,
+      payload: { with: peer, otherFarm, gave: crop, got: crop },
+    });
+    // Kit visits home and Pip visits next at once: each visited farm writes its half first.
+    const kitsVisit = {
+      home: trade(op(1), pip.id, next.farm, kit.id),
+      next: trade(op(1), kit.id, home.farm, pip.id),
+    };
+    const pipsVisit = {
+      next: trade(op(2), kit.id, home.farm, pip.id),
+      home: trade(op(2), pip.id, next.farm, kit.id),
+    };
+    await home.stub.recordTrade(kitsVisit.home.opId, kitsVisit.home.actor, kitsVisit.home.payload);
+    await next.stub.recordTrade(pipsVisit.next.opId, pipsVisit.next.actor, pipsVisit.next.payload);
+    // Then each finishes on the other farm: finishing a recorded trade isn't a new trade.
+    const done = { completing: true };
+    const a = await next.stub.recordTrade(
+      kitsVisit.next.opId,
+      kitsVisit.next.actor,
+      kitsVisit.next.payload,
+      undefined,
+      done,
+    );
+    const b = await home.stub.recordTrade(
+      pipsVisit.home.opId,
+      pipsVisit.home.actor,
+      pipsVisit.home.payload,
+      undefined,
+      done,
+    );
+    expect([a.result, b.result]).toEqual(['ack', 'ack']);
+  });
+
   it('finishes a trade whose second half failed, so it is never left on one farm', async () => {
     const { pip, kit, home, next } = await neighbours();
     await growMarigolds([

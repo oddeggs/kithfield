@@ -97,7 +97,10 @@ const finishTrades = async (host: FarmHost): Promise<void> => {
   for (const half of host.store.tradeHalves()) {
     try {
       const stub = host.env.FARM.get(host.env.FARM.idFromName(half.otherFarm));
-      const result = await stub.recordTrade(half.opId, half.actor, half.payload as TradedPayload);
+      const payload = half.payload as TradedPayload;
+      const result = await stub.recordTrade(half.opId, half.actor, payload, undefined, {
+        completing: true,
+      });
       if (result.result === 'rejected')
         console.error('trade half refused', { reason: result.reason });
       host.store.tradeHalfDone(half.opId);
