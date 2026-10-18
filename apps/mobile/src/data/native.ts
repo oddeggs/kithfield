@@ -49,14 +49,9 @@ export async function startData<View>(
 ): Promise<DataRuntime<View>> {
   const config = Constants.expoConfig;
   const { apiBase } = config?.extra as AppExtra;
-  const scheme = Array.isArray(config?.scheme) ? config.scheme[0] : config?.scheme;
 
   const db = await openDatabase();
-  const auth = createKithfieldAuthClient({
-    apiBase,
-    scheme: scheme ?? 'kithfield',
-    storage: keychain,
-  });
+  const auth = createKithfieldAuthClient({ apiBase, storage: keychain });
   const session = createSession(authPort(auth), keychain);
   // A first launch with no network throws here; the caller offers to try again.
   await session.ensure();

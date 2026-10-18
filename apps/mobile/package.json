@@ -10,7 +10,6 @@
     "test": "jest"
   },
   "dependencies": {
-    "@better-auth/expo": "catalog:",
     "@expo/log-box": "catalog:",
     "@expo/metro-runtime": "catalog:",
     "@kithfield/contracts": "workspace:*",
