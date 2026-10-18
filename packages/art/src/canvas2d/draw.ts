@@ -1,4 +1,4 @@
-import { ArtCanvas } from './canvas';
+import type { ArtCanvas } from './canvas';
 import type { ArtContext2D } from './context';
 import { isInvertible, multiply, toSkia, type Affine } from './matrix';
 import { FilterMode, MipmapMode, PaintStyle } from './skia-enums';
@@ -20,7 +20,9 @@ function imageAntialias(m: Affine, dw: number, dh: number): boolean {
 
 /** `drawImage(source, dx, dy[, dw, dh])` or `drawImage(source, sx, sy, sw, sh, dx, dy, dw, dh)`. */
 export function drawImageOn(ctx: ArtContext2D, source: ArtCanvas, args: ImageArgs): void {
-  if (!(source instanceof ArtCanvas)) throw new TypeError('drawImage: not a canvas');
+  if (typeof (source as Partial<ArtCanvas>).snapshot !== 'function') {
+    throw new TypeError('drawImage: not a canvas');
+  }
   const hidden = ctx.env.hidden;
   if (hidden?.sources.has(source)) {
     hidden.drawn(ctx.s.m);

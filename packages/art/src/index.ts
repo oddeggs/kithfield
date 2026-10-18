@@ -14,6 +14,6 @@ export {
   type LayerSlot,
   type Wearable,
 } from './critter';
-export { faceEntries } from './faces';
+export { faceEntries, systemFaces } from './faces';
 export type { CritterDef, Internals, KF, Scene, Sprite } from './internals';
 export { drawLoop, fireLoop, FrameLoop, sceneLoop, type LoopOptions } from './loops';
