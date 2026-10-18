@@ -1,6 +1,5 @@
 import type { BlockList } from '@kithfield/contracts';
 import { farmView } from '@kithfield/farm';
-import { day } from '@kithfield/theme';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
@@ -21,6 +20,7 @@ import { shownText } from './model/message';
 import { markOurs, useGestureRejections, useRejectCopy } from './send';
 import { leave } from './ui/presentation';
 import { seqParam, useGestureFarm } from './use-gesture-farm';
+import { useGestureColours } from './ui/colours';
 
 /**
  * `GET /v1/blocks`, once the data layer's API client has it. Until then nobody counts as blocked
@@ -45,6 +45,7 @@ function joinPlaces(
 export function ForwardScreen() {
   const { t } = useLocale();
   const { palette } = useTheme();
+  const gc = useGestureColours();
   const toast = useToast();
   const reject = useRejectCopy();
   const insets = useSafeAreaInsets();
@@ -270,17 +271,11 @@ export function ForwardScreen() {
               paddingVertical: 10,
               paddingHorizontal: 12,
               borderRadius: 14,
-              backgroundColor:
-                palette.appearance === 'day' ? day.mossTint : palette.chip.suggestionBg,
+              backgroundColor: gc.mossPanel,
             }}
           >
             <ArtIcon name="people" size={20} color={palette.chip.suggestionFg} />
-            <Txt
-              variant="notice"
-              multiline
-              color={palette.appearance === 'day' ? '#3f4d33' : palette.body}
-              style={{ flex: 1 }}
-            >
+            <Txt variant="notice" multiline color={gc.mossPanelText} style={{ flex: 1 }}>
               {t('gestures.forward.note', {
                 name: from?.name ?? t('gestures.aFriend'),
                 me: me?.name ?? t('gestures.you'),

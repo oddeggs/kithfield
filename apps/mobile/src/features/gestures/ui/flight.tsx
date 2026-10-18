@@ -1,4 +1,4 @@
-import { motion, travel } from '@kithfield/theme';
+import { gestureMotion, motion, travel } from '@kithfield/theme';
 import { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, {
@@ -20,7 +20,7 @@ export interface Point {
 }
 
 /** How long the firefly drifts to its door. */
-export const FLIGHT_MS = 1200;
+export const FLIGHT_MS = gestureMotion.fireflyFlightMs;
 const SIZE = 36;
 
 /**

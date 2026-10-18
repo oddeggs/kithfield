@@ -1,4 +1,4 @@
-import { travel } from '@kithfield/theme';
+import { gestureMotion, travel } from '@kithfield/theme';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import Animated, {
@@ -16,10 +16,11 @@ import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { DEWDROP, type ReactionMeta, type TrayReaction } from '../model/reactions';
+import { useGestureColours } from '../ui/colours';
 
 const BUTTON = 50;
 /** A chosen reaction pops to 1.12. */
-export const POP = 1.12;
+export const POP = gestureMotion.reactionPop;
 
 /** The hand-lettered line above the tray: the reaction's name and what it means. */
 export function MeaningLabel({ reaction }: { readonly reaction: TrayReaction }) {
@@ -150,6 +151,7 @@ export function ReactionPill({
 }) {
   const { t } = useLocale();
   const { palette } = useTheme();
+  const gc = useGestureColours();
   return (
     <View
       accessibilityRole="toolbar"
@@ -159,8 +161,8 @@ export function ReactionPill({
         gap: 4,
         padding: 6,
         borderRadius: 32,
-        backgroundColor: palette.appearance === 'day' ? 'rgba(251,247,240,.94)' : palette.card,
-        boxShadow: '0 14px 40px -12px rgba(40,25,10,.45)',
+        backgroundColor: gc.menuSurface,
+        boxShadow: gc.menuShadow,
         alignSelf: 'flex-start',
       }}
     >

@@ -24,6 +24,7 @@ import {
 import { QuickTendCard, UNDO_MS } from './quick-tend-card';
 import { routes } from './routes';
 import { markOurs, useGestureRejections, useRejectCopy } from './send';
+import { useGestureColours } from './ui/colours';
 
 /**
  * `GET /v1/quick-tend`, once the data layer's API client has it. Until then the screen shows the
@@ -41,6 +42,7 @@ const keyOf = (i: QuickTendItem) => `${i.farm}:${i.seq}`;
 export function QuickTendScreen() {
   const { t } = useLocale();
   const { palette } = useTheme();
+  const gc = useGestureColours();
   const toast = useToast();
   const reject = useRejectCopy();
   const insets = useSafeAreaInsets();
@@ -194,7 +196,7 @@ export function QuickTendScreen() {
               accessibilityLabel={`${t('gestures.quickTend.bouquet')}. ${summary}`}
               style={{
                 borderRadius: 26,
-                backgroundColor: palette.appearance === 'day' ? '#F3E7CC' : palette.plan.bg,
+                backgroundColor: gc.bouquet,
                 paddingVertical: 10,
                 paddingLeft: 6,
                 paddingRight: 14,

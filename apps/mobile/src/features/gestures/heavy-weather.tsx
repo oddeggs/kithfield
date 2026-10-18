@@ -1,5 +1,4 @@
 import type { KNOWN_WARMTHS } from '@kithfield/contracts';
-import { day } from '@kithfield/theme';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -17,6 +16,7 @@ import { useGestureSend } from './send';
 import { leave } from './ui/presentation';
 import { SceneScreen } from './ui/scene-screen';
 import { one, useGestureFarm } from './use-gesture-farm';
+import { useGestureColours } from './ui/colours';
 
 type Warmth = (typeof KNOWN_WARMTHS)[number];
 
@@ -40,6 +40,7 @@ const tiles: readonly { warmth: Warmth; icon: string; night: boolean }[] = [
 export function HeavyWeatherScreen() {
   const { t } = useLocale();
   const { palette } = useTheme();
+  const gc = useGestureColours();
   const params = useLocalSearchParams<{ to?: string }>();
   const g = useGestureFarm();
   const send = useGestureSend(g.farm);
@@ -100,7 +101,7 @@ export function HeavyWeatherScreen() {
           <Txt
             variant="handL"
             align="center"
-            color={day.ink2}
+            color={gc.onDayArt}
             style={{ position: 'absolute', left: 0, right: 0, top: 116 }}
           >
             {t('gestures.weather.says', { words: status, name })}
@@ -185,7 +186,7 @@ export function HeavyWeatherScreen() {
                 gap: 5,
                 paddingHorizontal: 4,
                 boxShadow: on
-                  ? `0 0 0 2.5px ${palette.sheet}, 0 0 0 4.5px ${day.honey}`
+                  ? `0 0 0 2.5px ${palette.sheet}, 0 0 0 4.5px ${palette.honey}`
                   : undefined,
               }}
             >

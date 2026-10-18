@@ -10,6 +10,7 @@ import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { lookOf, type Friend } from './model/people';
+import { useGestureColours } from './ui/colours';
 
 export type FarmRow = FarmList['farms'][number];
 
@@ -36,6 +37,7 @@ export function ForwardRow({
 }) {
   const { t } = useLocale();
   const { palette } = useTheme();
+  const gc = useGestureColours();
   const visit = row.kind === 'visit';
   const title = visit ? (row.with?.name ?? t('gestures.aFriend')) : (row.name ?? '');
   const subtitle = visit
@@ -111,15 +113,14 @@ export function ForwardRow({
             ? { backgroundColor: palette.go.bg }
             : {
                 borderWidth: 1.5,
-                borderColor:
-                  palette.appearance === 'day' ? 'rgba(42,34,29,.3)' : 'rgba(255,255,255,.3)',
+                borderColor: gc.pickRing,
               }),
         }}
       >
         {picked ? (
           // Picked rows tick in over 120 ms.
           <Animated.View entering={ZoomIn.duration(motion.cross.durationMs)}>
-            <ArtIcon name="check" size={14} color="#ffffff" />
+            <ArtIcon name="check" size={14} color={gc.pickTick} />
           </Animated.View>
         ) : null}
       </View>

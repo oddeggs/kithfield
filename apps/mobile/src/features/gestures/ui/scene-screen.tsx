@@ -1,4 +1,4 @@
-import { glass, layout, radii, sizes } from '@kithfield/theme';
+import { layout, radii, sizes } from '@kithfield/theme';
 import type { ReactNode } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
@@ -11,14 +11,10 @@ import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { useGestureRejections } from '../send';
 import { leave } from './presentation';
+import { useGestureColours } from './colours';
 
 /** Glass over art: night-blue over a night scene, paper over a day one. */
 export type GlassTone = 'night' | 'day';
-
-const tones = {
-  night: { fill: 'rgba(30,32,56,.5)', border: 'rgba(255,255,255,.14)', ink: '#f4ecda' },
-  day: { fill: glass.button.fill, border: glass.button.border, ink: '#2a221d' },
-} as const;
 
 /** The round glass back button over art. */
 export function GlassBack({
@@ -29,7 +25,8 @@ export function GlassBack({
   readonly onPress?: () => void;
 }) {
   const { t } = useLocale();
-  const g = tones[tone];
+  const gc = useGestureColours();
+  const g = tone === 'night' ? gc.glassNight : gc.glassDay;
   const size = sizes.circle;
   return (
     <Press onPress={onPress ?? leave} radius={size / 2} accessibilityLabel={t('gestures.back')}>
@@ -51,7 +48,8 @@ export function GlassBack({
 
 /** The glass pill naming whose window, door or cottage this is. */
 export function GlassPill({ tone, label }: { readonly tone: GlassTone; readonly label: string }) {
-  const g = tones[tone];
+  const gc = useGestureColours();
+  const g = tone === 'night' ? gc.glassNight : gc.glassDay;
   return (
     <Glass
       radius={22}

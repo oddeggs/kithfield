@@ -1,4 +1,3 @@
-import { day } from '@kithfield/theme';
 import { useImperativeHandle, useRef, type ComponentRef, type Ref } from 'react';
 import { ScrollView, View } from 'react-native';
 
@@ -69,7 +68,7 @@ export function DoorPicker({
           height: H,
           borderRadius: 16,
           boxShadow: on
-            ? `0 0 0 2.5px ${palette.sheet}, 0 0 0 4.5px ${day.honey}`
+            ? `0 0 0 2.5px ${palette.sheet}, 0 0 0 4.5px ${palette.honey}`
             : `0 0 0 1px ${palette.hairline}`,
         }}
       >

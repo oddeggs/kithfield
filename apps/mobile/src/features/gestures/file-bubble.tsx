@@ -14,6 +14,7 @@ import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { iconOf, sizeOf, sortOf } from './model/files';
+import { useGestureColours } from './ui/colours';
 
 export interface FileBubbleProps {
   readonly name: string;
@@ -47,6 +48,7 @@ async function localCopy(uri: string, name: string): Promise<string> {
 export function FileBubble({ name, mime, bytes, mine, progress, resolveUri }: FileBubbleProps) {
   const { t } = useLocale();
   const { palette } = useTheme();
+  const gc = useGestureColours();
   const toast = useToast();
   // The bar fills continuously between progress reports, on the UI thread.
   const filled = useSharedValue(progress ?? 0);
@@ -133,7 +135,7 @@ export function FileBubble({ name, mime, bytes, mine, progress, resolveUri }: Fi
             style={{
               height: 4,
               borderRadius: 2,
-              backgroundColor: 'rgba(255,255,255,.3)',
+              backgroundColor: gc.progressTrack,
               marginTop: 6,
             }}
           >

@@ -1,4 +1,4 @@
-import { day, radii, sizes } from '@kithfield/theme';
+import { radii, sizes } from '@kithfield/theme';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
@@ -15,9 +15,7 @@ import { fadeTo, sheetTo } from '../../../ui/motion/motion';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { useGestureRejections } from '../send';
-
-/** How dark the screen under the sheet gets (`05 Gestures`: ink at 30%). */
-const SCRIM = 0.3;
+import { useGestureColours } from './colours';
 
 export interface OverlaySheetProps {
   /** Inset from the screen's edges, as the + tray floats (8), or 0 for the standard sheet. */
@@ -46,6 +44,7 @@ export function OverlaySheet({
   children,
 }: OverlaySheetProps) {
   const { palette } = useTheme();
+  const gc = useGestureColours();
   const { t } = useLocale();
   const reduce = useReduceMotion();
   const screen = useWindowDimensions();
@@ -105,17 +104,12 @@ export function OverlaySheet({
     opacity: reduce ? shown.get() : 1,
     transform: [{ translateY: offset.get() - keyboard.height.get() }],
   }));
-  const dim = useAnimatedStyle(() => ({ opacity: shown.get() * SCRIM }));
+  const scrim = gc.scrimOpacity;
+  const dim = useAnimatedStyle(() => ({ opacity: shown.get() * scrim }));
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      <Animated.View
-        style={[
-          StyleSheet.absoluteFill,
-          { backgroundColor: palette.appearance === 'day' ? day.ink : palette.scrim },
-          dim,
-        ]}
-      >
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: gc.scrim }, dim]}>
         <Pressable
           style={StyleSheet.absoluteFill}
           accessibilityRole="button"

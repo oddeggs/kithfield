@@ -1,3 +1,4 @@
+import { gestureMotion } from '@kithfield/theme';
 import { router, useLocalSearchParams } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import * as Clipboard from 'expo-clipboard';
@@ -36,16 +37,15 @@ import { seqParam, useDeadlines, useGestureFarm } from '../use-gesture-farm';
 import { LiftedBubble } from './lifted-bubble';
 import { EditCard, MenuCard, useMenuSurface } from './menu-card';
 import { MeaningLabel, ReactionPill } from './reaction-pill';
+import { useGestureColours } from '../ui/colours';
 
 const AnimatedBlur = Animated.createAnimatedComponent(BlurView);
 /** The background blurs to about 12 points. */
 const BLUR = 32;
-/** Ink at 22% over the blur. */
-const TINT = 'rgba(42,34,29,.22)';
 /** The bubble lifts toward you. */
-const LIFT = 1.04;
+const LIFT = gestureMotion.menuLift;
 /** The tray grows from the bubble, 0.9 to 1. */
-const TRAY_FROM = 0.9;
+const TRAY_FROM = gestureMotion.menuTrayFrom;
 /** A pick settles in two drawings before the menu goes. */
 const SETTLE_MS = 166;
 
@@ -57,6 +57,7 @@ const SETTLE_MS = 166;
 export function MessageMenu() {
   const { t } = useLocale();
   const { palette } = useTheme();
+  const gc = useGestureColours();
   const reduce = useReduceMotion();
   const toast = useToast();
   const client = useDataClient();
@@ -184,7 +185,7 @@ export function MessageMenu() {
         tint={palette.appearance === 'day' ? 'light' : 'dark'}
         style={StyleSheet.absoluteFill}
       />
-      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: TINT }, tint]} />
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: gc.menuTint }, tint]} />
       <Pressable
         style={StyleSheet.absoluteFill}
         accessibilityRole="button"

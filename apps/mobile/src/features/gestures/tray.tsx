@@ -1,5 +1,5 @@
 import { LIMITS } from '@kithfield/contracts';
-import { day, motion } from '@kithfield/theme';
+import { gestureMotion, motion } from '@kithfield/theme';
 import { useLocalSearchParams } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { View } from 'react-native';
@@ -20,9 +20,10 @@ import { useGestureSend } from './send';
 import { OverlaySheet } from './ui/overlay-sheet';
 import { useOverlayClose } from './ui/presentation';
 import { one, useGestureFarm } from './use-gesture-farm';
+import { useGestureColours } from './ui/colours';
 
 /** Cards come in one after another, 40 ms apart. */
-const STAGGER_MS = 40;
+const STAGGER_MS = gestureMotion.trayStaggerMs;
 
 function Stagger({ i, children }: { readonly i: number; readonly children: ReactNode }) {
   return (
@@ -43,6 +44,7 @@ function Stagger({ i, children }: { readonly i: number; readonly children: React
 export function TrayScreen() {
   const { t } = useLocale();
   const { palette } = useTheme();
+  const gc = useGestureColours();
   const params = useLocalSearchParams<{ to?: string }>();
   const g = useGestureFarm();
   const send = useGestureSend(g.farm);
@@ -51,7 +53,6 @@ export function TrayScreen() {
   const [note, setNote] = useState<string | null>(null);
   const to = defaultFriend(g.state, g.me, one(params.to)) ?? undefined;
   const toFriend = to ? { to } : {};
-  const night = palette.appearance === 'night';
 
   const quick = async (kind: 'dewdrop' | 'wave' | 'hug', sent: string, icon: string) => {
     if (await send(kind, toFriend, { haptic: 'soft', sent, icon })) close();
@@ -185,7 +186,7 @@ export function TrayScreen() {
               accessibilityLabel={`${t('gestures.tray.plant')}. ${t('gestures.tray.plantBody')}`}
               style={{
                 borderRadius: 22,
-                backgroundColor: night ? 'rgba(169,196,142,.16)' : day.mossTint,
+                backgroundColor: gc.mossPanel,
                 paddingVertical: 12,
                 paddingHorizontal: 14,
                 flexDirection: 'row',
@@ -199,13 +200,13 @@ export function TrayScreen() {
                 <Txt
                   variant="traySubtitle"
                   multiline
-                  color={night ? palette.secondary : '#4d5a41'}
+                  color={gc.mossPanelText}
                   style={{ marginTop: 3 }}
                 >
                   {t('gestures.tray.plantBody')}
                 </Txt>
               </View>
-              <Txt variant="chevron" color={night ? palette.chevron : '#6f7d62'}>
+              <Txt variant="chevron" color={gc.mossPanelChevron}>
                 ›
               </Txt>
             </Press>

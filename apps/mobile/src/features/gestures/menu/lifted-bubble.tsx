@@ -5,6 +5,7 @@ import { Avatar } from '../../../ui/art/avatar';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import type { Friend } from '../model/people';
+import { useGestureColours } from '../ui/colours';
 
 const MAX = 260;
 
@@ -22,6 +23,7 @@ export function LiftedBubble({
   readonly text: string;
 }) {
   const { palette } = useTheme();
+  const gc = useGestureColours();
   const bubble = (
     <View
       style={{
@@ -33,7 +35,7 @@ export function LiftedBubble({
           ? { borderBottomRightRadius: radii.bubbleTail }
           : { borderBottomLeftRadius: radii.bubbleTail }),
         backgroundColor: mine ? palette.bubble.yoursBg : palette.card,
-        boxShadow: '0 14px 34px -14px rgba(40,25,10,.5)',
+        boxShadow: gc.liftShadow,
       }}
     >
       <Txt

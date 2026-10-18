@@ -1,3 +1,4 @@
+import { gestureMotion } from '@kithfield/theme';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
@@ -12,7 +13,7 @@ import type { Friend } from './model/people';
 import { repliesFor, type QuickReply, type QuickTendItem } from './model/quick-tend';
 
 /** A sent card fades to 72%. */
-const SENT_OPACITY = 0.72;
+const SENT_OPACITY = gestureMotion.sentCardOpacity;
 
 function QuickChip({
   label,

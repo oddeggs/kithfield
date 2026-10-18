@@ -1,3 +1,4 @@
+import { gestureMotion } from '@kithfield/theme';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
@@ -21,6 +22,7 @@ import { useGestureSend } from './send';
 import { DoorPicker } from './ui/door-picker';
 import { SceneScreen } from './ui/scene-screen';
 import { one, useGestureFarm } from './use-gesture-farm';
+import { useGestureColours } from './ui/colours';
 
 const ART_H = 450;
 const SHEET_TOP = 420;
@@ -28,9 +30,6 @@ const SHEET_TOP = 420;
 const PICKER_H = 104;
 /** Where "knock knock" sits on the window scene: by the frame's upper right, as a share of it. */
 const KNOCK_AT = { left: '66.7%', top: '21.3%' } as const;
-/** The window's wobble: 3 swings of ±4° over 600 ms. */
-const SWING_DEG = 4;
-const SWING_MS = 600 / 6;
 
 /**
  * Knock on a friend's window: their critter wobbles once on their home screen. No sound,
@@ -39,6 +38,7 @@ const SWING_MS = 600 / 6;
 export function KnockScreen() {
   const { t } = useLocale();
   const { palette } = useTheme();
+  const gc = useGestureColours();
   const reduce = useReduceMotion();
   const params = useLocalSearchParams<{ to?: string }>();
   const g = useGestureFarm();
@@ -64,18 +64,15 @@ export function KnockScreen() {
       { haptic: 'tap', sent: t('gestures.sent.knock', { name }), icon: 'door' },
     );
     if (!ok || reduce) return;
+    // The window swings out and back `swings` times, then settles upright.
+    const { swings, degrees, durationMs } = gestureMotion.knockWobble;
+    const moves = swings * 2;
     const swing = (deg: number) =>
-      withTiming(deg, { duration: SWING_MS, reduceMotion: ReduceMotion.Never });
-    tilt.set(
-      withSequence(
-        swing(SWING_DEG),
-        swing(-SWING_DEG),
-        swing(SWING_DEG),
-        swing(-SWING_DEG),
-        swing(SWING_DEG / 2),
-        swing(0),
-      ),
+      withTiming(deg, { duration: durationMs / moves, reduceMotion: ReduceMotion.Never });
+    const path = Array.from({ length: moves }, (_, i) =>
+      swing(i === moves - 1 ? 0 : i % 2 === 0 ? degrees : -degrees),
     );
+    tilt.set(withSequence(...path));
   };
 
   const friends = friendsOf(g.state, g.me);
@@ -98,7 +95,7 @@ export function KnockScreen() {
           <Txt
             variant="handL"
             multiline
-            color="#f6eedb"
+            color={gc.onNightArt}
             style={{ transform: [{ rotate: '8deg' }], transformOrigin: 'left center' }}
           >
             {t('gestures.knock.sound')}
