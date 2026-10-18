@@ -4,6 +4,7 @@ import {
   FarmEvent,
   MemberRecord,
   QueuePage,
+  ReportDetail,
   ReportResponse,
   isTombstone,
 } from '@kithfield/contracts';
@@ -12,7 +13,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { isBanned } from '../../src/auth';
 import { TestSocket } from '../farm/support/client';
-import { api, type Person } from '../farm/support/doubles';
+import { api, farmStub, hostOf, newPerson, type Person } from '../farm/support/doubles';
 import {
   ANA,
   desk,
@@ -181,9 +182,9 @@ describe('decisions on a report', () => {
     expect(await isBanned(env.DB, lot.bram.id, Date.now())).toBe(false);
     expect(isTombstone((await eventOnFarm(lot, lot.unkind))?.payload)).toBe(false);
 
-    const self = await desk(access, ANA, 'POST', `/actions/${asked.action}/approve`);
+    const self = await desk(access, ANA, 'POST', `/actions/${asked.action}/approve`, {});
     expect(self.status).toBe(403);
-    const agreed = await desk(access, KOFI, 'POST', `/actions/${asked.action}/approve`);
+    const agreed = await desk(access, KOFI, 'POST', `/actions/${asked.action}/approve`, {});
     expect(agreed.status).toBe(200);
     expect(ActionResponse.parse(agreed.body)).toEqual({ action: asked.action, status: 'applied' });
 
@@ -191,7 +192,9 @@ describe('decisions on a report', () => {
     expect((await socket.waitClosed()).reason).toBe('banned');
     expect((await api(lot.bram, 'GET', '/v1/me')).status).toBe(401);
     expect(isTombstone((await eventOnFarm(lot, lot.unkind))?.payload)).toBe(true);
-    expect((await desk(access, KOFI, 'POST', `/actions/${asked.action}/approve`)).status).toBe(409);
+    expect((await desk(access, KOFI, 'POST', `/actions/${asked.action}/approve`, {})).status).toBe(
+      409,
+    );
     expect((await notesOf(lot.june))[0]).toMatchObject({ outcome: 'removed' });
   });
 
@@ -244,5 +247,37 @@ describe('decisions on a report', () => {
       ).body,
     ).report;
     expect((await act(about, { action: 'remove' })).status).toBe(409);
+  });
+
+  it('reports and bans the person a merged-away author became', async () => {
+    const lot = await thursdayLot();
+    const kept = await newPerson('bramkept');
+    const stub = farmStub(lot.farm);
+    await stub.mergePerson(lot.bram.id, kept.id);
+    // The snapshot carries the merge as `aliases` (contracts); the farm object keeps it in its
+    // own table today, so the test writes it into the state the way the snapshot should hold it.
+    await hostOf(stub, (host) => {
+      const state = host.farm.state;
+      if (state !== null) {
+        host.farm.replaceState({ ...state, aliases: { [lot.bram.id]: kept.id } });
+      }
+    });
+    const id = await fileReport(lot);
+    const detail = ReportDetail.parse((await desk(access, ANA, 'GET', `/reports/${id}`)).body);
+    expect(detail.reported.person).toBe(kept.id);
+    // The kept person can't report their own pre-merge words.
+    const own = await report(kept, {
+      farm: lot.farm,
+      about: { about: 'event', seq: lot.unkind },
+      reason: 'unkind',
+      alsoBlock: false,
+    });
+    expect(own.status).toBe(400);
+    const asked = ActionResponse.parse((await act(id, { action: 'remove_from_kithfield' })).body);
+    expect((await desk(access, KOFI, 'POST', `/actions/${asked.action}/approve`, {})).status).toBe(
+      200,
+    );
+    expect(await isBanned(env.DB, kept.id, Date.now())).toBe(true);
+    expect(await isBanned(env.DB, lot.bram.id, Date.now())).toBe(false);
   });
 });

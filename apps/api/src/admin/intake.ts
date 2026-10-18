@@ -46,10 +46,16 @@ async function contextFor(
   return { context, event };
 }
 
-const livesOn = async (env: Bindings, farm: string, person: string) => {
+/** The farm's members and its merged-away people (merged-away id → kept id). */
+async function whoIsWho(env: Bindings, farm: string) {
   const state = await farmStub(env, farm).state();
-  return state?.members.some((m) => m.person === person) === true;
-};
+  const aliases: Readonly<Record<string, string>> = state?.aliases ?? {};
+  return {
+    /** Who a person is now: an author merged away since is reported as the kept person. */
+    now: (person: string) => aliases[person] ?? person,
+    livesHere: (person: string) => state?.members.some((m) => m.person === person) === true,
+  };
+}
 
 export async function takeReport(
   env: Bindings,
@@ -60,22 +66,22 @@ export async function takeReport(
   const read = await contextFor(env, reporter, req);
   if (read === null) return { ok: false, status: 404, code: 'not_found' };
   const { context, event } = read;
+  const who = await whoIsWho(env, req.farm);
+  const me = who.now(reporter);
 
   let reported: string;
   if (req.about.about === 'event') {
     if (event === null) return { ok: false, status: 404, code: 'not_found' };
-    if (event.actor === null || event.actor === reporter || event.kind === 'settings_changed') {
+    if (event.actor === null || who.now(event.actor) === me || event.kind === 'settings_changed') {
       return { ok: false, status: 400, code: 'bad_request', fields: ['about.seq'] };
     }
-    reported = event.actor;
+    reported = who.now(event.actor);
   } else {
-    if (req.about.person === reporter) {
+    reported = who.now(req.about.person);
+    if (reported === me) {
       return { ok: false, status: 400, code: 'bad_request', fields: ['about.person'] };
     }
-    if (!(await livesOn(env, req.farm, req.about.person))) {
-      return { ok: false, status: 404, code: 'not_found' };
-    }
-    reported = req.about.person;
+    if (!who.livesHere(reported)) return { ok: false, status: 404, code: 'not_found' };
   }
 
   const seq = req.about.about === 'event' ? req.about.seq : null;
