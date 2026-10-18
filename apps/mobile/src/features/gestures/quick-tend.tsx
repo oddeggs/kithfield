@@ -1,4 +1,4 @@
-import type { FarmState, QuickTendList } from '@kithfield/contracts';
+import type { FarmState } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -27,12 +27,6 @@ import { routes } from './routes';
 import { markOurs, useGestureRejections, useRejectCopy } from './send';
 import { useGestureColours } from './ui/colours';
 
-/**
- * `GET /v1/quick-tend`, once the data layer's API client has it. Until then the screen shows the
- * path washed out and offers to try again.
- */
-type QuickTendApi = { quickTend?: () => Promise<QuickTendList> };
-
 const keyOf = (i: QuickTendItem) => `${i.farm}:${i.seq}`;
 
 /**
@@ -57,12 +51,7 @@ export function QuickTendScreen() {
 
   const load = useCallback(() => {
     setFailed(false);
-    const api = client.api as typeof client.api & QuickTendApi;
-    if (!api.quickTend) {
-      setFailed(true);
-      return;
-    }
-    api.quickTend().then(
+    client.api.quickTend().then(
       (list) => setItems(list.items),
       () => setFailed(true),
     );
