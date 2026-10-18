@@ -3,7 +3,7 @@ import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { call } from '../../src/auth/testing/client';
-import { ANA, desk, KOFI, type TestAccess, useTestAccess } from './support';
+import { ANA, desk, KOFI, SAM, type TestAccess, useTestAccess } from './support';
 
 let access: TestAccess;
 beforeEach(async () => {
@@ -22,17 +22,17 @@ describe('the safety desk behind Cloudflare Access', () => {
     const me = await desk(access, ANA, 'GET', '/me');
     expect(me.status).toBe(200);
     expect(ModeratorSelf.parse(me.body)).toEqual({
-      moderator: 'bkdev98',
-      name: 'bkdev98',
+      moderator: 'ana',
+      name: 'ana',
       role: 'senior',
       shiftEndsAt: null,
     });
     const row = await env.DB.prepare('SELECT email, role FROM moderators WHERE id = ?')
-      .bind('bkdev98')
+      .bind('ana')
       .first();
     expect(row).toEqual({ email: ANA, role: 'senior' });
     const again = await desk(access, KOFI, 'GET', '/me');
-    expect(ModeratorSelf.parse(again.body).moderator).toBe('admin');
+    expect(ModeratorSelf.parse(again.body).moderator).toBe('kofi');
   });
 
   it('refuses requests without a token, or with one Access did not sign for this desk', async () => {
@@ -106,5 +106,11 @@ describe('the safety desk behind Cloudflare Access', () => {
     expect(bare.status).toBe(415);
     const json = await desk(access, ANA, 'POST', '/actions/A-1/approve', {});
     expect(json.status).toBe(404);
+  });
+
+  it('reads who moderates, and their role, from the MODERATORS secret', async () => {
+    const sam = await desk(access, SAM, 'GET', '/me');
+    expect(sam.status).toBe(200);
+    expect(ModeratorSelf.parse(sam.body).role).toBe('moderator');
   });
 });

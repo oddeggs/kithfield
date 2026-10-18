@@ -40,8 +40,8 @@ describe('the audit log', () => {
     const mine = page.entries.filter((e) => e.item === id);
     expect(mine.map((e) => e.what)).toEqual(['remove_warn', 'opened_context', 'claimed']);
     expect(mine[0]).toMatchObject({
-      by: 'bkdev98',
-      byName: 'bkdev98',
+      by: 'ana',
+      byName: 'ana',
       rule: 3,
       reason: 'Repeated put-downs of June, 2 reporters',
     });

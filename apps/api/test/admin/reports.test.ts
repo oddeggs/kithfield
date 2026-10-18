@@ -232,16 +232,16 @@ describe('reporting from the app', () => {
     await desk(access, ANA, 'GET', `/reports/${id}`);
     await desk(access, KOFI, 'GET', `/reports/${id}`);
     const row = (await queue()).rows.find((r) => r.report === id);
-    expect(row?.claimedBy).toBe('bkdev98');
+    expect(row?.claimedBy).toBe('ana');
     const { results } = await env.DB.prepare(
       'SELECT moderator_id, what FROM audit_log WHERE item = ? ORDER BY at, rowid',
     )
       .bind(id)
       .all();
     expect(results).toEqual([
-      { moderator_id: 'bkdev98', what: 'claimed' },
-      { moderator_id: 'bkdev98', what: 'opened_context' },
-      { moderator_id: 'admin', what: 'opened_context' },
+      { moderator_id: 'ana', what: 'claimed' },
+      { moderator_id: 'ana', what: 'opened_context' },
+      { moderator_id: 'kofi', what: 'opened_context' },
     ]);
     expect((await desk(access, ANA, 'GET', '/reports/R-NOPE')).status).toBe(404);
   });

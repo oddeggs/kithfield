@@ -12,6 +12,8 @@ export const secretNames = [
   'EXPO_ACCESS_TOKEN',
   // Keys the waitlist's address hashes (HMAC-SHA256), so a listed address can't be brute-forced.
   'WAITLIST_EMAIL_KEY',
+  // The safety desk's moderators as JSON, address → role: {"name@example.com": "senior"}.
+  'MODERATORS',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -35,8 +37,6 @@ export type Bindings = Secrets & {
   readonly ACCESS_TEAM_DOMAIN: string;
   /** The Access application audience (`aud`) for this environment's safety desk. */
   readonly ACCESS_AUD: string;
-  /** The addresses Access lets onto the safety desk, with their role. */
-  readonly MODERATORS: Readonly<Record<string, string>>;
   /** One farm object per farm or visit. */
   readonly FARM: DurableObjectNamespace<FarmDO>;
   /** One cottage object per person. */

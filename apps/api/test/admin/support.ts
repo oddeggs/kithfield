@@ -19,8 +19,10 @@ import { api, cast, type Person, profile } from '../farm/support/doubles';
 const TEAM = 'https://winstonb.cloudflareaccess.com';
 const CERTS = `${TEAM}/cdn-cgi/access/certs`;
 
-export const ANA = 'bkdev98@gmail.com';
-export const KOFI = 'admin@kithfield.com';
+export const ANA = 'ana@example.com';
+export const KOFI = 'kofi@example.com';
+/** A moderator who isn't senior. */
+export const SAM = 'sam@example.com';
 
 const b64url = (bytes: Uint8Array | ArrayBuffer) =>
   btoa(String.fromCharCode(...new Uint8Array(bytes)))

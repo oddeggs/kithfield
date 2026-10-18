@@ -78,7 +78,7 @@ describe('appeals', () => {
       category: 'harassment',
       report: id,
       status: 'open',
-      reviewer: 'admin',
+      reviewer: 'kofi',
     });
 
     expect((await desk(access, ANA, 'GET', `/appeals/${appealId}`)).status).toBe(403);
@@ -86,8 +86,8 @@ describe('appeals', () => {
       (await desk(access, KOFI, 'GET', `/appeals/${appealId}`)).body,
     );
     expect(detail).toMatchObject({
-      decidedBy: 'bkdev98',
-      decidedByName: 'bkdev98',
+      decidedBy: 'ana',
+      decidedByName: 'ana',
       rule: 3,
       excerpt: expect.stringContaining('nobody here') as string,
     });

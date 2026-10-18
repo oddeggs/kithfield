@@ -17,6 +17,12 @@ export default defineConfig(async () => {
           bindings: {
             TEST_MIGRATIONS: migrations,
             BETTER_AUTH_SECRET: `${randomUUID()}${randomUUID()}`,
+            // The safety desk's moderators (a secret in each environment), as JSON.
+            MODERATORS: JSON.stringify({
+              'ana@example.com': 'senior',
+              'kofi@example.com': 'senior',
+              'sam@example.com': 'moderator',
+            }),
           },
         },
       }),

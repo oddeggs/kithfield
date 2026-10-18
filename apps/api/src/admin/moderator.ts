@@ -81,6 +81,21 @@ export async function moderatorNames(db: D1Database): Promise<Map<string, string
   return new Map(results.map((r) => [r.id, r.name]));
 }
 
+/** The role the `MODERATORS` secret (JSON, address → role) gives an address, or null. */
+export function roleOf(secret: string | undefined, email: string): ModeratorRole | null {
+  let listed: unknown;
+  try {
+    listed = JSON.parse(secret ?? '{}');
+  } catch {
+    return null;
+  }
+  if (typeof listed !== 'object' || listed === null) return null;
+  const entry = Object.entries(listed).find(([address]) => address.toLowerCase() === email);
+  if (entry === undefined) return null;
+  const role = ModeratorRole.safeParse(entry[1]);
+  return role.success ? role.data : 'moderator';
+}
+
 /**
  * Only people Cloudflare Access let in, whose address the environment lists as a moderator.
  * 401 `unauthorized` without a valid Access token, 403 `forbidden` for anyone else.
@@ -97,17 +112,9 @@ export const requireModerator = createMiddleware<ModeratorEnv>(async (c, next) =
     return deny(c, 503, 'unavailable');
   }
   if (identity === null) return deny(c, 401, 'unauthorized');
-  const listed = Object.entries(c.env.MODERATORS).find(
-    ([email]) => email.toLowerCase() === identity.email,
-  );
-  if (listed === undefined) return deny(c, 403, 'forbidden');
-  const role = ModeratorRole.safeParse(listed[1]);
-  const moderator = await recordModerator(
-    c.env.DB,
-    identity.email,
-    role.success ? role.data : 'moderator',
-    Date.now(),
-  );
+  const role = roleOf(c.env.MODERATORS, identity.email);
+  if (role === null) return deny(c, 403, 'forbidden');
+  const moderator = await recordModerator(c.env.DB, identity.email, role, Date.now());
   c.set('moderator', moderator);
   await next();
   return undefined;
