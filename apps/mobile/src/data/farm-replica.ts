@@ -1,5 +1,6 @@
 import {
   FarmCommand,
+  isTombstone,
   type FarmId,
   type FarmState,
   type OpId,
@@ -7,11 +8,14 @@ import {
   type RejectReason,
 } from '@kithfield/contracts';
 
+import { farmDay } from '@kithfield/farm';
+
 import { createSerialQueue } from '../db/sql';
 import { applyEnvelopes, storeHistory, type BatchOutcome } from './apply-events';
 import { createEventMemory } from './event-memory';
 import { createPresenceStore } from './presence-store';
 import { viewOf } from './provisional';
+import type { CommandCheck } from './farm-rules';
 import type {
   EnqueueResult,
   FarmReplicaDeps,
@@ -24,6 +28,9 @@ import type { OutboxEntry, StoredRejection } from './sync-store';
 export type { SyncReport } from './apply-events';
 
 export type * from './replica-types';
+
+/** Any well-formed op id: a dry run reads the kind and payload only. */
+const ANY_OP = '00000000-0000-7000-8000-000000000000';
 
 /**
  * One farm on this phone: the confirmed state at `lastSeq`, the cached log, and the outbox drawn
@@ -152,18 +159,14 @@ export class FarmReplica<View = unknown> {
   /** Queues a write and draws it at once. The connection sends it. */
   enqueue(actor: PersonId, write: { kind: string; payload: unknown }): Promise<EnqueueResult> {
     return this.serial(async () => {
-      const { rules, store, now, newOpId, farm } = this.deps;
+      const { store, now, newOpId, farm } = this.deps;
       const parsed = FarmCommand.safeParse({ opId: newOpId(), ...write });
       // A write no farm would take (a kind phones can't send, a payload that fails its schema).
       if (!parsed.success) return { status: 'refused', reason: 'invalid' };
       const cmd = parsed.data;
       const at = now();
-      if (this.current.state) {
-        const check = rules.checkCommand(this.current.state, cmd, actor, at, {
-          event: this.memory.find,
-        });
-        if (!check.ok) return { status: 'refused', reason: check.reason };
-      }
+      const check = this.check(actor, cmd, at);
+      if (!check.ok) return { status: 'refused', reason: check.reason };
       const entry: OutboxEntry = {
         opId: cmd.opId,
         farm,
@@ -179,6 +182,49 @@ export class FarmReplica<View = unknown> {
       this.refresh();
       return { status: 'queued', opId: cmd.opId };
     });
+  }
+
+  /**
+   * Whether the farm would take this write from `actor` now, by the same shared rules `enqueue`
+   * runs: screens offer only what would be taken (an edit inside its window, an unsend of a slow
+   * post not yet delivered, one knock a day). Nothing is queued.
+   */
+  canWrite(actor: PersonId, write: { kind: string; payload: unknown }): CommandCheck {
+    const parsed = FarmCommand.safeParse({ opId: ANY_OP, ...write });
+    if (!parsed.success) return { ok: false, reason: 'invalid' };
+    return this.check(actor, parsed.data, this.deps.now());
+  }
+
+  private check(actor: PersonId, cmd: FarmCommand, at: number): CommandCheck {
+    const state = this.current.state;
+    if (!state) return { ok: true };
+    return this.deps.rules.checkCommand(state, cmd, actor, at, {
+      event: this.memory.find,
+      knockedToday: this.knockedToday(state, actor, at),
+    });
+  }
+
+  /**
+   * Friends `actor` has knocked for on the farm's day at `at`: knocks the phone holds, and knocks
+   * still in the outbox (they land today).
+   */
+  private knockedToday(state: FarmState, actor: PersonId, at: number): PersonId[] {
+    const today = farmDay(state, at);
+    const to = (payload: unknown): unknown =>
+      isTombstone(payload) ? payload.facts?.to : (payload as { to?: unknown } | null)?.to;
+    const people = new Set<PersonId>();
+    for (const e of this.memory.all()) {
+      if (e.kind !== 'knock' || e.actor !== actor) continue;
+      if ((e.day ?? farmDay(state, e.at)) !== today) continue;
+      const person = to(e.payload);
+      if (typeof person === 'string') people.add(person);
+    }
+    for (const e of this.pending) {
+      if (e.kind !== 'knock' || e.actor !== actor) continue;
+      const person = to(e.payload);
+      if (typeof person === 'string') people.add(person);
+    }
+    return [...people];
   }
 
   /** Counts a send of these writes, for diagnosing a stuck outbox. */

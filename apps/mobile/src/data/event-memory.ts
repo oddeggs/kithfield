@@ -16,6 +16,8 @@ export function createEventMemory(cap = 500) {
   };
   return {
     find: (seq: number): FarmEvent | undefined => recent.get(seq),
+    /** Every event held, oldest first. */
+    all: (): IterableIterator<FarmEvent> => recent.values(),
     remember,
     clear: () => recent.clear(),
     tried: new Set<number>(),
