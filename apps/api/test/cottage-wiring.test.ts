@@ -1,5 +1,6 @@
 import {
   CottageServerFrame,
+  Me,
   PROTOCOL_VERSION,
   RegisterDeviceResponse,
   RtTokenResponse,
@@ -78,5 +79,52 @@ describe('the cottage with real sign-in', () => {
       refused,
     );
     expect(await helloAnswer(june.user.id, await socketToken(bea.token))).toEqual(refused);
+  });
+});
+
+describe('GET /v1/me', () => {
+  it('answers the person with their cottage’s settings and hibernating', async () => {
+    const { token, user } = await signInAnonymously();
+    const fresh = Me.parse(await (await call('/v1/me', { token })).json());
+    expect(fresh).toMatchObject({
+      person: user.id,
+      name: null,
+      critter: null,
+      signIn: [],
+      ageOk: false,
+      termsVersion: null,
+      hibernating: false,
+      purgeAt: null,
+    });
+
+    const zone = await call('/v1/me/settings', {
+      method: 'PATCH',
+      body: { timeZone: 'Asia/Ho_Chi_Minh' },
+      token,
+    });
+    expect(zone.status).toBe(200);
+    const sleep = await call('/v1/me/hibernate', { method: 'PUT', body: { on: true }, token });
+    expect(sleep.status).toBe(204);
+
+    const after = Me.parse(await (await call('/v1/me', { token })).json());
+    expect(after.settings.timeZone).toBe('Asia/Ho_Chi_Minh');
+    expect(after.hibernating).toBe(true);
+  });
+
+  it('names the sign-in methods from the person’s identities', async () => {
+    const { token, user } = await signInAnonymously();
+    await env.DB.prepare(
+      `INSERT INTO accounts (id, account_id, provider_id, person_id, created_at, updated_at)
+       VALUES (?, ?, 'email-otp', ?, '', ''), (?, ?, 'apple', ?, '', '')`,
+    )
+      .bind(`e-${user.id}`, `${user.id}@example.com`, user.id, `a-${user.id}`, user.id, user.id)
+      .run();
+    const me = Me.parse(await (await call('/v1/me', { token })).json());
+    expect(me.signIn).toEqual(['apple', 'email']);
+  });
+
+  it('needs a session', async () => {
+    const response = await call('/v1/me');
+    expect(response.status).toBe(401);
   });
 });
