@@ -20,7 +20,7 @@ import { isKnownTimeZone } from '@kithfield/farm';
 import type { SessionEnv } from '../auth';
 import type { Bindings } from '../env';
 import { profileOf } from './adapters/identity';
-import { isBlocked } from './blocks';
+import { blocks } from './blocks';
 import {
   insertFarm,
   liveInvite,
@@ -87,7 +87,7 @@ export const joiningRoutes = (): Hono<SessionEnv> => {
     if (req instanceof Response) return req;
     if (req.person === person) return fail(c, 400, 'bad_request', ['person']);
     if (!isKnownTimeZone(req.timeZone)) return fail(c, 400, 'bad_request', ['timeZone']);
-    if (await isBlocked(c.env, person, req.person)) return fail(c, 404, 'not_found');
+    if (await blocks.isBlocked(c.env, person, req.person)) return fail(c, 404, 'not_found');
     if (!(await shareAFarm(c.env.DB, person, req.person))) return fail(c, 404, 'not_found');
     const [mine, theirs] = await Promise.all([
       profileOf(c.env, person),
