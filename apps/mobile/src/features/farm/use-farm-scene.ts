@@ -37,8 +37,12 @@ export function useFarmScene(
   const placement = useMemo(
     () =>
       placeFarm(
-        members.map((m) => ({ person: m.person, species: m.critter.species })),
-        former.map((f) => ({ person: f.person, species: f.critter.species })),
+        members.map((m) => ({
+          person: m.person,
+          species: m.critter.species,
+          joinedAt: m.joinedAt,
+        })),
+        former.map((f) => ({ person: f.person, species: f.critter.species, joinedAt: f.joinedAt })),
       ),
     [members, former],
   );

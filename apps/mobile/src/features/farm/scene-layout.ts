@@ -77,6 +77,7 @@ export const LANDMARKS = {
 export interface Resident {
   readonly person: PersonId;
   readonly species: Species;
+  readonly joinedAt: number;
 }
 
 export interface PlacedCritter {
@@ -100,64 +101,71 @@ export interface FarmPlacement {
 }
 
 /**
- * Who stands where, in join order. A critter of a cottage's own kind takes that cottage and its
- * spot, so a farm of the scene's own five looks as the design draws it; everyone else takes the
- * next free cottage and spot. The scene has five cottages: past five, critters live in the field
- * without one. Former members keep a cottage while one is free, dozing.
+ * Who stands where. Cottages and spots are handed out over everyone who has lived here, members
+ * and former members together, in join order, so someone leaving moves nobody and takes no
+ * cottage away: theirs dozes. A critter of a cottage's own kind takes that cottage and its spot,
+ * so a farm of the scene's own five looks as the design draws it; everyone else takes the next
+ * free cottage and spot. The scene has five cottages: past five, critters live in the field
+ * without one. When every spot is taken, a newcomer stands where a former member stood.
  */
 export function placeFarm(
   members: readonly Resident[],
   former: readonly Resident[] = [],
 ): FarmPlacement {
+  const gone = new Set(former.map((f) => f.person));
+  const everyone = [...members, ...former].sort(
+    (a, b) => a.joinedAt - b.joinedAt || (a.person < b.person ? -1 : 1),
+  );
   const freeHouses = new Set<HouseKey>(HOUSE_KEYS);
   const freeHomes = new Set<HouseKey>(HOUSE_KEYS);
   const houseOf = new Map<PersonId, HouseKey>();
   const spotOf = new Map<PersonId, Spot>();
   const isHouse = (s: string): s is HouseKey => (HOUSE_KEYS as readonly string[]).includes(s);
 
-  for (const m of members) {
-    if (isHouse(m.species) && freeHouses.has(m.species) && freeHomes.has(m.species)) {
-      freeHouses.delete(m.species);
-      freeHomes.delete(m.species);
-      houseOf.set(m.person, m.species);
-      spotOf.set(m.person, HOME_SPOTS[m.species]);
+  for (const r of everyone) {
+    if (isHouse(r.species) && freeHouses.has(r.species) && freeHomes.has(r.species)) {
+      freeHouses.delete(r.species);
+      freeHomes.delete(r.species);
+      houseOf.set(r.person, r.species);
+      spotOf.set(r.person, HOME_SPOTS[r.species]);
     }
   }
   let field = 0;
-  for (const m of members) {
-    if (spotOf.has(m.person)) continue;
+  const spotless: Resident[] = [];
+  for (const r of everyone) {
+    if (spotOf.has(r.person)) continue;
     const house = HOUSE_KEYS.find((k) => freeHouses.has(k));
     if (house) {
       freeHouses.delete(house);
-      houseOf.set(m.person, house);
+      houseOf.set(r.person, house);
     }
     const home = HOME_ORDER.find((k) => freeHomes.has(k));
-    if (home) {
-      freeHomes.delete(home);
-      spotOf.set(m.person, HOME_SPOTS[home]);
-    } else {
-      const spot = FIELD_SPOTS[field % FIELD_SPOTS.length];
-      field += 1;
-      if (spot) spotOf.set(m.person, spot);
-    }
+    const spot = home ? HOME_SPOTS[home] : FIELD_SPOTS[field];
+    if (home) freeHomes.delete(home);
+    else if (spot) field += 1;
+    if (spot) spotOf.set(r.person, spot);
+    else spotless.push(r);
+  }
+  // Every spot is held: members without one stand where former members stood, earliest first.
+  const reusable = everyone.filter((r) => gone.has(r.person) && spotOf.has(r.person));
+  for (const r of spotless) {
+    if (gone.has(r.person)) continue;
+    const from = reusable.shift();
+    const spot = from ? spotOf.get(from.person) : undefined;
+    if (!from || !spot) break;
+    spotOf.delete(from.person);
+    spotOf.set(r.person, spot);
   }
 
-  const houses: PlacedHouse[] = members.flatMap((m) => {
-    const key = houseOf.get(m.person);
-    return key ? [{ key, person: m.person, former: false }] : [];
+  const houses: PlacedHouse[] = everyone.flatMap((r) => {
+    const key = houseOf.get(r.person);
+    return key ? [{ key, person: r.person, former: gone.has(r.person) }] : [];
   });
-  for (const f of former) {
-    const own = isHouse(f.species) && freeHouses.has(f.species) ? f.species : null;
-    const key = own ?? HOUSE_KEYS.find((k) => freeHouses.has(k));
-    if (!key) break;
-    freeHouses.delete(key);
-    houses.push({ key, person: f.person, former: true });
-  }
-
-  const critters = members
-    .flatMap((m) => {
-      const spot = spotOf.get(m.person);
-      return spot ? [{ person: m.person, spot, house: houseOf.get(m.person) ?? null }] : [];
+  const critters = everyone
+    .flatMap((r) => {
+      const spot = spotOf.get(r.person);
+      if (!spot || gone.has(r.person)) return [];
+      return [{ person: r.person, spot, house: houseOf.get(r.person) ?? null }];
     })
     .sort((a, b) => a.spot.y - b.spot.y);
   return { critters, houses };
