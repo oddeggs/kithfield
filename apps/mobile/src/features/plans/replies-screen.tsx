@@ -1,0 +1,211 @@
+import type { FarmId, PersonId, SeedState } from '@kithfield/contracts';
+import { motion } from '@kithfield/theme';
+import { useEffect, useRef, useState } from 'react';
+import { ScrollView, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+
+import { useOpenFarm } from '../../data';
+import { ArtStill } from '../../ui/art/art-view';
+import { Avatar } from '../../ui/art/avatar';
+import { Button } from '../../ui/components/button';
+import { useLocale } from '../../ui/locale/locale-provider';
+import { Press } from '../../ui/motion/press';
+import { useReduceMotion } from '../../ui/motion/reduce-motion';
+import { useTheme } from '../../ui/theme/theme-provider';
+import { Txt } from '../../ui/type/text';
+import { PlanHeader, useBottomButtonOffset, leave } from './chrome';
+import { personOn, type PlanPerson } from './people';
+import { usePlanLook } from './plan-look';
+import { useMe, usePlan, usePlanRejections, usePlanSend } from './use-plans';
+
+/** The organiser's hat: a straw hat with a red band, as the design draws it. */
+const HAT = { outfit: 'straw', ocolor: '#c9543e' } as const;
+/** How high the hat-wearer hops when the hat arrives, for one drawing on twos. */
+const HOP = 12;
+
+type Answer = SeedState['rsvps'][number]['answer'] | null;
+const ORDER = { in: 0, maybe: 1, out: 2, none: 3 } as const;
+
+/**
+ * The hat-wearer's critter with the hat on, hopping once when the hat passes to them. The stage is
+ * a still: at this size a breathing loop would take more of the art cache than a loop may.
+ */
+function HatStage({ wearer, season }: { readonly wearer: PlanPerson; readonly season: string }) {
+  const look = usePlanLook();
+  const reduce = useReduceMotion();
+  const y = useSharedValue(0);
+  const last = useRef(wearer.person);
+  useEffect(() => {
+    if (last.current === wearer.person) return;
+    last.current = wearer.person;
+    if (reduce) return;
+    const hold = motion.twos.frameMs;
+    y.set(withSequence(withTiming(-HOP, { duration: 0 }), withDelay(hold, withTiming(0, { duration: 0 }))));
+  }, [wearer.person, reduce, y]);
+  const hop = useAnimatedStyle(() => ({ transform: [{ translateY: y.get() }] }));
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        top: 112,
+        left: 28,
+        right: 28,
+        height: 230,
+        borderTopLeftRadius: 115,
+        borderTopRightRadius: 115,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        backgroundColor: look.hatStage,
+        overflow: 'hidden',
+      }}
+    >
+      <Animated.View style={hop}>
+        <ArtStill
+          scene="stage"
+          width={337}
+          height={230}
+          attrs={{
+            kind: wearer.kind,
+            season,
+            ...HAT,
+            ...(wearer.look.coat ? { coat: wearer.look.coat } : {}),
+            ...(wearer.look.mark ? { mark: wearer.look.mark } : {}),
+          }}
+        />
+      </Animated.View>
+    </View>
+  );
+}
+
+/**
+ * The organiser's hat: whoever wears it gets the gentle follow-ups for missing answers, so
+ * nobody has to chase friends. Every member's answer, and the hat passed on with a tap.
+ */
+export function RepliesScreen({ farm, seq }: { readonly farm: FarmId; readonly seq: number }) {
+  useOpenFarm(farm);
+  usePlanRejections();
+  const { palette } = useTheme();
+  const look = usePlanLook();
+  const { t } = useLocale();
+  const offset = useBottomButtonOffset();
+  const me = useMe();
+  const send = usePlanSend(farm);
+  const here = usePlan(farm, seq);
+  const [passing, setPassing] = useState(false);
+  const plan = here?.plan;
+  if (!here || !plan) return <View style={{ flex: 1, backgroundColor: palette.background }} />;
+  const { state } = here;
+  const { seed } = plan;
+  const wearer = personOn(state, seed.hat, me, t);
+  const keeper = state.members.some((m) => m.person === me && m.role === 'keeper');
+  const canPass = me !== null && (me === seed.hat || me === seed.planter || keeper);
+  const answerOf = (p: PersonId): Answer => seed.rsvps.find((r) => r.person === p)?.answer ?? null;
+  // The hat-wearer follows up on everyone else's answers; passing the hat lists everyone else too.
+  const rows = state.members
+    .filter((m) => m.person !== seed.hat)
+    .map((m) => ({ who: personOn(state, m.person, me, t), answer: answerOf(m.person) }))
+    .sort((a, b) => ORDER[a.answer ?? 'none'] - ORDER[b.answer ?? 'none']);
+  const pass = (to: PersonId) => {
+    setPassing(false);
+    if (to !== seed.hat) void send('seed_changed', { seed: seed.seq, hat: to });
+  };
+  const words = (answer: Answer) =>
+    answer === 'in'
+      ? { text: t('plans.hat.in'), color: look.hand }
+      : answer === 'maybe'
+        ? { text: t('plans.hat.maybe'), color: look.maybe }
+        : answer === 'out'
+          ? { text: t('plans.hat.out'), color: look.waiting }
+          : { text: t('plans.hat.waiting'), color: look.waiting };
+  return (
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
+      <PlanHeader title={t('plans.hat.screen')} top={56} />
+      <HatStage wearer={wearer} season={state.season.season} />
+      <ScrollView
+        contentContainerStyle={{ paddingTop: 356, paddingBottom: offset + 56 + 20 }}
+      >
+        <View style={{ paddingHorizontal: 22, gap: 6 }}>
+          <Txt variant="displayM" multiline style={{ fontSize: 24, lineHeight: 26.4 }}>
+            {passing
+              ? t('plans.hat.choose')
+              : wearer.you
+                ? t('plans.hat.titleYou')
+                : t('plans.hat.title', { name: wearer.name })}
+          </Txt>
+          <Txt variant="body" multiline color={palette.body} style={{ lineHeight: 21.3 }}>
+            {wearer.you
+              ? t('plans.hat.bodyYou', { plan: seed.title ?? '' })
+              : t('plans.hat.body', { plan: seed.title ?? '', name: wearer.name })}
+          </Txt>
+        </View>
+        <View
+          style={{
+            marginTop: 39,
+            marginHorizontal: 16,
+            borderRadius: 22,
+            backgroundColor: palette.card,
+            borderWidth: 1,
+            borderColor: palette.cardBorder,
+            overflow: 'hidden',
+          }}
+        >
+          {rows.map(({ who, answer }, i) => {
+            const w = words(answer);
+            const row = (
+              <>
+                <Avatar kind={who.kind} look={who.look} size={32} />
+                <Txt variant="rowTitle" style={{ flex: 1, fontSize: 15, lineHeight: 15 }}>
+                  {who.you ? t('plans.hat.you') : who.name}
+                </Txt>
+                <Txt variant="handS" color={w.color}>
+                  {w.text}
+                </Txt>
+              </>
+            );
+            const style = {
+              flexDirection: 'row' as const,
+              alignItems: 'center' as const,
+              gap: 10,
+              paddingVertical: 9,
+              paddingHorizontal: 14,
+              ...(i > 0 ? { borderTopWidth: 1, borderTopColor: palette.hairline } : {}),
+            };
+            return passing ? (
+              <Press
+                key={who.person}
+                onPress={() => pass(who.person)}
+                haptic="select"
+                accessibilityLabel={t('plans.hat.passTo', { name: who.name })}
+                style={style}
+              >
+                {row}
+              </Press>
+            ) : (
+              <View key={who.person} style={style} accessible>
+                {row}
+              </View>
+            );
+          })}
+        </View>
+      </ScrollView>
+      <View style={{ position: 'absolute', left: 24, right: 24, bottom: offset, flexDirection: 'row', gap: 10 }}>
+        {canPass ? (
+          <Button
+            label={passing ? t('plans.hat.keep') : t('plans.hat.pass')}
+            kind="secondary"
+            icon="hat"
+            onPress={() => setPassing((p) => !p)}
+            style={{ flex: 1 }}
+          />
+        ) : null}
+        <Button label={t('plans.hat.looksGood')} onPress={() => leave()} style={{ flex: 1.2 }} />
+      </View>
+    </View>
+  );
+}
