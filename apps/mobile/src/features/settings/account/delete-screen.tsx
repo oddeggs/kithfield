@@ -17,6 +17,8 @@ import { ApiError } from '../api/request';
 import { useSettingsApi } from '../api/use-api';
 import { seasonHere } from '../format';
 import { confirmIdentity } from '../identity';
+import { useRemote } from '../use-remote';
+import { markDeleted } from './deletion';
 import { NavBar, Row, useDesignTop } from '../kit/layout';
 import { KText } from '../kit/text';
 import { usePhoneZone } from '../time-zone';
@@ -55,6 +57,8 @@ export function DeleteAccountScreen() {
   const face = useFaceId();
   const [exp, setExp] = useState<ExportStatus | null>(null);
   const [busy, setBusy] = useState(false);
+  const me = useRemote(() => api.me());
+  const anonymous = me.data !== null && me.data.signIn.length === 0;
 
   useEffect(() => {
     let live = true;
@@ -93,14 +97,15 @@ export function DeleteAccountScreen() {
     setBusy(true);
     try {
       if (!(await confirmIdentity(t('settings.delete.prompt')))) return;
-      const me = await api.me().catch(() => null);
-      const { purgeAt } = await api.deleteAccount();
+      const person = me.data ?? (await api.me().catch(() => null));
+      await api.deleteAccount();
       haptics.success();
-      swap('/(cover)/settings-goodbye', {
-        name: me?.name ?? '',
-        species: me?.critter?.species ?? '',
-        purgeAt: String(purgeAt),
+      markDeleted({
+        name: person?.name ?? '',
+        species: person?.critter?.species ?? '',
+        anonymous: person !== null && person.signIn.length === 0,
       });
+      swap('/(cover)/settings-goodbye');
     } catch (error) {
       if (!(error instanceof ApiError && error.status === 401)) toast.show(t('settings.failed'));
     } finally {
@@ -112,7 +117,7 @@ export function DeleteAccountScreen() {
     ['trash', 'settings.delete.critter'],
     ['door', 'settings.delete.cottages'],
     ['lock', 'settings.delete.purchases'],
-    ['clock', 'settings.delete.wait'],
+    ['clock', anonymous ? 'settings.delete.waitAnonymous' : 'settings.delete.wait'],
   ] as const;
   const exportLine = preparing
     ? t('settings.delete.preparing')

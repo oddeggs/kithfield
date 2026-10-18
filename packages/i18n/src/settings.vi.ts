@@ -102,6 +102,8 @@ export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.delete.cottages': 'Căn nhà của bạn trở lại thành nét phác ở mọi nông trại',
   'settings.delete.purchases': 'Những gì đã mua vẫn ở với Apple ID nếu bạn quay lại',
   'settings.delete.wait': 'Bạn có 30 ngày để đổi ý bằng cách đăng nhập lại',
+  'settings.delete.waitAnonymous':
+    'Bạn chưa thêm cách đăng nhập nào, nên khi đã rời đi thì không thể quay lại tài khoản này',
   'settings.delete.keepsakes': 'Tải kỷ vật của mình về trước',
   'settings.delete.keepsakesSub': 'Ảnh, trang sổ lưu niệm và nhãn dán, trong một tệp zip',
   'settings.delete.preparing': 'Đang gói kỷ vật của bạn. Quay lại sau một lát nhé.',
@@ -116,6 +118,8 @@ export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.goodbye.titleNoName': 'Bạn đã thu dọn xong',
   'settings.goodbye.body':
     'Mọi thứ sẽ biến mất trong vòng 30 ngày. Đăng nhập lại trước đó và tất cả vẫn chờ bạn, y như lúc bạn rời đi.',
+  'settings.goodbye.bodyAnonymous':
+    'Mọi thứ sẽ biến mất trong vòng 30 ngày. Bạn luôn có thể nuôi một bạn thú mới và bắt đầu lại.',
   'settings.goodbye.close': 'Đóng',
 
   'settings.devices.thisPhone': 'điện thoại này',

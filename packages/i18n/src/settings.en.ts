@@ -111,6 +111,8 @@ export const settingsEn = {
   'settings.delete.cottages': 'Your cottages turn back into sketches on every farm',
   'settings.delete.purchases': 'Purchases stay with your Apple ID if you come back',
   'settings.delete.wait': 'You have 30 days to change your mind by signing in',
+  'settings.delete.waitAnonymous':
+    'You haven’t added a way to sign in, so once you leave there’s no coming back to this account',
   'settings.delete.keepsakes': 'Download my keepsakes first',
   'settings.delete.keepsakesSub': 'Photos, scrapbook pages and stickers, as a zip',
   'settings.delete.preparing': 'Packing your keepsakes. Come back in a little while.',
@@ -125,6 +127,8 @@ export const settingsEn = {
   'settings.goodbye.titleNoName': 'You’ve packed up',
   'settings.goodbye.body':
     'Everything will be gone within 30 days. Sign in again before then and it will all be waiting, just as you left it.',
+  'settings.goodbye.bodyAnonymous':
+    'Everything will be gone within 30 days. You can always plant a new critter and start again.',
   'settings.goodbye.close': 'Close',
 
   /* Devices */

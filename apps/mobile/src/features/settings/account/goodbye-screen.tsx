@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,6 +13,7 @@ import { seasonHere } from '../format';
 import { useKitColors } from '../kit/colors';
 import { KText } from '../kit/text';
 import { usePhoneZone } from '../time-zone';
+import { deletedThisSession, type Deleted } from './deletion';
 
 /** How tall the empty cottage stands at the top. */
 const SCENE_HEIGHT = 430;
@@ -21,13 +22,16 @@ const SCENE_HEIGHT = 430;
  * A kind goodbye after the account is set to be deleted. The server has ended every
  * session; closing forgets this phone's copy and returns to the welcome screen.
  */
-export function GoodbyeScreen({
-  name,
-  species,
-}: {
-  readonly name: string;
-  readonly species: string;
-}) {
+export function GoodbyeScreen() {
+  const deleted = deletedThisSession();
+  // Only a deletion made here, in this run of the app, says goodbye.
+  useEffect(() => {
+    if (deleted === null) router.back();
+  }, [deleted]);
+  return deleted === null ? null : <Goodbye {...deleted} />;
+}
+
+function Goodbye({ name, species, anonymous }: Deleted) {
   const { t } = useLocale();
   const { palette } = useTheme();
   const kit = useKitColors();
@@ -70,7 +74,7 @@ export function GoodbyeScreen({
           {name ? t('settings.goodbye.title', { name }) : t('settings.goodbye.titleNoName')}
         </Txt>
         <KText kind="sheetBody" multiline align="center" color={palette.body}>
-          {t('settings.goodbye.body')}
+          {anonymous ? t('settings.goodbye.bodyAnonymous') : t('settings.goodbye.body')}
         </KText>
       </View>
       <View
