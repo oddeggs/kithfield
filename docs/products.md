@@ -98,7 +98,10 @@ chip in for them, worth £9.99 between them (`THEME_VALUE`).
 
 - **Entitlements**: `patron`, attached to `kf.patron.monthly`, `kf.patron.yearly`,
   `kf.farmplus.monthly` and `kf.founding`; `farm_plus`, attached to `kf.farmplus.monthly`.
-  Items, gifts and chip-ins get no entitlement: the server records them.
+  Items, gifts and chip-ins get no entitlement: the server records them. Nothing in the app or the
+  server reads these entitlements yet (`ENTITLEMENT_IDS` in the contracts is unused): perks come
+  from the server's own record of each subscription. Create them anyway, so RevenueCat's
+  dashboards and any later client check have them.
 - **Offerings**: the default offering `patrons` with packages `$rc_monthly` →
   `kf.patron.monthly`, `$rc_annual` → `kf.patron.yearly`, custom `farm_plus` →
   `kf.farmplus.monthly` and custom `founding` → `kf.founding`. Items, gifts and chip-ins are
@@ -121,16 +124,31 @@ chip in for them, worth £9.99 between them (`THEME_VALUE`).
 - 3.1.2: the patron screens (09-03, 09-22) show the title, each period's length and price from
   StoreKit, that it renews automatically, how to cancel, working Terms of Use (EULA) and Privacy
   Policy links, and Restore purchases. Use the same EULA and Privacy URLs in App Store Connect.
-- Chip-ins: friends promise a share; nobody is charged until the promises cover the gift or theme
-  (see below). A gift friends chipped in for is delivered by the server on behalf of whoever
-  started it.
+- **Chip-ins** (the note for App Review): friends promise a share of a birthday gift or a farm
+  theme. Nobody is charged until the promises cover it; the app opens the purchase sheet only then,
+  after asking the server that the chip-in is still covered. Each friend then buys their own share
+  as a separate consumable (`kf.chipin.*`), for themselves, at the store's price. The app never
+  refunds anything: if a birthday chip-in's day ends before everyone has paid, each paid share
+  becomes that payer's own (the gift item itself if they don't own it, else shop credit of its
+  value, kept in `shop_credits`); a payment that arrives late or twice is treated the same way. A
+  theme stays open until it is paid for. Only Apple refunds, through its own process; such a
+  refund is recorded against the share. A gift friends chipped in for is delivered by the server
+  on behalf of whoever started it (or the next friend who paid, if they left the farm).
 - Care is never paywalled; patron perks are cosmetic; owned items stay when patronage lapses.
 
-## 6. Decisions pending (one switch each)
+## 6. Chip-in payments (decided)
+
+Nobody is charged until a chip-in is covered; then each pledger pays their own share. A share paid
+for a birthday chip-in that closes before everyone paid, or a second or late payment, becomes the
+payer's credit, never a refund: the gift item itself when they don't own it, else its value as
+shop credit (`shop_credits`; spending it is for the shop to add). `refund_owed` is set only when
+Apple refunds a share. Every valid payment is kept in `chip_in_payments`.
+
+## 7. Decisions pending (one switch each)
 
 | Decision | Switch | Default now |
 |---|---|---|
-| When chip-in pledges are charged (IAP can't be refunded by the app) | `CHIP_IN_PAYMENT` in `apps/api/src/purchases/config.ts` (`promise_until_covered` or `pay_upfront`) | `promise_until_covered`: promises until covered, then each pays; paid shares of a chip-in that still closes uncovered are marked `refund_owed` for support |
+| Whether what a patron keeps outlasts the perks | `PATRON_KEEP_ALL` in `apps/api/src/purchases/config.ts` | `true`: anything kept as a patron is theirs for good. `false`: it rests with the perks after a lapse and comes back with them; bought items, gifts and parcels always stay |
 | What Farm Plus "up to 8 critters" means on a farm of up to 24 | `FARM_PLUS_MODE` and `FARM_PLUS_COVERS` in `apps/api/src/purchases/config.ts` | The payer picks one farm (`PUT /v1/me/farm-plus`); its first 8 members by joining time, the payer always included, get the perks |
 | How the printed book is paid (Stripe isn't offered to a Vietnamese business) | `bookCheckoutProvider` in `apps/api/src/purchases/book.ts` | No provider: ordering answers 503 `unavailable` ("not available yet"); quotes, order reads and the Stripe-shaped webhook are ready |
 | When Founding Farmer stops being sold | `FOUNDING_ON_SALE_UNTIL` in `apps/api/src/purchases/config.ts` | 20 March 2027, 00:00 UTC |

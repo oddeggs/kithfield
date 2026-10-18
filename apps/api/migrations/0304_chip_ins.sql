@@ -1,8 +1,7 @@
 -- Chip-ins: friends together cover a wished-for birthday gift or a farm theme. `target` is the
 -- nominal value in pence; pledges keep theirs privately and nobody ever sees an amount.
--- `what_json` is the contract's `ChipInFor`. A paid pledge on a chip-in that closed uncovered is
--- `refunded` with `refund_owed` set: store purchases can't be refunded by the app, so support
--- settles it.
+-- `what_json` is the contract's `ChipInFor`. A pledge is `refunded` (with `refund_owed`) only when
+-- Apple refunds the share; a paid share its chip-in couldn't use becomes the payer's credit.
 CREATE TABLE chip_ins (
   id TEXT PRIMARY KEY,
   farm_id TEXT NOT NULL,
