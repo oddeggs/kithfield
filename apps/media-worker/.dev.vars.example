@@ -1,0 +1,4 @@
+# Local secrets for `wrangler dev` (copy to .dev.vars, which git ignores). Names only.
+# Deployed values are Wrangler secrets per environment: `wrangler secret put <NAME> --env <dev|prd>`.
+# Signs read URLs: the same value as the API's MEDIA_SIGNING_KEY (`openssl rand -base64 32`).
+MEDIA_SIGNING_KEY=
