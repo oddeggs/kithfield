@@ -24,8 +24,9 @@ SplashScreen.setOptions({ duration: 200, fade: true });
 
 function Screens() {
   const { appearance, palette } = useTheme();
-  const { status } = useSession();
-  const signedIn = status === 'signedIn';
+  const { status, onboarded } = useSession();
+  // The tabs for someone signed in and through the way in; onboarding for everyone else.
+  const inside = status === 'signedIn' && onboarded;
   return (
     <>
       <StatusBar style={appearance === 'night' ? 'light' : 'dark'} animated />
@@ -38,10 +39,10 @@ function Screens() {
           presentation: presentationFor(route.name),
         })}
       >
-        <Stack.Protected guard={signedIn}>
+        <Stack.Protected guard={inside}>
           <Stack.Screen name="(tabs)" />
         </Stack.Protected>
-        <Stack.Protected guard={!signedIn}>
+        <Stack.Protected guard={!inside}>
           <Stack.Screen name="(onboarding)" />
         </Stack.Protected>
         <Stack.Protected guard={__DEV__}>
