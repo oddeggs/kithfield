@@ -1,0 +1,87 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Two environments only: `--env dev` (Worker `kithfield-api-dev`) and `--env prd` (`kithfield-api`).
+  // Bindings are not inherited, so each environment declares its own. Local runs and the tests use
+  // `dev` with simulated bindings, which need no Cloudflare account.
+  // Each environment owns `<host>/api/*` (prd `kithfield.com`, dev `dev.kithfield.com`); the website
+  // serves the rest of the host.
+  "name": "kithfield-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  // One FarmDO per farm or visit, one CottageDO per person; both keep their state in SQLite.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["FarmDO", "CottageDO"] }],
+  "env": {
+    "dev": {
+      "name": "kithfield-api-dev",
+      "routes": [{ "pattern": "dev.kithfield.com/api/*", "zone_name": "kithfield.com" }],
+      // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
+      "vars": { "ENVIRONMENT": "dev", "COMMIT_SHA": "local" },
+      "durable_objects": {
+        "bindings": [
+          { "name": "FARM", "class_name": "FarmDO" },
+          { "name": "COTTAGE", "class_name": "CottageDO" },
+        ],
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "kithfield-dev",
+          // Placeholder until the database is created on the Cloudflare account; local runs ignore it.
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media-dev" }],
+      "queues": {
+        "producers": [
+          { "binding": "PUSH_QUEUE", "queue": "kithfield-push-dev" },
+          { "binding": "MEDIA_QUEUE", "queue": "kithfield-media-dev" },
+          { "binding": "AI_QUEUE", "queue": "kithfield-ai-dev" },
+          { "binding": "DELETION_QUEUE", "queue": "kithfield-deletion-dev" },
+        ],
+        "consumers": [
+          { "queue": "kithfield-push-dev" },
+          { "queue": "kithfield-media-dev" },
+          { "queue": "kithfield-ai-dev" },
+          { "queue": "kithfield-deletion-dev" },
+        ],
+      },
+    },
+    "prd": {
+      "name": "kithfield-api",
+      "routes": [{ "pattern": "kithfield.com/api/*", "zone_name": "kithfield.com" }],
+      // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
+      "vars": { "ENVIRONMENT": "prd", "COMMIT_SHA": "local" },
+      "durable_objects": {
+        "bindings": [
+          { "name": "FARM", "class_name": "FarmDO" },
+          { "name": "COTTAGE", "class_name": "CottageDO" },
+        ],
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "kithfield",
+          // Placeholder until the database is created on the Cloudflare account; local runs ignore it.
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media" }],
+      "queues": {
+        "producers": [
+          { "binding": "PUSH_QUEUE", "queue": "kithfield-push" },
+          { "binding": "MEDIA_QUEUE", "queue": "kithfield-media" },
+          { "binding": "AI_QUEUE", "queue": "kithfield-ai" },
+          { "binding": "DELETION_QUEUE", "queue": "kithfield-deletion" },
+        ],
+        "consumers": [
+          { "queue": "kithfield-push" },
+          { "queue": "kithfield-media" },
+          { "queue": "kithfield-ai" },
+          { "queue": "kithfield-deletion" },
+        ],
+      },
+    },
+  },
+}

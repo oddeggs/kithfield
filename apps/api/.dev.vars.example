@@ -1,0 +1,3 @@
+# Local secrets for `wrangler dev` (copy to .dev.vars, which git ignores). Names only.
+# Deployed values are Wrangler secrets per environment: `wrangler secret put <NAME> --env <dev|prd>`.
+# Each name added here is also added to `secretNames` in src/env.ts.
