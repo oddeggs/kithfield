@@ -1,6 +1,6 @@
 ---
 /**
- * The invite page a friend opens from a farm link (`17-05`), at `/i/<code>`. One static page reads
+ * The invite page a friend opens from a farm link, at `/i/<code>`. One static page reads
  * the code from the address and asks the API for the farm's preview (`GET /v1/invites/:code`,
  * contracts `InvitePreview`). Unknown or expired links show "This gate is closed".
  */
@@ -14,7 +14,8 @@ interface Props {
 const { lang } = Astro.props;
 const t = copyFor(lang);
 const s = pageStyles(lang);
-const FARM = '\u0000';
+// Placeholders the page's script fills in once it has the farm.
+const FARM = '{farm}';
 const MANY = 987654321;
 const waitlist = pathFor(lang, '/waitlist');
 const store =

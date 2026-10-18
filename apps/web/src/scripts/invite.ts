@@ -38,7 +38,9 @@ export async function loadInvite(code: string): Promise<InviteLoad> {
   } catch {
     return { kind: 'error' };
   }
-  if (response.status === 404 || response.status === 410) return { kind: 'closed' };
+  // Only the API's own word closes the gate: a taken-back or expired link (`invite_invalid`, or
+  // 410). Any other failure, a bare 404 included, may pass, so it offers a retry.
+  if (response.status === 410) return { kind: 'closed' };
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as { error?: { code?: string } } | null;
     return body?.error?.code === 'invite_invalid' ? { kind: 'closed' } : { kind: 'error' };
@@ -52,7 +54,7 @@ export function showInvite(): void {
   const root = document.querySelector<HTMLElement>('[data-kf="invite"]');
   if (!root) return;
   const field = (name: string) => root.querySelector<HTMLElement>(`[data-field="${name}"]`);
-  const mark = root.dataset.farmMark ?? '\u0000';
+  const mark = root.dataset.farmMark ?? '{farm}';
   const code = inviteCode(location.pathname);
 
   const render = (load: InviteLoad): void => {
@@ -63,16 +65,17 @@ export function showInvite(): void {
     const { preview } = load;
     root.dataset.state = preview.full ? 'full' : 'ready';
     const headline = field('headline');
-    if (headline) headline.textContent = (root.dataset.headline ?? '').replace(mark, preview.name);
+    if (headline)
+      headline.textContent = (root.dataset.headline ?? '').replace(mark, () => preview.name);
     const full = field('full');
-    if (full) full.textContent = (root.dataset.full ?? '').replace(mark, preview.name);
+    if (full) full.textContent = (root.dataset.full ?? '').replace(mark, () => preview.name);
     const count = preview.critters.length;
     const members = field('members');
     if (members) {
       members.textContent =
         count === 1 && root.dataset.membersOne
           ? root.dataset.membersOne
-          : (root.dataset.membersOther ?? '').replace(root.dataset.many ?? '', String(count));
+          : (root.dataset.membersOther ?? '').replace(root.dataset.many ?? '', () => String(count));
     }
     const approval = field('approval');
     if (approval) approval.hidden = !preview.approval;

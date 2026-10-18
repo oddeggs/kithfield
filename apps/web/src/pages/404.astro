@@ -1,0 +1,17 @@
+---
+import { pageStyles } from '../components/page/styles';
+import Page from '../layouts/Page.astro';
+import { copyFor } from '../lib/site';
+
+// Served for any path the site doesn't have (`not_found_handling` in `wrangler.jsonc`).
+const t = copyFor('en');
+const s = pageStyles('en');
+---
+
+<Page lang="en" path="/" title={t('websitePages.notFound.title')} noindex>
+  <h1 style={s.title}>{t('websitePages.notFound.title')}</h1>
+  <p style={s.body}>{t('websitePages.notFound.body')}</p>
+  <a href="/" style={`${s.button};background:#2a221d;color:#F5EEE2;align-self:flex-start`}
+    >{t('websitePages.notFound.home')}</a
+  >
+</Page>

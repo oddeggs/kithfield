@@ -5,7 +5,12 @@
   // the API Worker's route `<host>/api/*` is more specific, so it wins for the API.
   "name": "kithfield-web",
   "compatibility_date": "2026-08-01",
-  "assets": { "directory": "./dist", "html_handling": "auto-trailing-slash" },
+  // Unknown paths get the site's own 404 page (`src/pages/404.astro`).
+  "assets": {
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+  },
   "env": {
     "dev": {
       "name": "kithfield-web-dev",

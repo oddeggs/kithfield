@@ -1,6 +1,6 @@
 ---
 /**
- * The public account-deletion request (`17-11`), required by the App Store and Google Play for
+ * The public account-deletion request, required by the App Store and Google Play for
  * people who can't open the app. It asks the API to send a confirmation code; nothing is deleted
  * before the code comes back.
  */
@@ -43,7 +43,7 @@ const points = [
         required
         maxlength="254"
         autocomplete="email"
-        autofocus
+        data-autofocus
         style={s.field}
       />
     </label>
@@ -66,7 +66,10 @@ const points = [
 </Page>
 
 <script>
+  import { focusOnDesktop } from '../scripts/focus';
   import { requestDeletion } from '../scripts/waitlist';
+
+  focusOnDesktop();
 
   const form = document.querySelector<HTMLFormElement>('[data-kf="delete"]');
   const note = document.querySelector<HTMLElement>('[data-kf="delete-note"]');

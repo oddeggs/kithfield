@@ -1,6 +1,6 @@
 ---
 /**
- * Save your spot (`17-06`): the gate on one side, the form on the other; stacked on phones. A spot
+ * Save your spot: the gate on one side, the form on the other; stacked on phones. A spot
  * is saved once the letter's link is tapped (double opt-in); the thank-you page follows at once.
  */
 import { pageStyles } from '../components/page/styles';
@@ -59,7 +59,7 @@ const s = pageStyles(lang);
             required
             maxlength="254"
             autocomplete="email"
-            autofocus
+            data-autofocus
             style={s.field}
           />
         </label>
@@ -73,7 +73,10 @@ const s = pageStyles(lang);
 </Base>
 
 <script>
+  import { focusOnDesktop } from '../scripts/focus';
   import { joinWaitlist } from '../scripts/waitlist';
+
+  focusOnDesktop();
 
   const form = document.querySelector<HTMLFormElement>('[data-kf="waitlist"]');
   const note = document.querySelector<HTMLElement>('[data-kf="waitlist-note"]');

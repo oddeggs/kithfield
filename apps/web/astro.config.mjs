@@ -33,6 +33,9 @@ export default defineConfig({
   build: { inlineStylesheets: 'always', format: 'file' },
   vite: {
     plugins: [invitePages],
+    // Every script is a file of its own, never inlined, so the CSP (`public/_headers`) can be
+    // `script-src 'self'`.
+    build: { assetsInlineLimit: 0 },
     server: { proxy: { '/api': apiOrigin } },
     preview: { proxy: { '/api': apiOrigin } },
   },
