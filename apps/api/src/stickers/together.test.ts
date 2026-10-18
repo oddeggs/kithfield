@@ -7,7 +7,7 @@ import {
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { plantThrough } from '../../test/admin/support';
+import { nextOp, plantThrough } from '../../test/admin/support';
 import { api, cast, type Person, useTestPorts } from '../../test/farm/support/doubles';
 import { type AccountDeletedJob, purgeAccount } from '../auth/purge';
 import { mergeStepStatements } from '../auth/merge-steps';
@@ -224,5 +224,41 @@ describe('together sticker asks and accounts', () => {
     const mine = results.filter((r) => [june.id, pip.id, fig.id].includes(r.subject_id));
     // Pip's yes to June is Fig's now; Pip's ask of Fig would be Fig asking themselves, so it goes.
     expect(mine).toEqual([{ subject_id: fig.id, asker_id: june.id, ok: 1 }]);
+  });
+});
+
+describe('a together sticker on the farm', () => {
+  const sticker = (who: Person, farm: string, people: Person[]) =>
+    api(who, 'POST', `/v1/farms/${farm}/cmd`, {
+      opId: nextOp(),
+      kind: 'sticker',
+      payload: { pack: 'mine', sticker: 'us', with: people.map((p) => p.id) },
+    });
+  const reason = (res: { body: unknown }) => res.body as { result: string; reason?: string };
+
+  it('draws friends who can be drawn', async () => {
+    const { june, pip, fig, farm } = await lot();
+    expect(reason(await sticker(june, farm, [pip, fig])).result).toBe('ack');
+  });
+
+  it('is refused when anyone in it blocked the sender or was blocked by them', async () => {
+    const { june, pip, fig, farm } = await lot();
+    await api(pip, 'PUT', `/v1/blocks/${june.id}`);
+    expect(reason(await sticker(june, farm, [fig, pip]))).toMatchObject({
+      result: 'rejected',
+      reason: 'not_allowed',
+    });
+    await api(pip, 'DELETE', `/v1/blocks/${june.id}`);
+    await api(june, 'PUT', `/v1/blocks/${fig.id}`);
+    expect(reason(await sticker(june, farm, [fig]))).toMatchObject({ reason: 'not_allowed' });
+  });
+
+  it('is refused when anyone in it turned together stickers off', async () => {
+    const { june, pip, bea, farm } = await lot();
+    await api(bea, 'PATCH', '/v1/me/settings', { inTogetherStickers: false });
+    expect(reason(await sticker(june, farm, [pip, bea]))).toMatchObject({
+      result: 'rejected',
+      reason: 'not_allowed',
+    });
   });
 });
