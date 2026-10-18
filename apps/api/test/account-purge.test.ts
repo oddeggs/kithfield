@@ -98,6 +98,14 @@ describe('the purge after 30 days', () => {
     await api(pip, 'PUT', `/v1/blocks/${kit.id}`);
     await api(kit, 'PUT', `/v1/blocks/${pip.id}`);
     await cottageOf(env, pip.id).updateSettings({ lang: 'vi' });
+    const bundle = `export/${pip.id}/kept.zip`;
+    await env.MEDIA.put(bundle, 'zip');
+    await env.DB.prepare(
+      `INSERT INTO exports (id, person_id, state, requested_at, ready_at, expires_at, r2_key)
+       VALUES (?, ?, 'ready', ?, ?, ?, ?)`,
+    )
+      .bind(crypto.randomUUID(), pip.id, Date.now(), Date.now(), Date.now() + 60_000, bundle)
+      .run();
     await askedDaysAgo(pip.id, 31);
     const [job] = (await dailyRun()).filter(
       (j) => (j as AccountDeletedJob).person === pip.id,
@@ -137,6 +145,8 @@ describe('the purge after 30 days', () => {
       blocked: [{ person: pip.id, name: null, critter: null, at: expect.any(Number) as number }],
     });
     expect((await cottageOf(env, pip.id).settings()).settings.lang).toBe('en');
+    expect(await env.MEDIA.head(bundle)).toBeNull();
+    expect(await count('SELECT count(*) AS n FROM exports WHERE person_id = ?', pip.id)).toBe(0);
 
     // Running it again changes nothing.
     const heads = [homeLog.length, nextLog.length];

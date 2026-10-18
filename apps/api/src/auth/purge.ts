@@ -5,14 +5,16 @@ import { cottageOf } from '../cottage/stub';
 import { registerDeletionJob } from '../deletion';
 import type { Bindings } from '../env';
 import { addressHash } from './email-code';
+import { forgetExports } from './export';
 import { DELETION_GRACE_MS } from './me';
 
 /*
  * The purge, once a person's 30 days are over: the daily job puts an `account_deleted` message on
  * the deletion queue for each, and its consumer runs the steps below in order. The farms write
  * `left {how: account_deleted}` and tombstone what the person wrote (registered by the farm
- * module), the cottage is emptied, other parts delete what they keep (their registered steps),
- * Apple is asked to revoke the person's tokens, and last the person's D1 rows go. Every step is
+ * module), other parts delete what they keep (their registered steps), the cottage is emptied,
+ * their keepsakes exports are deleted from R2, Apple is asked to revoke the person's tokens, and
+ * last the person's D1 rows go. Every step is
  * safe to run again: a retried message runs them all, and the D1 rows go only after the rest.
  */
 
@@ -104,6 +106,7 @@ export async function purgeAccount(env: Bindings, job: AccountDeletedJob): Promi
   if (!(await stillDue(env, person, Date.now()))) return;
   for (const step of steps.values()) await step(env, person);
   await cottageOf(env, person).deleteAccount();
+  await forgetExports(env, person);
   const apple = await env.DB.prepare(
     "SELECT account_id FROM accounts WHERE person_id = ? AND provider_id = 'apple'",
   )
