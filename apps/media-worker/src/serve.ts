@@ -2,8 +2,9 @@ import { MIN_SIGNING_KEY_LENGTH, verifyReadUrl } from '@kithfield/api/src/media/
 
 /*
  * One signed read: `GET <media host>/<key>?exp=&sig=`. The URL must be signed by the API with
- * `MEDIA_SIGNING_KEY` and unexpired, and the key must not be quarantined (checked on every
- * request, cache hits included, so a quarantine takes effect at once).
+ * `MEDIA_SIGNING_KEY` and unexpired, and the key must be in the media index and not quarantined
+ * (checked on every request, cache hits included, so a quarantine takes effect at once). A cached
+ * photo is served only while R2 still has it, so an unsend or a deletion takes effect at once too.
  *
  * Photos are cached on the zone (Cache API, keyed by the object alone, never by the signature) with
  * public cache headers: that is where Cloudflare's CSAM Scanning Tool hashes images. Video, voice
@@ -33,12 +34,13 @@ const PRIVATE_CACHE_CONTROL = 'private, max-age=3600';
 const plain = (status: number, extra: Record<string, string> = {}) =>
   new Response(null, { status, headers: { 'cache-control': 'no-store', ...extra } });
 
-const quarantined = async (db: D1Database, key: string): Promise<boolean> => {
+/** Whether the media index has the key and it isn't quarantined. */
+const servable = async (db: D1Database, key: string): Promise<boolean> => {
   const row = await db
     .prepare('SELECT quarantined_at FROM media_objects WHERE key = ?')
     .bind(key)
     .first<{ quarantined_at: number | null }>();
-  return row?.quarantined_at != null;
+  return row !== null && row.quarantined_at === null;
 };
 
 /** The headers every object answer carries, from what R2 holds. */
@@ -74,7 +76,7 @@ export async function serveMedia(
   const url = new URL(request.url);
   const key = await verifyReadUrl(secret, url, now);
   if (key === null) return plain(403);
-  if (await quarantined(env.DB, key)) return plain(404);
+  if (!(await servable(env.DB, key))) return plain(404);
 
   // The zone's cache. Typed by hand: the test types bring the DOM's `CacheStorage` along.
   const cache = (caches as unknown as { readonly default: Cache }).default;
@@ -83,6 +85,12 @@ export async function serveMedia(
   if (whole) {
     const hit = await cache.match(cacheKey);
     if (hit !== undefined) {
+      // Unsent or deleted since it was cached: drop the copy rather than serve it.
+      if ((await env.MEDIA.head(key)) === null) {
+        await hit.body?.cancel();
+        await cache.delete(cacheKey);
+        return plain(404);
+      }
       return request.method === 'HEAD' ? new Response(null, hit) : hit;
     }
   }

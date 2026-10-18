@@ -36,12 +36,31 @@ describe('signed reads', () => {
     expect(res.headers.get('cache-control')).toBe(PHOTO_CACHE_CONTROL);
     expect(res.headers.get('x-content-type-options')).toBe('nosniff');
 
-    // Cached by object, not by signature: another valid URL for it hits the cache even after the
-    // object is gone from R2.
-    await env.MEDIA.delete(key);
+    // Cached by object, not by signature: another valid URL for it hits the cache.
     const again = await get(await urlFor(key, readExpiry(Date.now()) + 30 * 60_000));
     expect(again.status).toBe(200);
     expect(await again.text()).toBe('jpeg bytes');
+  });
+
+  it('stops serving a cached photo once it is deleted from R2', async () => {
+    const key = await stored('image/jpeg', 'unsent soon');
+    const first = await get(await urlFor(key));
+    expect(await first.text()).toBe('unsent soon');
+    await env.MEDIA.delete(key);
+    const gone = await get(await urlFor(key, readExpiry(Date.now()) + 30 * 60_000));
+    expect(gone.status).toBe(404);
+    await gone.arrayBuffer();
+    // And the cached copy is dropped, not just skipped.
+    const cache = (caches as unknown as { readonly default: Cache }).default;
+    expect(await cache.match(new Request(`${ORIGIN}/${key}`))).toBeUndefined();
+  });
+
+  it('serves nothing for a key the media index doesn’t know', async () => {
+    const key = `farm/f0/${crypto.randomUUID()}`;
+    await env.MEDIA.put(key, 'stray', { httpMetadata: { contentType: 'image/png' } });
+    const res = await get(await urlFor(key));
+    expect(res.status).toBe(404);
+    await res.arrayBuffer();
   });
 
   it('refuses unsigned, tampered, expired and other-key URLs', async () => {
