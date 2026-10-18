@@ -93,6 +93,8 @@ const ADDED_COLUMNS = [
   // What may push the person from this farm (`FarmNotifications.knockFor`), as JSON; null is the
   // defaults.
   ['farms', 'knock_for', 'TEXT'],
+  // The waiting item's short line, for Quick Tend's cards.
+  ['doorstep', 'preview', 'TEXT'],
 ] as const;
 
 export function applySchema(sql: SqlStorage): void {

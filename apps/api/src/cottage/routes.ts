@@ -6,6 +6,7 @@ import {
   MeSettingsUpdate,
   RegisterDeviceRequest,
   RememberRequest,
+  type QuickTendList,
 } from '@kithfield/contracts';
 import { type Context, Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
@@ -46,7 +47,7 @@ const signedIn = createMiddleware<RouteEnv>((c, next) => cottageAdapters().requi
 
 /**
  * The person's cottage over HTTP: devices and their action keys, settings, hibernating,
- * remember-me seeds, opened pushes, and the cottage socket.
+ * remember-me seeds, Quick Tend, opened pushes, and the cottage socket.
  */
 export function cottageRoutes(): Hono<RouteEnv> {
   const app = new Hono<RouteEnv>();
@@ -127,6 +128,11 @@ export function cottageRoutes(): Hono<RouteEnv> {
     const removed = await cottageOf(c.env, c.get('person')).removeSeed(id.data);
     return removed ? c.body(null, 204) : fail(c, 404, 'not_found');
   });
+
+  // Waiting across the person's farms and visits, newest first.
+  app.get('/v1/quick-tend', signedIn, async (c) =>
+    c.json((await cottageOf(c.env, c.get('person')).quickTend()) satisfies QuickTendList),
+  );
 
   // An opened push; the same answer for an id the cottage doesn't know.
   app.post('/v1/push/opened', signedIn, async (c) => {

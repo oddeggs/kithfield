@@ -10,6 +10,7 @@ import {
   PING,
   PONG,
   PushJob,
+  type QuickTendList,
   RegisterDeviceRequest,
   RememberRequest,
   type RememberSeed,
@@ -29,6 +30,7 @@ import { answerHello } from './hello';
 import { considerJob, type Intake } from './intake';
 import * as merge from './merge';
 import { applySettings, readProfile, updateProfile } from './profile';
+import { quickTend } from './quick-tend';
 import * as resting from './resting';
 import { applySchema } from './schema';
 import * as seeds from './seeds';
@@ -134,6 +136,10 @@ export class CottageDO extends DurableObject<Bindings> {
   pinFarm(farm: string, pinned: boolean): void {
     chats.setPinned(this.sql, farm, pinned);
     this.sendRow(farm, this.now);
+  }
+
+  quickTend(): QuickTendList {
+    return quickTend(this.sql);
   }
 
   /** The app opened a push (the id in its data); an unknown id is ignored. */
