@@ -135,7 +135,7 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
             border={fireside.glassBorder}
             style={{ height: 36, paddingHorizontal: 14, justifyContent: 'center', flexShrink: 1, marginLeft: 12 }}
           >
-            <Txt variant="buttonSmall" color={fireside.text} numberOfLines={1} style={{ fontSize: 13, lineHeight: 13 }}>
+            <Txt variant="buttonSmall" color={fireside.text} numberOfLines={1} style={{ fontSize: 13 }}>
               {t('plans.hangout.pill', { title: seed.title })}
             </Txt>
           </Glass>
@@ -168,7 +168,7 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <View style={{ flex: 1, gap: 3 }} accessible accessibilityLiveRegion="polite">
-            <Txt variant="rowTitle" color={fireside.label} style={{ fontSize: 13, lineHeight: 13 }}>
+            <Txt variant="rowTitle" color={fireside.label} style={{ fontSize: 13 }}>
               {t('plans.hangout.around')}
             </Txt>
             <Txt variant="handL" multiline color={fireside.text} style={{ fontSize: 19, lineHeight: 20.9 }}>

@@ -32,7 +32,7 @@ function Label({ text }: { readonly text: string }) {
     <Txt
       variant="label"
       color={palette.muted}
-      style={{ fontSize: 13, lineHeight: 13, fontWeight: '600', letterSpacing: 0.52, marginTop: 4 }}
+      style={{ marginTop: 4 }}
     >
       {text}
     </Txt>

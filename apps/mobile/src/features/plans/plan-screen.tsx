@@ -156,7 +156,7 @@ function Overview({
           <Txt variant="caption" color={palette.secondary}>
             {planDetail(t, { seed, day })}
           </Txt>
-          <Txt variant="handS" color={look.hand} style={{ fontSize: 17, lineHeight: 17 }}>
+          <Txt variant="handL" color={look.hand} style={{ fontSize: 17 }}>
             {t(STAGE_CAPTIONS[stage])}
           </Txt>
         </View>

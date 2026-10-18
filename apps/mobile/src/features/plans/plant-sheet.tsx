@@ -102,14 +102,14 @@ export function PlantSheet({
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Press onPress={() => leave()} darken={false} hitSlop={12} style={{ width: 64 }}>
-            <Txt variant="body" color={palette.body} style={{ fontSize: 16, lineHeight: 16 }}>
+            <Txt variant="body" color={palette.body} style={{ fontSize: 16 }}>
               {t('plans.plant.cancel')}
             </Txt>
           </Press>
           <Txt
             variant="rowTitle"
             accessibilityRole="header"
-            style={{ fontSize: 16, lineHeight: 16 }}
+            style={{ fontSize: 16 }}
           >
             {t('plans.plant.title')}
           </Txt>
@@ -139,7 +139,7 @@ export function PlantSheet({
                 {t('plans.plant.fromMessage', { name: author })}
               </Txt>
             ) : null}
-            <Txt variant="handS" color={look.hand} style={{ fontSize: 17, lineHeight: 17, marginTop: 2 }}>
+            <Txt variant="handL" color={look.hand} style={{ fontSize: 17, marginTop: 2 }}>
               {t(STAGE_CAPTIONS[stage])}
             </Txt>
           </View>

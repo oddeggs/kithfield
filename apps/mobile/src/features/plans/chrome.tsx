@@ -43,7 +43,7 @@ export function GlassBack({
         <Txt
           variant="body"
           color={color ?? palette.text}
-          style={{ fontSize: 26, lineHeight: 26, marginTop: -3 }}
+          style={{ fontSize: 26, lineHeight: 30, marginTop: -3 }}
           importantForAccessibility="no"
         >
           ‹

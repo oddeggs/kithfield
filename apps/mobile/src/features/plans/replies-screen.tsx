@@ -161,7 +161,7 @@ export function RepliesScreen({ farm, seq }: { readonly farm: FarmId; readonly s
             const row = (
               <>
                 <Avatar kind={who.kind} look={who.look} size={32} />
-                <Txt variant="rowTitle" style={{ flex: 1, fontSize: 15, lineHeight: 15 }}>
+                <Txt variant="rowTitle" style={{ flex: 1, fontSize: 15 }}>
                   {who.you ? t('plans.hat.you') : who.name}
                 </Txt>
                 <Txt variant="handS" color={w.color}>

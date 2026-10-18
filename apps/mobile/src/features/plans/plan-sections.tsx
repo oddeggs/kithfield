@@ -64,7 +64,7 @@ export function ConditionCard({
         >
           {met ? <ArtIcon name="check" size={11} color={look.check} /> : null}
         </View>
-        <Txt variant="rowTitle" style={{ fontSize: 15, lineHeight: 15 }}>
+        <Txt variant="rowTitle" style={{ fontSize: 15 }}>
           {title}
         </Txt>
       </View>
@@ -193,7 +193,7 @@ export function PlaceChoice({
                 variant="chip"
                 medium
                 color={palette.chip.suggestionFg}
-                style={{ fontSize: 13.5, lineHeight: 13.5 }}
+                style={{ fontSize: 13.5 }}
                 numberOfLines={1}
               >
                 {s}

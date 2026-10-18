@@ -127,7 +127,7 @@ export function SunPatch({
       }}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <Txt variant="displayS" color={sunPatch.text} style={{ fontSize: 20, lineHeight: 20 }}>
+        <Txt variant="displayS" color={sunPatch.text} style={{ fontSize: 20, lineHeight: 24 }}>
           {t('plans.sun.title')}
         </Txt>
         <Txt variant="handS" color={sunPatch.eyebrow} style={{ lineHeight: 16.5 }}>
@@ -157,7 +157,6 @@ export function SunPatch({
               <Txt
                 variant="bubbleName"
                 color={best ? sunPatch.bestText : sunPatch.text}
-                style={{ lineHeight: 12 }}
               >
                 {weekdayShort(t, day)}
               </Txt>

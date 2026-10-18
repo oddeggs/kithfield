@@ -69,7 +69,7 @@ function SproutedCard({
       >
         <SeedArt stage={3} size={68} tile={p.art} radius={18} twinkle />
         <View style={{ flex: 1 }}>
-          <Txt variant="handS" color={p.eyebrow} style={{ fontSize: 16, lineHeight: 16 }}>
+          <Txt variant="handL" color={p.eyebrow} style={{ fontSize: 16 }}>
             {t(today ? 'plans.bed.today' : 'plans.bed.sprouted')}
           </Txt>
           <Txt variant="rowTitle" style={{ fontSize: 17, lineHeight: 20.4, marginTop: 2 }}>
@@ -83,7 +83,7 @@ function SproutedCard({
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
           {people.length > 0 ? <Critters people={people} size={26} ring={p.bg} overlap={7} /> : null}
-          <Txt variant="caption" color={p.detail} numberOfLines={1} style={{ fontSize: 13, lineHeight: 13, flexShrink: 1 }}>
+          <Txt variant="caption" color={p.detail} numberOfLines={1} style={{ fontSize: 13, flexShrink: 1 }}>
             {t(inPhraseKey(entry.seed.yeses))}
           </Txt>
         </View>
@@ -101,7 +101,7 @@ function SproutedCard({
               backgroundColor: palette.primary.bg,
             }}
           >
-            <Txt variant="buttonSmall" color={palette.primary.fg} style={{ fontSize: 13, lineHeight: 13 }}>
+            <Txt variant="buttonSmall" color={palette.primary.fg} style={{ fontSize: 13 }}>
               {t('plans.bed.addToCalendar')}
             </Txt>
           </Press>
@@ -170,7 +170,7 @@ function GrowingCard({ entry, onPress }: { readonly entry: BedEntry; readonly on
                 backgroundColor: palette.chip.suggestionBg,
               }}
             >
-              <Txt variant="segment" color={palette.chip.suggestionFg} style={{ fontSize: 12, lineHeight: 12 }}>
+              <Txt variant="segment" color={palette.chip.suggestionFg} style={{ fontSize: 12 }}>
                 {suggest}
               </Txt>
             </View>
