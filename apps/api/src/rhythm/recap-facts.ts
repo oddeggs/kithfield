@@ -143,9 +143,7 @@ const reachedBy = (r: Reading, events: readonly FarmEvent[]) => {
 
 /** Members who opened the farm this week after being away four days or more. */
 const cameBack = (r: Reading): Set<PersonId> => {
-  const opened = eventsBetween(r.store, r.state.timeZone, addDays(r.monday, -4), r.week, [
-    'farm_opened',
-  ]);
+  const opened = eventsBetween(r.store, addDays(r.monday, -4), r.week, ['farm_opened']);
   const last = new Map<PersonId, number>();
   for (const m of r.state.members) last.set(m.person, m.joinedAt);
   const back = new Set<PersonId>();
@@ -188,7 +186,7 @@ const planterOf = (r: Reading, seed: number): PersonId | null => {
 export const recapFacts = (store: FarmStore, state: FarmState, week: LocalDate): RecapFacts => {
   const monday = addDays(week, -6);
   const r: Reading = { state, store, week, monday };
-  const events = eventsBetween(store, state.timeZone, monday, week, READ_KINDS);
+  const events = eventsBetween(store, monday, week, READ_KINDS);
   const { kinds, days, hangouts } = tendsOf(r, events);
   const members = state.members.map((m) => m.person);
   const current = new Set(members);
