@@ -7,6 +7,8 @@ import {
   exportOrder,
   lookOfSticker,
   offered,
+  OWN,
+  PACK_IDS,
   packOf,
   shopPacks,
   togetherPose,
@@ -18,6 +20,11 @@ describe('the sticker catalogue', () => {
   it('knows every pack the contracts name, the free one first', () => {
     expect(allPacks()[0]?.id).toBe(OWN_PACK);
     expect(new Set(allPacks().map((p) => p.id))).toEqual(new Set(KNOWN_STICKER_PACKS));
+  });
+
+  it('draws exactly the packs the contracts name, with the same own pack', () => {
+    expect([...PACK_IDS].sort()).toEqual([...KNOWN_STICKER_PACKS].sort());
+    expect(OWN).toBe(OWN_PACK);
   });
 
   it('keeps everyone’s own pack free and out of the shop', () => {

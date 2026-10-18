@@ -2,7 +2,7 @@ import type { Art } from '@kithfield/art';
 import Constants from 'expo-constants';
 import { Directory, File, Paths } from 'expo-file-system';
 
-import { checkMessagesSticker, MESSAGES } from '../formats/specs';
+import { checkMessagesSticker, MESSAGES } from '@kithfield/art/stickers';
 import { bakeSticker, type BakeSpec } from './bake';
 import { packSignature, type PackSticker } from './pack';
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { webpLossless, webpLossy, webpLossyB } from './fixtures.test-data';
 import { assembleAnimatedWebp, readWebp } from './webp';

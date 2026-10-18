@@ -2,7 +2,7 @@ import type { Art, SceneAttrs } from '@kithfield/art';
 import { createNodeArt, premulPixels } from '@kithfield/art/node';
 import { isLanguage, t, type Language, type StringKey } from '@kithfield/i18n';
 
-import type { CaptionKey } from '../../../apps/mobile/src/features/stickers/model/catalogue';
+import type { CaptionKey } from '@kithfield/art/stickers';
 
 /** A critter as the sticker scene draws it. */
 export interface Look {

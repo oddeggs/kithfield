@@ -724,9 +724,6 @@ importers:
       expo-web-browser:
         specifier: 'catalog:'
         version: 58.0.6(expo@58.0.9)(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))
-      fflate:
-        specifier: 'catalog:'
-        version: 0.8.3
       livekit-client:
         specifier: 'catalog:'
         version: 2.23.0(@types/dom-mediacapture-record@1.0.22)
@@ -840,6 +837,9 @@ importers:
       '@shopify/react-native-skia':
         specifier: 'catalog:'
         version: 2.13.1(3437d375848eabd3343a32c2c440aa1b)
+      fflate:
+        specifier: 'catalog:'
+        version: 0.8.3
     devDependencies:
       eslint:
         specifier: 'catalog:'
@@ -902,9 +902,6 @@ importers:
       '@kithfield/art':
         specifier: workspace:*
         version: link:../../packages/art
-      '@kithfield/contracts':
-        specifier: workspace:*
-        version: link:../../packages/contracts
       '@kithfield/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n

@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@kithfield/art": "workspace:*",
-    "@kithfield/contracts": "workspace:*",
     "@kithfield/i18n": "workspace:*",
     "sharp": "catalog:"
   },

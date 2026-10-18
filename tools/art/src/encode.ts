@@ -7,23 +7,11 @@ import { deflateSync, inflateSync } from 'node:zlib';
 
 import sharp from 'sharp';
 
-import { assembleApng } from '../../../apps/mobile/src/features/stickers/formats/apng';
-import {
-  changedRect,
-  cropRgba,
-  type Rect,
-} from '../../../apps/mobile/src/features/stickers/formats/delta';
-import {
-  headerOf,
-  readChunks,
-  writePng,
-} from '../../../apps/mobile/src/features/stickers/formats/png';
-import {
-  MESSAGES,
-  TELEGRAM,
-  WHATSAPP,
-} from '../../../apps/mobile/src/features/stickers/formats/specs';
-import { assembleAnimatedWebp } from '../../../apps/mobile/src/features/stickers/formats/webp';
+import { assembleApng } from '@kithfield/art/stickers';
+import { changedRect, cropRgba, type Rect } from '@kithfield/art/stickers';
+import { headerOf, readChunks, writePng } from '@kithfield/art/stickers';
+import { MESSAGES, TELEGRAM, WHATSAPP } from '@kithfield/art/stickers';
+import { assembleAnimatedWebp } from '@kithfield/art/stickers';
 import type { Frame, Loop } from './render';
 
 const run = promisify(execFile);

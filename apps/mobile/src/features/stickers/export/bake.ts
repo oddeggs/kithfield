@@ -2,12 +2,12 @@ import type { Art } from '@kithfield/art';
 import { AlphaType, ColorType, ImageFormat, Skia, type SkImage } from '@shopify/react-native-skia';
 
 import { whenIdle } from '../../../ui/art/art-provider';
-import { assembleApng } from '../formats/apng';
-import { changedRect, type Rect } from '../formats/delta';
-import { changedIndexRect, encodeIndexedPng } from '../formats/indexed-png';
-import { buildPalette, indexer } from '../formats/palette';
-import { assembleAnimatedWebp } from '../formats/webp';
-import { LOOP_FRAMES } from '../model/loop-lengths.generated';
+import { assembleApng } from '@kithfield/art/stickers';
+import { changedRect, type Rect } from '@kithfield/art/stickers';
+import { changedIndexRect, encodeIndexedPng } from '@kithfield/art/stickers';
+import { buildPalette, indexer } from '@kithfield/art/stickers';
+import { assembleAnimatedWebp } from '@kithfield/art/stickers';
+import { LOOP_FRAMES } from '@kithfield/art/stickers';
 
 /*
  * Stickers made on the phone, from the same drawings the app shows: each frame drawn by the art

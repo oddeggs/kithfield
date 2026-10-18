@@ -8,7 +8,7 @@ import {
   checkWhatsAppSticker,
   checkWhatsAppTray,
   WHATSAPP,
-} from '../formats/specs';
+} from '@kithfield/art/stickers';
 import { toBase64, utf8 } from './base64';
 import { bakeStill, bakeSticker, type BakeSpec } from './bake';
 import { packSignature, type PackSticker } from './pack';

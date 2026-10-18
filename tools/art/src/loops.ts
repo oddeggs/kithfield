@@ -4,13 +4,13 @@
  *
  *   pnpm --filter @kithfield/art-tools loops [--write]
  *
- * With `--write` it writes `apps/mobile/src/features/stickers/model/loop-lengths.generated.ts`.
+ * With `--write` it writes `packages/art/src/stickers/loop-lengths.generated.ts`.
  */
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { allPacks } from '../../../apps/mobile/src/features/stickers/model/catalogue';
+import { allPacks } from '@kithfield/art/stickers';
 import { renderLoop, stickerArt, stickerAttrs } from './render';
 
 const { values } = parseArgs({ options: { write: { type: 'boolean', default: false } } });
@@ -63,7 +63,7 @@ console.log(rows.join('\n'));
 if (values.write) {
   const file = resolve(
     import.meta.dirname,
-    '../../../apps/mobile/src/features/stickers/model/loop-lengths.generated.ts',
+    '../../../packages/art/src/stickers/loop-lengths.generated.ts',
   );
   const body = Object.entries(best)
     .map(([pose, n]) => `  ${/^[a-z][a-zA-Z0-9]*$/.test(pose) ? pose : `'${pose}'`}: ${n},`)

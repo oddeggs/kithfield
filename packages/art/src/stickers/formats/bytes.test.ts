@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { concat, crc32, fourcc, fourccAt, putU24le, putU32be, u24le, u32be } from './bytes';
 

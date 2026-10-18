@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { webm512, webmAudio } from './fixtures.test-data';
 import { readWebm } from './webm';

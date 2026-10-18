@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { assembleApng } from './apng';
 import { png300, pngA, webm512, webmAudio, webmFast, webpLossy } from './fixtures.test-data';

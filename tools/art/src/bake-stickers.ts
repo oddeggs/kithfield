@@ -13,8 +13,8 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { exportOrder, packOf } from '../../../apps/mobile/src/features/stickers/model/catalogue';
-import { TELEGRAM, WHATSAPP } from '../../../apps/mobile/src/features/stickers/formats/specs';
+import { exportOrder, packOf } from '@kithfield/art/stickers';
+import { TELEGRAM, WHATSAPP } from '@kithfield/art/stickers';
 import {
   checkFfmpeg,
   encodePng,

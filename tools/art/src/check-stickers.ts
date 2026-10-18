@@ -17,7 +17,7 @@ import {
   checkWhatsAppSticker,
   checkWhatsAppTray,
   type Problem,
-} from '../../../apps/mobile/src/features/stickers/formats/specs';
+} from '@kithfield/art/stickers';
 
 const dir = process.argv[2];
 if (!dir) {

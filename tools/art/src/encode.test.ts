@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { readApng } from '../../../apps/mobile/src/features/stickers/formats/apng';
-import { readWebp } from '../../../apps/mobile/src/features/stickers/formats/webp';
+import { readApng } from '@kithfield/art/stickers';
+import { readWebp } from '@kithfield/art/stickers';
 import { durations, encodeApng, encodeWebp, everyNth } from './encode';
 import type { Loop } from './render';
 

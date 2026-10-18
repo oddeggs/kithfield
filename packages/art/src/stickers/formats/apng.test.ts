@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 import { assembleApng, readApng } from './apng';
 import { pngA, pngB } from './fixtures.test-data';
