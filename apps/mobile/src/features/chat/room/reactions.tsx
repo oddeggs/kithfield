@@ -52,7 +52,7 @@ function DewChip({ item }: { readonly item: BubbleItem }) {
       }}
     >
       <ArtIcon name="dewdrop" size={20} color={palette.text} />
-      <Txt variant="bubbleState" color={palette.appearance === 'day' ? '#4a3f37' : palette.text}>
+      <Txt variant="bubbleState" color={colours.chipInk}>
         {label}
       </Txt>
     </Press>

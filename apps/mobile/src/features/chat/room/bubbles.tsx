@@ -122,7 +122,7 @@ export function ReplyQuote({ seq, mine }: { readonly seq: number; readonly mine:
       accessibilityLabel={`${t('chat.bubble.replyTo', { name })}: ${said}`}
       style={{
         borderRadius: 12,
-        backgroundColor: mine ? 'rgba(255,255,255,.16)' : colours.quoteBg,
+        backgroundColor: mine ? colours.quoteMineBg : colours.quoteBg,
         paddingVertical: 7,
         paddingHorizontal: 10,
         gap: 2,
@@ -130,8 +130,8 @@ export function ReplyQuote({ seq, mine }: { readonly seq: number; readonly mine:
     >
       {name !== '' ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-          <ArtIcon name="reply" size={13} color={mine ? '#fbf7f0' : colours.quoteName} />
-          <Txt variant="bubbleName" color={mine ? '#fbf7f0' : colours.quoteName}>
+          <ArtIcon name="reply" size={13} color={mine ? colours.onMoss : colours.quoteName} />
+          <Txt variant="bubbleName" color={mine ? colours.onMoss : colours.quoteName}>
             {name}
           </Txt>
         </View>
@@ -139,7 +139,7 @@ export function ReplyQuote({ seq, mine }: { readonly seq: number; readonly mine:
       <Txt
         variant="rowSubtitle"
         numberOfLines={1}
-        color={mine ? '#fbf7f0' : colours.quoteText}
+        color={mine ? colours.onMoss : colours.quoteText}
         style={{ lineHeight: 18.2 }}
       >
         {said}
@@ -171,6 +171,7 @@ function TextBubble({ item, text }: { readonly item: BubbleItem; readonly text: 
 /** A quiet note: lined paper tilted a little, headed "no reply needed" in the hand face. */
 function QuietBubble({ item, text }: { readonly item: BubbleItem; readonly text: string }) {
   const { palette } = useTheme();
+  const colours = useChatColours();
   const { t } = useLocale();
   const { nameOf } = useRoom();
   const b = palette.bubble;
@@ -187,7 +188,7 @@ function QuietBubble({ item, text }: { readonly item: BubbleItem; readonly text:
         borderWidth: 1,
         borderColor: palette.cardBorder,
         transform: [{ rotate: '-0.6deg' }],
-        boxShadow: '0 3px 10px -6px rgba(60,40,20,.35)',
+        boxShadow: colours.quietShadow,
         overflow: 'hidden',
       }}
     >
@@ -232,6 +233,7 @@ function MediaTile({
   readonly height: number;
 }) {
   const { palette } = useTheme();
+  const colours = useChatColours();
   const { t } = useLocale();
   const { farm } = useRoom();
   const video = ref.mime.startsWith('video/');
@@ -262,12 +264,12 @@ function MediaTile({
               width: 44,
               height: 44,
               borderRadius: 22,
-              backgroundColor: 'rgba(20,18,28,.55)',
+              backgroundColor: colours.mediaScrim,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <ArtIcon name="play" size={18} color="#ffffff" />
+            <ArtIcon name="play" size={18} color={colours.onMedia} />
           </View>
         </View>
       ) : null}

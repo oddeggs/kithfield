@@ -87,7 +87,7 @@ function StateLine({ item, showSent }: { readonly item: BubbleItem; readonly sho
             justifyContent: 'center',
           }}
         >
-          <Txt variant="bubbleState" color="#ffffff" style={{ fontSize: 12.5 }}>
+          <Txt variant="bubbleState" color={colours.failButtonInk} style={{ fontSize: 12.5 }}>
             {t('chat.bubble.tryAgain')}
           </Txt>
         </Press>

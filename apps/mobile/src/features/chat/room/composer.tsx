@@ -109,7 +109,7 @@ function MentionList({
       style={[
         {
           borderRadius: 20,
-          backgroundColor: palette.appearance === 'day' ? 'rgba(251,247,240,.97)' : palette.sheet,
+          backgroundColor: colours.mentionList,
           boxShadow: palette.trayShadow,
           padding: 6,
           marginHorizontal: 2,

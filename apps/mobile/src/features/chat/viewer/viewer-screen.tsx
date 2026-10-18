@@ -1,5 +1,5 @@
 import type { PersonId } from '@kithfield/contracts';
-import { springs } from '@kithfield/theme';
+import { springs, viewerInks } from '@kithfield/theme';
 import { Image } from 'expo-image';
 import * as FileSystem from 'expo-file-system/legacy';
 import { router } from 'expo-router';
@@ -32,10 +32,10 @@ import { useDewLabelFor } from './dew-label';
 import { VideoItem } from './video-item';
 import { Zoomable } from './zoomable';
 
-const BG = '#17151c';
-const INK = '#f4ecda';
-const SUB = '#bdb4c4';
-const GLASS = { fill: 'rgba(30,32,56,.5)', border: 'rgba(255,255,255,.14)' };
+const BG = viewerInks.bg;
+const INK = viewerInks.ink;
+const SUB = viewerInks.sub;
+const GLASS = { fill: viewerInks.glassFill, border: viewerInks.glassBorder };
 
 function Circle({
   label,

@@ -204,7 +204,7 @@ function PinCard({
           paddingHorizontal: 14,
           paddingBottom: 12,
           gap: 6,
-          boxShadow: '0 6px 14px -6px rgba(60,40,20,.45)',
+          boxShadow: colours.corkCardShadow,
         }}
       >
         <View style={{ position: 'absolute', top: -8, left: '50%', marginLeft: -11 }}>

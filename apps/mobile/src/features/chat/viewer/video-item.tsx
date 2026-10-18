@@ -1,3 +1,4 @@
+import { chatInks, viewerInks } from '@kithfield/theme';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
 import { View, type LayoutChangeEvent } from 'react-native';
@@ -10,7 +11,7 @@ import { Press } from '../../../ui/motion/press';
 import { Txt } from '../../../ui/type/text';
 import { clock } from '../model/format';
 
-const INK = '#f4ecda';
+const INK = viewerInks.ink;
 
 /** A video in the viewer: muted until tapped, a play button, and a scrubber (04-13). */
 export function VideoItem({
@@ -105,12 +106,12 @@ export function VideoItem({
             width: 64,
             height: 64,
             borderRadius: 32,
-            backgroundColor: 'rgba(20,18,28,.55)',
+            backgroundColor: chatInks.day.mediaScrim,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <ArtIcon name="play" size={26} color="#ffffff" />
+          <ArtIcon name="play" size={26} color={viewerInks.thumb} />
         </Press>
       ) : null}
       <View
@@ -143,7 +144,7 @@ export function VideoItem({
             }
             style={{ flex: 1, height: 24, justifyContent: 'center' }}
           >
-            <View style={{ height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,.2)' }}>
+            <View style={{ height: 4, borderRadius: 2, backgroundColor: viewerInks.track }}>
               <View
                 style={{
                   position: 'absolute',
@@ -164,7 +165,7 @@ export function VideoItem({
                   height: 14,
                   marginLeft: -7,
                   borderRadius: 7,
-                  backgroundColor: '#ffffff',
+                  backgroundColor: viewerInks.thumb,
                 }}
               />
             </View>

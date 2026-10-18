@@ -24,6 +24,7 @@ import { byMonth, sharedItems, type MediaTab, type SharedItem } from '../model/m
 import type { LogEvent } from '../model/timeline';
 import { go } from '../routes';
 import { BackGlyph } from '../room/header';
+import { useChatColours } from '../ui/chat-colours';
 import { useHideTabBar } from '../ui/use-hide-tab-bar';
 
 const TABS: readonly MediaTab[] = ['photos', 'videos', 'links', 'voice'];
@@ -88,6 +89,7 @@ function Tile({
   readonly onPress: () => void;
   readonly onLong: () => void;
 }) {
+  const colours = useChatColours();
   const { palette } = useTheme();
   const { t } = useLocale();
   const url = useSignedUrl(item.tab === 'photos' ? item.ref?.key : null);
@@ -124,14 +126,18 @@ function Tile({
             paddingVertical: 3,
             paddingHorizontal: 6,
             borderRadius: 8,
-            backgroundColor: 'rgba(20,18,28,.6)',
+            backgroundColor: colours.mediaBadge,
             flexDirection: 'row',
             alignItems: 'center',
             gap: 3,
           }}
         >
-          <ArtIcon name="play" size={9} color="#ffffff" />
-          <Txt variant="bubbleState" color="#ffffff" style={{ fontSize: 11, lineHeight: 11 }}>
+          <ArtIcon name="play" size={9} color={colours.onMedia} />
+          <Txt
+            variant="bubbleState"
+            color={colours.onMedia}
+            style={{ fontSize: 11, lineHeight: 11 }}
+          >
             {clock(item.durationMs ?? 0)}
           </Txt>
         </View>

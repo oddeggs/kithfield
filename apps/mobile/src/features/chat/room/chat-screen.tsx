@@ -314,7 +314,7 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
               backgroundColor: palette.background,
               borderTopLeftRadius: 26,
               borderTopRightRadius: 26,
-              boxShadow: '0 -6px 20px -12px rgba(60,40,20,.3)',
+              boxShadow: colours.sheetShadow,
               overflow: 'hidden',
             },
             sheetTop,
@@ -400,8 +400,7 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
                 top: 0,
                 left: 0,
                 right: 0,
-                backgroundColor:
-                  palette.appearance === 'day' ? 'rgba(247,241,231,.96)' : palette.sheet,
+                backgroundColor: colours.pinStrip,
               }}
             >
               <PinBar
@@ -442,10 +441,7 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
               paddingHorizontal: 12,
               paddingBottom: Math.max(insets.bottom, 20) + 12,
               gap: 8,
-              backgroundImage:
-                palette.appearance === 'day'
-                  ? 'linear-gradient(rgba(245,238,226,0), #F5EEE2 30%)'
-                  : 'linear-gradient(rgba(27,31,61,0), #1B1F3D 30%)',
+              backgroundImage: colours.composerFade,
             }}
           >
             <RoomNotice notice={notice} />

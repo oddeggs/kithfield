@@ -248,7 +248,7 @@ export function RecorderPanel({
         backgroundColor: colours.recorderBg,
         borderTopLeftRadius: 26,
         borderTopRightRadius: 26,
-        boxShadow: '0 -10px 30px -14px rgba(40,25,10,.35)',
+        boxShadow: colours.recorderShadow,
         gap: 14,
         zIndex: 30,
       }}
@@ -393,7 +393,7 @@ export function RecorderPanel({
                 backgroundColor: palette.honey,
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 0 0 10px rgba(232,180,78,.25)',
+                boxShadow: colours.recorderRing,
               }}
             >
               <ArtIcon name="mic" size={32} color={palette.text} />

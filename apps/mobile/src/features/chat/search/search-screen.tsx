@@ -44,7 +44,7 @@ function Marked({
     <Txt
       variant="body"
       multiline
-      color={bold ? palette.text : palette.appearance === 'day' ? '#4a3f37' : palette.text}
+      color={bold ? palette.text : colours.searchText}
       style={
         bold
           ? { fontSize: 14.5, lineHeight: 18.85, fontWeight: '600' }

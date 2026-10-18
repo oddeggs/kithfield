@@ -1,3 +1,4 @@
+export * from './chat';
 export * from './colour';
 export * from './fonts';
 export * from './motion';
