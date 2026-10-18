@@ -102,7 +102,7 @@ describe('the AI letters', () => {
     expect(empty.asked).toEqual([request]);
   });
 
-  it('find no AI module on this branch yet', async () => {
-    await expect(loadAi()).rejects.toBeDefined();
+  it("load the AI work's letters", async () => {
+    expect(await loadAi()).toHaveProperty('getAiRecap', expect.any(Function));
   });
 });

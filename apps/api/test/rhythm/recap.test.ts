@@ -3,7 +3,9 @@ import { createExecutionContext, createMessageBatch, getQueueResult } from 'clou
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { letterKey, putJson } from '../../src/ai/store';
 import worker from '../../src/index';
+import { aiLetters } from '../../src/rhythm/ai-letters';
 import { recapLetters, unwrittenLetters } from '../../src/rhythm/letters';
 import { pickPollinator, pollinatorFor } from '../../src/rhythm/pollinator';
 import { recapFacts } from '../../src/rhythm/recap-facts';
@@ -244,6 +246,24 @@ describe('the Sunday recap', () => {
     expect(asked).toEqual([
       { farm: farm.farm, week: '2054-10-18', lang: 'en', members: [pip.id, fig.id] },
     ]);
+  });
+
+  it("serves the AI's written letter in the reader's language", async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    const farm = await plantFarm(pip, [fig]);
+    ports.clock.at = noon('2054-10-18');
+    recapLetters.current = aiLetters(unwrittenLetters);
+    expect((await readRecap(pip, farm)).letterState).toBe('none');
+    const letter = { lang: 'en', title: 'A week of soup', body: 'Thank you for the soup.' };
+    await env.DB.prepare(
+      `INSERT INTO recap_letters (farm_id, week, lang, state, updated_at) VALUES (?, ?, 'en', 'written', ?)`,
+    )
+      .bind(farm.farm, '2054-10-18', Date.now())
+      .run();
+    await putJson(env, letterKey(farm.farm, '2054-10-18', 'en'), letter);
+    const read = await readRecap(pip, farm);
+    expect(read.letterState).toBe('written');
+    expect(read.letter).toEqual(letter);
   });
 
   it("forgets a deleted account's weeks as pollinator", async () => {

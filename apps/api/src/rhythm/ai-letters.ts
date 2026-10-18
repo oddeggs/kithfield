@@ -13,8 +13,8 @@ type AiModule = {
   getAiRecap: (env: Bindings, farm: string, week: string, lang?: Lang) => Promise<unknown>;
 };
 
-/** Loads the AI work's module. To switch its letters on once it is merged: `import('../ai')`. */
-export const loadAi = (): Promise<unknown> => import(/* @vite-ignore */ ['..', 'ai'].join('/'));
+/** Loads the AI work's module, which writes the letters. */
+export const loadAi = (): Promise<unknown> => import('../ai');
 
 const isAiModule = (module: unknown): module is AiModule =>
   typeof (module as Partial<AiModule> | null)?.getAiRecap === 'function';

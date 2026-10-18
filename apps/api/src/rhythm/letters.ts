@@ -6,9 +6,10 @@ import { aiLetters } from './ai-letters';
 /*
  * The Sunday recap's letter, written with an AI from the words of friends who said yes to the
  * `recap` consent, in the reader's language. The AI work fills this port in (`ai-letters.ts`
- * reads its `getAiRecap`); until a letter exists the recap answers `writing` when anyone on the
- * farm said yes, and `none` when nobody did. Either way the app then writes the letter itself from
- * the thanks and plans, with no AI.
+ * reads its `getAiRecap`): `writing` while the week's letter is queued, `none` when there is none.
+ * Should the AI work fail to load, `unwrittenLetters` answers `writing` when anyone on the farm
+ * said yes and `none` when nobody did. Without a letter the app writes its own from the thanks and
+ * plans, with no AI.
  */
 
 export type RecapLetterRequest = {
