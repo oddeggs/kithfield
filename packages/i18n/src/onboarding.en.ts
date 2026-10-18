@@ -57,6 +57,11 @@ export const onboardingEn = {
   'onboarding.signIn.rules': 'house\u00a0rules',
   'onboarding.signIn.privacy': 'privacy\u00a0promise',
   'onboarding.signIn.failed': 'That didn’t work. Try again or use email.',
+  /** Once, after writes that never left the phone were lost when the last session ended. */
+  'onboarding.signIn.unsent.sessionEnd':
+    'You were signed out from another device. A few things you wrote hadn’t sent yet, so they were left behind.',
+  'onboarding.signIn.unsent.signOut':
+    'A few things you wrote hadn’t sent when you signed out, so they were left behind.',
 
   'onboarding.email.title': 'Where should Otis fly?',
   'onboarding.email.body':

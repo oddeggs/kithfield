@@ -1,10 +1,11 @@
 import Constants from 'expo-constants';
-import { randomUUID } from 'expo-crypto';
+import { CryptoDigestAlgorithm, digestStringAsync, randomUUID } from 'expo-crypto';
 import * as Device from 'expo-device';
 import { getCalendars } from 'expo-localization';
 import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect } from 'react';
+import { z } from 'zod';
 
 import type { DataRuntime } from '../../data';
 import { syncPush, type KeyStore, type PushDeps } from './push-sync';
@@ -20,14 +21,16 @@ export const keychain: KeyStore = {
 const DEVICE_KEY = 'kithfield.device';
 
 interface Extra {
-  readonly apiBase: string;
   readonly eas?: { readonly projectId?: string };
 }
 
 const extra = () => Constants.expoConfig?.extra as Extra;
 
-/** The device id this install made on first use: a UUID kept in the Keychain. */
-async function deviceId(): Promise<string> {
+/**
+ * The device id this install made on first use: a UUID kept in the Keychain. It is the phone's one
+ * id with the server (`PUT /v1/devices/:id` ties each session to it in `session_devices`).
+ */
+export async function deviceId(): Promise<string> {
   const kept = keychain.getItem(DEVICE_KEY);
   if (kept) return kept;
   const made = randomUUID();
@@ -35,20 +38,13 @@ async function deviceId(): Promise<string> {
   return made;
 }
 
-/** The phone's side of `syncPush`: Expo's permission and token, the API with the session. */
+/**
+ * The phone's side of `syncPush`: Expo's permission and token, and the data layer's own requests
+ * with its session.
+ */
 export function pushDeps(runtime: DataRuntime<unknown>): PushDeps {
   const send = async (method: 'PUT' | 'PATCH', path: string, body: unknown) => {
-    const response = await fetch(`${extra().apiBase}${path}`, {
-      method,
-      credentials: 'omit',
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-        ...(await runtime.session.headers()),
-      },
-      body: JSON.stringify(body),
-    });
-    if (!response.ok) throw new Error(`${method} ${path} answered ${response.status}`);
+    await runtime.client.api.request(z.unknown(), method, path, body);
   };
   return {
     store: keychain,
@@ -62,6 +58,11 @@ export function pushDeps(runtime: DataRuntime<unknown>): PushDeps {
     },
     timeZone: () => getCalendars()[0]?.timeZone ?? 'UTC',
     deviceId,
+    session: async () => {
+      const bearer = (await runtime.session.headers()).authorization ?? '';
+      const digest = await digestStringAsync(CryptoDigestAlgorithm.SHA256, bearer);
+      return digest.slice(0, 16);
+    },
     device: {
       platform: 'ios',
       name: (Device.deviceName ?? Device.modelName ?? 'iPhone').slice(0, 64),

@@ -12,12 +12,14 @@ function phone(over: Partial<PushDeps> = {}) {
   let granted = false;
   let token: string | null = 'ExponentPushToken[abc]';
   let zone = 'Europe/London';
+  let session = 's1';
   const deps: PushDeps = {
     store,
     permission: () => Promise.resolve(granted),
     token: () => Promise.resolve(token),
     timeZone: () => zone,
     deviceId: () => Promise.resolve('d1'),
+    session: () => Promise.resolve(session),
     device: { platform: 'ios', name: 'iPhone', appVersion: '0.1.0' },
     registerDevice: (device, body) =>
       Promise.resolve(void sent.push(`device ${device} ${body.pushToken}`)),
@@ -30,17 +32,35 @@ function phone(over: Partial<PushDeps> = {}) {
     grant: () => (granted = true),
     setToken: (t: string | null) => (token = t),
     setZone: (z: string) => (zone = z),
+    newSession: (s: string) => (session = s),
   };
 }
 
 describe('telling the server how to reach this phone', () => {
-  it('sends the time zone at first, and the push token once notifications are allowed', async () => {
+  it('sends the time zone and the device at first, and the push token once notifications are allowed', async () => {
     const p = phone();
     await syncPush('p1', p.deps);
-    expect(p.sent).toEqual(['zone Europe/London']);
+    expect(p.sent).toEqual(['zone Europe/London', 'device d1 null']);
     p.grant();
     await syncPush('p1', p.deps);
-    expect(p.sent).toEqual(['zone Europe/London', 'device d1 ExponentPushToken[abc]']);
+    expect(p.sent).toEqual([
+      'zone Europe/London',
+      'device d1 null',
+      'device d1 ExponentPushToken[abc]',
+    ]);
+  });
+
+  it('registers the device again under a new session, keeping its token', async () => {
+    const p = phone();
+    p.grant();
+    await syncPush('p1', p.deps);
+    p.newSession('s2');
+    await syncPush('p1', p.deps);
+    expect(p.sent).toEqual([
+      'zone Europe/London',
+      'device d1 ExponentPushToken[abc]',
+      'device d1 ExponentPushToken[abc]',
+    ]);
   });
 
   it('sends nothing again on a launch where nothing changed', async () => {
@@ -70,12 +90,13 @@ describe('telling the server how to reach this phone', () => {
     expect(p.sent).toHaveLength(4);
   });
 
-  it('registers no device where there is no push token', async () => {
+  it('registers the device without a push token where there is none', async () => {
     const p = phone();
     p.grant();
     p.setToken(null);
     await syncPush('p1', p.deps);
-    expect(p.sent).toEqual(['zone Europe/London']);
+    await syncPush('p1', p.deps);
+    expect(p.sent).toEqual(['zone Europe/London', 'device d1 null']);
   });
 
   it('tries again next launch when sending failed', async () => {

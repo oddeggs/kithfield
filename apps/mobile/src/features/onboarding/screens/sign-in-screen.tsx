@@ -1,10 +1,12 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, useWindowDimensions, View } from 'react-native';
 
+import { takeUnsentNotice, type UnsentNotice } from '../../../data';
 import { Button } from '../../../ui/components/button';
+import { NoticeCard } from '../../../ui/components/card';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useAccount } from '../../../ui/session/account';
@@ -40,6 +42,11 @@ export function SignInScreen() {
   const progress = useProgress();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Writes lost when the last session ended, told once: reading the notice clears it.
+  const [unsent, setUnsent] = useState<UnsentNotice | null>(null);
+  useEffect(() => {
+    takeUnsentNotice().then(setUnsent, () => undefined);
+  }, []);
 
   const withSheet = async (
     provider: 'apple' | 'google',
@@ -86,6 +93,17 @@ export function SignInScreen() {
         <Body>{t('onboarding.signIn.body')}</Body>
       </View>
       <View style={{ position: 'absolute', left: 24, right: 24, bottom, gap: 8 }}>
+        {unsent ? (
+          <NoticeCard
+            icon="raincloud"
+            text={t(
+              unsent.reason === 'sign_out'
+                ? 'onboarding.signIn.unsent.signOut'
+                : 'onboarding.signIn.unsent.sessionEnd',
+            )}
+            style={{ marginBottom: 8 }}
+          />
+        ) : null}
         <FadeUp delay={0}>
           <AppleAuthentication.AppleAuthenticationButton
             buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}

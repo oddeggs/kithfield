@@ -52,6 +52,10 @@ export const onboardingVi: ViCatalogue<typeof onboardingEn> = {
   'onboarding.signIn.rules': 'nội quy',
   'onboarding.signIn.privacy': 'lời hứa về quyền riêng tư',
   'onboarding.signIn.failed': 'Chưa được rồi. Thử lại hoặc dùng email nhé.',
+  'onboarding.signIn.unsent.sessionEnd':
+    'Bạn đã được đăng xuất từ một thiết bị khác. Vài thứ bạn viết chưa kịp gửi đi nên đã bị bỏ lại.',
+  'onboarding.signIn.unsent.signOut':
+    'Vài thứ bạn viết chưa kịp gửi đi khi bạn đăng xuất nên đã bị bỏ lại.',
 
   'onboarding.email.title': 'Otis nên bay đến đâu?',
   'onboarding.email.body':
