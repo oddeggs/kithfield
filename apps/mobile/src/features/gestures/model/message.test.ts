@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { forwardWrite, togglePick } from './forward';
+import { forwardWrite, togglePick, unforwardable } from './forward';
 import {
   dewdropped,
   menuActions,
@@ -134,15 +134,38 @@ describe('the reaction tray', () => {
 });
 
 describe('forwarding', () => {
-  it('carries where it came from and leaves replies and mentions behind', () => {
+  it('carries where it came from and leaves replies, mentions and together friends behind', () => {
     const msg = ev(4, 'message', 'bea', { text: 'old', replyTo: 2, mentions: ['me'] });
     expect(forwardWrite(msg, { farm: 'f1', text: 'edited' })).toEqual({
       kind: 'message',
       payload: { text: 'edited', forwardedFrom: { farm: 'f1', seq: 4 } },
     });
+    const together = ev(6, 'sticker', 'bea', {
+      pack: 'cosy',
+      sticker: 'hug',
+      with: ['pip'],
+      forwardedFrom: { farm: 'f0', seq: 1 },
+    });
+    expect(forwardWrite(together, { farm: 'f1', text: null })).toEqual({
+      kind: 'sticker',
+      payload: { pack: 'cosy', sticker: 'hug', forwardedFrom: { farm: 'f1', seq: 6 } },
+    });
     expect(
       forwardWrite(ev(5, 'quiet_note', 'bea', { text: 'x' }), { farm: 'f1', text: null }),
     ).toBeNull();
+  });
+
+  it('keeps photos, voice notes and link previews on their farm for now', () => {
+    const ref = { key: 'farm/f1/0', mime: 'image/png', bytes: 1 };
+    const photo = ev(7, 'media', 'bea', { items: [ref] });
+    const voice = ev(8, 'voice', 'bea', { audio: ref, durationMs: 1000, waveform: [] });
+    const pictured = ev(9, 'link', 'bea', { url: 'https://a.b', preview: { image: ref } });
+    const plain = ev(10, 'link', 'bea', { url: 'https://a.b', preview: { title: 'A' } });
+    for (const e of [photo, voice, pictured]) {
+      expect(unforwardable(e)).toBe('media');
+      expect(forwardWrite(e, { farm: 'f1', text: null })).toBeNull();
+    }
+    expect(unforwardable(plain)).toBeNull();
   });
 
   it('picks up to five places', () => {

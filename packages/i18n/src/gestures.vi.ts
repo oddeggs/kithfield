@@ -217,6 +217,9 @@ export const gesturesVi: ViCatalogue<typeof gesturesEn> = {
   'gestures.forward.limit': 'Tối đa năm nơi mỗi lần',
   'gestures.forward.none': 'Chưa có nông trại hay chuyến thăm nào khác.',
   'gestures.forward.error': 'Chưa lấy được các nông trại của bạn. Thử lại sau giây lát nhé.',
+  'gestures.forward.mediaStays':
+    'Ảnh, tin nhắn thoại và tệp tạm thời ở lại nông trại của chúng, nên chưa chuyển tiếp được cái này.',
+  'gestures.forward.blocked': 'Không thể chuyển tiếp tin nhắn của người bạn đã chặn.',
   'gestures.forward.and': '{first} và {last}',
 
   'gestures.files.attach': 'Đính kèm',

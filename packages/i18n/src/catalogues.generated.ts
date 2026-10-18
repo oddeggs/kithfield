@@ -27,16 +27,46 @@ import { websitePagesSameInBoth, websitePagesVi } from './website-pages.vi';
 /** Every feature catalogue pair, in file-name order. */
 export const features: readonly FeatureCatalogues[] = [
   { name: 'gallery', file: 'gallery', en: galleryEn, vi: galleryVi, sameInBoth: gallerySameInBoth },
-  { name: 'gestures', file: 'gestures', en: gesturesEn, vi: gesturesVi, sameInBoth: gesturesSameInBoth },
-  { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
+  {
+    name: 'gestures',
+    file: 'gestures',
+    en: gesturesEn,
+    vi: gesturesVi,
+    sameInBoth: gesturesSameInBoth,
+  },
+  {
+    name: 'glossary',
+    file: 'glossary',
+    en: glossaryEn,
+    vi: glossaryVi,
+    sameInBoth: glossarySameInBoth,
+  },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
   { name: 'syncLab', file: 'sync-lab', en: syncLabEn, vi: syncLabVi, sameInBoth: [] },
-  { name: 'systemPermissions', file: 'system-permissions', en: systemPermissionsEn, vi: systemPermissionsVi, sameInBoth: [] },
+  {
+    name: 'systemPermissions',
+    file: 'system-permissions',
+    en: systemPermissionsEn,
+    vi: systemPermissionsVi,
+    sameInBoth: [],
+  },
   { name: 'website', file: 'website', en: websiteEn, vi: websiteVi, sameInBoth: websiteSameInBoth },
-  { name: 'websiteCast', file: 'website-cast', en: websiteCastEn, vi: websiteCastVi, sameInBoth: websiteCastSameInBoth },
-  { name: 'websitePages', file: 'website-pages', en: websitePagesEn, vi: websitePagesVi, sameInBoth: websitePagesSameInBoth },
+  {
+    name: 'websiteCast',
+    file: 'website-cast',
+    en: websiteCastEn,
+    vi: websiteCastVi,
+    sameInBoth: websiteCastSameInBoth,
+  },
+  {
+    name: 'websitePages',
+    file: 'website-pages',
+    en: websitePagesEn,
+    vi: websitePagesVi,
+    sameInBoth: websitePagesSameInBoth,
+  },
 ];
 
 /** The source catalogue: every key, in English. */

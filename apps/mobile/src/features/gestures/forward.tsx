@@ -1,3 +1,4 @@
+import type { BlockList } from '@kithfield/contracts';
 import { farmView } from '@kithfield/farm';
 import { day } from '@kithfield/theme';
 import { useLocalSearchParams } from 'expo-router';
@@ -8,17 +9,24 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDataClient } from '../../data';
 import { ArtIcon } from '../../ui/art/art-view';
 import { Avatar } from '../../ui/art/avatar';
+import { NoticeCard } from '../../ui/components/card';
 import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { ForwardRow, type FarmGlance, type FarmRow } from './forward-row';
-import { FORWARD_LIMIT, forwardWrite, togglePick } from './model/forward';
+import { FORWARD_LIMIT, forwardWrite, togglePick, unforwardable } from './model/forward';
 import { shownText } from './model/message';
 import { markOurs, useGestureRejections, useRejectCopy } from './send';
 import { leave } from './ui/presentation';
 import { seqParam, useGestureFarm } from './use-gesture-farm';
+
+/**
+ * `GET /v1/blocks`, once the data layer's API client has it. Until then nobody counts as blocked
+ * here.
+ */
+type BlocksApi = { blocks?: () => Promise<BlockList> };
 
 /** Joins place names: "Book Club", "Book Club and Otis", "Book Club, Yuzu and Otis". */
 function joinPlaces(
@@ -51,6 +59,21 @@ export function ForwardScreen() {
   const [picked, setPicked] = useState<string[]>([]);
   const [query, setQuery] = useState('');
   const [sending, setSending] = useState(false);
+  const [blocked, setBlocked] = useState<ReadonlySet<string>>(new Set());
+
+  // People you've blocked: their messages are never passed along.
+  useEffect(() => {
+    const api = client.api as typeof client.api & BlocksApi;
+    if (!api.blocks) return;
+    let live = true;
+    api.blocks().then(
+      (list) => live && setBlocked(new Set(list.blocked.map((b) => b.person))),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [client]);
 
   useEffect(() => {
     let live = true;
@@ -99,8 +122,18 @@ export function ForwardScreen() {
   const shown = (rows ?? []).filter((r) =>
     nameOf(r).toLowerCase().includes(query.trim().toLowerCase()),
   );
+  const refusal =
+    event === null
+      ? null
+      : event.actor !== null && blocked.has(event.actor)
+        ? 'blocked'
+        : unforwardable(event);
   const showNote =
-    event !== null && event.actor !== g.me && g.state?.kind !== 'visit' && farmsPicked.length > 0;
+    refusal === null &&
+    event !== null &&
+    event.actor !== g.me &&
+    g.state?.kind !== 'visit' &&
+    farmsPicked.length > 0;
 
   const toggle = (farm: string) => {
     const next = togglePick(picked, farm);
@@ -110,7 +143,7 @@ export function ForwardScreen() {
   };
 
   const sendAll = async () => {
-    if (!event || picked.length === 0 || sending) return;
+    if (!event || picked.length === 0 || sending || refusal !== null) return;
     const write = forwardWrite(event, { farm: g.farm, text });
     if (!write) return;
     setSending(true);
@@ -172,7 +205,7 @@ export function ForwardScreen() {
         </Txt>
         <Press
           onPress={() => void sendAll()}
-          disabled={picked.length === 0 || sending || !event}
+          disabled={picked.length === 0 || sending || !event || refusal !== null}
           darken={false}
           hitSlop={12}
           accessibilityLabel={t('gestures.forward.send')}
@@ -224,6 +257,14 @@ export function ForwardScreen() {
               </Txt>
             </View>
           </View>
+        ) : null}
+        {refusal === 'media' || refusal === 'blocked' ? (
+          <NoticeCard
+            icon={refusal === 'media' ? 'photo' : 'lock'}
+            text={t(
+              refusal === 'media' ? 'gestures.forward.mediaStays' : 'gestures.forward.blocked',
+            )}
+          />
         ) : null}
         {showNote ? (
           <View

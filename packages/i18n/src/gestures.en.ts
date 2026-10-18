@@ -219,6 +219,9 @@ export const gesturesEn = {
   'gestures.forward.limit': 'Up to five at a time',
   'gestures.forward.none': 'No other farms or visits yet.',
   'gestures.forward.error': 'Your farms couldn’t be reached. Try again in a moment.',
+  'gestures.forward.mediaStays':
+    'Photos, voice notes and files stay on their farm for now, so this one can’t be passed along yet.',
+  'gestures.forward.blocked': 'Messages from someone you’ve blocked can’t be passed along.',
   'gestures.forward.and': '{first} and {last}',
 
   'gestures.files.attach': 'Attach',
