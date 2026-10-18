@@ -2,7 +2,18 @@ import { describe, expect, it } from 'vitest';
 
 import { COMMAND_KINDS } from './commands';
 import { EVENT_KINDS, FARM_WRITTEN_KINDS } from './events';
-import { CottageClientFrame, CottageServerFrame, FarmClientFrame, FarmServerFrame } from './frames';
+import { type z } from 'zod';
+
+import {
+  COTTAGE_CLIENT_FRAME_TYPES,
+  COTTAGE_SERVER_FRAME_TYPES,
+  CottageClientFrame,
+  CottageServerFrame,
+  FARM_CLIENT_FRAME_TYPES,
+  FARM_SERVER_FRAME_TYPES,
+  FarmClientFrame,
+  FarmServerFrame,
+} from './frames';
 
 /** The event kinds listed in the farm model's event log table, group by group. */
 const DOC_EVENT_KINDS = {
@@ -15,8 +26,27 @@ const DOC_EVENT_KINDS = {
   writtenByTheFarm: ['weather', 'shared_rain', 'season_rolled', 'harvested', 'rules_changed'],
 };
 
-/** Kinds the docs need but don't list: pins, statuses, plan changes, the fire room, trades. */
-const ADDED_KINDS = ['pin', 'status', 'seed_changed', 'fire', 'traded'];
+/**
+ * Kinds the docs need but don't list: pins, statuses, plan changes, the fire room, trades, the
+ * farm's identity, restoring after an appeal, visitors at the gate and birthday cards.
+ */
+const ADDED_KINDS = [
+  'pin',
+  'status',
+  'seed_changed',
+  'fire',
+  'traded',
+  'farm_created',
+  'restored',
+  'gate',
+  'card_signed',
+];
+
+/** Written by the farm with no person behind them. */
+const FARM_ONLY_KINDS = [
+  ...['weather', 'shared_rain', 'season_rolled', 'harvested'],
+  'rules_changed',
+];
 
 /** Every kind of care the families table counts. */
 const DOC_TENDING_KINDS = [
@@ -46,9 +76,11 @@ const DOC_FARM_FRAMES = {
   fromFarm: ['snapshot', 'events', 'ack', 'rejected', 'event', 'presence', 'typing'],
 };
 
-const frameTypes = (schema: { _zod: { propValues?: Record<string, Set<unknown>> } }) => [
-  ...(schema._zod.propValues?.['type'] ?? []),
-];
+/** A type has a schema when a bare frame of it is not waved through as `unknown`. */
+const hasSchema = (schema: z.ZodType<{ type: string }>, type: string) => {
+  const parsed = schema.safeParse({ type });
+  return !parsed.success || parsed.data.type !== 'unknown';
+};
 
 describe('coverage of the docs', () => {
   it('has a schema for every event kind in the farm model', () => {
@@ -68,23 +100,40 @@ describe('coverage of the docs', () => {
   });
 
   it('keeps the farm-written kinds out of commands', () => {
-    for (const kind of DOC_EVENT_KINDS.writtenByTheFarm) {
+    for (const kind of [...FARM_ONLY_KINDS, 'farm_created', 'restored', 'joined', 'hibernate']) {
       expect(FARM_WRITTEN_KINDS, kind).toContain(kind);
       expect(COMMAND_KINDS).not.toContain(kind);
     }
   });
 
   it('has a schema for every frame in the farm protocol', () => {
-    expect(frameTypes(FarmClientFrame).sort()).toEqual([...DOC_FARM_FRAMES.fromPhone].sort());
-    const fromFarm = frameTypes(FarmServerFrame);
-    for (const type of DOC_FARM_FRAMES.fromFarm) expect(fromFarm, type).toContain(type);
-    expect(fromFarm.filter((t) => !DOC_FARM_FRAMES.fromFarm.includes(t as string))).toEqual([
-      'error',
-    ]);
+    for (const type of DOC_FARM_FRAMES.fromPhone) {
+      expect(hasSchema(FarmClientFrame, type), type).toBe(true);
+    }
+    for (const type of DOC_FARM_FRAMES.fromFarm) {
+      expect(hasSchema(FarmServerFrame, type), type).toBe(true);
+    }
+    expect([...FARM_CLIENT_FRAME_TYPES].sort()).toEqual([...DOC_FARM_FRAMES.fromPhone].sort());
+    const extra = FARM_SERVER_FRAME_TYPES.filter((t) => !DOC_FARM_FRAMES.fromFarm.includes(t));
+    expect(extra).toEqual(['error']);
   });
 
-  it('has a hello and a chat list on the cottage socket', () => {
-    expect(frameTypes(CottageClientFrame)).toEqual(['hello']);
-    expect(frameTypes(CottageServerFrame).sort()).toEqual(['chat', 'chats', 'error']);
+  it('lists exactly the frame types each socket knows', () => {
+    const sockets = [
+      [FarmClientFrame, FARM_CLIENT_FRAME_TYPES],
+      [FarmServerFrame, FARM_SERVER_FRAME_TYPES],
+      [CottageClientFrame, COTTAGE_CLIENT_FRAME_TYPES],
+      [CottageServerFrame, COTTAGE_SERVER_FRAME_TYPES],
+    ] as const;
+    for (const [schema, types] of sockets) {
+      for (const type of types) expect(hasSchema(schema, type), type).toBe(true);
+      expect(hasSchema(schema, 'not_a_frame')).toBe(false);
+    }
+    expect([...COTTAGE_SERVER_FRAME_TYPES].sort()).toEqual([
+      'chat',
+      'chats',
+      'error',
+      'safety_note',
+    ]);
   });
 });
