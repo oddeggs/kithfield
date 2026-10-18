@@ -12,7 +12,9 @@ let client = 0;
 
 /** The API with the waitlist's key set, as `wrangler dev` has it from `.dev.vars`. */
 async function call(path: string, init: RequestInit = {}, keyed = true): Promise<Response> {
-  const bindings: Bindings = { ...env, ...(keyed ? { WAITLIST_EMAIL_KEY: KEY } : {}) };
+  // Without the key even when `.dev.vars` sets one, as on a deployment that hasn't set the secret.
+  const { WAITLIST_EMAIL_KEY: _unset, ...rest } = env;
+  const bindings: Bindings = keyed ? { ...rest, WAITLIST_EMAIL_KEY: KEY } : rest;
   const ctx = createExecutionContext();
   const response = await app.fetch(
     new Request(`https://dev.kithfield.com/api${path}`, init),
