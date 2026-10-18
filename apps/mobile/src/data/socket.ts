@@ -95,10 +95,7 @@ export function createReconnectingSocket(options: ReconnectingSocketOptions) {
     failures += 1;
     setPhase('waiting');
     options.onRetry?.(failures);
-    retryTimer = setTimeout(
-      () => void connect(),
-      backoffDelay(failures, options.backoff, options.random),
-    );
+    retryTimer = setTimeout(() => begin(), backoffDelay(failures, options.backoff, options.random));
   };
 
   const schedulePing = () => {
@@ -117,6 +114,11 @@ export function createReconnectingSocket(options: ReconnectingSocketOptions) {
   };
 
   const heard = () => clearTimeout(deadline);
+
+  /** Starts a connection; anything it throws becomes a retry, never an unhandled rejection. */
+  function begin(): void {
+    connect().catch(() => scheduleRetry());
+  }
 
   async function connect(): Promise<void> {
     detach();
@@ -179,7 +181,7 @@ export function createReconnectingSocket(options: ReconnectingSocketOptions) {
       return attempt;
     },
     start(): void {
-      if (phase === 'stopped' || phase === 'paused') void connect();
+      if (phase === 'stopped' || phase === 'paused') begin();
     },
     /** The connection proved good (caught up): the next failure starts the back-off again. */
     healthy(): void {
@@ -200,7 +202,7 @@ export function createReconnectingSocket(options: ReconnectingSocketOptions) {
     /** Drops this connection and opens a new one now. */
     reconnect(): void {
       if (phase === 'paused' || phase === 'stopped') return;
-      void connect();
+      begin();
     },
     /** Drops this connection; the next one waits its turn in the back-off. */
     drop(): void {
@@ -216,7 +218,7 @@ export function createReconnectingSocket(options: ReconnectingSocketOptions) {
     resume(): void {
       if (phase !== 'paused') return;
       failures = 0;
-      void connect();
+      begin();
     },
     stop,
   };
