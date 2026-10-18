@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // The moderation console. Cloudflare Access guards its host; that policy lives in the Zero Trust
+  // dashboard, not here. Two environments: `--env dev` and `--env prd`.
+  "name": "kithfield-admin",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "env": {
+    "dev": {
+      "name": "kithfield-admin-dev",
+      "vars": { "ENVIRONMENT": "dev" },
+      "routes": [{ "pattern": "admin-dev.kithfield.com/*", "zone_name": "kithfield.com" }],
+    },
+    "prd": {
+      "name": "kithfield-admin",
+      "vars": { "ENVIRONMENT": "prd" },
+      "routes": [{ "pattern": "admin.kithfield.com/*", "zone_name": "kithfield.com" }],
+    },
+  },
+}
