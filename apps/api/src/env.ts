@@ -84,6 +84,8 @@ export type Bindings = Secrets & {
   readonly PUSH_QUEUE: Queue;
   readonly MEDIA_QUEUE: Queue;
   readonly AI_QUEUE: Queue;
+  /** Workers AI: voice-note captions, their translation and the Sunday recap letter. */
+  readonly AI: Ai;
   readonly DELETION_QUEUE: Queue;
 };
 
