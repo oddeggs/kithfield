@@ -113,8 +113,9 @@ describe('planting and joining', () => {
         with: null,
       }),
     ]);
-    const chats = await cottageOf(env, fig.id).chatList();
-    expect(chats).toEqual([
+    // The farm tells the new member's cottage after it answers: wait for that handoff.
+    await settled(farmStub(farm));
+    expect(await cottageOf(env, fig.id).chatList()).toEqual([
       expect.objectContaining({ farm, farmKind: 'farm', name: 'The Thursday Lot' }),
     ]);
     expect((await api(null, 'GET', '/v1/invites/nope1234')).body).toEqual({
@@ -262,6 +263,7 @@ describe('visits', () => {
         with: { person: fig.id, name: 'Fig', critter: fig.critter },
       }),
     ]);
+    await settled(farmStub(farm));
     const chats = await cottageOf(env, fig.id).chatList();
     expect(chats.filter((row) => row.farmKind === 'visit')).toEqual([
       expect.objectContaining({
