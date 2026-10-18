@@ -1,8 +1,13 @@
 import { layout, radii, sizes } from '@kithfield/theme';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type AccessibilityActionEvent } from 'react-native';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  scrollTo,
+  useAnimatedRef,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { useLocale } from '../locale/locale-provider';
@@ -11,8 +16,13 @@ import { fadeTo, sheetTo } from '../motion/motion';
 import { useReduceMotion } from '../motion/reduce-motion';
 import { useTheme } from '../theme/theme-provider';
 import { rubberBand, settleIndex, shouldDismiss } from './sheet-physics';
+import { SheetScroll } from './sheet-scroll';
 
 const OVERSHOOT = 40;
+/** How dark the screen under a modal sheet gets. */
+const SCRIM = 0.3;
+
+export { SheetScrollView } from './sheet-scroll';
 
 export interface SheetProps {
   /** Heights the sheet rests at, in points above the bottom edge, lowest first. */
@@ -39,6 +49,14 @@ export function Sheet({ detents, index, onIndexChange, modal = false, children }
   const height = useSharedValue(reduce ? target : 0);
   const shown = useSharedValue(reduce && index < 0 ? 0 : 1);
   const start = useSharedValue(0);
+  // The list inside, if any: the sheet follows a drag only while the list is at its top.
+  const scrollY = useSharedValue(0);
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const hasScroll = useSharedValue(false);
+  const following = useSharedValue(true);
+  const anchor = useSharedValue(0);
+  // Set when a fling closes the sheet, so the close already under way keeps the finger's speed.
+  const flungShut = useSharedValue(false);
 
   useEffect(() => {
     if (reduce) {
@@ -58,11 +76,13 @@ export function Sheet({ detents, index, onIndexChange, modal = false, children }
           height.set(fadeTo(target));
         }
       }
+    } else if (index < 0 && flungShut.get()) {
+      flungShut.set(false);
     } else {
       shown.set(1);
       height.set(sheetTo(target, false));
     }
-  }, [target, index, reduce, height, shown]);
+  }, [target, index, reduce, height, shown, flungShut]);
 
   const settle = (next: number) => {
     if (next !== index) {
@@ -72,19 +92,41 @@ export function Sheet({ detents, index, onIndexChange, modal = false, children }
   };
 
   const pan = usePanGesture({
+    // Vertical drags only: a sideways swipe on a row inside the sheet stays the row's.
+    activeOffsetY: [-8, 8],
+    failOffsetX: [-12, 12],
     onBegin: () => {
       'worklet';
       start.set(height.get());
+      anchor.set(0);
+      // At its highest stop with the list scrolled down, the drag belongs to the list first.
+      following.set(!(hasScroll.get() && height.get() >= top - 0.5 && scrollY.get() > 0));
     },
     onUpdate: (e) => {
       'worklet';
-      height.set(rubberBand(detents, start.get() - e.translationY));
+      if (!following.get()) {
+        if (scrollY.get() > 0 || e.translationY <= 0) return;
+        following.set(true);
+        anchor.set(e.translationY);
+        start.set(height.get());
+      }
+      const pulled = rubberBand(detents, start.get() - (e.translationY - anchor.get()));
+      // With a list inside, the sheet stops at its highest stop and the list scrolls on.
+      const next = hasScroll.get() ? Math.min(pulled, top) : pulled;
+      height.set(next);
+      // While the sheet moves, the list holds still at its top.
+      if (hasScroll.get() && next < top - 0.5) scrollTo(scrollRef, 0, 0, false);
     },
     onDeactivate: (e) => {
       'worklet';
+      if (!following.get()) return;
       const h = height.get();
       const v = -e.velocityY;
       if (modal && shouldDismiss(detents, h, v)) {
+        if (!reduce) {
+          flungShut.set(true);
+          height.set(sheetTo(0, false, v));
+        }
         scheduleOnRN(onIndexChange, -1);
         return;
       }
@@ -100,7 +142,7 @@ export function Sheet({ detents, index, onIndexChange, modal = false, children }
     opacity: shown.get(),
   }));
   const dim = useAnimatedStyle(() => ({
-    opacity: shown.get() * Math.min(1, height.get() / Math.max(1, detents[0] ?? 1)) * 0.3,
+    opacity: shown.get() * Math.min(1, height.get() / Math.max(1, detents[0] ?? 1)) * SCRIM,
   }));
 
   const adjust = (e: AccessibilityActionEvent) => {
@@ -109,11 +151,15 @@ export function Sheet({ detents, index, onIndexChange, modal = false, children }
     if (name === 'decrement') settle(modal && index === 0 ? -1 : Math.max(0, index - 1));
   };
   const closed = index < 0;
+  const scrollContext = useMemo(
+    () => ({ pan, scrollY, scrollRef, hasScroll }),
+    [pan, scrollY, scrollRef, hasScroll],
+  );
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents={closed ? 'none' : 'box-none'}>
       {modal ? (
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }, dim]}>
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: palette.scrim }, dim]}>
           <Pressable
             style={StyleSheet.absoluteFill}
             accessibilityLabel={t('shell.sheet.close')}
@@ -164,7 +210,7 @@ export function Sheet({ detents, index, onIndexChange, modal = false, children }
               }}
             />
           </View>
-          {children}
+          <SheetScroll.Provider value={scrollContext}>{children}</SheetScroll.Provider>
         </Animated.View>
       </GestureDetector>
     </View>

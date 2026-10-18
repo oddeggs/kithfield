@@ -6,11 +6,11 @@ import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Segmented } from '../components/segmented';
-import { Sheet } from '../components/sheet';
 import { LocaleScope, useLocale } from '../locale/locale-provider';
 import { ThemeScope, useTheme } from '../theme/theme-provider';
 import { Txt } from '../type/text';
 import { BubblesSection, TraySection } from './sections-chat';
+import { SheetSample } from './sheet-sample';
 import { CardsSection, IconsSection } from './sections-cards';
 import { ButtonsSection, ControlsSection } from './sections-controls';
 import { SheetsSection, ShellsSection } from './sections-sheets';
@@ -94,19 +94,14 @@ function Page({
             value={language}
             onChange={setLanguage}
             segments={[
-              { value: 'en', label: 'English' },
-              { value: 'vi', label: 'Tiếng Việt' },
+              { value: 'en', label: t('gallery.language.en') },
+              { value: 'vi', label: t('gallery.language.vi') },
             ]}
           />
         </View>
         <Sections only={only} onOpenSheet={() => setSheet(0)} />
       </ScrollView>
-      <Sheet detents={[260, 520]} index={sheet} onIndexChange={setSheet} modal>
-        <Txt variant="sheetTitle">{t('gallery.sheet.title')}</Txt>
-        <Txt variant="sheetBody" multiline color={palette.body}>
-          {t('gallery.sheet.body')}
-        </Txt>
-      </Sheet>
+      <SheetSample index={sheet} onIndexChange={setSheet} />
     </View>
   );
 }
