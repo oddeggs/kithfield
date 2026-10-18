@@ -1,8 +1,12 @@
 import type { ReactNode } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, type ButtonKind } from '../../../ui/components/button';
 import { useTheme } from '../../../ui/theme/theme-provider';
+
+/** The room iOS leaves above a full-height sheet, under the status bar. */
+const SHEET_GAP = 10;
 
 /**
  * A sheet route (`app/(modal)/…`): the shell presents it as the native sheet, which rises with the
@@ -17,10 +21,17 @@ export function SheetPage({
   readonly footer?: ReactNode;
 }) {
   const { palette } = useTheme();
+  const { height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   return (
-    <View style={{ backgroundColor: palette.sheet }}>
+    // A sheet as tall as what it holds, up to the screen below the status bar: past that its
+    // content scrolls and the buttons stay in view.
+    <View style={{ backgroundColor: palette.sheet, maxHeight: height - insets.top - SHEET_GAP }}>
+      {/* Keeps the scroll view off the native sheet's first-view path, where the sheet would
+          stretch it to its own frame and draw the content below the buttons. */}
+      <View collapsable={false} />
       <ScrollView
-        style={{ flexGrow: 0 }}
+        style={{ flexGrow: 0, flexShrink: 1 }}
         contentContainerStyle={{ paddingTop: 26, paddingHorizontal: 18, gap: 12 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
