@@ -50,6 +50,9 @@ export interface SurfacesDeps {
   readonly now?: () => number;
 }
 
+const statesOf = (list: readonly FarmSource[]): PlanDayInput[] =>
+  list.flatMap((s) => (s.state ? [{ farm: s.row.farm, state: s.state }] : []));
+
 export function createSurfaces(deps: SurfacesDeps) {
   const now = deps.now ?? Date.now;
   let rows: { at: number; rows: readonly FarmRow[] } | null = null;
@@ -108,7 +111,7 @@ export function createSurfaces(deps: SurfacesDeps) {
     } catch (error) {
       deps.report(error);
     }
-    await planDays(list.flatMap((s) => (s.state ? [{ farm: s.row.farm, state: s.state }] : [])));
+    await planDays(statesOf(list));
   }
 
   /** Starts, moves along and ends the plan-day activities. */
@@ -142,7 +145,10 @@ export function createSurfaces(deps: SurfacesDeps) {
     if (!due) {
       clearTimeout(timer);
       timer = setTimeout(() => void refresh(), WIDGET_INTERVAL_MS - (now() - lastWrite));
-      return Promise.resolve();
+      // The plan's day follows every answer and arrival, not the widgets' interval.
+      return sources(false, [])
+        .then((list) => planDays(statesOf(list)))
+        .catch(deps.report);
     }
     if (writing) {
       again = true;

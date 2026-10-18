@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 
 import { useTheme } from '../../ui/theme/theme-provider';
@@ -18,9 +18,13 @@ export function SurfaceOpen() {
   const { palette } = useTheme();
   const target = targetOf(params);
   const ready = valley.status !== 'loading';
+  const key = JSON.stringify(target);
+  // Each link is followed once, however often the valley changes under it.
+  const followed = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || followed.current === key) return;
+    followed.current = key;
     const go = async () => {
       if (target === null || target.to === 'share') {
         router.replace(farmRoutes.home());
@@ -41,8 +45,7 @@ export function SurfaceOpen() {
       if (target.to === 'critter') router.push(farmRoutes.critter(target.farm, target.person));
     };
     void go();
-    // Once per link.
-  }, [ready, params]);
+  }, [ready, key]);
 
   return <View style={{ flex: 1, backgroundColor: palette.background }} />;
 }
