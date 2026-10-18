@@ -14,9 +14,10 @@ import { startLocalApi, type LocalApi } from './wrangler';
  * builds on the one before, like two friends using the app over an afternoon.
  */
 
-const PORT = Number(process.env['E2E_PORT'] ?? 8804);
-const TRANSCRIPT =
-  process.env['E2E_TRANSCRIPT'] ?? join(tmpdir(), `kithfield-e2e-${Date.now()}.log`);
+// Typed here: without Expo's generated types, React Native's `process` global is untyped.
+const env = process.env as Partial<Record<string, string>>;
+const PORT = Number(env['E2E_PORT'] ?? 8804);
+const TRANSCRIPT = env['E2E_TRANSCRIPT'] ?? join(tmpdir(), `kithfield-e2e-${Date.now()}.log`);
 
 const critter = {
   species: 'rabbit',
