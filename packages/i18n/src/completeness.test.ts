@@ -74,6 +74,8 @@ describe('findHouseWordProblems', () => {
     expect(
       findHouseWordProblems({
         'a.ok': 'Mo is dozing. 14 critters live here. No streaks and no read receipts.',
+        'a.wave': '{name} waves goodnight',
+        'a.servers': 'Plus helps pay for the servers',
         'a.avatar': 'Change your avatar',
         'a.admin': 'Only admins can do this',
         'a.dm': 'Send a DM',

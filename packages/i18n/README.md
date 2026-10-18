@@ -61,7 +61,7 @@ A key the language lacks reads in English. The core has no React or Node depende
 - Every feature's Vietnamese has exactly the English keys, none empty, the same `{placeholders}`, the same plural shape, and is not just the English text unless the key is listed as the same in both.
 - Every key starts with its feature's prefix, so features never overwrite each other.
 - The glossary matches the table in `design/01 Foundations.dc.html`, term for term.
-- English copy avoids the words the glossary rules out (avatar, user, DM, admin, inactive, server, "left the group") and never counts care (`{count} dewdrops`).
+- English copy avoids the words the glossary rules out (avatar, user, DM, admin, inactive, "left the group") and never counts care (`{count} dewdrops`, `{n} days in a row`).
 
 ## House rules
 
