@@ -1,4 +1,11 @@
-import type { EpochMs, FarmPlace, LocalDate, Weather, WeatherSource } from '@kithfield/contracts';
+import type {
+  EpochMs,
+  FarmPlace,
+  LocalDate,
+  TimeZone,
+  Weather,
+  WeatherSource,
+} from '@kithfield/contracts';
 import type * as rules from '@kithfield/farm';
 
 import type { Bindings } from '../env';
@@ -20,9 +27,17 @@ export interface FarmRules {
 
 export type WeatherReading = { weather: Weather; source: WeatherSource };
 
-/** Today's weather for the keeper's town; null when there is none to report. */
+/**
+ * Today's weather for the keeper's town; null when there is none to report. `timeZone` is the
+ * farm's, so the provider counts the same day the farm does.
+ */
 export interface WeatherProvider {
-  today(env: Bindings, place: FarmPlace, day: LocalDate): Promise<WeatherReading | null>;
+  today(
+    env: Bindings,
+    place: FarmPlace,
+    day: LocalDate,
+    timeZone?: TimeZone,
+  ): Promise<WeatherReading | null>;
 }
 
 export interface Clock {

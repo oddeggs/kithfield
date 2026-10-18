@@ -181,6 +181,9 @@ describe('a forecast day as the farm reads it', () => {
     expect(solarZone(-74)).toBe('Etc/GMT+5');
     expect(forecastDay('2054-10-18T17:00:00Z', 105.85)).toBe('2054-10-19');
     expect(forecastDay('2054-10-19T05:00:00Z', -74)).toBe('2054-10-19');
+    // With the farm's own zone the day is the farm's day.
+    expect(forecastDay('2054-10-18T17:00:00Z', 105.85, 'Asia/Ho_Chi_Minh')).toBe('2054-10-19');
+    expect(forecastDay('2054-10-18T23:00:00Z', -0.12, 'Europe/London')).toBe('2054-10-19');
   });
 });
 

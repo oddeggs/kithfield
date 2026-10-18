@@ -97,11 +97,12 @@ const fetchReading = async (
   config: WeatherKitConfig,
   place: FarmPlace,
   day: LocalDate,
+  timeZone: string | undefined,
 ): Promise<WeatherReading | null> => {
   const { lat, lng } = roundedPlace(place);
   const url = new URL(`${WEATHERKIT_ORIGIN}/api/v1/weather/en/${lat}/${lng}`);
   url.searchParams.set('dataSets', 'forecastDaily');
-  url.searchParams.set('timezone', solarZone(Number(lng)));
+  url.searchParams.set('timezone', timeZone ?? solarZone(Number(lng)));
   url.searchParams.set('countryCode', place.country);
   const token = await weatherKitToken(config, Math.floor(deps.now() / 1000));
   const response = await deps.fetch(url.toString(), {
@@ -111,7 +112,7 @@ const fetchReading = async (
   const parsed = DailyForecastResponse.safeParse(await response.json());
   if (!parsed.success) throw new WeatherKitError(response.status, 'unreadable');
   const forecast = parsed.data.forecastDaily?.days.find(
-    (d) => forecastDay(d.forecastStart, Number(lng)) === day,
+    (d) => forecastDay(d.forecastStart, Number(lng), timeZone) === day,
   );
   return forecast === undefined
     ? null
@@ -126,14 +127,14 @@ export const weatherKitProvider = (deps: Partial<WeatherKitDeps> = {}): WeatherP
     now: deps.now ?? (() => Date.now()),
   };
   return {
-    async today(env, place, day) {
+    async today(env, place, day, timeZone) {
       const config = weatherKitConfig(env);
       if (config === null) return null;
       const { lat, lng } = roundedPlace(place);
-      const key = `${lat}/${lng}/${day}`;
+      const key = `${lat}/${lng}/${day}/${timeZone ?? 'solar'}`;
       const cached = await full.cache.get(key);
       if (cached !== null) return cached;
-      const reading = await fetchReading(full, config, place, day);
+      const reading = await fetchReading(full, config, place, day, timeZone);
       if (reading !== null) await full.cache.put(key, reading);
       return reading;
     },

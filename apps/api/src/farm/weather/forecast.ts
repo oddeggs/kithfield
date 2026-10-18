@@ -1,3 +1,4 @@
+import { localDay } from '@kithfield/farm';
 import type { FarmPlace, LocalDate, Weather } from '@kithfield/contracts';
 import { z } from 'zod';
 
@@ -67,9 +68,15 @@ export const solarZone = (lng: number): string => {
 };
 
 /** The local day a forecast day starts on, in the solar zone of `lng`. */
-export const forecastDay = (forecastStart: string, lng: number): LocalDate | null => {
+export const forecastDay = (
+  forecastStart: string,
+  lng: number,
+  timeZone?: string,
+): LocalDate | null => {
   const at = Date.parse(forecastStart);
   if (Number.isNaN(at)) return null;
+  // With the farm's own zone, the day starts where the farm's day starts.
+  if (timeZone) return localDay(at + 12 * 3_600_000, timeZone);
   // Halfway through the day, so a zone a little off never lands on the day before.
   const noon = at + solarOffsetHours(lng) * 3_600_000 + 12 * 3_600_000;
   return new Date(noon).toISOString().slice(0, 10);

@@ -78,7 +78,7 @@ const runTimer = async (host: FarmHost, key: string, events: FarmEvent[]): Promi
   const [kind, arg] = key.split(':');
   if (state === null) return;
   if (kind === 'weather' && state.place !== null && arg !== undefined) {
-    const reading = await host.ports().weather.today(host.env, state.place, arg);
+    const reading = await host.ports().weather.today(host.env, state.place, arg, state.timeZone);
     const event =
       reading === null ? null : farm.write(null, 'weather', { day: arg, ...reading }, host.now());
     if (event !== null) events.push(event);
