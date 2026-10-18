@@ -58,6 +58,20 @@ describe('a plan’s day', () => {
     });
   });
 
+  it('follows a plan without a time from 9 to 5, never longer than iOS keeps an activity', () => {
+    // The clocks go back in London that night: still 09:00 to 17:00 on the farm's clock.
+    const london = { ...farmWith([], []), timeZone: 'Europe/London' } as FarmState;
+    const allDay = seed({ days: [{ date: '2026-10-25' }] });
+    expect(planDayWindow(london, allDay)).toEqual({
+      day: '2026-10-25',
+      from: null,
+      startAt: Date.UTC(2026, 9, 25, 9),
+      endAt: Date.UTC(2026, 9, 25, 17),
+    });
+    const timed = planDayWindow(london, seed({ days: [{ date: '2026-10-25', from: '01:30' }] }));
+    expect(timed && timed.endAt - timed.startAt).toBeLessThanOrEqual(8 * 3_600_000);
+  });
+
   it('has none until the plan sprouts with a day', () => {
     expect(planDayWindow(farmWith([], []), seed({ sproutedAt: null }))).toBeNull();
     const undecided = seed({ days: [{ date: '2026-10-18' }, { date: '2026-10-19' }] });

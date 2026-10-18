@@ -19,8 +19,10 @@ import { localClock, MINUTE_MS } from '../push/policy';
 
 /** A plan's day runs from 2 hours before it starts to 2 hours after. */
 export const PLAN_DAY_LEAD_MS = 2 * 60 * MINUTE_MS;
-/** A plan with no start time is followed through the day, from 9 till 9. */
-const ALL_DAY = { from: '09:00', to: '21:00' } as const;
+/** A plan with no start time is followed through the day, from 9 till 5. */
+const ALL_DAY = { from: '09:00', to: '17:00' } as const;
+/** iOS ends a Live Activity after 8 hours: no window is longer. */
+export const PLAN_DAY_MAX_MS = 8 * 60 * MINUTE_MS;
 
 /**
  * The still the app renders of each person's critter into the App Group, by name. The app writes
@@ -73,15 +75,18 @@ export function planDayWindow(state: FarmState, seed: SeedState): PlanDayWindow 
   if (day === null) return null;
   const from = startTimeOf(seed, day);
   if (from === null) {
-    return {
-      day,
-      from,
-      startAt: zonedTime(day, ALL_DAY.from, state.timeZone),
-      endAt: zonedTime(day, ALL_DAY.to, state.timeZone),
-    };
+    const startAt = zonedTime(day, ALL_DAY.from, state.timeZone);
+    const endAt = zonedTime(day, ALL_DAY.to, state.timeZone);
+    return { day, from, startAt, endAt: Math.min(endAt, startAt + PLAN_DAY_MAX_MS) };
   }
   const start = zonedTime(day, from, state.timeZone);
-  return { day, from, startAt: start - PLAN_DAY_LEAD_MS, endAt: start + PLAN_DAY_LEAD_MS };
+  const startAt = start - PLAN_DAY_LEAD_MS;
+  return {
+    day,
+    from,
+    startAt,
+    endAt: Math.min(start + PLAN_DAY_LEAD_MS, startAt + PLAN_DAY_MAX_MS),
+  };
 }
 
 /** Whether the person said they're in (or planted it, and didn't say they're out). */
