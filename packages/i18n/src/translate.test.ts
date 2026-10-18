@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import type { StringKey } from './catalogue-types';
 import { resolveEntry, t, translator } from './translate';
 
 describe('t', () => {
@@ -17,7 +16,7 @@ describe('t', () => {
   });
 
   it('reads an unknown key (only possible from untyped input) as the key itself', () => {
-    expect(t('vi', 'glossary.nothing' as StringKey)).toBe('glossary.nothing');
+    expect(t('vi', 'glossary.nothing' as never)).toBe('glossary.nothing');
   });
 });
 
