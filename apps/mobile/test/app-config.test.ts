@@ -4,7 +4,15 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from '@jest/globals';
 import { fontFaces } from '@kithfield/theme';
 
-import { EAS_PROJECT_ID, FONTS, buildConfig, resolveVariant } from '../app.config';
+import { systemPermissionsEn } from '../../../packages/i18n/src/system-permissions.en';
+import {
+  EAS_PROJECT_ID,
+  FONTS,
+  USAGE,
+  buildConfig,
+  googleRedirectScheme,
+  resolveVariant,
+} from '../app.config';
 
 const unset = { apiBase: undefined };
 
@@ -56,5 +64,103 @@ describe('app variants', () => {
         { fonts: FONTS },
       ]);
     }
+  });
+
+  it('claims each variant’s Google redirect scheme on iOS and hands the app its client id', () => {
+    const dev = buildConfig({}, 'dev', unset);
+    const prd = buildConfig({}, 'prd', unset);
+    expect(googleRedirectScheme('123-abc.apps.googleusercontent.com')).toBe(
+      'com.googleusercontent.apps.123-abc',
+    );
+    expect(dev.ios?.scheme).toBe(
+      'com.googleusercontent.apps.564934268570-n2lmcq3r3vc060p5hsankdnisfnalk0v',
+    );
+    expect(prd.ios?.scheme).toBe(
+      'com.googleusercontent.apps.564934268570-jr7d94ci3jtb88sm4uqio1pjoatb3l31',
+    );
+    expect(dev.extra?.['googleIosClientId']).toBe(
+      '564934268570-n2lmcq3r3vc060p5hsankdnisfnalk0v.apps.googleusercontent.com',
+    );
+    expect(prd.extra?.['googleIosClientId']).toBe(
+      '564934268570-jr7d94ci3jtb88sm4uqio1pjoatb3l31.apps.googleusercontent.com',
+    );
+    // Links and routes keep the app's own scheme.
+    expect(dev.scheme).toBe('kithfield-dev');
+  });
+
+  it('turns on Sign in with Apple and push in both variants', () => {
+    for (const variant of ['dev', 'prd'] as const) {
+      const config = buildConfig({}, variant, unset);
+      expect(config.ios?.usesAppleSignIn).toBe(true);
+      expect(config.plugins).toContainEqual([
+        'expo-notifications',
+        { enableRemoteNotifications: true },
+      ]);
+    }
+  });
+
+  it('takes every permission reason from the copy catalogue, in English and Vietnamese', () => {
+    const english = Object.values(systemPermissionsEn);
+    expect(Object.values(USAGE).sort()).toEqual([...english].sort());
+    const config = buildConfig({}, 'dev', unset);
+    const vi = (config.locales?.['vi'] as { ios: Record<string, string> }).ios;
+    expect(Object.keys(vi).sort()).toEqual(Object.keys(USAGE).sort());
+    for (const [key, text] of Object.entries(vi)) {
+      expect(text).not.toBe(USAGE[key as keyof typeof USAGE]);
+    }
+  });
+
+  it('gives every plugin that writes a permission the same reason', () => {
+    const plugins = buildConfig({}, 'dev', unset).plugins ?? [];
+    const options = (name: string) => {
+      const entry = plugins.find((p) => Array.isArray(p) && p[0] === name);
+      expect(entry).toBeDefined();
+      return (entry as [string, Record<string, unknown>])[1];
+    };
+    expect(options('expo-camera')).toMatchObject({
+      cameraPermission: USAGE.NSCameraUsageDescription,
+      microphonePermission: USAGE.NSMicrophoneUsageDescription,
+    });
+    expect(options('expo-image-picker')).toMatchObject({
+      photosPermission: USAGE.NSPhotoLibraryUsageDescription,
+      cameraPermission: USAGE.NSCameraUsageDescription,
+      microphonePermission: USAGE.NSMicrophoneUsageDescription,
+    });
+    expect(options('expo-media-library')).toMatchObject({
+      photosPermission: USAGE.NSPhotoLibraryUsageDescription,
+      savePhotosPermission: USAGE.NSPhotoLibraryAddUsageDescription,
+    });
+    expect(options('expo-audio')).toMatchObject({
+      microphonePermission: USAGE.NSMicrophoneUsageDescription,
+    });
+    expect(options('expo-local-authentication')).toEqual({
+      faceIDPermission: USAGE.NSFaceIDUsageDescription,
+    });
+    expect(options('expo-contacts')).toEqual({
+      contactsPermission: USAGE.NSContactsUsageDescription,
+    });
+    expect(options('expo-video')).toBeDefined();
+  });
+
+  it('asks for location only while in use, and for the calendar only to write', () => {
+    const plugins = buildConfig({}, 'dev', unset).plugins ?? [];
+    expect(plugins).toContainEqual([
+      'expo-location',
+      expect.objectContaining({
+        locationWhenInUsePermission: USAGE.NSLocationWhenInUseUsageDescription,
+        locationAlwaysAndWhenInUsePermission: false,
+        locationAlwaysPermission: false,
+        isIosBackgroundLocationEnabled: false,
+      }),
+    ]);
+    expect(plugins).toContainEqual([
+      'expo-calendar',
+      expect.objectContaining({
+        writeOnlyAccess: true,
+        writeOnlyCalendarPermission: USAGE.NSCalendarsWriteOnlyAccessUsageDescription,
+        calendarPermission: false,
+        remindersPermission: false,
+      }),
+    ]);
   });
 });

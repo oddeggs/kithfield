@@ -13,6 +13,8 @@ import { signInCodeEn } from './sign-in-code.en';
 import { signInCodeVi } from './sign-in-code.vi';
 import { syncLabEn } from './sync-lab.en';
 import { syncLabVi } from './sync-lab.vi';
+import { systemPermissionsEn } from './system-permissions.en';
+import { systemPermissionsVi } from './system-permissions.vi';
 import { websiteEn } from './website.en';
 import { websiteSameInBoth, websiteVi } from './website.vi';
 import { websiteCastEn } from './website-cast.en';
@@ -28,6 +30,7 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
   { name: 'syncLab', file: 'sync-lab', en: syncLabEn, vi: syncLabVi, sameInBoth: [] },
+  { name: 'systemPermissions', file: 'system-permissions', en: systemPermissionsEn, vi: systemPermissionsVi, sameInBoth: [] },
   { name: 'website', file: 'website', en: websiteEn, vi: websiteVi, sameInBoth: websiteSameInBoth },
   { name: 'websiteCast', file: 'website-cast', en: websiteCastEn, vi: websiteCastVi, sameInBoth: websiteCastSameInBoth },
   { name: 'websitePages', file: 'website-pages', en: websitePagesEn, vi: websitePagesVi, sameInBoth: websitePagesSameInBoth },
@@ -41,6 +44,7 @@ export const en = {
   ...shellEn,
   ...signInCodeEn,
   ...syncLabEn,
+  ...systemPermissionsEn,
   ...websiteEn,
   ...websiteCastEn,
   ...websitePagesEn,
@@ -54,6 +58,7 @@ export const vi = {
   ...shellVi,
   ...signInCodeVi,
   ...syncLabVi,
+  ...systemPermissionsVi,
   ...websiteVi,
   ...websiteCastVi,
   ...websitePagesVi,
