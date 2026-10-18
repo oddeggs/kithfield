@@ -17,7 +17,7 @@ import { openDirections } from './directions';
 import { Arriving, Campfire } from './hangout-art';
 import { personOn } from './people';
 import { fireside } from './plan-look';
-import { planDay, planTime } from './plan-status';
+import { canCheckIn, planDay, planTime } from './plan-status';
 import { hangoutPhoto } from './photo-seam';
 import { useMe, usePlan, usePlanRejections, usePlanSend } from './use-plans';
 
@@ -81,7 +81,7 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
 
   const seed = plan?.seed ?? null;
   const today = here?.view.today ?? null;
-  const onTheDay = !!seed && !!today && (seed.settleOn === today || seed.days.some((d) => d.date === today));
+  const onTheDay = !!seed && !!today && canCheckIn(seed, today);
   const people = seed && here ? seed.checkins.map((p) => personOn(here.state, p, me, t)) : [];
   const imHere = people.some((p) => p.you);
   const latest = [...people].reverse().find((p) => !p.you);

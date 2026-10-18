@@ -16,7 +16,7 @@ import { PlanHeader, useBottomButtonOffset } from './chrome';
 import { personOn, youLast, type PlanPerson } from './people';
 import { ConditionCard, DayChoices, InSoFar, PlaceChoice } from './plan-sections';
 import { usePlanLook } from './plan-look';
-import { leadingOptions, peopleIn, stageOf, stillVoting, votersOf } from './plan-status';
+import { canCheckIn, leadingOptions, peopleIn, stageOf, stillVoting, votersOf } from './plan-status';
 import { SeedArt } from './seed-art';
 import { planDetail } from './seed-card';
 import { useMe, usePlan, usePlanRejections, usePlanSend } from './use-plans';
@@ -230,7 +230,7 @@ export function PlanScreen({ farm, seq }: { readonly farm: FarmId; readonly seq:
     seed.days.map((d) => d.date),
     view.today,
   );
-  const onTheDay = seed.sproutedAt !== null && seed.days.some((d) => d.date === view.today);
+  const onTheDay = canCheckIn(seed, view.today);
   const bottom = canSettle || onTheDay;
   const params = { farm, seed: String(seq) };
   return (

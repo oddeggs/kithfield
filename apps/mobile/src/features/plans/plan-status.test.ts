@@ -5,7 +5,10 @@ import { planConditions } from '@kithfield/farm';
 
 import { canPlant, draftStage, joinNames, placeSuggestions, plantPayload, titleFrom } from './draft';
 import {
+  answerSeenBy,
   bedKindOf,
+  canCheckIn,
+  canPassHat,
   leadingOptions,
   planDay,
   sortBed,
@@ -151,5 +154,53 @@ describe('a plan being planted', () => {
     expect(joinNames(en, ['Pip', 'you'])).toBe('Pip and you');
     expect(joinNames(en, ['Pip', 'Bea', 'you'])).toBe('Pip, Bea and you');
     expect(joinNames(en, ['you'])).toBe('you');
+  });
+});
+
+describe('the day of a hangout', () => {
+  const sprouted = (over: Partial<SeedState>) =>
+    seed({ place: { name: 'Willow' }, sproutedAt: 1, ...over });
+
+  it('takes check-ins on the plan’s day once it has sprouted', () => {
+    expect(canCheckIn(sprouted({ days: [{ date: today }] }), today)).toBe(true);
+  });
+
+  it('refuses them off the day', () => {
+    expect(canCheckIn(sprouted({ days: [{ date: '2026-10-19' }] }), today)).toBe(false);
+  });
+
+  it('refuses them before the plan has sprouted', () => {
+    expect(canCheckIn(seed({ days: [{ date: today }] }), today)).toBe(false);
+  });
+
+  it('refuses them on a day friends leaned away from', () => {
+    const losing = sprouted({
+      days: [{ date: today }, { date: '2026-10-19' }],
+      settleOn: today,
+      votes: [
+        { option: 0, people: ['a'] },
+        { option: 1, people: ['b', 'c'] },
+      ],
+    });
+    expect(canCheckIn(losing, today)).toBe(false);
+    expect(canCheckIn(losing, '2026-10-19')).toBe(true);
+  });
+});
+
+describe('the organiser’s hat', () => {
+  it('can be passed on only by whoever wears it', () => {
+    const s = seed({ planter: 'pip', hat: 'bea' });
+    expect(canPassHat(s, 'bea')).toBe(true);
+    expect(canPassHat(s, 'pip')).toBe(false);
+    expect(canPassHat(s, 'mo')).toBe(false);
+    expect(canPassHat(s, null)).toBe(false);
+  });
+
+  it('shows a "can’t make it" only to whoever wears it; to everyone else it is no answer yet', () => {
+    expect(answerSeenBy('out', true)).toBe('out');
+    expect(answerSeenBy('out', false)).toBeNull();
+    expect(answerSeenBy('in', false)).toBe('in');
+    expect(answerSeenBy('maybe', false)).toBe('maybe');
+    expect(answerSeenBy(null, true)).toBeNull();
   });
 });

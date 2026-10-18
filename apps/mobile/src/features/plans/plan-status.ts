@@ -127,3 +127,20 @@ export function needsKey(conditions: PlanConditions) {
   if (!conditions.day && !conditions.place) return 'plans.bed.needsBoth' as const;
   return conditions.day ? ('plans.bed.needsPlace' as const) : ('plans.bed.needsDay' as const);
 }
+
+/** "I'm here" is for a sprouted plan's own day: the day it settled on, in the farm's time. */
+export const canCheckIn = (seed: SeedState, today: LocalDate): boolean =>
+  seed.sproutedAt !== null && planDay(seed) === today;
+
+/** Whoever wears the organiser's hat passes it on. */
+export const canPassHat = (seed: SeedState, me: PersonId | null): boolean =>
+  me !== null && seed.hat === me;
+
+type Answer = SeedState['rsvps'][number]['answer'];
+
+/**
+ * An answer as one person sees it: "can't make it" is told only to whoever wears the hat, so it
+ * never reads as a no in front of everyone; to the rest it is simply no answer yet.
+ */
+export const answerSeenBy = (answer: Answer | null, wearsHat: boolean): Answer | null =>
+  answer === 'out' && !wearsHat ? null : answer;
