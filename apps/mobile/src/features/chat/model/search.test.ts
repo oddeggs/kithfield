@@ -78,4 +78,16 @@ describe('search', () => {
     expect(merged.map((h) => h.seq)).not.toContain(5);
     expect(merged.map((h) => h.seq)).toContain(1);
   });
+
+  it('finds nothing said by someone you blocked', () => {
+    const server: Hit[] = [
+      { farm: 'f', seq: 7, at: 7000, actor: 'bram', kind: 'message', text: 'picnic is dumb' },
+      { farm: 'f', seq: 1, at: 1000, actor: 'mo', kind: 'message', text: 'an old picnic' },
+    ];
+    const local: Hit[] = [
+      { farm: 'f', seq: 8, at: 8000, actor: 'bram', kind: 'message', text: 'picnic again' },
+    ];
+    const merged = mergeHits(server, local, new Set(), new Set(['bram']));
+    expect(merged.map((h) => h.seq)).toEqual([1]);
+  });
 });

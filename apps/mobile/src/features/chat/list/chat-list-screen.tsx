@@ -16,6 +16,7 @@ import { Txt } from '../../../ui/type/text';
 import { useChatApi } from '../api/chat-api';
 import { sectionsOf } from '../model/chat-list';
 import { go } from '../routes';
+import { useBlockedIds } from '../ui/blocked';
 import { useMe } from '../ui/use-me';
 import { ChatRow } from './chat-row';
 
@@ -62,7 +63,8 @@ export function ChatListScreen() {
       return Object.keys(left).length === Object.keys(c).length ? c : left;
     });
   }, [chats]);
-  const { farms, visits } = useMemo(() => sectionsOf(rows), [rows]);
+  const blocked = useBlockedIds();
+  const { farms, visits } = useMemo(() => sectionsOf(rows, blocked), [rows, blocked]);
 
   const change = (row: ChatListItem, next: Change, work: () => Promise<void>) => {
     setChanges((c) => ({ ...c, [row.farm]: { ...c[row.farm], ...next } }));

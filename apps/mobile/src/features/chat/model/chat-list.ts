@@ -16,11 +16,17 @@ const byPinThenNewest = (a: ChatListItem, b: ChatListItem) =>
   Number(b.pinned) - Number(a.pinned) || b.at - a.at || b.seq - a.seq;
 
 /** Splits the cottage's rows into farms and visits, each pinned first, then newest first. */
-export function sectionsOf(rows: readonly ChatListItem[]): ListSections {
+export function sectionsOf(
+  rows: readonly ChatListItem[],
+  blocked: ReadonlySet<string> = new Set(),
+): ListSections {
   const sorted = [...rows].sort(byPinThenNewest);
   return {
     farms: sorted.filter((r) => r.farmKind === 'farm'),
-    visits: sorted.filter((r) => r.farmKind === 'visit'),
+    // No porch is shared with someone either of you blocked.
+    visits: sorted.filter(
+      (r) => r.farmKind === 'visit' && (r.with === null || !blocked.has(r.with.person)),
+    ),
   };
 }
 

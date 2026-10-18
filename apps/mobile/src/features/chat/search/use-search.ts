@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useDataClient } from '../../../data';
 import { useChatApi } from '../api/chat-api';
 import { goneIn, localHits, mergeHits, type Hit } from '../model/search';
+import { useBlockedIds } from '../ui/blocked';
 
 const DEBOUNCE_MS = 250;
 const LOCAL_LIMIT = 2000;
@@ -20,6 +21,7 @@ export type SearchState =
 export function useSearch(farms: readonly string[], query: string): SearchState {
   const client = useDataClient();
   const chatApi = useChatApi();
+  const blocked = useBlockedIds();
   const [state, setState] = useState<SearchState>({ status: 'idle' });
   const run = useRef(0);
   const key = farms.join(',');
@@ -43,7 +45,7 @@ export function useSearch(farms: readonly string[], query: string): SearchState 
           )
         ).flat();
         if (id !== run.current) return;
-        setState({ status: 'looking', hits: mergeHits([], local) });
+        setState({ status: 'looking', hits: mergeHits([], local, new Set(), blocked) });
         let offline = false;
         const server = (
           await Promise.all(
@@ -66,11 +68,11 @@ export function useSearch(farms: readonly string[], query: string): SearchState 
           )
         ).flat();
         if (id !== run.current) return;
-        setState({ status: 'done', hits: mergeHits(server, local, gone), offline });
+        setState({ status: 'done', hits: mergeHits(server, local, gone, blocked), offline });
       })();
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [chatApi, client, key, query]);
+  }, [blocked, chatApi, client, key, query]);
   return state;
 }
 

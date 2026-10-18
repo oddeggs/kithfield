@@ -73,6 +73,20 @@ describe('the chat timeline', () => {
     expect(b).toMatchObject({ dew: ['pip', 'me'], myDew: 4 });
   });
 
+  it('hides what someone you blocked says, and their dewdrops, on every farm you share', () => {
+    const items = buildTimeline({
+      ...base,
+      blocked: new Set(['bram']),
+      events: [
+        ev(2, 'bea', 'message', { text: 'picnic?' }),
+        ev(3, 'bram', 'message', { text: 'nobody asked' }),
+        ev(4, 'bram', 'dewdrop', { target: 2 }),
+        ev(5, 'pip', 'dewdrop', { target: 2 }),
+      ],
+    });
+    expect(bubbles(items)).toMatchObject([{ seq: 2, actor: 'bea', dew: ['pip'] }]);
+  });
+
   it('keeps one reaction per person, and lets them take it back', () => {
     const items = buildTimeline({
       ...base,

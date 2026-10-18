@@ -37,6 +37,33 @@ describe('the chat list', () => {
     expect(s.visits.map((r) => r.farm)).toEqual(['v']);
   });
 
+  it('leaves out a visit with someone you blocked', () => {
+    const peer = (person: string) => ({
+      person,
+      name: person,
+      critter: {
+        species: 'badger',
+        coat: 'cocoa',
+        mark: null,
+        accessory: null,
+        outfit: null,
+        outfitColor: null,
+        companion: null,
+        cottage: null,
+      },
+    });
+    const s = sectionsOf(
+      [
+        row('v1', 'visit', 2, { with: peer('bram') } as Partial<ChatListItem>),
+        row('v2', 'visit', 1, { with: peer('pip') } as Partial<ChatListItem>),
+        row('f1', 'farm', 3),
+      ],
+      new Set(['bram']),
+    );
+    expect(s.visits.map((r) => r.farm)).toEqual(['v2']);
+    expect(s.farms.map((r) => r.farm)).toEqual(['f1']);
+  });
+
   it('says what a wordless event was', () => {
     expect(whatOf('voice', { kind: 'voice', payload: { durationMs: 168_000 } })).toEqual({
       key: 'voice',

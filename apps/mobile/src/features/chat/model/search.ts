@@ -127,11 +127,15 @@ export function mergeHits(
   server: readonly Hit[],
   local: readonly Hit[],
   gone: ReadonlySet<string> = new Set(),
+  blocked: ReadonlySet<string> = new Set(),
 ): Hit[] {
   const byKey = new Map<string, Hit>();
   for (const h of server) if (!gone.has(`${h.farm}:${h.seq}`)) byKey.set(`${h.farm}:${h.seq}`, h);
   for (const h of local) byKey.set(`${h.farm}:${h.seq}`, h);
-  return [...byKey.values()].sort((a, b) => b.at - a.at || b.seq - a.seq);
+  // What someone you blocked said is hidden from you everywhere, search included.
+  return [...byKey.values()]
+    .filter((h) => h.actor === null || !blocked.has(h.actor))
+    .sort((a, b) => b.at - a.at || b.seq - a.seq);
 }
 
 export interface HitFilter {

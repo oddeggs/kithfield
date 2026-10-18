@@ -21,6 +21,7 @@ import { refusalOf, retryRefused } from '../model/refusals';
 import { peopleOf } from '../model/people';
 import { buildTimeline, type BubbleItem, type TimelineItem } from '../model/timeline';
 import { uploadDrafts, uploadOf } from '../model/uploads';
+import { useBlockedIds } from '../ui/blocked';
 import type { Recorded } from './voice-recorder';
 
 const PAGE = 50;
@@ -57,6 +58,7 @@ export function useRoomData(farm: string) {
   const link = useFarmLink(farm);
   const now = useNow();
   const state = replica?.state ?? null;
+  const blocked = useBlockedIds();
   const upload = useUpload();
   const uploads = useUploads(farm);
   // Photos and voice notes still going up, drawn as writes on their way until the queue sends them.
@@ -74,8 +76,9 @@ export function useRoomData(farm: string) {
         me,
         state,
         now,
+        blocked,
       }),
-    [events, replica?.pending, going, refused, me, state, now],
+    [events, replica?.pending, going, refused, me, state, now, blocked],
   );
   // Who's who changes far less often than the farm: rows re-render only when it does.
   const cast = JSON.stringify([
@@ -130,9 +133,9 @@ export function useRoomData(farm: string) {
   const mentionable: Mentionable[] = useMemo(
     () =>
       (state?.members ?? [])
-        .filter((m) => m.name !== null)
+        .filter((m) => m.name !== null && !blocked.has(m.person))
         .map((m) => ({ person: m.person, name: m.name ?? '', dozing: false })),
-    [state],
+    [state, blocked],
   );
 
   const sendText = useCallback(

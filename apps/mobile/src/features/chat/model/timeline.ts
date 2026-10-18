@@ -168,6 +168,8 @@ export interface TimelineInput {
   readonly me: PersonId | null;
   readonly state: FarmState | null;
   readonly now: number;
+  /** People this person blocked: what they say and leave is hidden from them. */
+  readonly blocked?: ReadonlySet<string>;
 }
 
 interface Draft {
@@ -230,7 +232,10 @@ export function buildTimeline(input: TimelineInput): TimelineItem[] {
       refused: r.reason,
     });
   }
-  const drafts = mergeByTime(logged, local);
+  const blocked = input.blocked;
+  const drafts = mergeByTime(logged, local).filter(
+    (d) => d.actor === null || blocked === undefined || !blocked.has(d.actor),
+  );
 
   // What acts on other events: edits, unsends, reactions, dewdrops. Later ones win.
   const edits = new Map<number, string>();
