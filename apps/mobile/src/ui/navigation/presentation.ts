@@ -62,6 +62,12 @@ export const SHEETS: Readonly<Record<string, SheetSpec>> = {
   '(modal)/gestures-slow-post': cover,
   '(modal)/gestures-forward': cover,
   '(modal)/gestures-quick-tend': cover,
+  // Asking for the mic and camera by the fire, and where the fire sounds.
+  '(modal)/surfaces-mic': { kind: 'detents', tops: [190], grabber: true },
+  '(modal)/surfaces-camera': { kind: 'detents', tops: [190], grabber: true },
+  '(modal)/surfaces-sound': fit,
+  // The sticker picker over a chat, the chat still lit and touchable above it at its first height.
+  '(modal)/stickers-picker': { kind: 'detents', tops: [494, 110], grabber: true, undimmedUpTo: 0 },
   ...(__DEV__ ? { '(dev)/sheet-lab': fit } : {}),
 };
 
