@@ -7,6 +7,17 @@ import { CountryCode, EpochMs, FarmId, Id, Lang, PersonId, text } from '../primi
  * are the bodies around it.
  */
 
+/**
+ * `POST /v1/sign-in-nonce` (no body, no session): a single-use nonce, fetched before each Apple or
+ * Google sheet. Apple's request takes the SHA-256 of it in hex, Google's the raw nonce. The server
+ * requires it in the identity token and consumes it once; an identity token can't be reused.
+ */
+export const SignInNonceResponse = z.object({
+  nonce: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  expiresAt: EpochMs,
+});
+export type SignInNonceResponse = z.infer<typeof SignInNonceResponse>;
+
 /** `POST /v1/rt-token`: a 5-minute socket token. With a farm, for that farm's socket; without, the cottage's. */
 export const RtTokenRequest = z.object({ farm: FarmId.optional() });
 export type RtTokenRequest = z.infer<typeof RtTokenRequest>;

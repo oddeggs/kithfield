@@ -599,6 +599,21 @@ importers:
         specifier: workspace:*
         version: link:../../packages/theme
 
+  tools/readme:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.3
+      playwright:
+        specifier: 'catalog:'
+        version: 1.58.2
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+
 packages:
 
   2g@1.0.1:

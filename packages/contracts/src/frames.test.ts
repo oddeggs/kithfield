@@ -21,7 +21,8 @@ const event = {
   opId,
   at,
   actor: bea,
-  rulesVersion: 1,
+  day: '2026-10-18',
+  rulesVersion: 2,
   kind: 'message',
   payload: eventPayloads.message,
 };
