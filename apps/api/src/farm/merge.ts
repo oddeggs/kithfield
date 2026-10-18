@@ -11,11 +11,11 @@ import { farmStub } from './http';
  * those farms to move the person's state, and to read the old id as the kept one from then on.
  */
 
-/** The farms' D1 rows, as statements for the merge's one batch. */
 /** A role's rank in SQL: the kept person keeps the higher of two. */
 const rank = (column: string) =>
   `(CASE ${column} WHEN 'keeper' THEN 2 WHEN 'helper' THEN 1 ELSE 0 END)`;
 
+/** The farms' D1 rows, as statements for the merge's one batch. */
 export const farmMergeStatements = (db: D1Database, { from, into, now }: PersonMerge) => {
   // A visit's pair is its two people sorted and joined with ':'; ?1 is replaced by ?2 in it.
   const startsWith = `substr(pair, 1, length(?1) + 1) = ?1 || ':'`;

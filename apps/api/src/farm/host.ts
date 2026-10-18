@@ -79,7 +79,11 @@ export class FarmHost {
   async wake(): Promise<void> {
     if (this.farm.state !== null) this.store.prune(this.now());
     const changed = this.farm.upgradeRules();
-    if (changed === null) return;
+    if (changed === null) {
+      // The alarm follows whatever is due now, even when nothing changed on waking.
+      await this.schedule();
+      return;
+    }
     this.publish([changed]);
     await this.settle([changed]);
   }

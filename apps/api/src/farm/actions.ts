@@ -133,7 +133,6 @@ const finish = async (
   return written.result;
 };
 
-/** A visitor's wave, firefly or gift at the gate, written with the visitor as actor. */
 /** Whether the safety team or a keeper removed this person from the farm: they never visit. */
 export const wasRemoved = (host: FarmHost, person: PersonId): boolean => {
   const ids = new Set(host.store.idsOf(host.farm.actorOf(person)));
@@ -251,7 +250,7 @@ export const setHibernating = async (
   await host.settle([event]);
 };
 
-/** The farm's state with `from` read as `into`; if both lived here, `into`'s entry stays. */
+/** Roles from lowest to highest, so a merge keeps the higher of two. */
 const RANK = { critter: 0, helper: 1, keeper: 2 } as const;
 
 /**
