@@ -4,6 +4,7 @@ import {
   type SurfaceData,
   type SurfaceFarm,
 } from '@kithfield/contracts';
+import { day, night, planColours } from '@kithfield/theme';
 
 import { HOMES, imageNames, litMask } from './names';
 
@@ -46,15 +47,15 @@ const STILL = { width: 393, height: 236 } as const;
 /** Of the farms, the widgets draw the newest few, and only farms (a visit has no farm art). */
 export const WIDGET_FARMS = 4;
 
-/** The plan push's seed sits on the design's warm card. */
-const SEED_CARD = '#F3DDA9';
+/** The plan push's seed sits on the tile plans draw a seed on. */
+const SEED_CARD = planColours.day.seedTile;
 
-/** The art icons the surfaces show, in the colours the design gives them. */
+/** The art icons the surfaces show: ink on the honey chip, moonlight on the night buttons. */
 export const ICONS = {
-  lantern: '#2a221d',
-  muted: '#ffffff',
-  mic: '#ffffff',
-  check: '#ffffff',
+  lantern: day.ink,
+  muted: night.moon,
+  mic: night.moon,
+  check: planColours.day.check,
 } as const;
 
 /** The lit windows at `at`, by the art's kind names. */
