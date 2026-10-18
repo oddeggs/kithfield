@@ -72,7 +72,15 @@ const shareStateOf = (type: string): ShareState | null => {
   }
 };
 
-/** Applies one Stripe event to a book share. Answers whether anything changed. */
+/**
+ * How far along a share is. News arriving out of order never moves it back: a share is only moved
+ * to a later rank (a paid share is never released, a released one never paid).
+ */
+const RANK_SQL = `CASE %s WHEN 'pending' THEN 0 WHEN 'authorised' THEN 1 WHEN 'paid' THEN 2
+  WHEN 'released' THEN 2 WHEN 'refunded' THEN 3 ELSE 0 END`;
+const rank = (column: string) => RANK_SQL.replace('%s', column);
+
+/** Applies one Stripe event to a book share, once per event id. Answers whether anything changed. */
 export const applyStripeEvent = async (
   db: D1Database,
   event: StripeWebhook,
@@ -86,12 +94,16 @@ export const applyStripeEvent = async (
   const held =
     event.type === 'checkout.session.completed' &&
     (event.data.object as { payment_status?: unknown }).payment_status === 'unpaid';
-  const result = await db
-    .prepare(
-      `UPDATE book_shares SET state = ?, provider_ref = coalesce(provider_ref, ?), at = ?
-       WHERE order_id = ? AND person_id = ?`,
-    )
-    .bind(held ? 'authorised' : state, event.data.object.id, now, meta.data.order, meta.data.person)
-    .run();
-  return result.meta.changes > 0;
+  const next = held ? 'authorised' : state;
+  const [seen, moved] = await db.batch([
+    db.prepare('INSERT OR IGNORE INTO stripe_events (id, at) VALUES (?, ?)').bind(event.id, now),
+    db
+      .prepare(
+        `UPDATE book_shares SET state = ?1, provider_ref = coalesce(provider_ref, ?2), at = ?3
+         WHERE order_id = ?4 AND person_id = ?5 AND changes() > 0
+           AND ${rank('?1')} > ${rank('book_shares.state')}`,
+      )
+      .bind(next, event.data.object.id, now, meta.data.order, meta.data.person),
+  ]);
+  return (seen?.meta.changes ?? 0) > 0 && (moved?.meta.changes ?? 0) > 0;
 };
