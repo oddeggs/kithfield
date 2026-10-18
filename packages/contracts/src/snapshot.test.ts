@@ -26,6 +26,10 @@ describe('snapshot', () => {
     }));
     const broken: unknown[] = [
       { ...farmState, members: tooMany },
+      { ...farmState, aliases: undefined },
+      { ...farmState, aliases: { p_a: 'p_a' } },
+      { ...farmState, aliases: { p_a: 'p_b', p_b: 'p_c' } },
+      { ...farmState, aliases: { 'bad id!': 'p_b' } },
       { ...farmState, plants: [{ ...farmState.plants[0], rareRolledOn: 'yesterday' }] },
       { ...farmState, plants: [{ ...farmState.plants[0], rareRolledOn: undefined }] },
       { ...farmState, members: [{ ...farmState.members[0], lastWokenAt: undefined }] },

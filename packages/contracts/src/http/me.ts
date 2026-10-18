@@ -1,10 +1,14 @@
 import { z } from 'zod';
 
+import { VisitPeer } from '../cottage';
+import { AnyEventKind } from '../events';
 import {
   Critter,
   DisplayName,
   EpochMs,
   FarmId,
+  FarmKind,
+  FarmName,
   Id,
   Lang,
   LocalTime,
@@ -34,7 +38,10 @@ export const MeSettings = z.object({
   /** The person's own time zone, for quiet hours, the house floor and slow posts. */
   timeZone: TimeZone,
   quietHours: QuietHours.nullable(),
-  /** Friends who have the person's number can find them; opt-in. */
+  /**
+   * Friends who have the person's number can find them; opt-in. Deferred with phone sign-in: until
+   * a person has a verified number it stays false and finds nobody.
+   */
   discoverableByPhone: z.boolean(),
   /** Light my window when I'm on. */
   lightWindow: z.boolean(),
@@ -61,10 +68,16 @@ export const Me = z.object({
   birthday: MonthDay.nullable(),
   signIn: z.array(SignInMethod).max(4),
   ageOk: z.boolean(),
+  /** The Terms version the person accepted, if any. */
   termsVersion: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .nullable(),
+  /**
+   * The Terms version in force (the api's `CURRENT_TERMS_VERSION`). When `termsVersion` differs,
+   * the app shows the Terms once and posts `POST /v1/me/terms`.
+   */
+  currentTermsVersion: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   hibernating: z.boolean(),
   settings: MeSettings,
   /** Set while a deletion waits its 30 days; signing in cancels it. */
@@ -89,6 +102,13 @@ export type MeProfileUpdate = z.infer<typeof MeProfileUpdate>;
 export const HibernateRequest = z.object({ on: z.boolean() });
 export type HibernateRequest = z.infer<typeof HibernateRequest>;
 
+/*
+ * Contact matching is deferred with phone sign-in: nobody has a verified number yet, so the route
+ * isn't served. When it returns: the phone sends SHA-256 hashes of E.164 numbers over TLS; the
+ * server stores and compares only `HMAC(server pepper, hash)` and rate-limits matching, so a
+ * leaked database can't be brute-forced back to numbers.
+ */
+
 /** A phone number hashed on the phone: SHA-256 of its E.164 form, lowercase hex. */
 export const ContactHash = z.string().regex(/^[0-9a-f]{64}$/);
 export type ContactHash = z.infer<typeof ContactHash>;
@@ -110,6 +130,39 @@ export const ContactMatchResponse = z.object({
     .max(2000),
 });
 export type ContactMatchResponse = z.infer<typeof ContactMatchResponse>;
+
+/** `PATCH /v1/chats/:farm`: pin a farm or visit to the top of the chat list, or unpin it. 204. */
+export const ChatRowUpdate = z.object({ pinned: z.boolean() });
+export type ChatRowUpdate = z.infer<typeof ChatRowUpdate>;
+
+/** Why something waits in Quick Tend. */
+export const QuickTendWhy = z.enum(['question', 'plan', 'back', 'mention', 'doorstep', 'birthday']);
+export type QuickTendWhy = z.infer<typeof QuickTendWhy>;
+
+/**
+ * `GET /v1/quick-tend`: what waits for the person across their farms and visits, newest first, from
+ * their cottage. The first three are drawn as cards; the rest fold into the bouquet. Tending one
+ * (any reply, gesture or sticker on that farm after it) takes it off the list.
+ */
+export const QuickTendList = z.object({
+  items: z
+    .array(
+      z.object({
+        farm: FarmId,
+        farmKind: FarmKind,
+        name: FarmName.nullable(),
+        with: VisitPeer.nullable(),
+        seq: Seq,
+        kind: AnyEventKind,
+        actor: PersonId.nullable(),
+        at: EpochMs,
+        preview: text(140).nullable(),
+        why: QuickTendWhy,
+      }),
+    )
+    .max(99),
+});
+export type QuickTendList = z.infer<typeof QuickTendList>;
 
 /**
  * `POST /v1/remember`: a remember-me seed ("interview Thursday" becomes a nudge to ask how it

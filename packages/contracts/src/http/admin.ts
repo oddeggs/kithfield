@@ -167,6 +167,27 @@ export const AppealRow = z.object({
 });
 export type AppealRow = z.infer<typeof AppealRow>;
 
+/** `GET /admin/v1/appeals?status=&cursor=`: open ones first, then newest. */
+export const AppealPage = z.object({
+  rows: z.array(AppealRow).max(200),
+  cursor: z.string().max(256).nullable(),
+});
+export type AppealPage = z.infer<typeof AppealPage>;
+
+/**
+ * `GET /admin/v1/appeals/:id`: the appeal with the first decision and what was removed. A reviewer
+ * who touched the report gets 403 `forbidden`.
+ */
+export const AppealDetail = AppealRow.extend({
+  decidedBy: Id,
+  decidedByName: text(64),
+  decidedAt: EpochMs,
+  rule: RuleRef.nullable(),
+  /** The removed item, as copied into the report. Blurred until asked for. */
+  excerpt: text(300).nullable(),
+});
+export type AppealDetail = z.infer<typeof AppealDetail>;
+
 /**
  * `POST /admin/v1/appeals/:id/decision`: only by someone who didn't touch the report. Undoing a
  * removal writes `restored` on the farm.
@@ -204,11 +225,21 @@ export const MemberRecord = z.object({
 });
 export type MemberRecord = z.infer<typeof MemberRecord>;
 
+/** `GET /admin/v1/me`: who is on shift, for the console's header. */
+export const ModeratorSelf = z.object({
+  moderator: Id,
+  name: text(64),
+  role: ModeratorRole,
+  shiftEndsAt: EpochMs.nullable(),
+});
+export type ModeratorSelf = z.infer<typeof ModeratorSelf>;
+
 /** One append-only audit log row. `by` is null for the system (hash matches). */
 export const AuditEntry = z.object({
   id: Id,
   at: EpochMs,
   by: Id.nullable(),
+  byName: text(64).nullable(),
   what: z.union([
     ModerationAction,
     z.enum(['opened_context', 'claimed', 'appeal_kept', 'appeal_undone', 'upload_blocked']),
@@ -218,3 +249,26 @@ export const AuditEntry = z.object({
   reason: text(1000).nullable(),
 });
 export type AuditEntry = z.infer<typeof AuditEntry>;
+
+/** `GET /admin/v1/audit?before=&cursor=`: newest first. `GET /admin/v1/audit.csv?quarter=` exports. */
+export const AuditPage = z.object({
+  entries: z.array(AuditEntry).max(200),
+  cursor: z.string().max(256).nullable(),
+});
+export type AuditPage = z.infer<typeof AuditPage>;
+
+/** Targets met out of reports due, over a window. Never per moderator. */
+const withinTarget = z
+  .object({ met: z.int().min(0), due: z.int().min(0) })
+  .refine((t) => t.met <= t.due, { message: 'Met out of due' });
+
+/** `GET /admin/v1/response-times?days=30`: how the desk is doing, for the audit page. */
+export const ResponseTimes = z.object({
+  days: z.int().min(1).max(366),
+  medianFirstActionMs: z.int().min(0).nullable(),
+  urgentWithinHour: withinTarget,
+  standardWithinDay: withinTarget,
+  appealsWithinWeek: withinTarget,
+  appealsOverturned: z.int().min(0),
+});
+export type ResponseTimes = z.infer<typeof ResponseTimes>;

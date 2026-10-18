@@ -103,6 +103,26 @@ only through the contracts owner.
 - History pages: with `after`, a page starts just after it; with `before`, it ends just before it;
   with neither, it is the newest page. Events are oldest first within a page.
 
+## Accounts, the website and deferred parts
+
+- **Person merges**: after a `person_merged` job reaches a farm, its snapshot carries `aliases`
+  (merged-away id → kept id). Phones draw pre-merge events as the kept person, and the reducer maps
+  actors through it before applying.
+- **Account deletion**: in the app, `POST /v1/me/delete` (no body) answers 202
+  `DeleteAccountResponse {purgeAt}` and ends every session. From the website,
+  `DeletionRequest` → a 6-digit code by email → `DeletionConfirmRequest` → 202
+  `DeleteAccountResponse`, or 400 `code_invalid`; the first step always answers 202. Signing in
+  within the 30 days cancels; there is no cancel endpoint.
+- **The launch list**: `POST /v1/waitlist` always answers 200 `WaitlistResponse {pick}`, listed
+  or not; the pick (`WaitlistPickRequest`) counts only once that address confirms.
+- **Invites**: `GET /v1/invites/:code` answers `InvitePreview` or 404 `invite_invalid`, never 410.
+- **Terms**: `Me.currentTermsVersion` is the version in force; the app asks again when
+  `Me.termsVersion` differs.
+- **Contact matching is deferred** with phone sign-in: `ContactMatchRequest`,
+  `ContactMatchResponse` and `discoverableByPhone` stay in the contracts but aren't served. When
+  they return, the server stores and compares only `HMAC(server pepper, SHA-256 hash)` and
+  rate-limits matching.
+
 ## House rules in the schemas
 
 No streaks, no counts of care, no read receipts. `dew` and `today` in the snapshot are inputs for

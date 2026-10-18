@@ -109,15 +109,40 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
     [
       {
         name: 'The Thursday Lot',
+        from: { name: 'Pip', critter },
         land: 'meadow',
         critters: [critter, { ...critter, species: 'owl' }],
         full: false,
         approval: true,
       },
+      {
+        name: 'The Thursday Lot',
+        from: null,
+        land: 'meadow',
+        critters: [critter],
+        full: true,
+        approval: false,
+      },
     ],
     [
       {
+        name: 'The Thursday Lot',
+        land: 'meadow',
+        critters: [critter],
+        full: false,
+        approval: false,
+      },
+      {
+        name: 'The Thursday Lot',
+        from: { name: '', critter },
+        land: 'meadow',
+        critters: [critter],
+        full: false,
+        approval: false,
+      },
+      {
         name: 'x',
+        from: null,
         land: 'meadow',
         critters: Array(25).fill(critter),
         full: false,
@@ -128,6 +153,31 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
   ],
   JoinRequest: [[{ name: 'June', critter }], [{ name: 'June' }]],
   JoinResponse: [[{ farm, status: 'waiting_for_keeper' }], [{ farm, status: 'maybe' }]],
+  CurrentInvite: [
+    [{ invite }, { invite: null }],
+    [{}, { invite: { code: 'a b' } }],
+  ],
+  NotificationType: [['birthdays', 'nudges'], ['knocks']],
+  FarmNotificationsView: [
+    [
+      {
+        mutedUntil: null,
+        knockFor: { plans: true, doorstep: true, mentions: true, messages: false },
+        resting: [{ type: 'birthdays', until: at + 7 * 86_400_000 }],
+      },
+    ],
+    [
+      {
+        mutedUntil: null,
+        knockFor: { plans: true, doorstep: true, mentions: true, messages: false },
+      },
+      {
+        mutedUntil: null,
+        knockFor: { plans: true, doorstep: true, mentions: true, messages: false },
+        resting: [{ type: 'everything', until: at }],
+      },
+    ],
+  ],
   FarmNotifications: [
     [
       {
