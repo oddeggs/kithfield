@@ -7,6 +7,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
+import { typeAt } from './type-at';
 
 const PILL = 44;
 
@@ -25,7 +26,7 @@ export function FarmHeader({
   readonly top: number;
   readonly onSwitch: () => void;
 }) {
-  const { t } = useLocale();
+  const { t, fontLocale } = useLocale();
   const { palette } = useTheme();
   const glass = palette.glassButton;
   return (
@@ -90,7 +91,7 @@ export function FarmHeader({
         border={glass.border}
         style={{ height: PILL, paddingHorizontal: 14, justifyContent: 'center' }}
       >
-        <Txt variant="handS" style={{ fontSize: 17, lineHeight: 17 }}>
+        <Txt variant="handS" style={typeAt('handS', 17, 17, fontLocale)}>
           {season}
         </Txt>
       </Glass>

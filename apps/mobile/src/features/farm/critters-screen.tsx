@@ -17,6 +17,7 @@ import { crowdLine } from './farm-copy';
 import { GlyphButton, Panel, SceneArt } from './panel';
 import { farmRoutes } from './routes';
 import { useNow } from './use-now';
+import { typeAt } from './type-at';
 
 const W = 393;
 
@@ -25,7 +26,7 @@ const W = 393;
  * invite someone or leave a firefly for a friend who's dozing.
  */
 export function CrittersScreen({ farm }: { readonly farm: FarmId }) {
-  const { t } = useLocale();
+  const { t, fontLocale } = useLocale();
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -128,14 +129,14 @@ export function CrittersScreen({ farm }: { readonly farm: FarmId }) {
                   />
                   <Txt
                     variant="rowTitle"
-                    style={{ fontSize: 14, lineHeight: 16 }}
+                    style={typeAt('rowTitle', 14, 16, fontLocale)}
                     numberOfLines={1}
                   >
                     {name}
                   </Txt>
                   <Txt
                     variant="handS"
-                    style={{ fontSize: 13, lineHeight: 13 }}
+                    style={typeAt('handS', 13, 13, fontLocale)}
                     color={asleep ? palette.muted : palette.go.bg}
                     numberOfLines={1}
                   >

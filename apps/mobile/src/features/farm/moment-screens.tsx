@@ -18,6 +18,7 @@ import { withAlpha } from './over-art';
 import { GlyphButton, NightVeil, Panel, SceneArt, SceneLoop } from './panel';
 import { farmRoutes } from './routes';
 import { SpeechBubble } from './speech-bubble';
+import { typeAt } from './type-at';
 
 const W = 393;
 
@@ -98,7 +99,7 @@ const CONFETTI_MS = 4000;
 
 /** Move-in day: a new critter's cottage is lit, and the neighbours come out. */
 export function MoveIn({ farm, person }: { readonly farm: FarmId; readonly person: PersonId }) {
-  const { t } = useLocale();
+  const { t, fontLocale } = useLocale();
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -159,12 +160,12 @@ export function MoveIn({ farm, person }: { readonly farm: FarmId; readonly perso
       />
       <Panel top={512 * k} style={{ gap: 14 }}>
         <View style={{ alignItems: 'center', gap: 6 }}>
-          <Txt variant="handS" style={{ fontSize: 18, lineHeight: 20 }} color={palette.go.bg}>
+          <Txt variant="handS" style={typeAt('handS', 18, 20, fontLocale)} color={palette.go.bg}>
             {mine ? t('farm.moveIn.mineEyebrow') : t('farm.moveIn.eyebrow')}
           </Txt>
           <Txt
             variant="displayL"
-            style={{ fontSize: 32 }}
+            style={typeAt('displayL', 32, 35, fontLocale)}
             multiline
             align="center"
             accessibilityRole="header"

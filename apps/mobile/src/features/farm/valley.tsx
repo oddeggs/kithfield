@@ -27,6 +27,7 @@ import { backToFarm, farmRoutes } from './routes';
 import { useBob } from './speech-bubble';
 import { useNow } from './use-now';
 import { useValley, type FarmRow } from './valley-store';
+import { typeAt } from './type-at';
 
 /** The valley scene's five islands, and where each one's label sits, on 393 by 640. */
 const ISLANDS = [
@@ -76,7 +77,7 @@ function IslandLabel({
   readonly phase: number;
   readonly onPress: () => void;
 }) {
-  const { t } = useLocale();
+  const { t, fontLocale } = useLocale();
   const { palette } = useTheme();
   const people = useOut(farm.farm);
   const bob = useBob(running, phase);
@@ -136,11 +137,15 @@ function IslandLabel({
           <ArtIcon name="moon" size={16} color={palette.muted} />
         ) : null}
         <View>
-          <Txt variant="bubbleName" style={{ fontSize: 13, lineHeight: 15 }} color={fg}>
+          <Txt variant="bubbleName" style={typeAt('rowTitle', 13, 15, fontLocale)} color={fg}>
             {farm.name ?? ''}
           </Txt>
           {line ? (
-            <Txt variant="handS" style={{ fontSize: 13, lineHeight: 13, opacity: 0.8 }} color={fg}>
+            <Txt
+              variant="handS"
+              style={[typeAt('handS', 13, 13, fontLocale), { opacity: 0.8 }]}
+              color={fg}
+            >
               {line}
             </Txt>
           ) : null}
@@ -162,7 +167,7 @@ function ValleyArt({ farm, width, height }: { farm: FarmId; width: number; heigh
 }
 
 function ValleyCard({ farm, onGo }: { readonly farm: FarmRow; readonly onGo: () => void }) {
-  const { t } = useLocale();
+  const { t, fontLocale } = useLocale();
   const { palette } = useTheme();
   const { chats } = useCottage();
   const people = useOut(farm.farm);
@@ -180,7 +185,7 @@ function ValleyCard({ farm, onGo }: { readonly farm: FarmRow; readonly onGo: () 
           <CritterStack friends={people.out.slice(0, 3)} size={32} ring={palette.panel} />
         ) : null}
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Txt variant="displayS" style={{ fontSize: 19, lineHeight: 21 }} numberOfLines={1}>
+          <Txt variant="displayS" style={typeAt('displayS', 19, 21, fontLocale)} numberOfLines={1}>
             {farm.name ?? ''}
           </Txt>
           <Txt variant="rowSubtitle" color={palette.secondary} numberOfLines={2}>
@@ -198,7 +203,7 @@ function ValleyCard({ farm, onGo }: { readonly farm: FarmRow; readonly onGo: () 
  * see it in the card below and go there; + plants a new one.
  */
 export function ValleyScreen() {
-  const { t } = useLocale();
+  const { t, fontLocale } = useLocale();
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -261,7 +266,11 @@ export function ValleyScreen() {
           border={palette.glassButton.border}
           style={{ paddingVertical: 10, paddingHorizontal: 18 }}
         >
-          <Txt variant="displayS" style={{ fontSize: 18 }} accessibilityRole="header">
+          <Txt
+            variant="displayS"
+            style={typeAt('displayS', 18, 20, fontLocale)}
+            accessibilityRole="header"
+          >
             {t('farm.valley.title')}
           </Txt>
         </Glass>

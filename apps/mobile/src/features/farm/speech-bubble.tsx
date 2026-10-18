@@ -11,11 +11,13 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { useLocale } from '../../ui/locale/locale-provider';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import type { ViewStyleProp } from '../../ui/style';
 import { overArt } from './over-art';
+import { typeAt } from './type-at';
 
 /** Bubbles bob 2 points on a 3-second loop. */
 const BOB = farm.bob.distance;
@@ -80,6 +82,7 @@ export function SpeechBubble({
   readonly style?: ViewStyleProp;
 }) {
   const { appearance } = useTheme();
+  const { fontLocale } = useLocale();
   const bob = useBob(running, phase);
   const bg = mine ? overArt.ink : appearance === 'night' ? overArt.paperNight : overArt.paper;
   const fg = mine ? overArt.inkFg : overArt.ink;
@@ -99,7 +102,7 @@ export function SpeechBubble({
           boxShadow: farm.shadows.bubble,
         }}
       >
-        <Txt variant="handS" multiline color={fg} style={{ lineHeight: 16.5 }}>
+        <Txt variant="handS" multiline color={fg} style={typeAt('handS', 15, 16.5, fontLocale)}>
           {text}
         </Txt>
         {meta ? (

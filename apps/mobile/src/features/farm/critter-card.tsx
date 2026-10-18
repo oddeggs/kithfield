@@ -16,6 +16,7 @@ import { Txt } from '../../ui/type/text';
 import { say } from './farm-copy';
 import { farmRoutes } from './routes';
 import { useNow } from './use-now';
+import { typeAt } from './type-at';
 
 /** "March", or "March 2025" for an earlier year. */
 export function monthOf(language: string, at: number, now: number): string {
@@ -78,7 +79,7 @@ export function CritterCard({
   readonly farm: FarmId;
   readonly person: PersonId;
 }) {
-  const { t, language } = useLocale();
+  const { t, language, fontLocale } = useLocale();
   const { palette } = useTheme();
   const toast = useToast();
   const now = useNow();
@@ -159,7 +160,7 @@ export function CritterCard({
           <Txt
             variant="handS"
             multiline
-            style={{ fontSize: 17, lineHeight: 19 }}
+            style={typeAt('handS', 17, 19, fontLocale)}
             color={palette.go.bg}
           >
             {how}
