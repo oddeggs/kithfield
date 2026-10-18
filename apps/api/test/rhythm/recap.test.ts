@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import worker from '../../src/index';
 import { recapLetters, unwrittenLetters } from '../../src/rhythm/letters';
-import { pollinatorFor } from '../../src/rhythm/pollinator';
+import { pickPollinator, pollinatorFor } from '../../src/rhythm/pollinator';
 import { recapFacts } from '../../src/rhythm/recap-facts';
 import { op } from '../farm/support/client';
 import {
@@ -305,5 +305,18 @@ describe('the best pollinator', () => {
       reason: 'kept_it_warm',
     });
     expect(await pollinatorFor(env.DB, farm, '2054-10-18', [], ['p_quiet'], now)).toBeNull();
+  });
+
+  it('rotates past the latest earlier pollinator, even with a quiet week between', async () => {
+    const { pip } = await cast('pip');
+    const { farm } = await plantFarm(pip);
+    // Whoever the week's pick would be without rotation was the pollinator two weeks before.
+    const qualities = both('p_one', 'p_two');
+    const unrotated = pickPollinator(farm, '2054-11-01', qualities, null)?.person ?? '';
+    await remember(farm, '2054-10-18', unrotated);
+    const members = ['p_one', 'p_two'];
+    const pick = await pollinatorFor(env.DB, farm, '2054-11-01', qualities, members, 0);
+    expect(pick?.person).not.toBe(unrotated);
+    expect(members).toContain(pick?.person);
   });
 });

@@ -1,5 +1,5 @@
 import type { LocalDate, PersonId } from '@kithfield/contracts';
-import { addDays, hashUnit } from '@kithfield/farm';
+import { hashUnit } from '@kithfield/farm';
 
 import { registerAccountDeletionStep, registerMergeStep } from '../auth';
 import type { RecapFacts } from './recap-facts';
@@ -7,8 +7,8 @@ import type { RecapFacts } from './recap-facts';
 /*
  * The week's best pollinator: someone who showed one of the recap's qualities (checked on
  * everyone, planned a hangout, came back, shared pictures, sat by the fire, kept the farm warm),
- * never whoever did the most. It rotates: last week's pollinator isn't chosen again while anyone
- * else qualifies. Among those who qualify the pick is a hash of the farm and the week, so it is
+ * never whoever did the most. It rotates: the last pollinator (of the latest earlier week that had
+ * one) isn't chosen again while anyone else qualifies. Among those who qualify the pick is a hash of the farm and the week, so it is
  * the same on every read, and it is remembered in D1 once made.
  */
 
@@ -19,6 +19,16 @@ type Row = { person_id: PersonId; reason: string };
 const remembered = (db: D1Database, farm: string, week: LocalDate): Promise<Row | null> =>
   db
     .prepare('SELECT person_id, reason FROM recap_pollinators WHERE farm_id = ? AND week = ?')
+    .bind(farm, week)
+    .first<Row>();
+
+/** The pollinator of the latest earlier week that had one, however long ago. */
+const before = (db: D1Database, farm: string, week: LocalDate): Promise<Row | null> =>
+  db
+    .prepare(
+      `SELECT person_id, reason FROM recap_pollinators
+       WHERE farm_id = ? AND week < ? ORDER BY week DESC LIMIT 1`,
+    )
     .bind(farm, week)
     .first<Row>();
 
@@ -58,7 +68,7 @@ export const pollinatorFor = async (
     return { person: kept.person_id, reason: kept.reason };
   }
   const here = qualities.filter((q) => current.has(q.person) && q.person !== kept?.person_id);
-  const last = await remembered(db, farm, addDays(week, -7));
+  const last = await before(db, farm, week);
   const pick = pickPollinator(farm, week, here, last?.person_id ?? null);
   if (pick === null || kept !== null) return pick;
   await db
