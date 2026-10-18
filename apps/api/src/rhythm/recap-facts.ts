@@ -18,7 +18,8 @@ import { eventsBetween } from './week-log';
  * What a Sunday recap is made of, read inside the farm object from the week's log (Monday to
  * Sunday by each event's farm day): who tended and with which kinds of care, the plans of the
  * week, and the qualities each member showed, from which the route picks the best pollinator.
- * Nothing here is a count: a person tended or didn't, showed a quality or didn't.
+ * Nothing here is a count: a person tended or didn't, showed a quality or didn't. Former members
+ * are thanked only when they left by choice, never when removed or gone with their account.
  *
  * Tends are credited as the reducer credits them: every kind in the care families, a check-in
  * once a hangout has two people there, and shared rain for each person in it.
@@ -191,10 +192,12 @@ export const recapFacts = (store: FarmStore, state: FarmState, week: LocalDate):
   const { kinds, days, hangouts } = tendsOf(r, events);
   const members = state.members.map((m) => m.person);
   const current = new Set(members);
+  // Someone removed, or whose account is deleted, isn't named; someone who left by choice is.
+  const unnamed = new Set(state.former.filter((f) => f.how !== 'left').map((f) => f.person));
 
   const thanks: Credit[] = [
     ...members.filter((p) => kinds.has(p)),
-    ...[...kinds.keys()].filter((p) => !current.has(p)),
+    ...[...kinds.keys()].filter((p) => !current.has(p) && !unnamed.has(p)),
   ]
     .slice(0, LIMITS.members)
     .map((person) => ({ person, kinds: (kinds.get(person) ?? []).slice(0, 40) }));

@@ -78,17 +78,35 @@ describe('the Sunday recap', () => {
     ports.clock.at = noon('2054-10-18');
     const read = await readRecap(fig, farm);
     expect(read.week).toBe('2054-10-18');
-    // Members first, then the former member who tended; the quiet dewdrop is thanked too.
+    // The quiet dewdrop is thanked too; Bea, removed since, is not.
     expect(read.thanks).toEqual([
       { person: pip.id, kinds: ['message', 'wave'] },
       { person: fig.id, kinds: ['dewdrop'] },
-      { person: bea.id, kinds: ['message'] },
     ]);
     expect(read.letterState).toBe('none');
     expect(read.letter).toBeNull();
     expect(Object.keys(read).sort()).toEqual(
       ['farm', 'week', 'pollinator', 'thanks', 'plans', 'letterState', 'letter'].sort(),
     );
+  });
+
+  it('thanks a former member who left by choice, after the members, but nobody removed or deleted', async () => {
+    const { pip, fig, bea, mo } = await cast('pip', 'fig', 'bea', 'mo');
+    const farm = await plantFarm(pip, [fig, bea, mo]);
+    await on('2054-10-12', farm, fig, 'message', { text: 'bye for now' });
+    await on('2054-10-12', farm, bea, 'message', { text: 'hello' });
+    await on('2054-10-12', farm, mo, 'message', { text: 'hi all' });
+    await on('2054-10-13', farm, pip, 'message', { text: 'hello back' });
+    await on('2054-10-14', farm, fig, 'left', {});
+    await on('2054-10-14', farm, pip, 'removed', { person: bea.id, removeMedia: false });
+    await hostOf(farm.stub, (host) =>
+      host.farm.write(mo.id, 'left', { how: 'account_deleted' }, ports.clock.at),
+    );
+    ports.clock.at = noon('2054-10-18');
+    expect((await readRecap(pip, farm)).thanks).toEqual([
+      { person: pip.id, kinds: ['message'] },
+      { person: fig.id, kinds: ['message'] },
+    ]);
   });
 
   it('is the latest Sunday without a week, and refuses a week that is not a Sunday come', async () => {
