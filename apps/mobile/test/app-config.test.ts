@@ -3,9 +3,12 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from '@jest/globals';
 import { fontFaces } from '@kithfield/theme';
+import type { ExportedConfig, ExportedConfigWithProps, InfoPlist } from 'expo/config-plugins';
 
 import { systemPermissionsEn } from '../../../packages/i18n/src/system-permissions.en';
 import {
+  APPLE_TEAM_ID,
+  BACKGROUND_MODES,
   EAS_PROJECT_ID,
   FONTS,
   USAGE,
@@ -14,7 +17,7 @@ import {
   resolveVariant,
 } from '../app.config';
 
-const unset = { apiBase: undefined };
+const unset = { apiBase: undefined, revenueCatIosKey: undefined };
 
 describe('app variants', () => {
   it('defaults to dev when APP_VARIANT is unset or empty', () => {
@@ -88,15 +91,52 @@ describe('app variants', () => {
     expect(dev.scheme).toBe('kithfield-dev');
   });
 
-  it('turns on Sign in with Apple and push in both variants', () => {
+  it('turns on Sign in with Apple, push and silent push in both variants', () => {
     for (const variant of ['dev', 'prd'] as const) {
       const config = buildConfig({}, variant, unset);
       expect(config.ios?.usesAppleSignIn).toBe(true);
       expect(config.plugins).toContainEqual([
         'expo-notifications',
-        { enableRemoteNotifications: true },
+        { enableRemoteNotifications: true, enableBackgroundRemoteNotifications: true },
       ]);
     }
+  });
+
+  it('shares each variant’s own App Group with its extensions, signed by one team', () => {
+    const dev = buildConfig({}, 'dev', unset);
+    const prd = buildConfig({}, 'prd', unset);
+    expect(dev.ios?.entitlements).toEqual({
+      'com.apple.security.application-groups': ['group.com.kithfield.app.dev'],
+    });
+    expect(prd.ios?.entitlements).toEqual({
+      'com.apple.security.application-groups': ['group.com.kithfield.app'],
+    });
+    expect(dev.extra?.['appGroup']).toBe('group.com.kithfield.app.dev');
+    for (const config of [dev, prd]) {
+      expect(config.ios?.appleTeamId).toBe(APPLE_TEAM_ID);
+      expect(config.plugins).toContain('@bacons/apple-targets');
+    }
+  });
+
+  it('keeps the fire room talking in the background, wakes for silent pushes, and allows Live Activities', async () => {
+    const config = buildConfig({}, 'dev', unset);
+    expect(BACKGROUND_MODES).toEqual(['audio', 'remote-notification']);
+    // Whatever modes other plugins leave behind, the app ends up with exactly these.
+    const setModes = (config as ExportedConfig).mods?.ios?.infoPlist;
+    if (setModes === undefined) throw new Error('No Info.plist change');
+    const input = { ios: {}, modResults: { UIBackgroundModes: ['fetch'] }, modRequest: {} };
+    const out = await setModes(input as unknown as ExportedConfigWithProps<InfoPlist>);
+    expect(out.modResults['UIBackgroundModes']).toEqual(BACKGROUND_MODES);
+    expect(config.ios?.infoPlist?.['NSSupportsLiveActivities']).toBe(true);
+  });
+
+  it('hands the app RevenueCat’s public key when REVENUECAT_IOS_KEY is set, and null otherwise', () => {
+    const keyed = buildConfig({}, 'prd', { ...unset, revenueCatIosKey: 'appl_public' });
+    expect(keyed.extra?.['revenueCatIosKey']).toBe('appl_public');
+    expect(buildConfig({}, 'prd', unset).extra?.['revenueCatIosKey']).toBeNull();
+    expect(
+      buildConfig({}, 'dev', { ...unset, revenueCatIosKey: '' }).extra?.['revenueCatIosKey'],
+    ).toBeNull();
   });
 
   it('takes every permission reason from the copy catalogue, in English and Vietnamese', () => {
@@ -140,6 +180,10 @@ describe('app variants', () => {
       contactsPermission: USAGE.NSContactsUsageDescription,
     });
     expect(options('expo-video')).toBeDefined();
+    expect(options('@config-plugins/react-native-webrtc')).toEqual({
+      cameraPermission: USAGE.NSCameraUsageDescription,
+      microphonePermission: USAGE.NSMicrophoneUsageDescription,
+    });
   });
 
   it('asks for location only while in use, and for the calendar only to write', () => {

@@ -1,4 +1,5 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import { type ConfigPlugin, withInfoPlist } from 'expo/config-plugins';
 
 // The catalogue files themselves: the config runs in Node, outside Metro, so the path names the file.
 import { systemPermissionsEn } from '../../packages/i18n/src/system-permissions.en.ts';
@@ -21,6 +22,8 @@ export interface VariantConfig {
 
 /** The `kithfield` project on the `kithfield` Expo account: https://expo.dev/accounts/kithfield/projects/kithfield */
 export const EAS_PROJECT_ID = 'cb527a7c-d45c-4e14-98ca-5ecc3c3affaa';
+/** The Apple developer team that signs the app and its extensions. */
+export const APPLE_TEAM_ID = 'YFND2EEW8S';
 const IOS_DEPLOYMENT_TARGET = '17.0';
 
 /** The theme's embedded fonts, by PostScript name; each is also its file name. */
@@ -63,6 +66,8 @@ export function resolveVariant(raw: string | undefined): AppVariant {
 export interface BuildEnv {
   /** Points the app at another API, such as `wrangler dev` on this Mac. */
   apiBase: string | undefined;
+  /** RevenueCat's public SDK key for this variant's App Store app (`REVENUECAT_IOS_KEY`). */
+  revenueCatIosKey: string | undefined;
 }
 
 const isSet = (value: string | undefined): value is string => value !== undefined && value !== '';
@@ -97,7 +102,11 @@ export const USAGE = usageStrings(systemPermissionsEn);
  * background location, no full calendar or reminders access.
  */
 const PERMISSION_PLUGINS: NonNullable<ExpoConfig['plugins']> = [
-  ['expo-notifications', { enableRemoteNotifications: true }],
+  // Silent pushes (`SurfaceRefreshData`) wake the app to redraw its widgets and activities.
+  [
+    'expo-notifications',
+    { enableRemoteNotifications: true, enableBackgroundRemoteNotifications: true },
+  ],
   [
     'expo-camera',
     {
@@ -157,16 +166,44 @@ const PERMISSION_PLUGINS: NonNullable<ExpoConfig['plugins']> = [
       remindersPermission: false,
     },
   ],
+  // The fire room's voices and lanterns. Android's audio type and permissions belong to the
+  // Android build; on iOS the plugin only sets LiveKit up at launch.
+  '@livekit/react-native-expo-plugin',
+  [
+    '@config-plugins/react-native-webrtc',
+    {
+      cameraPermission: USAGE.NSCameraUsageDescription,
+      microphonePermission: USAGE.NSMicrophoneUsageDescription,
+    },
+  ],
 ];
+
+/**
+ * The app's background modes, all of them: the fire room keeps talking with the app in the
+ * background (its Live Activity, picture in picture, AirPods routing), and silent pushes
+ * (`SurfaceRefreshData`) wake it to redraw the widgets.
+ */
+export const BACKGROUND_MODES = ['audio', 'remote-notification'];
+
+/**
+ * Sets `UIBackgroundModes` to exactly these. Other plugins add or remove modes as a side effect
+ * (`expo-video` drops `audio` when it has no background playback; `expo-task-manager` adds
+ * `fetch`, which nothing here uses). Applied before the `plugins` list, so its change runs last.
+ */
+export const withBackgroundModes: ConfigPlugin<string[]> = (config, modes) =>
+  withInfoPlist(config, (plist) => {
+    plist.modResults['UIBackgroundModes'] = modes;
+    return plist;
+  });
 
 /** The app's config for one variant. */
 export function buildConfig(
   config: ConfigContext['config'],
   appVariant: AppVariant,
-  { apiBase }: BuildEnv,
+  { apiBase, revenueCatIosKey }: BuildEnv,
 ): ExpoConfig {
   const variant = VARIANTS[appVariant];
-  return {
+  const app: ExpoConfig = {
     ...config,
     name: variant.name,
     owner: 'kithfield',
@@ -180,14 +217,23 @@ export function buildConfig(
     updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
     ios: {
       bundleIdentifier: variant.bundleIdentifier,
+      appleTeamId: APPLE_TEAM_ID,
       deploymentTarget: IOS_DEPLOYMENT_TARGET,
       supportsTablet: true,
       associatedDomains: [`applinks:${variant.host}`, `webcredentials:${variant.host}`],
       // Google's OAuth sheet returns here; iOS only, so links and routes keep `scheme`.
       scheme: googleRedirectScheme(variant.googleIosClientId),
       usesAppleSignIn: true,
+      // The extensions in `targets/` (widgets, stickers, share, notifications) read and write it.
+      entitlements: { 'com.apple.security.application-groups': [variant.appGroup] },
       config: { usesNonExemptEncryption: false },
-      infoPlist: { CFBundleAllowMixedLocalizations: true },
+      infoPlist: {
+        CFBundleAllowMixedLocalizations: true,
+        // The plan's day and the fire, on the Lock Screen and in the Dynamic Island.
+        NSSupportsLiveActivities: true,
+        // Sticker export checks that WhatsApp is there before handing it a pack.
+        LSApplicationQueriesSchemes: ['whatsapp'],
+      },
     },
     android: {
       package: variant.bundleIdentifier,
@@ -200,6 +246,8 @@ export function buildConfig(
       // Fonts are embedded natively so the first frame already has them.
       ['expo-font', { fonts: FONTS }],
       ...PERMISSION_PLUGINS,
+      // Links each folder in `targets/` as an extension, signed by the same team.
+      '@bacons/apple-targets',
     ],
     experiments: {
       typedRoutes: true,
@@ -210,13 +258,19 @@ export function buildConfig(
       apiBase: isSet(apiBase) ? apiBase : `https://${variant.host}/api`,
       appGroup: variant.appGroup,
       googleIosClientId: variant.googleIosClientId,
+      // A public key, read at runtime; unset means purchases are unavailable in this build.
+      revenueCatIosKey: isSet(revenueCatIosKey) ? revenueCatIosKey : null,
       eas: { projectId: EAS_PROJECT_ID },
     },
   };
+  return withBackgroundModes(app, BACKGROUND_MODES);
 }
 
 // React Native's globals type `process` loosely; this file runs in Node, where each value is a string.
 const env = process.env as Partial<Record<string, string>>;
 
 export default ({ config }: ConfigContext): ExpoConfig =>
-  buildConfig(config, resolveVariant(env['APP_VARIANT']), { apiBase: env['API_BASE'] });
+  buildConfig(config, resolveVariant(env['APP_VARIANT']), {
+    apiBase: env['API_BASE'],
+    revenueCatIosKey: env['REVENUECAT_IOS_KEY'],
+  });
