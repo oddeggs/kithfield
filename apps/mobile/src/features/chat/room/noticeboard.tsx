@@ -89,7 +89,7 @@ export function usePinned(
     .filter((p): p is Pinned => p !== null);
 }
 
-/** The strip under the header: "3 pinned" and the newest pin (04-10). */
+/** The strip under the header: "3 pinned" and the newest pin. */
 export function PinBar({
   pinned,
   onPress,
@@ -117,14 +117,14 @@ export function PinBar({
       }}
     >
       <ArtIcon name="pin" size={18} color={colours.mentionFg} />
-      <Txt variant="rowTitle" style={{ fontSize: 14, lineHeight: 14 }}>
+      <Txt variant="rowTitle" style={{ fontSize: 14 }}>
         {count}
       </Txt>
       <Txt
         variant="caption"
         color={palette.secondary}
         numberOfLines={1}
-        style={{ flex: 1, fontSize: 14, lineHeight: 17 }}
+        style={{ flex: 1, fontSize: 14 }}
       >
         {newest.text}
       </Txt>
@@ -216,7 +216,7 @@ function PinCard({
             {room.nameOf(pin.actor)}
           </Txt>
         </View>
-        <Txt variant="bubble" multiline style={{ lineHeight: 20.25 }}>
+        <Txt variant="bubble" multiline>
           {pin.text}
         </Txt>
         {sprouted ? (
@@ -229,7 +229,7 @@ function PinCard({
   );
 }
 
-/** The noticeboard: pinned messages as cards on cork (04-10). */
+/** The noticeboard: pinned messages as cards on cork. */
 export function Noticeboard({
   open,
   pinned,
@@ -248,8 +248,15 @@ export function Noticeboard({
   const [cork, setCork] = useState({ w: 0, h: 0 });
   return (
     <Sheet modal detents={[top]} index={open ? 0 : -1} onIndexChange={(i) => i < 0 && onClose()}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Txt variant="displayM" accessibilityRole="header" style={{ lineHeight: 28.6 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: 4,
+        }}
+      >
+        <Txt variant="displayM" accessibilityRole="header">
           {t('chat.pins.title')}
         </Txt>
         <Press
@@ -267,7 +274,7 @@ export function Noticeboard({
         variant="caption"
         multiline
         color={palette.secondary}
-        style={{ fontSize: 14, lineHeight: 19.6, marginTop: -6 }}
+        style={{ fontSize: 14, marginTop: -2 }}
       >
         {t('chat.pins.note')}
       </Txt>
@@ -275,6 +282,7 @@ export function Noticeboard({
         onLayout={(e) => setCork({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
         style={{
           flex: 1,
+          marginTop: 4,
           marginBottom: 28,
           borderRadius: 22,
           backgroundColor: colours.cork,

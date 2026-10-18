@@ -406,7 +406,7 @@ function VisitNote({ name }: { readonly name: string }) {
       }}
     >
       <ArtIcon name="lock" size={14} color={palette.secondary} />
-      <Txt variant="caption" color={palette.secondary} style={{ fontSize: 13, lineHeight: 16.9 }}>
+      <Txt variant="caption" color={palette.secondary} style={{ fontSize: 13 }}>
         {t('chat.room.visitOnly', { name })}
       </Txt>
     </View>

@@ -40,3 +40,4 @@ in the house voice, and is logged here so design can draw it later.
 | 04-13 Viewer | Loading and "This one has gone from the farm" lines on the dark backdrop | No drawn states |
 | 04-14 Shared media | Links and Voice tabs as card rows grouped by month; an empty tab with the media spot; "Looking further back…" while older months load; long-press uses the system action sheet (Save to Photos, Pass it along) | Only the photo grid is drawn |
 | 04-15 States | "Sent" with its tick shows under your newest landed message only | The design shows it once without saying which |
+| 12-03 Empty search | The empty state keeps the search's four kinds (messages, photos, links, voice) and its person and farm chips above the critter | 12-03 draws only three kinds and no filters; the search notes name voice transcripts and filtering by person and farm |

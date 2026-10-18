@@ -65,7 +65,7 @@ function StateLine({ item, showSent }: { readonly item: BubbleItem; readonly sho
   const colours = useChatColours();
   const { t } = useLocale();
   const { retry } = useRoom();
-  const small = { fontSize: 11.5, lineHeight: 12, fontWeight: '500' as const };
+  const small = { fontSize: 11.5, fontWeight: '500' as const };
   if (item.delivery === 'failed') {
     const refusal = refusalOf(item.refused ?? '');
     return (
@@ -138,7 +138,7 @@ function StateLine({ item, showSent }: { readonly item: BubbleItem; readonly sho
   );
 }
 
-/** A failed bubble shakes once, 3 points (04-15). */
+/** A failed bubble shakes once, 3 points. */
 function useShake(failed: boolean) {
   const reduce = useReduceMotion();
   const x = useSharedValue(0);

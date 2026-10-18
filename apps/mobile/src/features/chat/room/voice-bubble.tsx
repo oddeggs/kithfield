@@ -15,22 +15,26 @@ import { useChatColours } from '../ui/chat-colours';
 /** Bars a voice note's waveform is drawn with, from its levels. */
 export const VOICE_BARS = 18;
 
-/** Levels (0–255) to `count` bar heights between 4 and `max` points. */
-export function barsOf(levels: readonly number[], count: number, max = 24): number[] {
-  if (levels.length === 0) return Array.from({ length: count }, () => 4);
+/** The shortest and tallest bar, as the design draws a note's waveform. */
+const BAR_MIN = 5;
+const BAR_MAX = 22;
+
+/** Levels (0–255) to `count` bar heights between 5 and `max` points. */
+export function barsOf(levels: readonly number[], count: number, max = BAR_MAX): number[] {
+  if (levels.length === 0) return Array.from({ length: count }, () => BAR_MIN);
   return Array.from({ length: count }, (_, i) => {
     const from = Math.floor((i * levels.length) / count);
     const to = Math.max(from + 1, Math.floor(((i + 1) * levels.length) / count));
     const slice = levels.slice(from, to);
     const level = Math.max(...slice);
-    return Math.round(4 + (level / 255) * (max - 4));
+    return Math.round(BAR_MIN + (level / 255) * (max - BAR_MIN));
   });
 }
 
 /** One voice note plays at a time, everywhere in the app. */
 let playing: { owner: string; player: AudioPlayer; stop: () => void } | null = null;
 
-/** A voice note: play, its waveform filling as it plays, and how long it is (04-03). */
+/** A voice note: play, its waveform filling as it plays, and how long it is. */
 export function VoiceBubble({
   item,
   voice,
@@ -45,6 +49,7 @@ export function VoiceBubble({
   const [on, setOn] = useState(false);
   const mine = item.mine && item.delivery !== 'failed';
   const ink = mine ? palette.bubble.yoursFg : colours.wave;
+  const rest = mine ? colours.mentionMineBg : colours.waveRest;
   const bars = barsOf(voice.waveform, VOICE_BARS);
 
   // Leaving the chat stops what it was playing.
@@ -110,7 +115,7 @@ export function VoiceBubble({
           paddingLeft: on ? 0 : 2,
         }}
       >
-        <Txt variant="caption" color={palette.text} style={{ fontSize: 12, lineHeight: 14 }}>
+        <Txt variant="caption" color={palette.text} style={{ fontSize: 12 }}>
           {on ? '❚❚' : '▶'}
         </Txt>
       </Press>
@@ -125,8 +130,8 @@ export function VoiceBubble({
               width: 3,
               height: h,
               borderRadius: 2,
-              backgroundColor: ink,
-              opacity: on && i / bars.length > progress ? 0.4 : 1,
+              // Played (and, at rest, all) bars in ink; those still to play lighter.
+              backgroundColor: on && i / bars.length > progress ? rest : ink,
             }}
           />
         ))}

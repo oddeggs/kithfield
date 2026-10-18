@@ -3,10 +3,10 @@ import type { EnCatalogue } from './catalogue-types';
 /**
  * The chats: the list of farms and visits, a farm's chat under its header, a visit on a porch,
  * replies and mentions, the noticeboard, search, voice notes, the viewer and shared media
- * (`04 Farm and Chat`, 04-02 to 04-15, and the empty search of `12 States`, 12-03).
+ * (`04 Farm and Chat`, and the empty search of `12 States`).
  */
 export const chatEn = {
-  /* The list (04-02) */
+  /* The list */
   'chat.list.title': 'Chats',
   'chat.list.search': 'Search',
   'chat.list.newFarm': 'Plant a new farm',
@@ -56,7 +56,7 @@ export const chatEn = {
   'chat.what.unsent': 'a message that was unsent',
   'chat.what.something': 'something new',
 
-  /* A farm's chat (04-03, 04-04, 04-07) */
+  /* A farm's chat */
   'chat.room.back': 'Back',
   'chat.room.seedBed': 'Seed bed',
   'chat.room.more': 'More',
@@ -87,7 +87,7 @@ export const chatEn = {
   'chat.day.today': 'today',
   'chat.day.yesterday': 'yesterday',
 
-  /* Bubbles and their states (04-15) */
+  /* Bubbles and their states */
   'chat.bubble.sending': 'Sending…',
   'chat.bubble.sent': 'Sent',
   'chat.bubble.edited': 'edited',
@@ -145,13 +145,13 @@ export const chatEn = {
   'chat.back.wave': 'Wave',
   'chat.back.waved': 'Waved',
 
-  /* Typing (04-07, 04-15) */
+  /* Typing */
   'chat.typing.one': '{a} is writing a letter…',
   'chat.typing.visit': '{a} is writing you a letter',
   'chat.typing.two': '{a} and {b} are writing letters…',
   'chat.typing.many': '{a}, {b} and others are writing letters…',
 
-  /* The composer (04-03, 04-08) */
+  /* The composer */
   'chat.composer.placeholder': 'Say something, or just wave',
   'chat.composer.tray': 'More ways to tend',
   'chat.composer.dewdrop': 'Leave a dewdrop',
@@ -172,7 +172,7 @@ export const chatEn = {
   'chat.mention.dozing': 'dozing',
   'chat.mention.detail': '{species} · {state}',
 
-  /* The noticeboard (04-10) */
+  /* The noticeboard */
   'chat.pins.bar': { one: '{count} pinned', other: '{count} pinned' },
   'chat.pins.title': 'The noticeboard',
   'chat.pins.done': 'Done',
@@ -182,7 +182,7 @@ export const chatEn = {
   'chat.pins.sprouted': 'sprouted',
   'chat.pins.open': 'Show this message in the chat',
 
-  /* Search (04-11, 12-03) */
+  /* Search */
   'chat.search.placeholder': 'Search',
   'chat.search.cancel': 'Cancel',
   'chat.search.clear': 'Clear',
@@ -207,7 +207,7 @@ export const chatEn = {
   'chat.search.pickPerson': 'From whom',
   'chat.search.pickFarm': 'Where',
 
-  /* Voice notes (04-12) */
+  /* Voice notes */
   'chat.voice.talking': '{name} is talking',
   'chat.voice.slideCancel': '‹ Slide to cancel',
   'chat.voice.lock': 'Slide up to keep recording',
@@ -221,7 +221,7 @@ export const chatEn = {
     'That voice note didn’t send. It’s still on your phone; try again in a moment.',
   'chat.voice.maxReached': 'Five minutes is the longest a voice note can be.',
 
-  /* The viewer (04-13) */
+  /* The viewer */
   'chat.viewer.close': 'Close',
   'chat.viewer.share': 'Share',
   'chat.viewer.reply': 'Reply',
@@ -234,7 +234,7 @@ export const chatEn = {
   'chat.viewer.missing': 'This one has gone from the farm.',
   'chat.viewer.loading': 'Fetching it from the barn…',
 
-  /* Shared media (04-14) */
+  /* Shared media */
   'chat.media.title': 'Shared on the farm',
   'chat.media.titleVisit': 'Shared on the porch',
   'chat.media.photos': 'Photos',

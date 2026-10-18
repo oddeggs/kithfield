@@ -43,7 +43,7 @@ const LINE_ICON: Readonly<Record<LineKind, string>> = {
   slow_post: 'envelope',
 };
 
-/** A gesture or a coming and going, as one hand-written line with its icon (04-04). */
+/** A gesture or a coming and going, as one hand-written line with its icon. */
 export function GestureLine({
   kind,
   actor,
@@ -99,7 +99,7 @@ export function GestureLine({
   const content = (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
       <ArtIcon name={LINE_ICON[kind]} size={22} color={palette.text} />
-      <Txt variant="handS" multiline color={colours.hand} style={{ lineHeight: 18, flexShrink: 1 }}>
+      <Txt variant="handS" multiline color={colours.hand} style={{ flexShrink: 1 }}>
         {text}
       </Txt>
     </View>
@@ -118,7 +118,7 @@ export function GestureLine({
   );
 }
 
-/** Where a message was unsent: a quiet gap, in italic (04-15). */
+/** Where a message was unsent: a quiet gap, in italic. */
 export function UnsentLine({
   actor,
   by,
@@ -140,14 +140,14 @@ export function UnsentLine({
       variant="caption"
       align="center"
       color={palette.placeholder}
-      style={{ fontSize: 13, lineHeight: 16.9, fontStyle: 'italic' }}
+      style={{ fontSize: 13, fontStyle: 'italic' }}
     >
       {text}
     </Txt>
   );
 }
 
-/** A friend back from a long nap, with a wave to welcome them (04-03). */
+/** A friend back from a long nap, with a wave to welcome them. */
 export function BackCard({ actor }: { readonly actor: PersonId }) {
   const colours = useChatColours();
   const { palette } = useTheme();
@@ -169,12 +169,7 @@ export function BackCard({ actor }: { readonly actor: PersonId }) {
       }}
     >
       {critter ? <Avatar kind={critter.species} look={lookOf(critter)} size={36} /> : null}
-      <Txt
-        variant="notice"
-        multiline
-        color={colours.backInk}
-        style={{ flex: 1, fontSize: 14, lineHeight: 18.9 }}
-      >
+      <Txt variant="notice" multiline color={colours.backInk} style={{ flex: 1, fontSize: 14 }}>
         <Txt variant="notice" color={colours.backInk} style={{ fontSize: 14, fontWeight: '600' }}>
           {t('chat.back.title', { name: nameOf(actor) })}
         </Txt>{' '}
@@ -206,8 +201,8 @@ export function BackCard({ actor }: { readonly actor: PersonId }) {
 }
 
 /**
- * Friends writing: each one's critter writing a letter, at most two, then "and others" (04-15).
- * On a visit: "Otis is writing you a letter" (04-07).
+ * Friends writing: each one's critter writing a letter, at most two, then "and others".
+ * On a visit: "Otis is writing you a letter".
  */
 export function TypingLine({ people }: { readonly people: readonly PersonId[] }) {
   const colours = useChatColours();
@@ -224,7 +219,7 @@ export function TypingLine({ people }: { readonly people: readonly PersonId[] })
         ? t('chat.typing.two', { a, b })
         : t('chat.typing.many', { a, b });
   if (room.visit && people.length === 1) {
-    // On a porch: their critter beside the line, writing at a little desk above the words (04-07).
+    // On a porch: their critter beside the line, writing at a little desk above the words.
     const critter = room.people.get(people[0] ?? '')?.critter;
     return (
       <View
@@ -269,7 +264,7 @@ export function TypingLine({ people }: { readonly people: readonly PersonId[] })
           attrs={{ kind: room.people.get(p)?.critter?.species ?? 'rabbit' }}
         />
       ))}
-      <Txt variant="handS" color={colours.hand} style={{ fontSize: 16, lineHeight: 16 }}>
+      <Txt variant="handS" color={colours.hand} style={{ fontSize: 16 }}>
         {text}
       </Txt>
     </View>

@@ -88,7 +88,7 @@ export function BackGlyph() {
     <Txt
       variant="body"
       color={palette.text}
-      style={{ fontSize: 26, lineHeight: 26, marginTop: -3 }}
+      style={{ fontSize: 26, marginTop: -3 }}
       importantForAccessibility="no"
     >
       ‹
@@ -119,14 +119,14 @@ export function HeaderBar({
   const colours = useChatColours();
   const pill = (
     <View style={{ paddingTop: 7, paddingBottom: 8, paddingHorizontal: 16, alignItems: 'center' }}>
-      <Txt variant="displayS" numberOfLines={1} style={{ lineHeight: 19.55 }}>
+      <Txt variant="displayS" numberOfLines={1}>
         {title}
       </Txt>
       <Txt
         variant="caption"
         color={palette.body}
         numberOfLines={1}
-        style={{ fontSize: 12, lineHeight: 15, marginTop: 2 }}
+        style={{ fontSize: 12, marginTop: 2 }}
       >
         {subtitle}
       </Txt>

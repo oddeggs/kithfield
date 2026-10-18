@@ -4,7 +4,7 @@ import { fold } from './mentions';
 import type { LogEvent } from './timeline';
 
 /*
- * Search (04-11): the farm's own full-text search on the server, merged with what this phone
+ * Search: the farm's own full-text search on the server, merged with what this phone
  * holds, so it answers offline too and finds what was just sent. Messages, photos, links and
  * voice notes; filtered by person and farm.
  */

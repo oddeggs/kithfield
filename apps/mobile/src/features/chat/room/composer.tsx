@@ -143,10 +143,10 @@ function MentionList({
           }}
         >
           <Avatar kind={row.species} {...(row.look ? { look: row.look } : {})} size={32} />
-          <Txt variant="rowTitle" style={{ fontSize: 15, lineHeight: 18 }}>
+          <Txt variant="rowTitle" style={{ fontSize: 15 }}>
             {row.name}
           </Txt>
-          <Txt variant="caption" color={palette.secondary} style={{ fontSize: 13, lineHeight: 16 }}>
+          <Txt variant="caption" color={palette.secondary} style={{ fontSize: 13 }}>
             {row.how}
           </Txt>
         </Press>
@@ -155,7 +155,7 @@ function MentionList({
   );
 }
 
-/** The chip over the field while replying or editing (04-08). */
+/** The chip over the field while replying or editing. */
 function ContextChip({
   title,
   quote,
@@ -188,17 +188,12 @@ function ContextChip({
         <Txt variant="bubbleName" color={colours.replyInk}>
           {title}
         </Txt>
-        <Txt
-          variant="caption"
-          color={palette.secondary}
-          numberOfLines={1}
-          style={{ fontSize: 13, lineHeight: 16.9 }}
-        >
+        <Txt variant="caption" color={palette.secondary} numberOfLines={1} style={{ fontSize: 13 }}>
           {quote}
         </Txt>
       </View>
       <Press onPress={onClose} darken={false} hitSlop={14} accessibilityLabel={closeLabel}>
-        <Txt variant="body" color={palette.placeholder} style={{ fontSize: 16, lineHeight: 16 }}>
+        <Txt variant="body" color={palette.placeholder} style={{ fontSize: 16 }}>
           ✕
         </Txt>
       </Press>
@@ -282,7 +277,12 @@ export function Composer({
 
   return (
     <View style={{ gap: 8 }}>
-      {matches.length > 0 ? <MentionList rows={matches} onPick={pick} /> : null}
+      {matches.length > 0 ? (
+        // Over the chat, above the field, never pushing it.
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: '100%', paddingBottom: 8 }}>
+          <MentionList rows={matches} onPick={pick} />
+        </View>
+      ) : null}
       {editing ? (
         <ContextChip
           title={t('chat.composer.editing')}
@@ -394,11 +394,7 @@ export function Composer({
               justifyContent: 'center',
             }}
           >
-            <Txt
-              variant="body"
-              color={palette.go.fg}
-              style={{ fontSize: 20, lineHeight: 22, fontWeight: '700' }}
-            >
+            <Txt variant="body" color={palette.go.fg} style={{ fontSize: 20, fontWeight: '700' }}>
               ↑
             </Txt>
           </Press>

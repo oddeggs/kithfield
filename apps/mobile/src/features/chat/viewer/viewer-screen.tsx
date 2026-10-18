@@ -101,7 +101,7 @@ function Page({
   );
 }
 
-/** The photo and video viewer (04-13): swipe between, pinch to zoom, swipe down to close. */
+/** The photo and video viewer: swipe between, pinch to zoom, swipe down to close. */
 export function ViewerScreen({
   farm,
   seq,
@@ -251,16 +251,16 @@ export function ViewerScreen({
         ]}
       >
         <Circle label={t('chat.viewer.close')} onPress={close}>
-          <Txt variant="body" color={INK} style={{ fontSize: 20, lineHeight: 22 }}>
+          <Txt variant="body" color={INK} style={{ fontSize: 20 }}>
             ✕
           </Txt>
         </Circle>
         {current ? (
           <View style={{ alignItems: 'center' }} accessible accessibilityRole="header">
-            <Txt variant="rowTitle" color={INK} style={{ fontSize: 15, lineHeight: 18 }}>
+            <Txt variant="rowTitle" color={INK} style={{ fontSize: 15 }}>
               {nameOf(current.actor)}
             </Txt>
-            <Txt variant="caption" color={SUB} style={{ fontSize: 12.5, lineHeight: 15 }}>
+            <Txt variant="caption" color={SUB} style={{ fontSize: 12.5 }}>
               {t('chat.viewer.position', {
                 when: weekdayTime(current.at, language, state?.timeZone ?? null),
                 index: at + 1,
@@ -312,7 +312,7 @@ export function ViewerScreen({
             >
               <ArtIcon name="dewdrop" size={30} color={INK} />
               {dewLabel ? (
-                <Txt variant="rowTitle" color={INK} style={{ fontSize: 14, lineHeight: 14 }}>
+                <Txt variant="rowTitle" color={INK} style={{ fontSize: 14 }}>
                   {dewLabel}
                 </Txt>
               ) : null}

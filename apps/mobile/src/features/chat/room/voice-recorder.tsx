@@ -56,7 +56,7 @@ export function waveformOf(levels: readonly number[]): number[] {
 type Phase = 'idle' | 'held' | 'locked';
 
 /**
- * Hold the mic to record (04-12): slide left to cancel, slide up to lock, at most five minutes, a
+ * Hold the mic to record: slide left to cancel, slide up to lock, at most five minutes, a
  * live waveform and your critter singing on twos. Releasing sends.
  */
 export function useVoiceRecorder(onDone: (note: Recorded) => void) {
@@ -213,7 +213,7 @@ export function MicButton({ voice }: { readonly voice: VoiceRecorder }) {
   );
 }
 
-/** The recording panel over the composer (04-12). */
+/** The recording panel over the composer. */
 export function RecorderPanel({
   voice,
   me,
@@ -282,17 +282,10 @@ export function RecorderPanel({
             <View
               style={{ width: 9, height: 9, borderRadius: 4.5, backgroundColor: colours.recording }}
             />
-            <Txt
-              variant="rowTitle"
-              style={{ fontSize: 15, lineHeight: 15, fontVariant: ['tabular-nums'] }}
-            >
+            <Txt variant="rowTitle" style={{ fontSize: 15, fontVariant: ['tabular-nums'] }}>
               {clock(voice.elapsedMs)}
             </Txt>
-            <Txt
-              variant="caption"
-              color={palette.secondary}
-              style={{ fontSize: 13, lineHeight: 13 }}
-            >
+            <Txt variant="caption" color={palette.secondary} style={{ fontSize: 13 }}>
               {t('chat.voice.talking', { name })}
             </Txt>
           </View>
@@ -330,7 +323,7 @@ export function RecorderPanel({
             </Txt>
           </Press>
         ) : (
-          <Txt variant="body" color={palette.secondary} style={{ lineHeight: 15 }}>
+          <Txt variant="body" color={palette.secondary}>
             {t('chat.voice.slideCancel')}
           </Txt>
         )}
@@ -352,11 +345,7 @@ export function RecorderPanel({
               }}
             >
               <ArtIcon name="lock" size={18} color={palette.secondary} />
-              <Txt
-                variant="caption"
-                color={palette.placeholder}
-                style={{ fontSize: 12, lineHeight: 12 }}
-              >
+              <Txt variant="caption" color={palette.placeholder} style={{ fontSize: 12 }}>
                 ⌃
               </Txt>
             </View>
@@ -376,11 +365,7 @@ export function RecorderPanel({
                 justifyContent: 'center',
               }}
             >
-              <Txt
-                variant="body"
-                color={palette.go.fg}
-                style={{ fontSize: 26, lineHeight: 28, fontWeight: '700' }}
-              >
+              <Txt variant="body" color={palette.go.fg} style={{ fontSize: 26, fontWeight: '700' }}>
                 ↑
               </Txt>
             </Press>

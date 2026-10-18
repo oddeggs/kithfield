@@ -4,7 +4,7 @@ import { monthKey } from './format';
 import type { LogEvent } from './timeline';
 
 /*
- * Shared media (04-14) and the viewer (04-13): every photo, video, link and voice note on a farm,
+ * Shared media and the viewer: every photo, video, link and voice note on a farm,
  * one entry per item, newest first, grouped by month.
  */
 

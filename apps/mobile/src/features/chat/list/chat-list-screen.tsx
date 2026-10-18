@@ -33,7 +33,7 @@ function useMinute(): number {
 
 type Change = Partial<Pick<ChatListItem, 'muted' | 'pinned'>>;
 
-/** Farms and visits, newest first (04-02). A honey dot means something new, never a count. */
+/** Farms and visits, newest first. A honey dot means something new, never a count. */
 export function ChatListScreen() {
   const insets = useSafeAreaInsets();
   const { palette } = useTheme();
@@ -110,7 +110,7 @@ export function ChatListScreen() {
           height: Math.max(insets.top, 20) + 3 + 44,
         }}
       >
-        <Txt variant="displayL" accessibilityRole="header" style={{ lineHeight: 37.4 }}>
+        <Txt variant="displayL" accessibilityRole="header">
           {t('chat.list.title')}
         </Txt>
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -170,7 +170,7 @@ export function ChatListScreen() {
                 variant="caption"
                 multiline
                 color={palette.secondary}
-                style={{ fontSize: 13, lineHeight: 17.55, marginTop: -2, marginBottom: 2 }}
+                style={{ fontSize: 13, marginTop: -2, marginBottom: 2 }}
               >
                 {t('chat.list.visitsNote')}
               </Txt>

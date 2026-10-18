@@ -3,7 +3,7 @@ import type { ChatListItem, PersonId } from '@kithfield/contracts';
 import { clock } from './format';
 
 /*
- * The chat list (04-02): farms and visits, each newest first with pinned rows on top. A row says
+ * The chat list: farms and visits, each newest first with pinned rows on top. A row says
  * who said what last in plain words; a visit says whose porch it was said on.
  */
 

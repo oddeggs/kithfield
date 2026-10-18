@@ -45,11 +45,7 @@ function Marked({
       variant="body"
       multiline
       color={bold ? palette.text : colours.searchText}
-      style={
-        bold
-          ? { fontSize: 14.5, lineHeight: 18.85, fontWeight: '600' }
-          : { fontSize: 14.5, lineHeight: 20.3 }
-      }
+      style={bold ? { fontSize: 14.5, fontWeight: '600' } : { fontSize: 14.5 }}
     >
       {highlight(text, query).map((m, i) =>
         m.hit ? (
@@ -144,7 +140,7 @@ function Tile({
   );
 }
 
-/** Search (04-11): messages, photos, links and voice notes, by person and farm; 12-03 when nothing matches. */
+/** Search: messages, photos, links and voice notes, by person and farm and an empty state when nothing matches. */
 export function SearchScreen({ farm: start }: { readonly farm: string | null }) {
   const { palette } = useTheme();
   const colours = useChatColours();
@@ -256,8 +252,7 @@ export function SearchScreen({ farm: start }: { readonly farm: string | null }) 
       style={{
         flex: 1,
         backgroundColor: palette.background,
-        // A sheet already sits below the status bar.
-        paddingTop: 16,
+        paddingTop: Math.max(insets.top - 1, 20),
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 }}>
@@ -426,14 +421,14 @@ export function SearchScreen({ farm: start }: { readonly farm: string | null }) 
                         )}
                         <View style={{ flex: 1, minWidth: 0 }}>
                           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                            <Txt variant="rowTitle" style={{ fontSize: 14, lineHeight: 16.8 }}>
+                            <Txt variant="rowTitle" style={{ fontSize: 14 }}>
                               {nameFor(hit.farm, hit.actor)}
                               {where === ALL ? ` · ${titleOf(hit.farm)}` : ''}
                             </Txt>
                             <Txt
                               variant="caption"
                               color={palette.secondary}
-                              style={{ fontSize: 13, lineHeight: 13 }}
+                              style={{ fontSize: 13 }}
                             >
                               {dateOf(hit.at)}
                             </Txt>
@@ -542,7 +537,7 @@ export function SearchScreen({ farm: start }: { readonly farm: string | null }) 
                         variant="caption"
                         color={palette.secondary}
                         numberOfLines={1}
-                        style={{ fontSize: 13, lineHeight: 16.9 }}
+                        style={{ fontSize: 13 }}
                       >
                         {siteOf(/https?:\/\/\S+/.exec(hit.text)?.[0] ?? '')}
                       </Txt>

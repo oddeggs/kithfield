@@ -13,7 +13,7 @@ import { clock } from '../model/format';
 
 const INK = viewerInks.ink;
 
-/** A video in the viewer: muted until tapped, a play button, and a scrubber (04-13). */
+/** A video in the viewer: muted until tapped, a play button, and a scrubber. */
 export function VideoItem({
   url,
   width,

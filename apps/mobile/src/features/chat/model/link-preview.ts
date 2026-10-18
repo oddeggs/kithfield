@@ -1,7 +1,7 @@
 import { siteOf } from './media';
 
 /*
- * Link previews are fetched on the sender's phone (04-15), never by the server: the title, a line
+ * Link previews are fetched on the sender's phone, never by the server: the title, a line
  * of description and the site, read from the page's Open Graph tags or its title.
  */
 

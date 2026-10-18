@@ -96,7 +96,7 @@ export function Words({ text, item }: { readonly text: string; readonly item: Bu
   );
 }
 
-/** The message a reply answers, quoted at the top of its bubble (04-08). */
+/** The message a reply answers, quoted at the top of its bubble. */
 export function ReplyQuote({ seq, mine }: { readonly seq: number; readonly mine: boolean }) {
   const colours = useChatColours();
   const { t } = useLocale();
@@ -140,7 +140,6 @@ export function ReplyQuote({ seq, mine }: { readonly seq: number; readonly mine:
         variant="rowSubtitle"
         numberOfLines={1}
         color={mine ? colours.onMoss : colours.quoteText}
-        style={{ lineHeight: 18.2 }}
       >
         {said}
       </Txt>
@@ -356,7 +355,7 @@ function LinkBubble({ item, link }: { readonly item: BubbleItem; readonly link: 
               gap: 3,
             }}
           >
-            <Txt variant="planTitle" multiline style={{ fontSize: 15, lineHeight: 18.75 }}>
+            <Txt variant="planTitle" multiline style={{ fontSize: 15 }}>
               {link.preview?.title ?? link.url}
             </Txt>
             {link.preview?.description ? (
@@ -364,16 +363,12 @@ function LinkBubble({ item, link }: { readonly item: BubbleItem; readonly link: 
                 variant="caption"
                 color={palette.secondary}
                 numberOfLines={2}
-                style={{ fontSize: 13, lineHeight: 16.9 }}
+                style={{ fontSize: 13 }}
               >
                 {link.preview.description}
               </Txt>
             ) : null}
-            <Txt
-              variant="caption"
-              color={palette.secondary}
-              style={{ fontSize: 12, lineHeight: 12, marginTop: 2 }}
-            >
+            <Txt variant="caption" color={palette.secondary} style={{ fontSize: 12, marginTop: 2 }}>
               {site}
             </Txt>
           </View>

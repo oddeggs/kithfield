@@ -41,7 +41,7 @@ export function useRoomNotice(
   return null;
 }
 
-/** The ink card over the field (04-15): "No signal. Messages wait in the post bag…". */
+/** The ink card over the field: "No signal. Messages wait in the post bag…". */
 export function RoomNotice({ notice }: { readonly notice: Notice | null }) {
   const { palette } = useTheme();
   if (!notice) return null;

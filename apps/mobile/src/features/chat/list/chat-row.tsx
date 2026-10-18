@@ -260,18 +260,17 @@ export function ChatRow(props: ChatRowProps) {
               <Txt
                 variant="rowSubtitle"
                 color={palette.secondary}
-                numberOfLines={2}
-                style={{ marginTop: 2, lineHeight: 18.2 }}
+                numberOfLines={1}
+                style={{ marginTop: 2 }}
               >
                 {line}
               </Txt>
             </View>
-            <View style={{ alignItems: 'flex-end', gap: 6 }}>
-              <Txt
-                variant="caption"
-                color={palette.secondary}
-                style={{ fontSize: 13, lineHeight: 13 }}
-              >
+            {/* The time sits level with the name, the honey dot under it. */}
+            <View
+              style={{ alignSelf: 'flex-start', alignItems: 'flex-end', gap: 6, paddingTop: 2 }}
+            >
+              <Txt variant="caption" color={palette.secondary} style={{ fontSize: 13 }}>
                 {listTime(row.at, now, language)}
               </Txt>
               {news ? (

@@ -23,7 +23,7 @@ const MAX_ZOOM = 4;
 
 /**
  * One photo or video in the viewer: pinch to zoom (and pan while zoomed), double-tap to zoom in
- * or out, and swipe down to close, the screen fading as it goes (04-13). `drag` is shared with the
+ * or out, and swipe down to close, the screen fading as it goes. `drag` is shared with the
  * viewer so its chrome and backdrop fade with the swipe.
  */
 export function Zoomable({

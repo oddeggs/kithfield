@@ -132,11 +132,7 @@ function Tile({
           }}
         >
           <ArtIcon name="play" size={9} color={colours.onMedia} />
-          <Txt
-            variant="bubbleState"
-            color={colours.onMedia}
-            style={{ fontSize: 11, lineHeight: 11 }}
-          >
+          <Txt variant="bubbleState" color={colours.onMedia} style={{ fontSize: 11 }}>
             {clock(item.durationMs ?? 0)}
           </Txt>
         </View>
@@ -145,7 +141,7 @@ function Tile({
   );
 }
 
-/** Shared on the farm (04-14): photos, videos, links and voice notes, grouped by month. */
+/** Shared on the farm: photos, videos, links and voice notes, grouped by month. */
 export function MediaScreen({ farm }: { readonly farm: string }) {
   const { palette } = useTheme();
   const { t, language } = useLocale();
@@ -214,11 +210,7 @@ export function MediaScreen({ farm }: { readonly farm: string }) {
         >
           <BackGlyph />
         </Press>
-        <Txt
-          variant="rowTitle"
-          accessibilityRole="header"
-          style={{ fontSize: 17, lineHeight: 19.55 }}
-        >
+        <Txt variant="rowTitle" accessibilityRole="header" style={{ fontSize: 17 }}>
           {visit ? t('chat.media.titleVisit') : t('chat.media.title')}
         </Txt>
         <View style={{ width: 44 }} />
@@ -259,7 +251,7 @@ export function MediaScreen({ farm }: { readonly farm: string }) {
                 accessibilityRole="header"
                 style={{
                   fontSize: 20,
-                  lineHeight: 20,
+
                   paddingHorizontal: 4,
                   paddingTop: g === 0 ? 0 : 6,
                 }}
@@ -337,7 +329,7 @@ function ListItem({ item, farm }: { readonly item: SharedItem; readonly farm: st
         <ArtIcon name={voice ? 'mic' : 'link'} size={24} color={palette.text} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Txt variant="rowTitle" numberOfLines={2} style={{ fontSize: 14.5, lineHeight: 18.85 }}>
+        <Txt variant="rowTitle" numberOfLines={2} style={{ fontSize: 14.5 }}>
           {voice
             ? t('chat.what.voice', { duration: clock(item.durationMs ?? 0) })
             : (item.title ?? item.url ?? '')}
@@ -347,7 +339,7 @@ function ListItem({ item, farm }: { readonly item: SharedItem; readonly farm: st
             variant="caption"
             color={palette.secondary}
             numberOfLines={1}
-            style={{ fontSize: 13, lineHeight: 16.9 }}
+            style={{ fontSize: 13 }}
           >
             {item.site ?? ''}
           </Txt>
