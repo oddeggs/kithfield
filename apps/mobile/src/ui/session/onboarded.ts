@@ -41,3 +41,8 @@ export async function writeOnboarded(
   if (onboarded && held !== person) await store.setItemAsync(KEY, person);
   if (!onboarded && held === person) await store.setItemAsync(KEY, '');
 }
+
+/** Forgets whoever the phone remembered: signing out, or a person the server removed. */
+export async function clearOnboarded(store: OnboardedStore): Promise<void> {
+  if (store.getItem(KEY)) await store.setItemAsync(KEY, '');
+}
