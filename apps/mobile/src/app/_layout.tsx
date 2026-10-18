@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import type { HeldElsewhere } from '../data';
@@ -83,28 +84,31 @@ export default function RootLayout() {
   const [art] = useState(() => createArtStore());
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ReduceMotionProvider>
-          <LocaleProvider>
-            <ThemeProvider>
-              <ArtProvider store={art}>
-                <TabActivityProvider>
-                  <ToastHost>
-                    {/* The data layer and its session; the splash stays up while it starts. */}
-                    <DataSlot heldElsewhere={mediaQueue}>
-                      {/* Resumes the media uploads at launch, not only when a chat opens. */}
-                      <MediaUploads />
-                      <SplashGate>
-                        <Screens />
-                      </SplashGate>
-                    </DataSlot>
-                  </ToastHost>
-                </TabActivityProvider>
-              </ArtProvider>
-            </ThemeProvider>
-          </LocaleProvider>
-        </ReduceMotionProvider>
-      </SafeAreaProvider>
+      {/* Once for the app: screens follow the keyboard frame by frame on the UI thread. */}
+      <KeyboardProvider>
+        <SafeAreaProvider>
+          <ReduceMotionProvider>
+            <LocaleProvider>
+              <ThemeProvider>
+                <ArtProvider store={art}>
+                  <TabActivityProvider>
+                    <ToastHost>
+                      {/* The data layer and its session; the splash stays up while it starts. */}
+                      <DataSlot heldElsewhere={mediaQueue}>
+                        {/* Resumes the media uploads at launch, not only when a chat opens. */}
+                        <MediaUploads />
+                        <SplashGate>
+                          <Screens />
+                        </SplashGate>
+                      </DataSlot>
+                    </ToastHost>
+                  </TabActivityProvider>
+                </ArtProvider>
+              </ThemeProvider>
+            </LocaleProvider>
+          </ReduceMotionProvider>
+        </SafeAreaProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

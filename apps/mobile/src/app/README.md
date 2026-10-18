@@ -48,6 +48,9 @@ screens there without editing a shared file.
   taps, open the gallery's Sheets section and press "Open a native sheet".
 - **Tab dots and your critter.** A screen shows a tab's honey dot with `useTabDot(tab, on)` and puts
   the person's critter on the You tab with `useYouCritter(...)` (`ui/tab-bar/tab-activity`).
+- **Keyboard.** The root layout mounts `KeyboardProvider` (`react-native-keyboard-controller`) once
+  around everything, sheets included. A screen uses its hooks and views (`useKeyboardHandler`,
+  `KeyboardAvoidingView`, `KeyboardStickyView`) directly and never mounts a provider of its own.
 - **Night.** A farm screen hands its town to `useSunPlace(place)` (`ui/theme/theme-provider`) so the
   app turns to night after the farm's sunset, not only in dark appearance.
 - **Data.** `DataSlot` (`ui/session/data-slot`) starts the data layer once (`startData`) under
