@@ -16,6 +16,8 @@ import type {
 export type Attachment = {
   farm: string;
   person: PersonId | null;
+  /** The sign-in session its token was minted under; ending that session closes it. */
+  session?: string | null;
   here: boolean;
   typing: boolean;
   /** When the socket opened, for the hello deadline. */

@@ -1,3 +1,4 @@
+import { FONT_LINE_HEIGHT } from './font-metrics.generated';
 import { type Face, type TypeStyle, type TypeStyleKey, type Weight, type } from './type';
 
 /**
@@ -113,4 +114,23 @@ export function fontFor(
     letterSpacing: s.letterSpacing,
     ...(s.uppercase ? { textTransform: 'uppercase' as const } : {}),
   };
+}
+
+/**
+ * SF Pro's own line height in ems on iOS, at every size: hhea (1950 + 494) / 2048, which
+ * `UIFont.systemFont(ofSize:).lineHeight` gives (Core Text on the iOS 27 runtime's `SFUI.ttf`).
+ */
+export const SYSTEM_LINE_HEIGHT = 2444 / 2048;
+
+/** Menlo's (the monospace `Txt` sets support codes in) own line height in ems: (1901 + 483) / 2048. */
+export const MENLO_LINE_HEIGHT = 2384 / 2048;
+
+/**
+ * The height iOS gives one line of `fontFamily`, in ems: an embedded font's own (generated from
+ * its file), Menlo's, or SF Pro's for the system face (no family) and any other system font.
+ */
+export function naturalLineHeight(fontFamily: string | undefined): number {
+  if (fontFamily === undefined) return SYSTEM_LINE_HEIGHT;
+  if (fontFamily === 'Menlo') return MENLO_LINE_HEIGHT;
+  return (FONT_LINE_HEIGHT as Readonly<Record<string, number>>)[fontFamily] ?? SYSTEM_LINE_HEIGHT;
 }

@@ -49,7 +49,9 @@ export type SkipReason =
   | 'backed_off'
   | 'nudge_budget'
   | 'expired'
-  | 'budget';
+  | 'budget'
+  /** That kind of push rests on the farm after three went unopened (`cottage/resting.ts`). */
+  | 'resting';
 
 export type Decision =
   | { readonly action: 'skip'; readonly reason: SkipReason }

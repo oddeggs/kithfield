@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 
 import type { SessionEnv } from '../auth';
+import './account-deletion';
 import './merge';
 import './profile-fanout';
 import { farmRoutes } from './routes-farm';

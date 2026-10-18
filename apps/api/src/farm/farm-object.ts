@@ -25,6 +25,7 @@ import { DurableObject } from 'cloudflare:workers';
 import type { Bindings } from '../env';
 import * as actions from './actions';
 import { runAlarm } from './alarms';
+import { exportOf, type FarmExport } from './export';
 import { fireOutAfterMs } from './farm';
 import { pageEvents, searchEvents, type WirePage } from './history';
 import { FarmHost } from './host';
@@ -163,9 +164,19 @@ export class FarmDO extends DurableObject<Bindings> {
     return this.livesHere(person) ? searchEvents(this.host.store, q) : null;
   }
 
+  /** What the person wrote and shared here, for their keepsakes export. */
+  exportFor(person: PersonId): FarmExport | null {
+    return exportOf(this.host, person);
+  }
+
   /** Closes a person's sockets, as after a ban or an account deletion. */
   closeSockets(person: PersonId, code: SocketErrorCode): void {
     this.host.closeSockets(person, code);
+  }
+
+  /** That device was signed out from another one: its sockets here close. */
+  closeSession(session: string): void {
+    this.host.closeSession(session);
   }
 
   join(person: PersonId, profile: Profile, approved: boolean): Promise<actions.JoinOutcome> {

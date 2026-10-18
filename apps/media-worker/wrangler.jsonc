@@ -1,0 +1,42 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Signed reads of the media bucket. The API signs short-lived URLs (`POST /v1/media/read-urls`);
+  // this Worker checks the signature and the quarantine flag, then serves the object from R2.
+  // It lives on its own host, never under the site's origin: files are user content, so they get
+  // an origin with no cookies and nothing to script against. The host is on the kithfield.com
+  // zone, where Cloudflare's CSAM Scanning Tool hashes images as they enter the cache.
+  "name": "kithfield-media",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "env": {
+    "dev": {
+      "name": "kithfield-media-dev",
+      "routes": [{ "pattern": "media-dev.kithfield.com", "custom_domain": true }],
+      "vars": { "ENVIRONMENT": "dev" },
+      "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media-dev" }],
+      // The API's database, read-only here: the media index's quarantine flag.
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "kithfield-dev",
+          "database_id": "465f2675-0691-48eb-b09d-4a890a82b349",
+          "migrations_dir": "../api/migrations",
+        },
+      ],
+    },
+    "prd": {
+      "name": "kithfield-media",
+      "routes": [{ "pattern": "media.kithfield.com", "custom_domain": true }],
+      "vars": { "ENVIRONMENT": "prd" },
+      "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media" }],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "kithfield",
+          "database_id": "5f18722b-a3a0-4e7b-8a17-bbf8f4f22a81",
+          "migrations_dir": "../api/migrations",
+        },
+      ],
+    },
+  },
+}

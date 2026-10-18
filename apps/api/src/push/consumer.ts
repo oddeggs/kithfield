@@ -127,7 +127,10 @@ async function sendJobs(groups: readonly Queued[][], env: Bindings, deps: PushDe
     outgoing.push({
       group,
       job,
-      sends: claim.targets.map((t) => ({ ...t, expo: expoMessage(job, push, t.token) })),
+      sends: claim.targets.map((t) => ({
+        ...t,
+        expo: expoMessage(job, push, t.token, claim.push),
+      })),
       ok: 0,
       retry: false,
     });

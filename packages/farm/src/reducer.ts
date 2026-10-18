@@ -5,6 +5,7 @@ import {
   type ParsedEvent,
 } from '@kithfield/contracts';
 
+import { withAliases } from './aliases';
 import {
   applyCardSigned,
   applyDoorstep,
@@ -215,7 +216,8 @@ export interface EventLookup {
 /**
  * Applies one event. Pure and deterministic: the same state and event give the same result on
  * every device, and the input is never changed. Events written under rules newer than this
- * reducer are skipped, and so is everything once the farm has moved to such rules.
+ * reducer are skipped, and so is everything once the farm has moved to such rules. Actors and the
+ * people a payload names are read through the farm's `aliases` first.
  *
  * A `restored` puts its target back through `lookup`. A phone must page the restored target in
  * (with its payload back) before it applies the `restored` or anything after it; without the
@@ -223,18 +225,20 @@ export interface EventLookup {
  */
 export const applyEvent = (
   state: FarmState,
-  event: FarmEvent,
+  written: FarmEvent,
   lookup: EventLookup = {},
 ): FarmState => {
-  if (event.kind === 'rules_changed') return applyKind(state, event, state.today.day);
-  if (!canApplyRules(state) || event.rulesVersion > RULES_VERSION) return state;
-  if (event.kind === 'farm_created') return state;
+  if (written.kind === 'rules_changed') return applyKind(state, written, state.today.day);
+  if (!canApplyRules(state) || written.rulesVersion > RULES_VERSION) return state;
+  if (written.kind === 'farm_created') return state;
+  // Someone merged into another person acts as the person they became.
+  const event = withAliases(state, written);
   const day = eventDay(state, event);
   let next: FarmState = day === state.today.day ? state : { ...state, today: { day, given: [] } };
   next = withoutDelivered(next, event.at);
   if (event.kind === 'restored') {
     const target = lookup.event?.(event.payload.target);
-    return target ? applyRestored(next, target) : next;
+    return target ? applyRestored(next, withAliases(next, target)) : next;
   }
   const care = event.actor === null ? null : careOf(event);
   if (care && event.actor !== null) {

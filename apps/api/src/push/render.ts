@@ -1,4 +1,4 @@
-import type { Lang, PushJob } from '@kithfield/contracts';
+import type { Lang, PushData, PushJob } from '@kithfield/contracts';
 import { t } from '@kithfield/i18n';
 
 import { PASSIVE_COPY } from './catalogue';
@@ -40,13 +40,22 @@ export function renderPush(job: PushJob, lang: Lang, title: string | null): Rend
   };
 }
 
-/** The Expo message for one device. A passive push replaces the one shown, without a sound. */
-export function expoMessage(job: PushJob, push: RenderedPush, token: string): ExpoMessage {
+/**
+ * The Expo message for one device. A passive push replaces the one shown, without a sound. `id`
+ * is the cottage's id for the push, sent back by the app when it is opened.
+ */
+export function expoMessage(
+  job: PushJob,
+  push: RenderedPush,
+  token: string,
+  id: string,
+): ExpoMessage {
+  const data: PushData = { farm: job.farm, seq: job.seq, kind: job.kind, push: id };
   return {
     to: token,
     title: push.title,
     body: push.body,
-    data: { farm: job.farm, seq: job.seq, kind: job.kind },
+    data,
     ...(push.passive ? {} : { sound: 'default' as const }),
     collapseId: job.collapseKey,
     tag: job.collapseKey,

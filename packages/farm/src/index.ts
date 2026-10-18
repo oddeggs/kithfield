@@ -1,3 +1,4 @@
+export { aliasOf, withAliases } from './aliases';
 export * from './catalog';
 export * from './rules';
 export {

@@ -8,9 +8,12 @@ import {
 } from '@kithfield/contracts';
 
 import type { Bindings } from '../env';
+import { forgetMedia } from '../media/deletion';
+import { markMediaReferenced } from '../media/sweep';
 import { cottage } from './adapters/cottage';
 import { ensureWeather, HELLO_DEADLINE_MS, nextWake, resetWeather, RETRY_MS } from './alarms';
-import { replyTarget } from './content';
+import { refusalOf } from './command-guards';
+import { mediaKeys, replyTarget } from './content';
 import { Farm, type Written } from './farm';
 import { departed, handOff } from './handoff';
 import { mirrorMembership } from './mirror';
@@ -75,6 +78,13 @@ export class FarmHost {
     }
   }
 
+  /** Closes the sockets opened under one sign-in session with `error {session_ended}`. */
+  closeSession(session: string): void {
+    for (const ws of this.ctx.getWebSockets()) {
+      if (attachmentOf(ws).session === session) refuse(ws, 'session_ended');
+    }
+  }
+
   /** On wake: move to newer rules if this server has them, and tell everyone. */
   async wake(): Promise<void> {
     if (this.farm.state !== null) this.store.prune(this.now());
@@ -105,20 +115,28 @@ export class FarmHost {
   }
 
   /**
-   * A phone's command. A slow post is timed in its recipient's own time zone, asked of their
-   * cottage only for a write that hasn't been answered yet.
+   * A phone's command. For a write not answered yet: the checks outside the log (blocks, other
+   * farms' media), and a slow post's recipient's own time zone, asked of their cottage.
    */
   async command(cmd: FarmCommand, person: PersonId, media: string[]): Promise<Written> {
-    const fresh = cmd.kind === 'slow_post' && this.store.outcome(cmd.opId) === null;
-    const recipientZone = fresh
-      ? await cottage
-          .settingsOf(this.env, cmd.payload.to)
-          .then((s) => s.timeZone ?? undefined)
-          .catch(() => undefined)
-      : undefined;
+    const answered = this.store.outcome(cmd.opId) !== null;
+    const farm = this.farm.state?.farm;
+    const actor = this.farm.actorOf(person);
+    const refuse =
+      answered || farm === undefined
+        ? null
+        : await refusalOf(this.env, farm, cmd, actor, (id) => this.farm.actorOf(id));
+    const recipientZone =
+      !answered && cmd.kind === 'slow_post'
+        ? await cottage
+            .settingsOf(this.env, cmd.payload.to)
+            .then((s) => s.timeZone ?? undefined)
+            .catch(() => undefined)
+        : undefined;
     return this.farm.command(cmd, person, {
       then: this.effectsOf(media),
       ...(recipientZone === undefined ? {} : { recipientZone }),
+      ...(refuse === null ? {} : { refuse }),
     });
   }
 
@@ -195,11 +213,31 @@ export class FarmHost {
         return Promise.resolve();
       });
     }
+    await this.markReferenced(all);
     if (media.length > 0) {
-      await step('media delete', () => this.env.MEDIA.delete([...media]));
+      // The index forgets the keys only once R2 has let them go.
+      await step('media delete', async () => {
+        await this.env.MEDIA.delete([...media]);
+        await forgetMedia(this.env.DB, media);
+      });
     }
     await step('schedule', () => this.schedule());
     this.ctx.waitUntil(this.flush());
+  }
+
+  /**
+   * Tells the media index which uploads these events point at, so the daily sweep keeps them. A
+   * failure is tried again from the alarm: an unmarked upload would be swept after a week.
+   */
+  async markReferenced(events: readonly FarmEvent[]): Promise<void> {
+    const pointing = events.filter((e) => mediaKeys(e).length > 0);
+    if (pointing.length === 0) return;
+    const ok = await step('media referenced', () =>
+      markMediaReferenced(this.env.DB, pointing.flatMap(mediaKeys), this.now()),
+    );
+    if (!ok) {
+      for (const e of pointing) this.store.setTimer(`mediaref:${e.seq}`, this.now() + RETRY_MS);
+    }
   }
 
   /** Sends the cottages everything still owed; one run at a time, again if more was owed meanwhile. */

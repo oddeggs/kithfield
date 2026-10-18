@@ -70,10 +70,13 @@ export type FarmClientFrame = z.infer<typeof FarmClientFrame>;
 
 /**
  * Why a server closes a socket. `rules_outdated` and `protocol_unsupported` mean the app needs an
- * update (its outbox keeps its writes); `unauthorized` means fetch a new token and say hello again.
+ * update (its outbox keeps its writes); `unauthorized` means fetch a new token and say hello again;
+ * `session_ended` means this phone was signed out from another device (`DELETE /v1/devices/:id`),
+ * and the app wipes what it holds as signing out does.
  */
 export const SocketErrorCode = z.enum([
   'unauthorized',
+  'session_ended',
   'not_member',
   'banned',
   'protocol_unsupported',

@@ -78,12 +78,22 @@ export async function forgetNotifiedEmails(db: D1Database): Promise<number> {
   return result.meta.changes;
 }
 
-/** The daily job: both retention rules. */
+/** Deletes early critter picks over a week old: by then their address confirmed or was forgotten. */
+export async function purgeOldPicks(db: D1Database, now: number): Promise<number> {
+  const result = await db
+    .prepare('DELETE FROM waitlist_picks WHERE requested_at <= ?')
+    .bind(now - UNCONFIRMED_KEEP_MS)
+    .run();
+  return result.meta.changes;
+}
+
+/** The daily job: every retention rule. */
 export async function keepWaitlistTidy(
   db: D1Database,
   now: number,
-): Promise<{ unconfirmed: number; emails: number }> {
+): Promise<{ unconfirmed: number; emails: number; picks: number }> {
   const unconfirmed = await purgeUnconfirmedWaitlist(db, now);
   const emails = await forgetNotifiedEmails(db);
-  return { unconfirmed, emails };
+  const picks = await purgeOldPicks(db, now);
+  return { unconfirmed, emails, picks };
 }

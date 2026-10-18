@@ -1,12 +1,20 @@
-import { Critter, FarmList, FarmNotifications } from '@kithfield/contracts';
+import {
+  Critter,
+  FarmList,
+  FarmNotifications,
+  type FarmNotificationsView,
+  NotificationType,
+} from '@kithfield/contracts';
 import type { z } from 'zod';
 import { Hono } from 'hono';
 
 import type { SessionEnv } from '../auth';
+import { DEFAULT_KNOCK_FOR } from '../cottage/chats';
+import { cottageOf } from '../cottage/stub';
 import { cottage } from './adapters/cottage';
 import { body, fail, member, signedIn } from './http';
 
-/* The caller's farms: the valley switcher, and which kinds of news each farm may push. */
+/* The caller's farms: the valley switcher, and which kinds of news each farm may push (and rest). */
 
 /** "Muted until turned back on", as the cottage and D1 keep it. */
 const ALWAYS = Number.MAX_SAFE_INTEGER;
@@ -21,6 +29,17 @@ type Row = {
   peer: string | null;
   peer_name: string | null;
   peer_critter: string | null;
+};
+
+/** "Knock for" as D1 keeps it: null (or anything unreadable) is the defaults. */
+const knockForOf = (json: string | null): FarmNotifications['knockFor'] => {
+  if (json === null) return DEFAULT_KNOCK_FOR;
+  try {
+    const parsed = FarmNotifications.shape.knockFor.safeParse(JSON.parse(json));
+    return parsed.success ? parsed.data : DEFAULT_KNOCK_FOR;
+  } catch {
+    return DEFAULT_KNOCK_FOR;
+  }
 };
 
 const peerCritter = (json: string | null) => {
@@ -82,6 +101,48 @@ export const meRoutes = (): Hono<SessionEnv> => {
       return fail(c, 503, 'unavailable');
     }
     return c.json(req);
+  });
+
+  /**
+   * `GET /v1/farms/:id/notifications`: the caller's mute and "Knock for" on this farm, and the
+   * kinds of push resting there after three went unopened.
+   */
+  app.get('/farms/:id/notifications', signedIn, async (c) => {
+    const m = await member(c);
+    if (m instanceof Response) return m;
+    const row = await c.env.DB.prepare(
+      'SELECT muted_until, knock_for FROM memberships WHERE farm_id = ? AND person_id = ?',
+    )
+      .bind(m.farm, m.person)
+      .first<{ muted_until: number | null; knock_for: string | null }>();
+    const until = row?.muted_until ?? null;
+    const now = Date.now();
+    let resting: FarmNotificationsView['resting'];
+    try {
+      resting = await cottageOf(c.env, m.person).restingOn(m.farm);
+    } catch {
+      return fail(c, 503, 'unavailable');
+    }
+    const view: FarmNotificationsView = {
+      mutedUntil: until === null || until <= now ? null : until >= ALWAYS ? 'always' : until,
+      knockFor: knockForOf(row?.knock_for ?? null),
+      resting,
+    };
+    return c.json(view);
+  });
+
+  /** `DELETE /v1/farms/:id/notifications/resting/:type`: turns a resting kind of push back on. */
+  app.delete('/farms/:id/notifications/resting/:type', signedIn, async (c) => {
+    const m = await member(c);
+    if (m instanceof Response) return m;
+    const type = NotificationType.safeParse(c.req.param('type'));
+    if (!type.success) return fail(c, 400, 'bad_request', ['type']);
+    try {
+      await cottageOf(c.env, m.person).wakeResting(m.farm, type.data);
+    } catch {
+      return fail(c, 503, 'unavailable');
+    }
+    return c.body(null, 204);
   });
 
   return app;

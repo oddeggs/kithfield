@@ -3,10 +3,18 @@
 import type { FeatureCatalogues } from './catalogue-types';
 import { chatEn } from './chat.en';
 import { chatSameInBoth, chatVi } from './chat.vi';
+import { deletionCodeEn } from './deletion-code.en';
+import { deletionCodeVi } from './deletion-code.vi';
+import { deletionScheduledEn } from './deletion-scheduled.en';
+import { deletionScheduledVi } from './deletion-scheduled.vi';
 import { galleryEn } from './gallery.en';
 import { gallerySameInBoth, galleryVi } from './gallery.vi';
 import { glossaryEn } from './glossary.en';
 import { glossarySameInBoth, glossaryVi } from './glossary.vi';
+import { mediaEn } from './media.en';
+import { mediaVi } from './media.vi';
+import { moderationEn } from './moderation.en';
+import { moderationSameInBoth, moderationVi } from './moderation.vi';
 import { pushEn } from './push.en';
 import { pushSameInBoth, pushVi } from './push.vi';
 import { shellEn } from './shell.en';
@@ -27,8 +35,12 @@ import { websitePagesSameInBoth, websitePagesVi } from './website-pages.vi';
 /** Every feature catalogue pair, in file-name order. */
 export const features: readonly FeatureCatalogues[] = [
   { name: 'chat', file: 'chat', en: chatEn, vi: chatVi, sameInBoth: chatSameInBoth },
+  { name: 'deletionCode', file: 'deletion-code', en: deletionCodeEn, vi: deletionCodeVi, sameInBoth: [] },
+  { name: 'deletionScheduled', file: 'deletion-scheduled', en: deletionScheduledEn, vi: deletionScheduledVi, sameInBoth: [] },
   { name: 'gallery', file: 'gallery', en: galleryEn, vi: galleryVi, sameInBoth: gallerySameInBoth },
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
+  { name: 'media', file: 'media', en: mediaEn, vi: mediaVi, sameInBoth: [] },
+  { name: 'moderation', file: 'moderation', en: moderationEn, vi: moderationVi, sameInBoth: moderationSameInBoth },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
@@ -42,8 +54,12 @@ export const features: readonly FeatureCatalogues[] = [
 /** The source catalogue: every key, in English. */
 export const en = {
   ...chatEn,
+  ...deletionCodeEn,
+  ...deletionScheduledEn,
   ...galleryEn,
   ...glossaryEn,
+  ...mediaEn,
+  ...moderationEn,
   ...pushEn,
   ...shellEn,
   ...signInCodeEn,
@@ -57,8 +73,12 @@ export const en = {
 /** Every key, in Vietnamese. */
 export const vi = {
   ...chatVi,
+  ...deletionCodeVi,
+  ...deletionScheduledVi,
   ...galleryVi,
   ...glossaryVi,
+  ...mediaVi,
+  ...moderationVi,
   ...pushVi,
   ...shellVi,
   ...signInCodeVi,

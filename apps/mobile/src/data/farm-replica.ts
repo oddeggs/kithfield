@@ -149,11 +149,26 @@ export class FarmReplica<View = unknown> {
     });
   }
 
-  /** Queues a write and draws it at once. The connection sends it. */
-  enqueue(actor: PersonId, write: { kind: string; payload: unknown }): Promise<EnqueueResult> {
+  /**
+   * Queues a write and draws it at once. The connection sends it. A write made again with an op
+   * id this phone already holds (a send repeated after a crash) is not queued twice: it answers
+   * as the first one did, `queued` while waiting or landed, `refused` once the farm refused it.
+   */
+  enqueue(
+    actor: PersonId,
+    write: { kind: string; payload: unknown; opId?: OpId | undefined },
+  ): Promise<EnqueueResult> {
     return this.serial(async () => {
       const { rules, store, now, newOpId, farm } = this.deps;
-      const parsed = FarmCommand.safeParse({ opId: newOpId(), ...write });
+      if (write.opId !== undefined) {
+        const before = await this.made(write.opId);
+        if (before) return before;
+      }
+      const parsed = FarmCommand.safeParse({
+        opId: write.opId ?? newOpId(),
+        kind: write.kind,
+        payload: write.payload,
+      });
       // A write no farm would take (a kind phones can't send, a payload that fails its schema).
       if (!parsed.success) return { status: 'refused', reason: 'invalid' };
       const cmd = parsed.data;
@@ -179,6 +194,15 @@ export class FarmReplica<View = unknown> {
       this.refresh();
       return { status: 'queued', opId: cmd.opId };
     });
+  }
+
+  /** How a write with this op id went, if this phone made it already. */
+  private async made(opId: OpId): Promise<EnqueueResult | null> {
+    const { store, farm } = this.deps;
+    if (this.pending.some((e) => e.opId === opId)) return { status: 'queued', opId };
+    if ((await store.seenOps(farm, [opId])).has(opId)) return { status: 'queued', opId };
+    const refused = await store.rejection(opId);
+    return refused ? { status: 'refused', reason: refused.reason } : null;
   }
 
   /** Counts a send of these writes, for diagnosing a stuck outbox. */

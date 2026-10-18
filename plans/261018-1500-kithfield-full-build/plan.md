@@ -19,7 +19,7 @@ The plan is built for parallel subagents, not one developer.
 |---|---|
 | Routes | Each feature owns its own route folder under `apps/mobile/src/app/` (a tab's folder in `(tabs)/`, or its own group), and screens over the tabs in `(modal)/<feature>-*` or `(cover)/<feature>-*`. Only the shell lane edits the `_layout.tsx` files and the tab bar |
 | i18n | One catalogue file per feature: `packages/i18n/src/<feature>.en.ts` / `.vi.ts`. `pnpm --filter @kithfield/i18n gen` writes `catalogues.generated.ts`; re-run it after a merge conflict |
-| D1 migrations | Number ranges per lane (below; the farm object lane, 1d, takes `0400–0449`). Never edit another lane's migration |
+| D1 migrations | Number ranges per lane (below; the farm object lane, 1d, takes `0400–0449`, and media, 2g, `0350–0399`). Never edit another lane's migration. Past the first file of a range, these exist so far: `0001–0011` (auth, `0010_purge_queued`, `0011_desktop_links`), `0100–0103` (cottage, `0103_session_devices`), `0200–0202`, `0250–0251` (moderation, `0251_audit_log_two_years`), `0350–0352` (media) and `0400–0404` (farm object, `0404_invites_maker_optional`) |
 | Contracts | Owned by the contracts lane only |
 | `package.json` dependencies | A lane may add dependencies only to the packages it owns, at versions already in the catalogue; new catalogue entries go through the integration agent |
 | Native config (`app.config.ts`, `targets/`) | Owned by the native-surfaces lane from wave 3; earlier lanes request changes through `NEEDS_CONTEXT` |
@@ -64,7 +64,7 @@ Gate 1: two simulator clients exchange messages and dewdrops through local Worke
 | 2d Gestures | `features/gestures` | 05-01 to 05-07, 05-09 to 05-11 (long-press, the + tray, firefly, Quick Tend, slow post, knock, heavy weather, forwarding, files, reactions) | 2 |
 | 2e Plans | `features/plans`, `app/(tabs)/seedbed/**` | 06-01 to 06-06 (planting, voting buds and the sun patch, the organiser's hat, seed bed, remember-me seed, hangout day) | 2 |
 | 2f Settings and safety | `features/settings`, `features/safety`, `app/(tabs)/you/**` | 11-01 to 11-22 (You tab, settings, devices and QR, deletion, farm settings, members and roles, invites, muting, report, block, removal, AI and your data, the reporter hears back, appeals) | 2 |
-| 2g Media | `apps/api/src/media/**`, `apps/media-worker/**`, `features/media` | Upload URLs, signed reads, CSAM quarantine hook, client resize and compression, upload progress (12-06) | 1 |
+| 2g Media | `apps/api/src/media/**`, `apps/media-worker/**`, `features/media`, migrations `0350–0399` | Upload URLs, signed reads, CSAM quarantine hook, client resize and compression, upload progress (12-06) | 1 |
 | 2h Moderation | `apps/admin/**`, `apps/api/src/admin/**`, migrations `0250–0299` | 19-01 to 19-05 (queue, report, member record, appeals, audit log); reports API; ban checks | 2 |
 
 Route paths are under `apps/mobile/src/app/`. A screen shown over the tabs (a sheet or a full-screen cover) goes in `app/(modal)/<feature>-*` or `app/(cover)/<feature>-*`, owned by that feature's lane.

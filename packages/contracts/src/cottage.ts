@@ -8,6 +8,7 @@ import {
   FarmId,
   FarmKind,
   FarmName,
+  Id,
   PersonId,
   Seq,
   text,
@@ -113,3 +114,15 @@ export const PushJob = z.object({
   at: EpochMs,
 });
 export type PushJob = z.infer<typeof PushJob>;
+
+/**
+ * A push's `data`, as the app reads it when the push is opened: the farm and event to open, and
+ * `push`, the cottage's id for this push, which the app sends back (`PushOpenedRequest`).
+ */
+export const PushData = z.object({
+  farm: FarmId.nullable(),
+  seq: Seq.nullable(),
+  kind: AnyEventKind,
+  push: Id,
+});
+export type PushData = z.infer<typeof PushData>;

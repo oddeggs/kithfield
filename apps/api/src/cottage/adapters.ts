@@ -16,8 +16,14 @@ export interface CottageTokenScope {
   readonly cottage: string;
 }
 
-/** What a route behind a session sees: the signed-in person's id as `c.var.person`. */
-export type SessionRouteEnv = { Bindings: Bindings; Variables: { person: string } };
+/**
+ * What a route behind a session sees: the signed-in person's id as `c.var.person`, and the
+ * session's id as `c.var.session`.
+ */
+export type SessionRouteEnv = {
+  Bindings: Bindings;
+  Variables: { person: string; session: string };
+};
 
 export interface CottageAdapters {
   /**

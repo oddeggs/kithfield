@@ -6,10 +6,11 @@ import {
   type CottageServerFrame,
   type MeSettings,
   MeSettingsUpdate,
+  NotificationType,
   PING,
   PONG,
-  PROTOCOL_VERSION,
   PushJob,
+  type QuickTendList,
   RegisterDeviceRequest,
   RememberRequest,
   type RememberSeed,
@@ -19,16 +20,18 @@ import { DurableObject } from 'cloudflare:workers';
 
 import type { Bindings } from '../env';
 import type { Decision } from '../push/policy';
-import { cottageAdapters } from './adapters';
 import * as chats from './chats';
 import { alarmDelay, nextAlarmAt, ringAlarm } from './alarm';
 import { type Claim, claimJob } from './claim';
 import { cottageClock } from './clock';
 import * as devices from './devices';
 import { decideDelivery, receiveDelivery } from './deliver';
+import { answerHello } from './hello';
 import { considerJob, type Intake } from './intake';
 import * as merge from './merge';
 import { applySettings, readProfile, updateProfile } from './profile';
+import { quickTend } from './quick-tend';
+import * as resting from './resting';
 import { applySchema } from './schema';
 import * as seeds from './seeds';
 import * as sockets from './socket';
@@ -89,7 +92,7 @@ export class CottageDO extends DurableObject<Bindings> {
     const other = cottageOf(this.env, from);
     merge.mergeInto(this.sql, await other.exportForMerge(), this.person);
     await merge.moveActionKeys(this.env.DB, from, this.person);
-    await other.clearForMerge();
+    await other.clear();
     this.broadcast({ type: 'chats', chats: chats.chatList(this.sql, this.now) });
     await this.scheduleAlarm();
   }
@@ -98,12 +101,12 @@ export class CottageDO extends DurableObject<Bindings> {
     return merge.exportCottage(this.sql);
   }
 
-  /** Empties a cottage whose person was merged into another: sockets closed, storage gone. */
-  async clearForMerge(): Promise<void> {
+  /** Empties the cottage (merged away, or `purged`): sockets closed, storage gone. */
+  async clear(purged = false): Promise<void> {
     this.closeSockets('unauthorized');
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
-    applySchema(this.sql);
+    applySchema(this.sql, purged);
   }
 
   /** The person lives on this farm or visit: its kind, and its name or peer. */
@@ -125,9 +128,30 @@ export class CottageDO extends DurableObject<Bindings> {
     this.sendRow(farm, this.now);
   }
 
-  pinFarm(farm: string, pinned: boolean): void {
+  /** Pins a farm to the top of the chat list, or unpins it; false for a farm it doesn't know. */
+  pinFarm(farm: string, pinned: boolean): boolean {
+    if (!chats.knowsFarm(this.sql, farm)) return false;
     chats.setPinned(this.sql, farm, pinned);
     this.sendRow(farm, this.now);
+    return true;
+  }
+
+  quickTend(): QuickTendList {
+    return quickTend(this.sql);
+  }
+
+  /** The app opened a push (the id in its data); an unknown id is ignored. */
+  pushOpened(id: string): void {
+    resting.markOpened(this.sql, id);
+  }
+
+  /** The kinds of push resting on a farm after unopened ones, and until when. */
+  restingOn(farm: string): { type: NotificationType; until: number }[] {
+    return resting.restingOn(this.sql, farm, this.now);
+  }
+
+  wakeResting(farm: string, type: NotificationType): void {
+    resting.wake(this.sql, farm, NotificationType.parse(type), this.now);
   }
 
   chatList(): ChatListItem[] {
@@ -228,6 +252,14 @@ export class CottageDO extends DurableObject<Bindings> {
     for (const ws of this.ctx.getWebSockets()) sockets.refuse(ws, code);
   }
 
+  /** Closes the sockets opened under one sign-in session, with `error {session_ended}`. */
+  closeSession(session: string): void {
+    for (const ws of this.ctx.getWebSockets()) {
+      const state = sockets.stateOf(ws);
+      if (state?.authed === true && state.session === session) sockets.refuse(ws, 'session_ended');
+    }
+  }
+
   /** Late hellos, held pushes and due seeds; after a failure, it rings again in a minute. */
   override async alarm(): Promise<void> {
     sockets.closeLate(this.ctx.getWebSockets(), this.now);
@@ -240,11 +272,6 @@ export class CottageDO extends DurableObject<Bindings> {
     const at = nextAlarmAt(this.sql, this.ctx.getWebSockets());
     if (at === null) await this.ctx.storage.deleteAlarm();
     else await this.ctx.storage.setAlarm(Date.now() + alarmDelay(at, this.now));
-  }
-
-  /** The person came back on their own: nudges start again from the first. */
-  private cameBack(): void {
-    updateProfile(this.sql, (profile) => ({ ...profile, nudgesSinceBack: 0 }));
   }
 
   /* The cottage socket: `hello {protocol, token}` first, then `chats`, then a `chat` per change. */
@@ -262,25 +289,7 @@ export class CottageDO extends DurableObject<Bindings> {
   }
 
   override async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
-    const hello = sockets.helloIn(message);
-    if (hello === null) {
-      if (sockets.stateOf(ws)?.authed !== true) sockets.refuse(ws, 'unauthorized');
-      return;
-    }
-    if (hello.protocol !== PROTOCOL_VERSION) {
-      sockets.refuse(ws, 'protocol_unsupported');
-      return;
-    }
-    const scope = { cottage: this.person };
-    const person = await cottageAdapters().verifyRtToken(this.env, hello.token, scope);
-    if (person !== this.person) {
-      sockets.refuse(ws, 'unauthorized');
-      return;
-    }
-    ws.serializeAttachment({ authed: true } satisfies sockets.SocketState);
-    this.cameBack();
-    sockets.send(ws, { type: 'chats', chats: chats.chatList(this.sql, this.now) });
-    if (readProfile(this.sql).safetyNote) sockets.send(ws, { type: 'safety_note' });
+    await answerHello(ws, message, this.intake());
   }
 
   /** Completes the closing handshake; a socket already closed needs nothing. */

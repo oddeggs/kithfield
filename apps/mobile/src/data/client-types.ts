@@ -20,6 +20,16 @@ export interface DataStatus {
   readonly banned: boolean;
 }
 
+/**
+ * What this person keeps on the phone outside the data layer's tables (the media upload queue):
+ * counted with the unsent writes before signing out, and cleared when the tables are wiped.
+ */
+export interface HeldElsewhere {
+  /** Writes not yet in the outbox, which signing out would lose. */
+  readonly pendingCount: () => Promise<number>;
+  readonly clear: () => Promise<void>;
+}
+
 export interface DataClientDeps<View> {
   readonly db: SqlDatabase;
   readonly rules: FarmRules<View>;
@@ -34,6 +44,7 @@ export interface DataClientDeps<View> {
   readonly newOpId: () => OpId;
   readonly now?: () => number;
   readonly report?: (report: SyncReport) => void;
+  readonly heldElsewhere?: HeldElsewhere;
   readonly tuning?: {
     readonly backoff?: BackoffOptions;
     readonly keepAlive?: KeepAlive;
