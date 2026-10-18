@@ -24,6 +24,7 @@ export const onboardingEn = {
   'onboarding.invite.field': 'Farm link',
   'onboarding.invite.placeholder': 'kithfield.com/i/…',
   'onboarding.invite.open': 'Open the invite',
+  'onboarding.invite.paste': 'Paste',
   'onboarding.invite.notALink': 'That doesn’t look like a farm link. Check it and try again.',
 
   'onboarding.join.title': '{name} saved you a cottage',

@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Button } from '../../../ui/components/button';
@@ -22,19 +22,15 @@ export function InviteScreen() {
   const [link, setLink] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let live = true;
-    Clipboard.getStringAsync().then(
-      (text) => {
-        const found = live ? inviteLinkIn(text) : null;
-        if (found) setLink((now) => now || found);
-      },
-      () => undefined,
-    );
-    return () => {
-      live = false;
-    };
-  }, []);
+  /** What was pasted: its farm link, or the text as it is. */
+  const pasted = (text: string) => {
+    setLink(inviteLinkIn(text) ?? text.trim());
+    setError(null);
+  };
+  // Read only when the person taps Paste: the system button needs no prompt; the fallback asks.
+  const pasteByTap = () => {
+    Clipboard.getStringAsync().then(pasted, () => undefined);
+  };
 
   const open = () => {
     const code = inviteCodeIn(link);
@@ -52,6 +48,23 @@ export function InviteScreen() {
         {t('onboarding.invite.title')}
       </Txt>
       <Body>{t('onboarding.invite.body')}</Body>
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+        {Clipboard.isPasteButtonAvailable ? (
+          <Clipboard.ClipboardPasteButton
+            acceptedContentTypes={['plain-text']}
+            displayMode="iconAndLabel"
+            cornerStyle="capsule"
+            backgroundColor={palette.fillSecondary}
+            foregroundColor={palette.text}
+            onPress={(data) => {
+              if (data.type === 'text') pasted(data.text);
+            }}
+            style={{ height: 36, width: 110 }}
+          />
+        ) : (
+          <Button label={t('onboarding.invite.paste')} kind="text" onPress={pasteByTap} />
+        )}
+      </View>
       <TextField
         value={link}
         onChangeText={(text) => {

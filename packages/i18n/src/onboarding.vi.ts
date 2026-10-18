@@ -19,6 +19,7 @@ export const onboardingVi: ViCatalogue<typeof onboardingEn> = {
   'onboarding.invite.field': 'Đường dẫn',
   'onboarding.invite.placeholder': 'kithfield.com/i/…',
   'onboarding.invite.open': 'Mở lời mời',
+  'onboarding.invite.paste': 'Dán',
   'onboarding.invite.notALink':
     'Có vẻ đây không phải đường dẫn nông trại. Kiểm tra lại rồi thử lần nữa nhé.',
 
