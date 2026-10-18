@@ -19,6 +19,12 @@ export default defineConfig(async () => {
             BETTER_AUTH_SECRET: `${randomUUID()}${randomUUID()}`,
             INVITE_CODE_KEY: `${randomUUID()}${randomUUID()}`,
             EXPORT_URL_KEY: `${randomUUID()}${randomUUID()}`,
+            // The safety desk's moderators (a secret in each environment), as JSON.
+            MODERATORS: JSON.stringify({
+              'ana@example.com': 'senior',
+              'kofi@example.com': 'senior',
+              'sam@example.com': 'moderator',
+            }),
           },
         },
       }),

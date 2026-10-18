@@ -11,3 +11,6 @@ WAITLIST_EMAIL_KEY=
 INVITE_CODE_KEY=
 # Signs the keepsakes export's download links; at least 32 random characters (`openssl rand -base64 32`).
 EXPORT_URL_KEY=
+# The safety desk's moderators as JSON, address → role (moderator, senior or legal), e.g.
+# {"name@example.com":"senior"}. Cloudflare Access must let the same addresses in.
+MODERATORS=

@@ -1,3 +1,4 @@
+import { keepModerationTidy } from './admin/retention';
 import { createApp } from './app';
 import { queueDuePurges } from './auth';
 import { expireExports } from './auth/export';
@@ -15,10 +16,12 @@ export default {
   fetch: app.fetch,
   queue: consumeQueue,
   // The daily cron (`wrangler.jsonc` triggers): the waitlist's retention, expired keepsakes
-  // exports, and accounts whose 30 days are over go on the deletion queue.
+  // exports, the safety desk's retention, and accounts whose 30 days are over go on the deletion
+  // queue.
   scheduled: (controller, env, ctx) => {
     ctx.waitUntil(keepWaitlistTidy(env.DB, controller.scheduledTime));
     ctx.waitUntil(queueDuePurges(env, controller.scheduledTime));
     ctx.waitUntil(expireExports(env, controller.scheduledTime));
+    ctx.waitUntil(keepModerationTidy(env.DB, controller.scheduledTime));
   },
 } satisfies ExportedHandler<Bindings>;

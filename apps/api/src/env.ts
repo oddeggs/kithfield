@@ -16,6 +16,8 @@ export const secretNames = [
   'INVITE_CODE_KEY',
   // Signs the keepsakes export's short-lived download links (HMAC-SHA256).
   'EXPORT_URL_KEY',
+  // The safety desk's moderators as JSON, address → role: {"name@example.com": "senior"}.
+  'MODERATORS',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -35,6 +37,10 @@ export type Bindings = Secrets & {
   /** Google OAuth client ids an identity token may name: the iOS app's and the web/server one. */
   readonly GOOGLE_IOS_CLIENT_ID: string;
   readonly GOOGLE_WEB_CLIENT_ID: string;
+  /** The Cloudflare Access team the safety desk signs in through (`https://<team>.cloudflareaccess.com`). */
+  readonly ACCESS_TEAM_DOMAIN: string;
+  /** The Access application audience (`aud`) for this environment's safety desk. */
+  readonly ACCESS_AUD: string;
   /** One farm object per farm or visit. */
   readonly FARM: DurableObjectNamespace<FarmDO>;
   /** One cottage object per person. */
@@ -50,6 +56,8 @@ export type Bindings = Secrets & {
   readonly WAITLIST_LIMIT: RateLimit;
   /** At most 5 account deletion requests or code tries a minute per client address. */
   readonly DELETION_REQUEST_LIMIT: RateLimit;
+  /** Reports and appeals from the app, per person. */
+  readonly REPORT_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;
