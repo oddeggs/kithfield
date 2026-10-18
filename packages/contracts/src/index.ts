@@ -6,3 +6,8 @@ export * from './events';
 export * from './commands';
 export * from './snapshot';
 export * from './frames';
+export * from './http/farms';
+export * from './http/account';
+export * from './http/safety';
+export * from './http/admin';
+export * from './http/errors';
