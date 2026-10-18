@@ -1,4 +1,4 @@
-import type { FarmId } from '@kithfield/contracts';
+import type { DoorstepItem, FarmId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -18,6 +18,9 @@ import { useYouCritter } from '../../ui/tab-bar/tab-activity';
 import { useSunPlace, useTheme } from '../../ui/theme/theme-provider';
 // The fire on the farm: its glow, who is by it, and the way into the fire room.
 import { FireGlowCard, openFire, useFireOnFarm } from '../fire/fire-glow';
+// A sticker pack given as a gift opens as the stickers' own parcel.
+import { stickerRoutes } from '../stickers';
+import { packOf } from '../stickers/model/catalogue';
 // The farm's rhythm (birthdays, shared rain, weather, the project, the harvest letter).
 import { RhythmSheetRows, RhythmWeatherChip, useRhythmMoments } from '../rhythm/farm-entries';
 import { rhythmRoutes } from '../rhythm/routes';
@@ -111,6 +114,21 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
   const reduce = useReduceMotion();
   const [sheet, setSheet] = useState(0);
   const fire = useFireOnFarm(farm);
+  const client = useDataClient();
+  // A gift opens on the step (the shop's 09-05), or, for a sticker pack, as its parcel (08-06).
+  const openGift = async (d: DoorstepItem, gift: string) => {
+    const given = (await client.events(farm, { before: d.seq + 1, limit: 1 })).find(
+      (e) => e.seq === d.seq,
+    );
+    // A member's `gift {given}`, or a visitor's gift left at the gate.
+    const payload = given?.payload as { item?: unknown; gesture?: { item?: unknown } } | undefined;
+    const item = payload?.item ?? payload?.gesture?.item;
+    if (typeof item === 'string' && packOf(item) !== null) {
+      router.push(stickerRoutes.opened(farm, d.seq));
+    } else {
+      router.push({ pathname: '/shop/step', params: { farm, gift } });
+    }
+  };
   const self = state?.members.find((m) => m.person === me) ?? null;
 
   useSunPlace(state?.place ? { lat: state.place.lat, lng: state.place.lng } : null);
@@ -185,11 +203,10 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
                 onCredits: () => router.push(farmRoutes.critters(farm)),
                 onPlan: (p) => router.push(farmRoutes.plan(farm, p.seed.seq)),
                 onFirefly: (to) => router.push(farmRoutes.tray(farm, to)),
-                // Opening what waits on the step: a gift opens on the step (the shop's 09-05);
-                // a firefly wakes your critter.
+                // Opening what waits on the step: a gift opens; a firefly wakes your critter.
                 onDoorstep: (d) => {
                   if (d.kind === 'gift' && d.gift) {
-                    router.push({ pathname: '/shop/step', params: { farm, gift: d.gift } });
+                    void openGift(d, d.gift);
                     return;
                   }
                   void send('firefly', { action: 'opened', target: d.seq });
