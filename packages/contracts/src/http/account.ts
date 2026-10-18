@@ -1,6 +1,16 @@
 import { z } from 'zod';
 
-import { CountryCode, EpochMs, FarmId, Id, Lang, PersonId, text } from '../primitives';
+import {
+  CountryCode,
+  Critter,
+  DisplayName,
+  EpochMs,
+  FarmId,
+  HttpUrl,
+  Id,
+  PersonId,
+  text,
+} from '../primitives';
 
 /*
  * Sign-in itself (anonymous, Apple, Google, email and phone codes) is Better Auth's own API; these
@@ -125,18 +135,48 @@ export const ConsentList = z.object({
 });
 export type ConsentList = z.infer<typeof ConsentList>;
 
-/** `POST /v1/me/delete`: soft delete; signing in within 30 days restores everything. */
+/**
+ * `POST /v1/me/delete` (signed in, after Face ID or the passcode on the phone; no body): starts the
+ * 30-day wait and ends every session on every device. Answers 202 with the time the account is
+ * purged. There is no cancel endpoint: signing in again before `purgeAt` cancels it, and `Me.purgeAt`
+ * is null again.
+ */
 export const DeleteAccountResponse = z.object({ purgeAt: EpochMs });
 export type DeleteAccountResponse = z.infer<typeof DeleteAccountResponse>;
 
-/** `POST /v1/deletion-requests` from the website, for someone without the app. */
-export const DeletionRequest = z.object({ email: z.email().max(254), lang: Lang });
-export type DeletionRequest = z.infer<typeof DeletionRequest>;
+/** The keepsakes export: photos, scrapbook pages and stickers, as one zip. */
+export const ExportStatus = z.object({
+  state: z.enum(['preparing', 'ready', 'expired']),
+  /** A signed download link while `ready`. */
+  url: HttpUrl.nullable(),
+  requestedAt: EpochMs,
+  expiresAt: EpochMs.nullable(),
+});
+export type ExportStatus = z.infer<typeof ExportStatus>;
 
-/** `POST /v1/waitlist` from the website. Keyed by a hash; the email is kept until the launch letter. */
-export const WaitlistRequest = z.object({ email: z.email().max(254), lang: Lang });
-export type WaitlistRequest = z.infer<typeof WaitlistRequest>;
+/*
+ * `POST /v1/me/export` starts (or returns) the keepsakes export with 202 and an `ExportStatus`;
+ * `GET /v1/me/export` reads it, 404 when there is none. The bundle is kept 7 days.
+ *
+ * `POST /v1/me/consents/:feature/forget` (no body, 202): after saying no, asks the AI provider and
+ * Kithfield to delete anything already sent for that feature.
+ */
 
-/** `PUT /v1/blocks/:person` blocks, `DELETE` unblocks. Never disclosed. `GET /v1/blocks` lists. */
-export const BlockList = z.object({ blocked: z.array(PersonId).max(1000) });
+/**
+ * `PUT /v1/blocks/:person` blocks and `DELETE /v1/blocks/:person` unblocks (no body, 204 either
+ * way, never disclosed to them). `GET /v1/blocks` lists them for settings, with how to draw each;
+ * a deleted account has no name.
+ */
+export const BlockList = z.object({
+  blocked: z
+    .array(
+      z.object({
+        person: PersonId,
+        name: DisplayName.nullable(),
+        critter: Critter.nullable(),
+        at: EpochMs,
+      }),
+    )
+    .max(1000),
+});
 export type BlockList = z.infer<typeof BlockList>;
