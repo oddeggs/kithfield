@@ -5,7 +5,10 @@ import type { FarmDO } from './farm/farm-object';
  * Secrets the Worker expects, by name. Values live in Wrangler secrets (deployed) or `.dev.vars`
  * (local, ignored by git); `.dev.vars.example` lists the same names.
  */
-export const secretNames = [] as const;
+export const secretNames = [
+  // Expo's enhanced push security: sent with every push request once it is turned on.
+  'EXPO_ACCESS_TOKEN',
+] as const;
 export type SecretName = (typeof secretNames)[number];
 
 /** A secret is absent until it has been set for the environment, so readers must handle that. */
