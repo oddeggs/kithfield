@@ -1,11 +1,14 @@
 import { radii } from '@kithfield/theme';
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { ArtStill } from '../../art/art-view';
+import { Chip } from '../../components/chip';
 import { useTheme } from '../../theme/theme-provider';
+import { Txt } from '../../type/text';
 import { TravelAnchor } from '../anchors';
 import type { SpriteSpec } from '../sprite';
+import { useTravel, type FlightHandle, type FlightOptions } from '../travel-host';
 
 /** A critter standing, as the design's `pose` scene draws it (no backdrop). */
 export const poseOf = (kind: string, size: number): SpriteSpec => ({ critter: kind, size });
@@ -89,4 +92,76 @@ export function BlankBubble({ width }: { readonly width: number }) {
       }}
     />
   );
+}
+
+/** The lab's stage: a phone-wide area the storyboard plays on. */
+export const STAGE_W = 393;
+
+export function LabStage({
+  height = 600,
+  background,
+  children,
+}: {
+  readonly height?: number;
+  readonly background?: string;
+  readonly children: ReactNode;
+}) {
+  const { palette } = useTheme();
+  return (
+    <View
+      style={{
+        width: STAGE_W,
+        height,
+        overflow: 'hidden',
+        backgroundColor: background ?? palette.background,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** Under a stage: what to try, and the buttons that play it. */
+export function LabNotes({
+  hint,
+  actions,
+}: {
+  readonly hint: string;
+  readonly actions: readonly { readonly label: string; readonly onPress: () => void }[];
+}) {
+  const { palette } = useTheme();
+  return (
+    <View style={{ paddingHorizontal: 20, paddingTop: 12, gap: 10 }}>
+      <Txt variant="note" multiline color={palette.secondary}>
+        {hint}
+      </Txt>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {actions.map((a) => (
+          <Chip key={a.label} label={a.label} onPress={a.onPress} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** One flight at a time for a demo: the handle while it flies, cleared when it ends. */
+export function useLabFlight() {
+  const travel = useTravel();
+  const current = useRef<FlightHandle | null>(null);
+  const go = (options: FlightOptions): FlightHandle => {
+    const handle = travel.fly({
+      ...options,
+      onLanded: () => {
+        if (current.current === handle) current.current = null;
+        options.onLanded?.();
+      },
+      onReturned: () => {
+        if (current.current === handle) current.current = null;
+        options.onReturned?.();
+      },
+    });
+    current.current = handle;
+    return handle;
+  };
+  return { go, current, fly: travel.fly };
 }

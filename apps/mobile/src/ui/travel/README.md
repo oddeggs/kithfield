@@ -13,11 +13,11 @@ something flies (and a few seconds after).
 
 ## The ends
 
-| You have | Use |
-|---|---|
-| A view (an avatar, an icon, a bubble) | `<TravelAnchor id sprite?>` around it: measured, and hidden while its copy flies. Inside a native sheet pass `sheetTop` (the window's height less the sheet's): a sheet's views measure from its own corner |
-| A drawing on your own Skia canvas | `<TravelSpot id box sprite?>` over it (a box in the parent's points), and `useTravelShown(id)` / `useTravelShownAll(ids)` as that drawing's opacity |
-| Nothing to anchor (a tab, a door you measured) | Pass a `Box` in window points instead of an id; `tabIconBox(tab, width, height, insets.bottom)` is a tab's icon |
+| You have                                       | Use                                                                                                                                                                                                         |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A view (an avatar, an icon, a bubble)          | `<TravelAnchor id sprite?>` around it: measured, and hidden while its copy flies. Inside a native sheet pass `sheetTop` (the window's height less the sheet's): a sheet's views measure from its own corner |
+| A drawing on your own Skia canvas              | `<TravelSpot id box sprite?>` over it (a box in the parent's points), and `useTravelShown(id)` / `useTravelShownAll(ids)` as that drawing's opacity                                                         |
+| Nothing to anchor (a tab, a door you measured) | Pass a `Box` in window points instead of an id; `tabIconBox(tab, width, height, insets.bottom)` is a tab's icon                                                                                             |
 
 Ids two features share live in `travelIds` (`ids.ts`). An id can be flown to before its screen
 has mounted: the flight rises toward a guess and turns to the target when it arrives.
@@ -57,11 +57,11 @@ See them all in the motion lab (`kithfield-dev://motion-lab`, development builds
 
 ## Wired in the features
 
-| Transition | Where |
-|---|---|
+| Transition                               | Where                                                                                                                                                                                          |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | A critter travels (bubble → farm → card) | `features/chat/room/message-row.tsx` and `meet.ts` (the face, and VoiceOver's "See {name} on the farm"), `features/farm/farm-scene.tsx` and `farm-canvas.tsx` (the critter's spot and drawing) |
-| Planting a seed (→ Seed bed tab) | `features/plans/plant-sheet.tsx` |
-| A firefly's flight to a door | `features/gestures/firefly.tsx` |
+| Planting a seed (→ Seed bed tab)         | `features/plans/plant-sheet.tsx`                                                                                                                                                               |
+| A firefly's flight to a door             | `features/gestures/firefly.tsx`                                                                                                                                                                |
 
 ## Farm home ↔ chat, under the finger (not wired yet)
 

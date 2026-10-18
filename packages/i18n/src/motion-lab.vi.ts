@@ -26,4 +26,43 @@ export const motionLabVi: ViCatalogue<typeof motionLabEn> = {
   'motionLab.firefly.recall': 'Gọi về',
   'motionLab.firefly.left': 'Cửa bên trái',
   'motionLab.firefly.right': 'Cửa bên phải',
+  'motionLab.moveIn': 'Dọn vào',
+  'motionLab.moveIn.hint':
+    'Chọn một bạn thú: nó được đưa lên sân khấu và lớn dần. Dọn vào: nó nhảy theo lối mòn về căn nhà nhỏ, và cửa sổ sáng đèn. Phát ngược để thu nó về ô của nó.',
+  'motionLab.visit': 'Ghé thăm',
+  'motionLab.visit.go': 'Ghé thăm hiên nhà',
+  'motionLab.visit.hint':
+    'Ghé thăm: nông trại lia tới cánh cửa, cửa mở ra hiên; một bạn thú bước vào từ bên trái, bạn kia từ cửa, rồi cả hai ngồi xuống. Phát ngược để đi ra theo lối cũ.',
+  'motionLab.dew': 'Giọt sương',
+  'motionLab.dew.hint':
+    'Chạm vào giọt sương: nó phồng lên và rơi xuống tấm ảnh, hai vòng gợn lan ra, và một cây cỏ ba lá nhú lên trên nông trại phía trên. Chạm lần nữa để lấy lại: vòng gợn thu vào và mầm cây rút xuống.',
+  'motionLab.gift': 'Quà',
+  'motionLab.gift.go': 'Gói chiếc khăn',
+  'motionLab.gift.hint':
+    'Gói chiếc khăn: gói quà buộc lại trong hai nét vẽ rồi nhảy theo lối mòn tới bậc cửa; trên điện thoại của bạn ấy, nắp mở ra và chiếc khăn rơi lên người bạn ấy.',
+  'motionLab.fire': 'Bên lửa',
+  'motionLab.fire.home': 'Về nhà',
+  'motionLab.fire.hint':
+    'Chạm vào vòng lửa: nông trại phóng to vào đống lửa. Về nhà: ngọn lửa thu nhỏ lên Dynamic Island. Chạm vào Island để quay lại.',
+  'motionLab.photo': 'Ảnh',
+  'motionLab.photo.press': 'Ép một bông hoa',
+  'motionLab.photo.hint':
+    'Chạm vào tấm ảnh: nó mở toàn màn hình từ bong bóng; chạm lần nữa để đặt lại. Ép một bông hoa: ảnh của buổi gặp xòe ra trên trang giấy, rồi trang giấy gập lại trên một bông hoa ép.',
+  'motionLab.harvest': 'Thu hoạch',
+  'motionLab.harvest.go': 'Thu hoạch',
+  'motionLab.harvest.hint':
+    'Thu hoạch: nông sản chín nhảy từng cái một vào giỏ, giỏ lắc một cái, và bản tổng kết hiện lên bên dưới. Phát ngược để đưa giỏ về nhà.',
+  'motionLab.bouquet': 'Bó hoa',
+  'motionLab.bouquet.reply': 'Trả lời',
+  'motionLab.bouquet.undo': 'Hoàn tác',
+  'motionLab.bouquet.hint':
+    'Trả lời thẻ đầu tiên: nó gập lại như giấy, cuộn thành một cành và rơi vào bó hoa, bó hoa rung rinh. Hoàn tác sẽ mở cành ra thành thẻ như cũ.',
+  'motionLab.sticker': 'Nhãn dán',
+  'motionLab.sticker.hint':
+    'Chạm vào một nhãn dán: nó nhấc lên, nghiêng và lớn dần theo một đường cong rồi đáp xuống thành tin nhắn với một cú nảy hai nét vẽ.',
+  'motionLab.reacts': 'Nông trại phản hồi',
+  'motionLab.reacts.go': 'Có tin nhắn tới',
+  'motionLab.reacts.message': 'còn ai thức không?',
+  'motionLab.reacts.hint':
+    'Có tin nhắn tới: ngọn đèn ở cửa sổ sáng lên trong hai nét vẽ và một bong bóng bật lên trên bạn thú của người gửi. Nhiều tin nhắn liền nhau chỉ thắp một ngọn đèn và một bong bóng, nhiều nhất 4 giây một lần.',
 };
