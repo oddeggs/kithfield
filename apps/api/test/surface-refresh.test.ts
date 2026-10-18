@@ -36,6 +36,11 @@ const fire = (seq: number, over: Partial<CottageDelivery> = {}): CottageDelivery
 });
 
 describe('spacing out widget refreshes', () => {
+  it('keeps a quarter of an hour between refreshes of a farm, as iOS paces silent pushes', () => {
+    expect(REFRESH_GAP_MS).toBe(15 * 60_000);
+    expect(planRefresh(0, 10 * 60_000)).toEqual({ action: 'later', delayMs: 5 * 60_000 });
+  });
+
   it('sends at once, then once at the end of the gap, then nothing more until it has gone', () => {
     expect(planRefresh(null, 0)).toEqual({ action: 'send' });
     expect(planRefresh(0, 60_000)).toEqual({ action: 'later', delayMs: REFRESH_GAP_MS - 60_000 });
@@ -82,11 +87,11 @@ describe('the fire tells the widgets', () => {
     const delays = () =>
       queue.sent.map((s) => (s.delaySeconds ?? 0) - ((s.delaySeconds ?? 0) % 10));
     expect(queue.sent).toHaveLength(2);
-    expect(delays()).toEqual([0, 240]);
+    expect(delays()).toEqual([0, 840]);
     useTestClock(new Date(start + REFRESH_GAP_MS + 1000).toISOString());
     await cottage.deliver(fire(5));
     expect(queue.sent).toHaveLength(3);
-    expect(delays()[2]).toBeGreaterThan(230);
+    expect(delays()[2]).toBeGreaterThan(830);
   });
 
   it('refreshes the knocked person’s widget', async () => {

@@ -10,11 +10,11 @@ import { readProfile } from './profile';
  * Silent pushes that ask the phone to rewrite what its widgets draw: the fire lit, someone sitting
  * down or the fire going out, and a knock on the person's porch. They carry no words, never count
  * against the push budget and are never ledgered as alerts. iOS throttles silent pushes itself, so
- * the cottage sends at most one per farm and reason every few minutes: a change inside that window
+ * the cottage sends at most one per farm and reason every 15 minutes: a change inside that window
  * goes out once at its end, so the widget always ends on the latest state (the fire out).
  */
 
-export const REFRESH_GAP_MS = 5 * 60_000;
+export const REFRESH_GAP_MS = 15 * 60_000;
 
 /** The reason a delivery asks the widgets to redraw, or null when it doesn't. */
 export function refreshReasonOf(
