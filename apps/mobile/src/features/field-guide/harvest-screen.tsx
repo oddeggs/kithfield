@@ -1,4 +1,4 @@
-import type { Crop, FarmId, FarmState } from '@kithfield/contracts';
+import type { Crop, FarmId, FarmState, PersonId } from '@kithfield/contracts';
 import { motion } from '@kithfield/theme';
 import type { Language, Translate } from '@kithfield/i18n';
 import { router } from 'expo-router';
@@ -7,7 +7,7 @@ import { ScrollView, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useFarm, useSend } from '../../data';
+import { useFarm, useSend, type EnqueueResult } from '../../data';
 import { ArtStill } from '../../ui/art/art-view';
 import { Button } from '../../ui/components/button';
 import { useToast } from '../../ui/components/toast';
@@ -59,18 +59,10 @@ function basketMessage(t: Translate, language: Language, state: FarmState, crops
  * the quiet friends' care named and nothing ranked. Sharing posts the basket to the farm's chat.
  */
 export function HarvestScreen({ farm }: { readonly farm: FarmId }) {
-  const { t, language } = useLocale();
-  const { palette } = useTheme();
-  const look = useGuideLook();
-  const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const k = width / W;
   const me = useSession().person?.id ?? null;
   const state = useFarm(farm)?.state ?? null;
   const send = useSend(farm);
-  const toast = useToast();
   const markSeen = useMarkHarvestSeen(farm);
-  const [sending, setSending] = useState(false);
   const basket = state?.kind === 'farm' ? state.basket : null;
   const marked = useRef(false);
   useEffect(() => {
@@ -78,6 +70,28 @@ export function HarvestScreen({ farm }: { readonly farm: FarmId }) {
     marked.current = true;
     void markSeen(seasonKey(basket.season));
   }, [basket, markSeen]);
+  return <HarvestPage state={state} me={me} post={(text) => send('message', { text })} />;
+}
+
+/** Harvest day drawn from a farm; `post` sends the basket to the farm's chat. */
+export function HarvestPage({
+  state,
+  me,
+  post,
+}: {
+  readonly state: FarmState | null;
+  readonly me: PersonId | null;
+  readonly post: (text: string) => Promise<EnqueueResult>;
+}) {
+  const { t, language } = useLocale();
+  const { palette } = useTheme();
+  const look = useGuideLook();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const k = width / W;
+  const toast = useToast();
+  const [sending, setSending] = useState(false);
+  const basket = state?.kind === 'farm' ? state.basket : null;
 
   const close = (
     <View style={{ position: 'absolute', top: insets.top - 1, left: 16 }}>
@@ -92,7 +106,7 @@ export function HarvestScreen({ farm }: { readonly farm: FarmId }) {
   const share = async () => {
     if (sending) return;
     setSending(true);
-    const result = await send('message', { text: basketMessage(t, language, state, crops) });
+    const result = await post(basketMessage(t, language, state, crops));
     setSending(false);
     if (result.status === 'queued') {
       toast.show(t('fieldGuide.harvest.shared'));

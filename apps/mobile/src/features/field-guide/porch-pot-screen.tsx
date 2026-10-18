@@ -38,16 +38,31 @@ function porchCast(state: FarmState, me: PersonId): string {
  * Stays readable, frozen, when one of you has gone.
  */
 export function PorchPotScreen({ visit }: { readonly visit: FarmId }) {
+  const now = useNow();
+  const me = useSession().person?.id ?? null;
+  const state = useFarm(visit)?.state ?? null;
+  const view = useFarmView<FarmView>(visit, now);
+  return <PorchPotPage visit={visit} state={state} view={view} me={me} />;
+}
+
+/** The porch pot drawn from a visit and its view. */
+export function PorchPotPage({
+  visit,
+  state,
+  view,
+  me,
+}: {
+  readonly visit: FarmId;
+  readonly state: FarmState | null;
+  readonly view: FarmView | null;
+  readonly me: PersonId | null;
+}) {
   const { t, language } = useLocale();
   const { palette, appearance } = useTheme();
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const k = width / W;
-  const now = useNow();
-  const me = useSession().person?.id ?? null;
-  const state = useFarm(visit)?.state ?? null;
-  const view = useFarmView<FarmView>(visit, now);
   const back = (
     <View style={{ position: 'absolute', top: insets.top - 1, left: 16 }}>
       <RoundButton label={t('fieldGuide.back')} onPress={() => router.back()} glass />

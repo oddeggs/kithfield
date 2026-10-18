@@ -1,4 +1,4 @@
-import type { FarmId } from '@kithfield/contracts';
+import type { FarmId, FarmState, PersonId } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,12 +21,23 @@ import { otherOnPorch, scrapbookCards, type ScrapbookCard } from './porch-model'
  * seasons still growing or to come. Just the two of them; never in a farm's field guide.
  */
 export function ScrapbookScreen({ visit }: { readonly visit: FarmId }) {
+  const me = useSession().person?.id ?? null;
+  const state = useFarm(visit)?.state ?? null;
+  return <ScrapbookPage state={state} me={me} />;
+}
+
+/** The little scrapbook drawn from a visit. */
+export function ScrapbookPage({
+  state,
+  me,
+}: {
+  readonly state: FarmState | null;
+  readonly me: PersonId | null;
+}) {
   const { t, language } = useLocale();
   const { palette } = useTheme();
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
-  const me = useSession().person?.id ?? null;
-  const state = useFarm(visit)?.state ?? null;
   const back = (
     <View style={{ position: 'absolute', top: insets.top - 1, left: 16 }}>
       <RoundButton label={t('fieldGuide.back')} onPress={() => router.back()} glass />

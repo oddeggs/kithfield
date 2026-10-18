@@ -1,4 +1,4 @@
-import type { FarmId, RareVariant } from '@kithfield/contracts';
+import type { FarmId, FarmState, RareVariant } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
 import { router } from 'expo-router';
 import { ScrollView, Share, View, useWindowDimensions } from 'react-native';
@@ -39,15 +39,30 @@ export function PlantScreen({
   readonly plant: string;
   readonly variant: RareVariant | null;
 }) {
+  const now = useNow();
+  const state = useFarm(farm)?.state ?? null;
+  const view = useFarmView<FarmView>(farm, now);
+  return <PlantPage state={state} view={view} plant={plant} variant={variant} />;
+}
+
+/** A plant's page drawn from a farm and its view. */
+export function PlantPage({
+  state,
+  view,
+  plant,
+  variant,
+}: {
+  readonly state: FarmState | null;
+  readonly view: FarmView | null;
+  readonly plant: string;
+  readonly variant: RareVariant | null;
+}) {
   const { t, language } = useLocale();
   const { palette } = useTheme();
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const k = width / W;
-  const now = useNow();
-  const state = useFarm(farm)?.state ?? null;
-  const view = useFarmView<FarmView>(farm, now);
   const tint = useHeroTint(plant);
   const entry = entryOf(plant);
   const back = (

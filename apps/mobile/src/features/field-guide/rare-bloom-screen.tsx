@@ -1,4 +1,4 @@
-import type { FarmId, PersonId, RareVariant } from '@kithfield/contracts';
+import type { FarmId, FarmState, PersonId, RareVariant } from '@kithfield/contracts';
 import { RARE_VARIANTS } from '@kithfield/farm';
 import { router } from 'expo-router';
 import { useEffect, useRef } from 'react';
@@ -58,20 +58,12 @@ export function RareBloomScreen({
   readonly farm: FarmId;
   readonly bloomKey: string;
 }) {
-  const { t, language } = useLocale();
-  const { palette } = useTheme();
-  const look = useGuideLook();
-  const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const k = width / W;
-  const reduce = useReduceMotion();
   const me = useSession().person?.id ?? null;
   const state = useFarm(farm)?.state ?? null;
   const bloom = state ? rareBloomByKey(state, bloomKey) : null;
   const rolled = state?.plants.find((p) => p.plant === bloom?.plant)?.rareRolledOn ?? null;
   const people = useSharedRainPeople(farm, rolled);
   const markSeen = useMarkRareSeen(farm);
-  const step = useSharedValue(reduce ? 2 : 0);
   const marked = useRef<string | null>(null);
   useEffect(() => {
     // Marked once, when the moment first shows.
@@ -79,6 +71,32 @@ export function RareBloomScreen({
     marked.current = bloom.key;
     void markSeen(state, bloom.key);
   }, [state, bloom, markSeen]);
+  return <RareBloomPage farm={farm} state={state} me={me} bloomKey={bloomKey} people={people} />;
+}
+
+/** The rare bloom drawn from a farm, and who was there in the shared rain if known. */
+export function RareBloomPage({
+  farm,
+  state,
+  me,
+  bloomKey,
+  people,
+}: {
+  readonly farm: FarmId;
+  readonly state: FarmState | null;
+  readonly me: PersonId | null;
+  readonly bloomKey: string;
+  readonly people: readonly PersonId[] | null;
+}) {
+  const { t, language } = useLocale();
+  const { palette } = useTheme();
+  const look = useGuideLook();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const k = width / W;
+  const reduce = useReduceMotion();
+  const bloom = state ? rareBloomByKey(state, bloomKey) : null;
+  const step = useSharedValue(reduce ? 2 : 0);
   useEffect(() => {
     if (reduce) {
       step.set(2);

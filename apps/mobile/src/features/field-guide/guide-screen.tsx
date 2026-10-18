@@ -1,4 +1,4 @@
-import type { FarmId, Season } from '@kithfield/contracts';
+import type { FarmId, FarmState, Season } from '@kithfield/contracts';
 import { SEASONS, type FarmView } from '@kithfield/farm';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -42,13 +42,26 @@ const FAMILY_ICON = {
  * pencil sketch still to come), then the plants of all year. Opens on the farm's season.
  */
 export function GuideScreen({ farm }: { readonly farm: FarmId }) {
+  const now = useNow();
+  const state = useFarm(farm)?.state ?? null;
+  const view = useFarmView<FarmView>(farm, now);
+  return <GuidePage farm={farm} state={state} view={view} />;
+}
+
+/** The guide drawn from a farm and its view. */
+export function GuidePage({
+  farm,
+  state,
+  view,
+}: {
+  readonly farm: FarmId;
+  readonly state: FarmState | null;
+  readonly view: FarmView | null;
+}) {
   const { t, language } = useLocale();
   const { palette } = useTheme();
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
-  const now = useNow();
-  const state = useFarm(farm)?.state ?? null;
-  const view = useFarmView<FarmView>(farm, now);
   const [season, setSeason] = useState<Season | null>(null);
   const shown = useSharedValue(1);
   const rowsStyle = useAnimatedStyle(() => ({ opacity: shown.get() }));
