@@ -6,6 +6,8 @@ import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import type { HeldElsewhere } from '../data';
+import { clearMediaForSignOut, MediaUploads, pendingUploadCount } from '../features/media';
 import { ArtProvider, createArtStore } from '../ui/art/art-provider';
 import { ToastHost } from '../ui/components/toast';
 import { LocaleProvider } from '../ui/locale/locale-provider';
@@ -21,6 +23,12 @@ import { ThemeProvider, useTheme } from '../ui/theme/theme-provider';
 // first layout.
 void SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ duration: 200, fade: true });
+
+/** The media queue: counted before signing out and cleared with the data layer's tables. */
+const mediaQueue: HeldElsewhere = {
+  pendingCount: pendingUploadCount,
+  clear: clearMediaForSignOut,
+};
 
 function Screens() {
   const { appearance, palette } = useTheme();
@@ -47,6 +55,7 @@ function Screens() {
         <Stack.Protected guard={__DEV__}>
           <Stack.Screen name="(dev)/gallery" />
           <Stack.Screen name="(dev)/sync-lab" />
+          <Stack.Screen name="(dev)/media-lab" />
         </Stack.Protected>
         <Stack.Screen name="+not-found" />
       </Stack>
@@ -82,7 +91,9 @@ export default function RootLayout() {
                 <TabActivityProvider>
                   <ToastHost>
                     {/* The data layer and its session; the splash stays up while it starts. */}
-                    <DataSlot>
+                    <DataSlot heldElsewhere={mediaQueue}>
+                      {/* Resumes the media uploads at launch, not only when a chat opens. */}
+                      <MediaUploads />
                       <SplashGate>
                         <Screens />
                       </SplashGate>

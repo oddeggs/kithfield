@@ -9,7 +9,8 @@ export const HELLO_DEADLINE_MS = 30_000;
 
 /** What the cottage remembers about each socket across hibernation. */
 export type SocketState =
-  { readonly authed: true } | { readonly authed: false; readonly deadline: number };
+  | { readonly authed: true; readonly session?: string | null }
+  | { readonly authed: false; readonly deadline: number };
 
 export function stateOf(ws: WebSocket): SocketState | null {
   return ws.deserializeAttachment() as SocketState | null;

@@ -179,6 +179,21 @@ describe('starting a session', () => {
     expect(relaunched.person()).toMatchObject({ person: 'p_anon1' });
   });
 
+  it('tells its listeners when a refresh finds the session gone, but not when it only fails', async () => {
+    const { auth, session } = start();
+    await session.ensure();
+    let endings = 0;
+    session.onEnded(() => (endings += 1));
+
+    auth.state.failures.push({ status: 503 });
+    await expect(session.refresh()).rejects.toThrow(AuthError);
+    expect(endings).toBe(0);
+    auth.state.failures.push({ status: 401 });
+    await expect(session.refresh()).rejects.toThrow(AuthError);
+    expect(endings).toBe(1);
+    expect(session.person()).toMatchObject({ person: 'p_anon1' });
+  });
+
   it('forgets the person and the bearer on sign-out', async () => {
     const { session } = start();
     await session.ensure();

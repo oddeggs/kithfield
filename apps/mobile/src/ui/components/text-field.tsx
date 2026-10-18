@@ -1,10 +1,18 @@
 import { fontFor, radii } from '@kithfield/theme';
-import { TextInput, View, type TextInputProps } from 'react-native';
+import {
+  StyleSheet,
+  TextInput,
+  View,
+  useWindowDimensions,
+  type TextInputProps,
+  type TextStyle,
+} from 'react-native';
 
 import { useLocale } from '../locale/locale-provider';
 import { useTheme } from '../theme/theme-provider';
 import { componentType } from '../type/styles';
 import { useAccessibilitySize } from '../type/accessibility-size';
+import { leading } from '../type/leading';
 import { Txt } from '../type/text';
 
 export interface TextFieldProps extends Omit<
@@ -29,6 +37,7 @@ export function TextField({ label, multiline = false, ...input }: TextFieldProps
   const font = fontFor(labelled ? componentType.fieldValue : componentType.fieldText, fontLocale, {
     multiline,
   });
+  const { fontScale } = useWindowDimensions();
   return (
     <View
       style={{
@@ -56,18 +65,26 @@ export function TextField({ label, multiline = false, ...input }: TextFieldProps
         multiline={multiline}
         placeholderTextColor={palette.placeholder}
         selectionColor={palette.go.bg}
-        style={[
-          font,
-          // A single-line input centres its own line; a fixed line height would push it down.
-          multiline ? null : { lineHeight: undefined },
-          {
-            color: palette.text,
-            flex: 1,
-            minHeight: 44,
-            textAlign: labelled && !stacked ? 'right' : 'left',
-            paddingVertical: 0,
-          },
-        ]}
+        // A single-line input centres its own line, so it takes no line height (a fixed one would
+        // push it down); wrapping text gets back the room iOS clips above a tight line.
+        style={
+          leading(
+            StyleSheet.flatten([
+              font,
+              multiline ? null : { lineHeight: undefined },
+              {
+                color: palette.text,
+                flex: 1,
+                minHeight: 44,
+                textAlign: labelled && !stacked ? 'right' : 'left',
+                paddingVertical: 0,
+              },
+            ] as never) as TextStyle,
+            false,
+            fontScale,
+            // The same style; TextInput's typings narrow `cursor` past what TextStyle allows.
+          ) as TextInputProps['style']
+        }
       />
     </View>
   );

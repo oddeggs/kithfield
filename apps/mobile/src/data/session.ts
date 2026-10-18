@@ -92,6 +92,7 @@ const failed = (answer: { readonly error?: AuthFailure | null }) => {
 export function createSession(auth: AuthPort, storage: SessionStorage) {
   let current: SessionPerson | null = null;
   const changes = new Set<(from: SessionPerson | null, to: SessionPerson) => void>();
+  const endings = new Set<() => void>();
 
   const stored = (): SessionPerson | null => {
     const raw = storage.getItem(PERSON_KEY);
@@ -115,12 +116,20 @@ export function createSession(auth: AuthPort, storage: SessionStorage) {
     return current;
   };
 
+  /** Tells the listeners the server no longer knows this session, and makes the error to throw. */
+  const ended = (): SessionEnded => {
+    for (const listener of endings) listener();
+    return new SessionEnded();
+  };
+  const unauthorized = (error: unknown) =>
+    error instanceof AuthError && error.failure.status === 401;
+
   /** The server's answer, or the person this phone holds when the answer is only "not now". */
   const ask = async (): Promise<SessionPerson | null> => {
     try {
       return await remember(await auth.getSession());
     } catch (error) {
-      if (error instanceof AuthError && error.failure.status === 401) throw new SessionEnded();
+      if (unauthorized(error)) throw ended();
       const held = stored();
       if (held) return (current = held);
       throw error;
@@ -141,17 +150,32 @@ export function createSession(auth: AuthPort, storage: SessionStorage) {
     async ensure(): Promise<SessionPerson> {
       const found = await ask();
       if (found) return found;
-      if (storage.getItem(BEARER_KEY)) throw new SessionEnded();
+      if (storage.getItem(BEARER_KEY)) throw ended();
       const created = await remember(await auth.signInAnonymous());
       if (!created) throw new AuthError({ code: 'no_person' });
       return created;
     },
 
-    /** Asks the server whose session this is, after a sign-in or upgrade. */
+    /**
+     * Asks the server whose session this is, after a sign-in or upgrade. A 401 (thrown as the
+     * `AuthError` it is) or no session at all tells the `onEnded` listeners.
+     */
     async refresh(): Promise<SessionPerson> {
-      const found = await remember(await auth.getSession());
-      if (!found) throw new SessionEnded();
+      let found: SessionPerson | null;
+      try {
+        found = await remember(await auth.getSession());
+      } catch (error) {
+        if (unauthorized(error)) ended();
+        throw error;
+      }
+      if (!found) throw ended();
       return found;
+    },
+
+    /** Called when the server no longer knows this session (a 401, or no session at all). */
+    onEnded(listener: () => void) {
+      endings.add(listener);
+      return () => endings.delete(listener);
     },
 
     /** Headers for the API: the bearer token, or none before the first sign-in. */

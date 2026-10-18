@@ -7,12 +7,14 @@ import { openDatabase } from '../db/open-database';
 import { createApiClient } from './api-client';
 import type { SyncReport } from './apply-events';
 import { authPort, createKithfieldAuthClient, type KithfieldAuthClient } from './auth-client';
+import type { HeldElsewhere } from './client-types';
 import { createDataClient, type DataClient } from './data-client';
 import type { NetworkSwitch, createNetworkSwitch } from './dev-network';
 import type { FarmRules } from './farm-rules';
 import { createOpIdMaker } from './op-id';
 import { createRtTokens } from './rt-tokens';
 import { SessionEnded, createSession, type Session, type SessionStorage } from './session';
+import { sessionRecheck } from './session-check';
 import { createSignIn, type SignIn } from './sign-in';
 import type { OpenSocket, WebSocketLike } from './socket';
 
@@ -44,6 +46,11 @@ export interface DataRuntime<View> {
   readonly network: NetworkSwitch | null;
 }
 
+export interface StartOptions {
+  /** What the person keeps outside the data layer (the media queue), for signing out. */
+  readonly heldElsewhere?: HeldElsewhere;
+}
+
 const platformSocket: OpenSocket = (url) => new WebSocket(url) as unknown as WebSocketLike;
 
 type DevNetwork = { createNetworkSwitch: typeof createNetworkSwitch };
@@ -59,12 +66,17 @@ const makeNetworkSwitch = __DEV__
  * Starts the data layer on the phone: opens the encrypted store, wires the session, the API and
  * the sockets, and makes sure there is a person (anonymous on first launch). Offline, a returning
  * install opens on what it holds and writes wait in the outbox; a first launch without a network
- * throws, and the caller offers to try again. A session the server no longer knows starts the
- * client with `status().sessionEnded`, so the app opens on its data and offers sign-in.
+ * throws, and the caller offers to try again. A session the server confirms is gone (the launch
+ * check, a socket's `session_ended`, or the re-check a 401 asks for) wipes what this person held,
+ * as signing out does, and sets `status().sessionEnded`, so the app offers sign-in. One call's 401
+ * alone only asks for that re-check (one at a time), and the call is tried again if the session is
+ * still live. The bearer stays in the Keychain, so a relaunch finds it ended again rather than
+ * making a new anonymous person.
  */
 export async function startData<View>(
   rules: FarmRules<View>,
   report: (report: SyncReport) => void = () => undefined,
+  options: StartOptions = {},
 ): Promise<DataRuntime<View>> {
   const { apiBase } = Constants.expoConfig?.extra as AppExtra;
   const network =
@@ -81,10 +93,17 @@ export async function startData<View>(
   });
   const port = authPort(auth);
   const session = createSession(port, keychain);
+  // A call's 401 re-checks the session through its refresh, one check at a time. A refresh that
+  // finds the session gone tells `session.onEnded`, which wipes (wired once the client exists).
+  const recheck = sessionRecheck(async () => {
+    await session.refresh();
+    return true;
+  });
   const api = createApiClient({
     baseUrl: apiBase,
     fetch: netFetch,
     authHeaders: () => session.headers(),
+    onUnauthorized: recheck,
   });
 
   let ended = false;
@@ -104,6 +123,7 @@ export async function startData<View>(
     appState: AppState,
     newOpId: createOpIdMaker(getRandomBytes),
     report,
+    ...(options.heldElsewhere ? { heldElsewhere: options.heldElsewhere } : {}),
   });
 
   const signIn = createSignIn({
@@ -115,6 +135,9 @@ export async function startData<View>(
   // A sign-in that merged this phone into another person, or one after the session ended:
   // reconnect as whoever the session now is.
   session.onPersonChanged(() => client.personChanged());
+  // The session's refresh (the re-check a 401 asks for, or after a sign-in) found the session
+  // gone: the client wipes what the person held.
+  session.onEnded(() => client.endSession());
   const resumeAfterSignIn = <T>(person: Promise<T>): Promise<T> =>
     person.then((value) => {
       if (client.status().sessionEnded) client.personChanged();

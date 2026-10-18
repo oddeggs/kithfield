@@ -6,6 +6,7 @@ import {
   PROTOCOL_VERSION,
 } from '@kithfield/contracts';
 
+import { rtTokenSession } from '../auth';
 import { socketPerson } from './adapters/identity';
 import type { FarmHost } from './host';
 import { attach, attachmentOf, refuse, send, who } from './sockets';
@@ -52,7 +53,7 @@ const hello = async (host: FarmHost, ws: WebSocket, frame: Hello): Promise<void>
   const actor = host.farm.actorOf(person);
   if (!state.members.some((m) => m.person === actor)) return refuse(ws, 'not_member');
   if (frame.rulesVersion < state.rulesVersion) return refuse(ws, 'rules_outdated');
-  attach(ws, { ...attachmentOf(ws), person });
+  attach(ws, { ...attachmentOf(ws), person, session: rtTokenSession(frame.token) });
   catchUp(host, ws, frame.lastSeq);
   const sockets = host.sockets();
   send(ws, { type: 'presence', here: who(sockets, 'here') });

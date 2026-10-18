@@ -1,7 +1,9 @@
 import { FarmEvent, type FarmState, type TradedPayload } from '@kithfield/contracts';
 import { localDay } from '@kithfield/farm';
 
+import { markMediaReferenced } from '../media/sweep';
 import { nextLocalHour } from './calendar';
+import { mediaKeys } from './content';
 import type { Farm } from './farm';
 import type { FarmHost } from './host';
 import type { FarmPorts } from './ports';
@@ -88,6 +90,11 @@ const runTimer = async (host: FarmHost, key: string, events: FarmEvent[]): Promi
   } else if (kind === 'd1sync') {
     const parsed = FarmEvent.safeParse(host.store.event(Number(arg)));
     if (parsed.success) await host.mirror(parsed.data);
+  } else if (kind === 'mediaref') {
+    const parsed = FarmEvent.safeParse(host.store.event(Number(arg)));
+    if (parsed.success) {
+      await markMediaReferenced(host.env.DB, mediaKeys(parsed.data), host.now());
+    }
   } else if (kind === 'hello') {
     host.closeUnnamed(now - HELLO_DEADLINE_MS);
   }

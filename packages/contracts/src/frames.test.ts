@@ -79,6 +79,7 @@ const cottageServerFrames = [
   { type: 'chat', chat: { ...chat, preview: null } },
   { type: 'safety_note' },
   { type: 'error', code: 'banned' },
+  { type: 'error', code: 'session_ended' },
 ];
 
 const roundTrip = (schema: z.ZodType, value: unknown) => {

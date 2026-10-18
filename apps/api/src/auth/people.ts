@@ -1,3 +1,4 @@
+import { DELETION_GRACE_MS } from './me';
 import { mergeStepStatements } from './merge-steps';
 
 /** Reads and writes on `people` that Better Auth doesn't do itself. */
@@ -199,11 +200,24 @@ export async function recordEmailIdentity(
 }
 
 /** Signing in again within the 30 days cancels a pending account deletion. */
-export async function cancelPendingDeletion(db: D1Database, person: string): Promise<void> {
+export async function cancelPendingDeletion(
+  db: D1Database,
+  person: string,
+  now: number,
+): Promise<void> {
   await db
-    .prepare('UPDATE people SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL')
-    .bind(person)
+    .prepare('UPDATE people SET deleted_at = NULL WHERE id = ? AND deleted_at > ?')
+    .bind(person, now - DELETION_GRACE_MS)
     .run();
+}
+
+/** Whether the person's 30 days are over: they are being deleted, and can't sign in any more. */
+export async function isBeingPurged(db: D1Database, person: string, now: number): Promise<boolean> {
+  const row = await db
+    .prepare('SELECT 1 FROM people WHERE id = ? AND deleted_at <= ?')
+    .bind(person, now - DELETION_GRACE_MS)
+    .first();
+  return row !== null;
 }
 
 export async function deleteSession(db: D1Database, session: string): Promise<void> {

@@ -3,11 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Fetches the embedded fonts from Google Fonts, verifies them and checks their Vietnamese coverage",
+  "description": "Fetches the embedded fonts from Google Fonts, verifies them, checks their Vietnamese coverage and writes their line heights",
   "sideEffects": false,
   "scripts": {
     "download": "tsx src/fetch.ts",
     "verify": "tsx src/fetch.ts --check",
+    "metrics": "tsx src/write-metrics.ts",
+    "metrics:check": "tsx src/write-metrics.ts --check",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },

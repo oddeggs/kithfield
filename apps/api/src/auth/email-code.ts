@@ -87,7 +87,8 @@ export async function hasPendingCode(db: D1Database, email: string, now: number)
   return row !== null;
 }
 
-async function recordSend(db: D1Database, email: string, now: number): Promise<void> {
+/** Counts a code sent to an address against its limit (`mayGetAnotherCode`). */
+export async function recordSend(db: D1Database, email: string, now: number): Promise<void> {
   const hash = await addressHash(email);
   await db.batch([
     db

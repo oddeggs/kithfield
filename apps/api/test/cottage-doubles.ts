@@ -31,6 +31,7 @@ export function useTestSignInDouble(onHibernate?: (person: string, on: boolean) 
       const match = /^Bearer test-session:(.+)$/.exec(c.req.header('Authorization') ?? '');
       if (match?.[1] === undefined) return c.json({ error: { code: 'unauthorized' } }, 401);
       c.set('person', match[1]);
+      c.set('session', `test-session-${match[1]}`);
       await next();
       return undefined;
     },

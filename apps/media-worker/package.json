@@ -1,0 +1,22 @@
+{
+  "name": "@kithfield/media-worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Signed reads of photos, video, voice notes and files from R2, on the media host",
+  "scripts": {
+    "dev": "wrangler dev --env dev",
+    "build": "wrangler deploy --dry-run --env dev --outdir dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@kithfield/api": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "catalog:",
+    "@cloudflare/workers-types": "catalog:",
+    "vitest": "catalog:workers",
+    "wrangler": "catalog:"
+  }
+}

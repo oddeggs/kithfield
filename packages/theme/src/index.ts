@@ -1,4 +1,5 @@
 export * from './colour';
+export * from './font-metrics.generated';
 export * from './fonts';
 export * from './gestures';
 export * from './motion';
