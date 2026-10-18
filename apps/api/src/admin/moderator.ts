@@ -101,6 +101,13 @@ export function roleOf(secret: string | undefined, email: string): ModeratorRole
  * 401 `unauthorized` without a valid Access token, 403 `forbidden` for anyone else.
  */
 export const requireModerator = createMiddleware<ModeratorEnv>(async (c, next) => {
+  const missing = (['ACCESS_TEAM_DOMAIN', 'ACCESS_AUD', 'MODERATORS'] as const).filter(
+    (name) => (c.env[name] ?? '') === '',
+  );
+  if (missing.length > 0) {
+    console.error('the safety desk is not configured', { missing });
+    return deny(c, 503, 'unavailable');
+  }
   let identity;
   try {
     identity = await verifyAccessJwt(c.req.header(ACCESS_HEADER), {

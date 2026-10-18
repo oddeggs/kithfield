@@ -2,6 +2,8 @@ import { ModeratorSelf } from '@kithfield/contracts';
 import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { accessCerts, forgetAccessCerts, verifyAccessJwt } from '../../src/admin/access';
+import { adminRoutes } from '../../src/admin/routes';
 import { call } from '../../src/auth/testing/client';
 import { ANA, desk, KOFI, SAM, type TestAccess, useTestAccess } from './support';
 
@@ -112,5 +114,44 @@ describe('the safety desk behind Cloudflare Access', () => {
     const sam = await desk(access, SAM, 'GET', '/me');
     expect(sam.status).toBe(200);
     expect(ModeratorSelf.parse(sam.body).role).toBe('moderator');
+  });
+
+  it('answers 503 when the certs can’t be fetched and none are cached', async () => {
+    forgetAccessCerts();
+    accessCerts.fetch = () => Promise.resolve(new Response('down', { status: 502 }));
+    expect(await asToken(await access.token(ANA))).toBe(503);
+  });
+
+  it('keeps using cached certs when fetching them again fails', async () => {
+    const token = await access.token(ANA);
+    const config = {
+      teamDomain: 'https://winstonb.cloudflareaccess.com',
+      audience: env.ACCESS_AUD,
+    };
+    expect(await verifyAccessJwt(token, config)).not.toBeNull();
+    accessCerts.fetch = () => Promise.reject(new Error('offline'));
+    const later = Date.now() + 11 * 60_000;
+    expect(await verifyAccessJwt(token, config, later)).toMatchObject({ email: ANA });
+  });
+
+  it('fetches again for an unknown key at most once a minute', async () => {
+    expect(await asToken(await access.token(ANA))).toBe(200);
+    const stranger = await access.token(ANA, {}, { kid: 'nobody-knows' });
+    expect(await asToken(stranger)).toBe(401);
+    expect(await asToken(stranger)).toBe(401);
+    expect(access.fetched).toHaveLength(2);
+  });
+
+  it('answers 503, and says why in the log, when the desk isn’t configured', async () => {
+    const token = await access.token(ANA);
+    for (const missing of ['ACCESS_TEAM_DOMAIN', 'ACCESS_AUD', 'MODERATORS'] as const) {
+      const without = { ...env, [missing]: undefined };
+      const response = await adminRoutes().request(
+        '/me',
+        { headers: { 'Cf-Access-Jwt-Assertion': token } },
+        without,
+      );
+      expect(response.status, missing).toBe(503);
+    }
   });
 });

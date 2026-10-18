@@ -26,14 +26,18 @@ export interface AccessConfig {
 type Jwk = JsonWebKey & { kid?: string };
 
 const CERTS_TTL_MS = 10 * 60_000;
+/** An unknown key id fetches the certs again at most this often, so junk tokens can't flood Access. */
+const FORCED_REFRESH_MS = 60_000;
 /** Clocks drift; Access tokens live for hours, so a minute either way changes nothing. */
 const LEEWAY_S = 60;
 
 const cache = new Map<string, { at: number; keys: Map<string, CryptoKey> }>();
+const forcedAt = new Map<string, number>();
 
 /** Forgets cached certs, as after a key rotation (and between tests). */
 export function forgetAccessCerts(): void {
   cache.clear();
+  forcedAt.clear();
 }
 
 const base64UrlBytes = (part: string): Uint8Array<ArrayBuffer> => {
@@ -74,14 +78,33 @@ async function loadKeys(teamDomain: string, now: number): Promise<Map<string, Cr
   return keys;
 }
 
+/**
+ * The key for a key id. Fresh certs are used as they are; stale ones are fetched again, and kept
+ * if Access can't be reached. An unknown key id fetches again at most once a minute. With nothing
+ * cached and Access unreachable, this throws (the desk answers 503).
+ */
 async function keyFor(teamDomain: string, kid: string, now: number): Promise<CryptoKey | null> {
   const cached = cache.get(teamDomain);
-  const fresh = cached !== undefined && now - cached.at < CERTS_TTL_MS;
-  const hit = fresh ? cached.keys.get(kid) : undefined;
-  if (hit !== undefined) return hit;
-  // An unknown key id may mean Access rotated its keys: fetch once more.
-  const keys = await loadKeys(teamDomain, now);
-  return keys.get(kid) ?? null;
+  if (cached === undefined) return (await loadKeys(teamDomain, now)).get(kid) ?? null;
+  const known = cached.keys.get(kid);
+  if (known !== undefined) {
+    if (now - cached.at < CERTS_TTL_MS) return known;
+    try {
+      return (await loadKeys(teamDomain, now)).get(kid) ?? null;
+    } catch (error) {
+      console.error('access certs refresh failed; using the cached ones', { error });
+      return known;
+    }
+  }
+  // An unknown key id may mean Access rotated its keys.
+  if (now - (forcedAt.get(teamDomain) ?? -Infinity) < FORCED_REFRESH_MS) return null;
+  forcedAt.set(teamDomain, now);
+  try {
+    return (await loadKeys(teamDomain, now)).get(kid) ?? null;
+  } catch (error) {
+    console.error('access certs refresh failed', { error });
+    return null;
+  }
 }
 
 const audienceMatches = (aud: unknown, expected: string) =>
