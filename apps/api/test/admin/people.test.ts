@@ -11,9 +11,9 @@ import { createMessageBatch } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { mergeModeration } from '../../src/admin';
+import { readSignIn, sendCode, signInWithCode, watchLetters } from '../../src/auth/testing/client';
 import { consumeDeletion } from '../../src/deletion';
-import { api, farmStub, newPerson, profile } from '../farm/support/doubles';
+import { api, critter, farmStub, type Person, profile } from '../farm/support/doubles';
 import {
   ANA,
   desk,
@@ -76,6 +76,34 @@ async function purge(person: string) {
   await runDeletionJob({ kind: 'account_deleted', person, at: asked });
   const left = await env.DB.prepare('SELECT 1 FROM people WHERE id = ?').bind(person).first();
   expect(left).toBeNull();
+}
+
+/** A returning account (email sign-in) that an anonymous person can sign in to and merge into. */
+async function returningAccount(name: string) {
+  const email = `kept.${crypto.randomUUID().slice(0, 8)}@example.com`;
+  const letters = watchLetters();
+  await sendCode(email);
+  const signedIn = await readSignIn(await signInWithCode(email, letters.codeFor(email)));
+  const person: Person = {
+    id: signedIn.user.id,
+    token: signedIn.token,
+    name,
+    critter: critter('bear'),
+  };
+  /** Signs in from the anonymous install, then runs the merge's `person_merged` job. */
+  const mergeIn = async (anonymous: Person) => {
+    await sendCode(email, { token: anonymous.token });
+    await readSignIn(
+      await signInWithCode(email, letters.codeFor(email), { token: anonymous.token }),
+    );
+    await runDeletionJob({
+      kind: 'person_merged',
+      from: anonymous.id,
+      into: person.id,
+      at: Date.now(),
+    });
+  };
+  return { person, mergeIn };
 }
 
 const count = async (sql: string, ...binds: unknown[]) =>
@@ -164,7 +192,8 @@ describe('an account purged', () => {
 describe('a person merged into another', () => {
   it('moves their reports, appeals and notes, joining open cases about the same item', async () => {
     const lot = await thursdayLot();
-    const kept = await newPerson('bramkept');
+    const returning = await returningAccount('Bram');
+    const kept = returning.person;
     await farmStub(lot.farm).join(kept.id, profile(kept), true);
     const aboutPerson = (by: Lot['june'], person: string) =>
       report(by, {
@@ -176,8 +205,14 @@ describe('a person merged into another', () => {
     const first = ReportResponse.parse((await aboutPerson(lot.pip, lot.bram.id)).body).report;
     const second = ReportResponse.parse((await aboutPerson(lot.fig, kept.id)).body).report;
     const byBram = ReportResponse.parse((await aboutPerson(lot.bram, lot.june.id)).body).report;
+    const action = await decide(await reportUnkind(lot, lot.june));
+    const { appeal } = AppealResponse.parse(
+      (await api(lot.bram, 'POST', '/v1/appeals', { action, text: 'I was joking' })).body,
+    );
 
-    await mergeModeration(env.DB, lot.bram.id, kept.id);
+    await returning.mergeIn(lot.bram);
+    // The farm reads the merged-away id as the kept one from now on.
+    expect((await farmStub(lot.farm).state())?.aliases).toEqual({ [lot.bram.id]: kept.id });
     const joined = await detailOf(second);
     expect(joined.reasons).toHaveLength(2);
     expect((await desk(access, KOFI, 'GET', `/reports/${first}`)).status).toBe(404);
@@ -185,5 +220,19 @@ describe('a person merged into another', () => {
       .bind(byBram)
       .first<{ reporter_id: string }>();
     expect(filer?.reporter_id).toBe(kept.id);
+    expect(
+      await count(
+        'SELECT COUNT(*) AS n FROM appeals WHERE id = ? AND person_id = ?',
+        appeal,
+        kept.id,
+      ),
+    ).toBe(1);
+    expect(
+      await count('SELECT COUNT(*) AS n FROM safety_notes WHERE person_id = ?', lot.bram.id),
+    ).toBe(0);
+    expect((await notesOf(kept)).length).toBeGreaterThan(0);
+    // A report filed after the merge about the old id's words lands on the kept person.
+    const later = await reportUnkind(lot, lot.pip);
+    expect((await detailOf(later)).reported.person).toBe(kept.id);
   });
 });

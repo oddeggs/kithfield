@@ -1,6 +1,7 @@
 import { FarmEvent, tombstoneOf } from '@kithfield/contracts';
 
 import { registerAccountDeletionStep } from '../auth';
+import { registerPersonMergedStep } from '../deletion';
 
 /*
  * What the safety desk holds about a person when their account is deleted or merged into
@@ -120,3 +121,4 @@ export async function mergeModeration(db: D1Database, from: string, into: string
 }
 
 registerAccountDeletionStep('moderation', (env, person) => purgeModeration(env.DB, person));
+registerPersonMergedStep('moderation', (env, job) => mergeModeration(env.DB, job.from, job.into));
