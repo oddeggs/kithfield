@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { type z } from 'zod';
 
+import { CottageNotice } from './cottage';
 import { parseEvent } from './events';
 import {
   CottageClientFrame,
-  CottageNotice,
   CottageServerFrame,
   FarmClientFrame,
   FarmServerFrame,
@@ -39,10 +39,13 @@ const chat = {
   ...notice,
   farmKind: 'farm',
   name: 'The Thursday Lot',
+  with: null,
   waiting: 2,
   muted: false,
   pinned: true,
 };
+
+const otis = { person: 'p_otis', name: 'Otis', critter: farmState.members[0]?.critter };
 
 const farmClientFrames = [
   { type: 'hello', protocol: PROTOCOL_VERSION, token, lastSeq: 0, rulesVersion: 1 },
@@ -68,7 +71,10 @@ const farmServerFrames = [
 
 const cottageClientFrames = [{ type: 'hello', protocol: PROTOCOL_VERSION, token }];
 const cottageServerFrames = [
-  { type: 'chats', chats: [chat, { ...chat, farmKind: 'visit', name: null, forYou: true }] },
+  {
+    type: 'chats',
+    chats: [chat, { ...chat, farmKind: 'visit', name: null, with: otis, forYou: true }],
+  },
   { type: 'chat', chat: { ...chat, preview: null } },
   { type: 'safety_note' },
   { type: 'error', code: 'banned' },
@@ -100,7 +106,7 @@ describe('socket frames', () => {
   it('keeps a batch whole when it holds a kind this app does not know', () => {
     const frame = FarmServerFrame.parse(farmServerFrames[1]);
     if (frame.type !== 'events') throw new Error('expected an events frame');
-    expect(frame.events.map((e) => parseEvent(e).known)).toEqual([true, false]);
+    expect(frame.events.map((e) => parseEvent(e).status)).toEqual(['known', 'unknown']);
   });
 
   it.each(sockets)('%s: an unknown frame type parses as `unknown`', (_, schema) => {

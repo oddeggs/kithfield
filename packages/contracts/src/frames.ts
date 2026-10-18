@@ -1,9 +1,10 @@
 import { z } from 'zod';
 
 import { Ack, commandOptions, Rejection } from './commands';
-import { AnyEventKind, EventEnvelope, RulesVersion } from './events';
+import { ChatListItem } from './cottage';
+import { EventEnvelope, RulesVersion } from './events';
 import { Snapshot } from './snapshot';
-import { EpochMs, FarmId, FarmKind, FarmName, LIMITS, PersonId, Seq, text } from './primitives';
+import { LIMITS, PersonId } from './primitives';
 
 /*
  * Sockets: JSON frames, one object per message, a union on `type`. The token goes in the first
@@ -13,8 +14,9 @@ import { EpochMs, FarmId, FarmKind, FarmName, LIMITS, PersonId, Seq, text } from
  * socket, the writer's included, then sends the writer its `ack`. A rejected write gets only
  * `rejected`.
  *
- * Keep-alive: a phone sends the bare text `PING` and the farm answers `PONG` without waking
- * (the hibernation auto-response). These are bare strings, not JSON frames.
+ * Keep-alive: the phone sends the string `PING` holds (`'ping'`) as a plain text message, and the
+ * farm's hibernation auto-response answers with `PONG` (`'pong'`) without waking the object. They
+ * are never JSON frames.
  */
 
 export const PING = 'ping';
@@ -49,6 +51,11 @@ const farmClientFrames = z.discriminatedUnion('type', [
     token,
     /** The last seq the phone holds; 0 when it holds nothing. */
     lastSeq: z.int().min(0),
+    /**
+     * The highest farm rules version this app's reducer implements. Below the farm's current
+     * version the farm answers `error {rules_outdated}`; otherwise the phone catches up by events,
+     * and a `rules_changed` event switches rules.
+     */
     rulesVersion: RulesVersion,
   }),
   z.discriminatedUnion('kind', commandOptions({ type: z.literal('cmd') })),
@@ -89,7 +96,7 @@ export const FARM_SERVER_FRAME_TYPES = [
 ] as const;
 
 const farmServerFrames = z.discriminatedUnion('type', [
-  /** Sent when the phone holds nothing, is more than 500 events behind, or has older rules. */
+  /** Sent when the phone holds nothing or is more than 500 events behind. */
   Snapshot.extend({ type: z.literal('snapshot') }),
   /**
    * Catch-up after `lastSeq` (or after the snapshot), oldest first, at most 200 a batch. `more`
@@ -117,34 +124,6 @@ export const FarmServerFrame = tolerant(farmServerFrames, FARM_SERVER_FRAME_TYPE
 export type FarmServerFrame = z.infer<typeof FarmServerFrame>;
 
 /* Cottage socket: one per person, for the chat list, badges and Quick Tend. */
-
-/** The farm's note to each member's cottage after it commits an event. */
-export const CottageNotice = z.object({
-  farm: FarmId,
-  seq: Seq,
-  kind: AnyEventKind,
-  actor: PersonId.nullable(),
-  at: EpochMs,
-  /** A short line for the chat list; null when the event has no words to show. */
-  preview: text(140).nullable(),
-  /**
-   * Meant for this member: a knock, a mention, a firefly, gift or slow post on their doorstep, or a
-   * reply to them. The cottage decides pushes and Quick Tend from it.
-   */
-  forYou: z.boolean(),
-});
-export type CottageNotice = z.infer<typeof CottageNotice>;
-
-/** One row of the chat list. `waiting` is how many things wait in Quick Tend. */
-export const ChatListItem = CottageNotice.extend({
-  farmKind: FarmKind,
-  /** Null for a visit, which shows both critters instead. */
-  name: FarmName.nullable(),
-  waiting: z.int().min(0).max(99),
-  muted: z.boolean(),
-  pinned: z.boolean(),
-});
-export type ChatListItem = z.infer<typeof ChatListItem>;
 
 export const COTTAGE_CLIENT_FRAME_TYPES = ['hello'] as const;
 
