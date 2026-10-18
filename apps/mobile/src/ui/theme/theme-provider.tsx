@@ -22,8 +22,11 @@ export interface Theme {
 }
 
 interface ThemeControl {
-  /** The town to take sunset from: the open farm's place, or null when there is none. */
-  setSunPlace: (place: SunPlace | null) => void;
+  /**
+   * The town to take sunset from: the open farm's place. There is no way back to "no town": once a
+   * farm has given one, night keeps following it until another farm gives its own.
+   */
+  setSunPlace: (place: SunPlace) => void;
 }
 
 const ThemeContext = createContext<Theme | null>(null);
@@ -62,8 +65,8 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
     }),
     [appearance, systemDark],
   );
-  const setSunPlace = useCallback((next: SunPlace | null) => {
-    setPlace((prev) => (prev?.lat === next?.lat && prev?.lng === next?.lng ? prev : next));
+  const setSunPlace = useCallback((next: SunPlace) => {
+    setPlace((prev) => (prev?.lat === next.lat && prev.lng === next.lng ? prev : next));
   }, []);
   const control = useMemo(() => ({ setSunPlace }), [setSunPlace]);
   return (
