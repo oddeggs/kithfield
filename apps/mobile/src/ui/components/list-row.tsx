@@ -85,7 +85,7 @@ export function ListRow({ title, subtitle, icon, critter, trailing, onPress }: L
       </View>
       {trailing ??
         (onPress ? (
-          <Txt variant="body" color={palette.chevron} style={{ fontSize: 22, lineHeight: 22 }}>
+          <Txt variant="chevron" color={palette.chevron} importantForAccessibility="no">
             ›
           </Txt>
         ) : null)}

@@ -1,13 +1,15 @@
 import type { CritterLook } from '@kithfield/art';
 import { radii } from '@kithfield/theme';
-import { useState, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Platform, View } from 'react-native';
 
+import { announcePolitely } from '../announce';
 import { ArtIcon, ArtLoop } from '../art/art-view';
 import { Avatar } from '../art/avatar';
 import { useLocale } from '../locale/locale-provider';
 import { Press } from '../motion/press';
 import { useTheme } from '../theme/theme-provider';
+import { useAccessibilitySize } from '../type/accessibility-size';
 import { Txt } from '../type/text';
 
 const MAX = 262;
@@ -21,7 +23,12 @@ export interface Sender {
   look?: CritterLook;
 }
 
-const bubbleBox = { paddingVertical: 10, paddingHorizontal: 14, maxWidth: MAX };
+const bubbleBox = { paddingVertical: 10, paddingHorizontal: 14 };
+
+/** Bubbles stop at 262 points, and run full width at the accessibility text sizes. */
+function useBubbleMax(): number | undefined {
+  return useAccessibilitySize() ? undefined : MAX;
+}
 
 /** A friend's message: their critter, their name above, the tail at the bottom left. */
 export function TheirBubble({
@@ -34,6 +41,7 @@ export function TheirBubble({
   readonly children: ReactNode;
 }) {
   const { palette } = useTheme();
+  const max = useBubbleMax();
   return (
     <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
       <Avatar kind={from.kind} {...(from.look ? { look: from.look } : {})} size={30} />
@@ -46,6 +54,7 @@ export function TheirBubble({
         <View
           style={[
             bubbleBox,
+            { maxWidth: max },
             {
               borderRadius: R,
               borderBottomLeftRadius: TAIL,
@@ -80,8 +89,9 @@ export function YourBubble({
   const { palette } = useTheme();
   const { t } = useLocale();
   const b = palette.bubble;
+  const max = useBubbleMax();
   return (
-    <View style={{ alignSelf: 'flex-end', alignItems: 'flex-end', gap: 4, maxWidth: MAX }}>
+    <View style={{ alignSelf: 'flex-end', alignItems: 'flex-end', gap: 4, maxWidth: max }}>
       <View
         style={[
           bubbleBox,
@@ -95,12 +105,13 @@ export function YourBubble({
           {children}
         </Txt>
       </View>
-      {failed ? (
+      {failed && onRetry ? (
         <Press
-          {...(onRetry ? { onPress: onRetry } : {})}
+          onPress={onRetry}
           darken={false}
           haptic="tap"
-          hitSlop={14}
+          // The line is 12 points tall; the slop makes it a 44-point target.
+          hitSlop={{ top: 16, bottom: 16, left: 8, right: 8 }}
           accessibilityLabel={t('shell.bubble.failed')}
         >
           <Txt variant="bubbleState" color={b.failedText}>
@@ -125,6 +136,7 @@ export function QuietNote({
   const b = palette.bubble;
   const [height, setHeight] = useState(0);
   const rules = Math.max(0, Math.floor(height / RULE));
+  const max = useBubbleMax();
   return (
     <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
       <Avatar kind={from.kind} {...(from.look ? { look: from.look } : {})} size={30} />
@@ -132,6 +144,7 @@ export function QuietNote({
         onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
         style={[
           bubbleBox,
+          { maxWidth: max },
           {
             borderRadius: 18,
             borderTopLeftRadius: TAIL,
@@ -175,6 +188,9 @@ export function WritingIndicator({ from }: { readonly from: Sender }) {
   const { palette } = useTheme();
   const { t } = useLocale();
   const text = t('shell.bubble.writing', { name: from.name });
+  useEffect(() => {
+    if (Platform.OS === 'ios') announcePolitely(text);
+  }, [text]);
   return (
     <View
       accessible

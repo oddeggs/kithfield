@@ -4,6 +4,7 @@ import { TextInput, View, type TextInputProps } from 'react-native';
 import { useLocale } from '../locale/locale-provider';
 import { useTheme } from '../theme/theme-provider';
 import { componentType } from '../type/styles';
+import { useAccessibilitySize } from '../type/accessibility-size';
 import { Txt } from '../type/text';
 
 export interface TextFieldProps extends Omit<
@@ -23,6 +24,8 @@ export function TextField({ label, multiline = false, ...input }: TextFieldProps
   const { palette } = useTheme();
   const { fontLocale } = useLocale();
   const labelled = label !== undefined;
+  // At accessibility sizes a labelled row stacks: the label above, the value below it.
+  const stacked = useAccessibilitySize();
   const font = fontFor(labelled ? componentType.fieldValue : componentType.fieldText, fontLocale, {
     multiline,
   });
@@ -34,12 +37,12 @@ export function TextField({ label, multiline = false, ...input }: TextFieldProps
         backgroundColor: palette.card,
         borderWidth: 1,
         borderColor: palette.cardBorder,
-        flexDirection: 'row',
-        alignItems: multiline ? 'flex-start' : 'center',
+        flexDirection: stacked ? 'column' : 'row',
+        alignItems: stacked ? 'stretch' : multiline ? 'flex-start' : 'center',
         justifyContent: 'space-between',
         gap: 10,
         paddingHorizontal: 16,
-        paddingVertical: multiline ? 12 : 0,
+        paddingVertical: multiline || stacked ? 12 : 0,
       }}
     >
       {labelled ? (
@@ -61,7 +64,7 @@ export function TextField({ label, multiline = false, ...input }: TextFieldProps
             color: palette.text,
             flex: 1,
             minHeight: 44,
-            textAlign: labelled ? 'right' : 'left',
+            textAlign: labelled && !stacked ? 'right' : 'left',
             paddingVertical: 0,
           },
         ]}

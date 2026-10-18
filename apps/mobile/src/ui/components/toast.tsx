@@ -8,11 +8,12 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { AccessibilityInfo, View } from 'react-native';
+import { View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { announcePolitely } from '../announce';
 import { fadeTo, sheetTo } from '../motion/motion';
 import { useReduceMotion } from '../motion/reduce-motion';
 import { NoticeCard } from './card';
@@ -43,7 +44,7 @@ export function ToastHost({ children }: { readonly children: ReactNode }) {
   const show = useCallback((text: string, icon?: string) => {
     next.current += 1;
     setToast({ id: next.current, text, ...(icon ? { icon } : {}) });
-    AccessibilityInfo.announceForAccessibilityWithOptions(text, { queue: true });
+    announcePolitely(text);
   }, []);
   const api = useMemo(() => ({ show }), [show]);
   const gone = useCallback(() => setToast(null), []);

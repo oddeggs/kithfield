@@ -1,4 +1,4 @@
-import { radii } from '@kithfield/theme';
+import { layout, radii } from '@kithfield/theme';
 import { useEffect, useRef, useState } from 'react';
 import { View, type LayoutChangeEvent } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
@@ -8,6 +8,7 @@ import { fadeTo, sheetTo } from '../motion/motion';
 import { Press } from '../motion/press';
 import { useReduceMotion } from '../motion/reduce-motion';
 import { useTheme } from '../theme/theme-provider';
+import { useAccessibilitySize } from '../type/accessibility-size';
 import { Txt } from '../type/text';
 
 export interface Segment<T extends string> {
@@ -35,6 +36,7 @@ export function Segmented<T extends string>({
 }) {
   const { palette } = useTheme();
   const reduce = useReduceMotion();
+  const stacked = useAccessibilitySize();
   const [width, setWidth] = useState(0);
   const index = Math.max(
     0,
@@ -63,6 +65,48 @@ export function Segmented<T extends string>({
     transform: [{ translateX: x.get() }],
     opacity: shown.get(),
   }));
+  const choose = (next: T) => {
+    if (next === value) return;
+    haptics.select();
+    onChange(next);
+  };
+  if (stacked) {
+    // At accessibility sizes the segments stack, each a full row with the chosen one raised.
+    return (
+      <View
+        accessibilityRole="tablist"
+        accessibilityLabel={label}
+        style={{
+          padding: PAD,
+          gap: PAD,
+          borderRadius: radii.tile,
+          backgroundColor: palette.segment.track,
+        }}
+      >
+        {segments.map((s) => (
+          <Press
+            key={s.value}
+            darken={false}
+            onPress={() => choose(s.value)}
+            accessibilityRole="tab"
+            accessibilityLabel={s.label}
+            accessibilityState={{ selected: s.value === value }}
+            style={[
+              { minHeight: layout.minHitTarget, borderRadius: 9, justifyContent: 'center' },
+              { paddingHorizontal: 12, paddingVertical: 6 },
+              s.value === value
+                ? { backgroundColor: palette.segment.thumb, boxShadow: palette.segment.shadow }
+                : null,
+            ]}
+          >
+            <Txt variant="segment" multiline>
+              {s.label}
+            </Txt>
+          </Press>
+        ))}
+      </View>
+    );
+  }
   return (
     <View
       accessibilityRole="tablist"
@@ -97,11 +141,9 @@ export function Segmented<T extends string>({
         <Press
           key={s.value}
           darken={false}
-          onPress={() => {
-            if (s.value === value) return;
-            haptics.select();
-            onChange(s.value);
-          }}
+          onPress={() => choose(s.value)}
+          // The segment is 32 tall inside a 3-point track: the slop reaches 44.
+          hitSlop={{ top: (layout.minHitTarget - 32) / 2, bottom: (layout.minHitTarget - 32) / 2 }}
           accessibilityRole="tab"
           accessibilityLabel={s.label}
           accessibilityState={{ selected: s.value === value }}

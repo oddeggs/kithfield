@@ -1,10 +1,16 @@
 import { fontFor } from '@kithfield/theme';
 import { Children, useMemo, type ReactNode } from 'react';
-import { Text, type TextProps, type TextStyle } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  type TextProps,
+  type TextStyle,
+} from 'react-native';
 
 import { useLocale } from '../locale/locale-provider';
 import { useTheme } from '../theme/theme-provider';
-import { glyphHeight, typeStyleOf, type TypeVariant } from './styles';
+import { glyphShift, typeStyleOf, type TypeVariant } from './styles';
 
 export interface TxtProps extends TextProps {
   /** A step of the type ramp, or a component's own text style. Defaults to body. */
@@ -43,24 +49,42 @@ export function Txt({
   const { fontLocale } = useLocale();
   const { palette } = useTheme();
   const s = typeStyleOf(variant);
-  const font = useMemo<TextStyle>(() => {
-    // Vietnamese stacks marks above capitals and tall letters: even one line needs the taller
-    // line height, or the marks are clipped at the top of the line.
-    const f = fontFor(s, fontLocale, { multiline: multiline || fontLocale === 'vi' });
-    const family = mono ? 'Menlo' : (f.fontFamily ?? 'system');
-    const shift = Math.max(0, ((glyphHeight[family] ?? 1.2) * f.fontSize - f.lineHeight) / 2);
-    return {
-      ...f,
+  const { fontScale } = useWindowDimensions();
+  const font = useMemo<TextStyle>(
+    () => ({
+      // Vietnamese stacks marks above capitals and tall letters: even one line needs the taller
+      // line height, or the marks are clipped at the top of the line.
+      ...fontFor(s, fontLocale, { multiline: multiline || fontLocale === 'vi' }),
       ...(medium && s.face === 'system' ? { fontWeight: '500' as const } : {}),
       ...(mono ? { fontFamily: 'Menlo' } : {}),
-      ...(shift > 0 ? { transform: [{ translateY: shift }] } : {}),
-    };
-  }, [s, fontLocale, multiline, medium, mono]);
+    }),
+    [s, fontLocale, multiline, medium, mono],
+  );
+  // The shift follows whatever size and line height the caller's style ends with, and grows
+  // with the text when Dynamic Type scales it; any transform of the caller's is kept.
+  // Expo's web typings widen text styles past what `flatten` takes; the native shape is the same.
+  const own = (StyleSheet.flatten(style as never) ?? {}) as TextStyle;
+  const size = own.fontSize ?? font.fontSize ?? 0;
+  const line = own.lineHeight ?? font.lineHeight ?? size;
+  const family = own.fontFamily ?? font.fontFamily ?? 'system';
+  const scale =
+    rest.allowFontScaling === false
+      ? 1
+      : Math.min(fontScale, rest.maxFontSizeMultiplier ?? Infinity);
+  const shift = glyphShift(family, size, line, scale);
+  const kept: readonly object[] = Array.isArray(own.transform) ? (own.transform as object[]) : [];
+  const transform = shift > 0 ? ([...kept, { translateY: shift }] as TextStyle['transform']) : null;
   return (
     <Text
       {...(s.ramp === null ? {} : { dynamicTypeRamp: s.ramp })}
       {...rest}
-      style={[font, { color: color ?? palette.text }, align ? { textAlign: align } : null, style]}
+      style={[
+        font,
+        { color: color ?? palette.text },
+        align ? { textAlign: align } : null,
+        style,
+        transform ? { transform } : null,
+      ]}
     >
       {s.face === 'system' ? children : nfc(children)}
     </Text>

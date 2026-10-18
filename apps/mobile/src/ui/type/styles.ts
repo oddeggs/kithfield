@@ -59,6 +59,8 @@ export const componentType = {
   rowSubtitle: style('system', 400, 13.5, 18.2, 'footnote'),
   sheetBody: style('system', 400, 15, 21.75, 'body'),
   code: style('system', 400, 12.5, 12.5, 'caption1'),
+  /** The chevron at the end of a tappable row. */
+  chevron: style('system', 400, 22, 22, 'body'),
 } as const satisfies Record<string, ComponentType>;
 
 /**
@@ -75,6 +77,20 @@ export const glyphHeight: Readonly<Record<string, number>> = {
   'Lora-SemiBold': 1.28,
   Menlo: 1.164,
 };
+
+/**
+ * How far down to move a line's glyphs so they sit as Chrome sets them: half of what the face's
+ * glyphs overflow the line, scaled with the text when Dynamic Type enlarges it.
+ */
+export function glyphShift(
+  family: string,
+  fontSize: number,
+  lineHeight: number,
+  scale = 1,
+): number {
+  const overflow = (glyphHeight[family] ?? 1.2) * fontSize - lineHeight;
+  return overflow > 0 ? (overflow / 2) * scale : 0;
+}
 
 export type ComponentTypeKey = keyof typeof componentType;
 export type TypeVariant = keyof typeof type | ComponentTypeKey;
