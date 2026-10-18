@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import type { FarmState } from '@kithfield/contracts';
+import { FireTokenResponse, type FarmState } from '@kithfield/contracts';
 
 import {
   captionsWanted,
@@ -7,7 +7,6 @@ import {
   PLACEHOLDER_CRITTER,
   phaseAfter,
   speakerToAnnounce,
-  tokenAnswer,
 } from './room-model';
 
 describe('someone the farm doesn’t know by the fire', () => {
@@ -53,8 +52,10 @@ describe('your voice for captions', () => {
       token: 'x'.repeat(20),
       expiresAt: 1,
     };
-    expect(tokenAnswer({ ...base, captionsAvailable: true }).captionsAvailable).toBe(true);
-    expect(tokenAnswer(base).captionsAvailable).toBe(false);
+    expect(FireTokenResponse.parse({ ...base, captionsAvailable: true }).captionsAvailable).toBe(
+      true,
+    );
+    expect(FireTokenResponse.parse(base).captionsAvailable).toBe(false);
   });
 });
 

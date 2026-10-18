@@ -193,7 +193,12 @@ describe('live captions', () => {
       { identity: fig.id, attributes: { mode: 'join', captionsOk: 'no', captionsIn: 'vi' } },
     ];
     // With no speech model to hand, nobody is captioned and the phone stops sending.
-    expect(await (await send(pip, farm)).json()).toEqual({ listening: false });
+    const unfilled = [setCaptionPerks(null), setCaptionAudio(null)];
+    try {
+      expect(await (await send(pip, farm)).json()).toEqual({ listening: false });
+    } finally {
+      for (const u of unfilled) u();
+    }
 
     const undo = [
       setCaptionPerks((_env, person) => Promise.resolve(person !== fig.id)),

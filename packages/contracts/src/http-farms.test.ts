@@ -219,9 +219,26 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         room: 'f_thursday_lot',
         token: 'x'.repeat(40),
         expiresAt: at,
+        captionsAvailable: false,
+      },
+      {
+        url: 'wss://fire.example.livekit.cloud',
+        room: 'f_thursday_lot',
+        token: 'x'.repeat(40),
+        expiresAt: at,
+        captionsAvailable: true,
       },
     ],
-    [{ url: 'http://x', room: 'r', token: 'x'.repeat(40), expiresAt: at }],
+    [
+      { url: 'http://x', room: 'r', token: 'x'.repeat(40), expiresAt: at },
+      {
+        url: 'wss://fire.example.livekit.cloud',
+        room: 'r',
+        token: 'x'.repeat(40),
+        expiresAt: at,
+        captionsAvailable: 'yes',
+      },
+    ],
   ],
   UploadUrlRequest: [
     [{ farm, kind: 'photo', bytes: 812_000, mime: 'image/jpeg' }],
@@ -376,5 +393,14 @@ describe('the events paging query', () => {
     ]) {
       expect(farms.EventsQuery.safeParse(bad).success, JSON.stringify(bad)).toBe(false);
     }
+  });
+});
+
+describe('the fire token', () => {
+  it('reads an answer that doesn’t say whether captions can be had as unavailable', () => {
+    const answer = { url: 'wss://fire.example.livekit.cloud', room: 'r', token: 'x'.repeat(40) };
+    expect(farms.FireTokenResponse.parse({ ...answer, expiresAt: 1 }).captionsAvailable).toBe(
+      false,
+    );
   });
 });

@@ -1,6 +1,7 @@
 import { keepModerationTidy } from './admin/retention';
 import { queueDueRecaps, sweepAiWords } from './ai';
 import { createApp } from './app';
+import { fillCaptionSeams } from './calls/caption-seams';
 import { queueDuePurges } from './auth';
 import { expireExports } from './auth/export';
 import type { Bindings } from './env';
@@ -14,6 +15,8 @@ export { CottageDO } from './cottage/cottage-object';
 export { FarmDO } from './farm/farm-object';
 
 const app = createApp();
+// The fire's live captions: Workers AI hears and translates, the shop's perks say who reads them.
+fillCaptionSeams();
 
 /** The hourly cron in `wrangler.jsonc`; every other cron is the daily one. */
 const HOURLY_CRON = '7 * * * *';

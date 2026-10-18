@@ -1,6 +1,5 @@
-import { type Critter, type FarmState, FireTokenResponse } from '@kithfield/contracts';
+import type { Critter, FarmState } from '@kithfield/contracts';
 import type { Translate } from '@kithfield/i18n';
-import { z } from 'zod';
 
 import { DRAWN_SEATS } from './seats';
 
@@ -191,19 +190,6 @@ export function captionsWanted(w: {
   readonly active: boolean;
 }): boolean {
   return w.available && w.captionsOk && w.micOpen && w.captioning && w.live && !w.quiet && w.active;
-}
-
-/**
- * The fire token's answer as the API sends it: the contract's fields, and whether captions can be
- * had here (absent from an older API: they can't).
- */
-export const FireTokenAnswer = FireTokenResponse.extend({
-  captionsAvailable: z.boolean().optional(),
-});
-
-export function tokenAnswer(raw: unknown): FireTokenResponse & { captionsAvailable: boolean } {
-  const parsed = FireTokenAnswer.parse(raw);
-  return { ...parsed, captionsAvailable: parsed.captionsAvailable === true };
 }
 
 /** VoiceOver hears a new speaker at most this often. */

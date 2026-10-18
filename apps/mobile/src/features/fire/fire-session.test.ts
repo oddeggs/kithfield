@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Room } from 'livekit-client';
+import type { FireTokenResponse } from '@kithfield/contracts';
 
 import { FireSession } from './fire-session';
 
@@ -83,12 +84,16 @@ const standIn = Room as unknown as StandIn;
 
 const tokenWhenReleased = () => {
   let release: () => void = () => undefined;
-  const answer = new Promise<{ url: string; token: string; room: string; expiresAt: number }>(
-    (resolve) => {
-      release = () =>
-        resolve({ url: 'ws://lk', token: 't'.repeat(20), room: 'fire-a', expiresAt: 0 });
-    },
-  );
+  const answer = new Promise<FireTokenResponse>((resolve) => {
+    release = () =>
+      resolve({
+        url: 'ws://lk',
+        token: 't'.repeat(20),
+        room: 'fire-a',
+        expiresAt: 0,
+        captionsAvailable: false,
+      });
+  });
   return { token: () => answer, release: () => release() };
 };
 

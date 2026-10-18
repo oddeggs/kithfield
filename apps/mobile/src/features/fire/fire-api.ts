@@ -3,14 +3,14 @@ import {
   Entitlements,
   type FarmId,
   FireCaptionChunkResponse,
-  type FireTokenResponse,
+  FireTokenResponse,
 } from '@kithfield/contracts';
 import Constants from 'expo-constants';
 import { useMemo } from 'react';
 
 import { ApiError, useDataClient } from '../../data';
 import { useAccount } from '../../ui/session/account';
-import { FireTokenAnswer, tokenAnswer, type FireMode } from './room-model';
+import type { FireMode } from './room-model';
 
 /** The API the app was started against (`extra.apiBase`). */
 const apiBase = (): string => {
@@ -20,9 +20,7 @@ const apiBase = (): string => {
 
 export interface FireApi {
   /** A LiveKit token for the farm's fire room; asking to join in lets a listener's seat publish. */
-  readonly token: (
-    mode: FireMode,
-  ) => Promise<FireTokenResponse & { readonly captionsAvailable: boolean }>;
+  readonly token: (mode: FireMode) => Promise<FireTokenResponse>;
   /** One piece of your voice for captions; answers whether anyone still has captions on. */
   readonly sendPiece: (wav: Uint8Array, chunk: number, startedAt: number) => Promise<boolean>;
   /** Whether your patron perks (captions among them) are on. */
@@ -36,15 +34,10 @@ export function useFireApi(farm: FarmId): FireApi {
   const { authHeaders } = useAccount();
   return useMemo(
     () => ({
-      token: async (mode) =>
-        tokenAnswer(
-          await api.request(
-            FireTokenAnswer,
-            'POST',
-            `/v1/farms/${encodeURIComponent(farm)}/fire-token`,
-            { mode },
-          ),
-        ),
+      token: (mode) =>
+        api.request(FireTokenResponse, 'POST', `/v1/farms/${encodeURIComponent(farm)}/fire-token`, {
+          mode,
+        }),
       sendPiece: async (wav, chunk, startedAt) => {
         const path = `/v1/farms/${encodeURIComponent(farm)}/fire/captions?chunk=${chunk}&startedAt=${startedAt}`;
         const response = await fetch(`${apiBase()}${path}`, {

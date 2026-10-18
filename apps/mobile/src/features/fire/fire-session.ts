@@ -76,9 +76,7 @@ const EMPTY: FireSnapshot = {
 
 /** What the session asks of the app: a room token for this farm. */
 export interface SessionDeps {
-  readonly token: (
-    mode: FireMode,
-  ) => Promise<FireTokenResponse & { readonly captionsAvailable?: boolean }>;
+  readonly token: (mode: FireMode) => Promise<FireTokenResponse>;
 }
 
 export class FireSession {
@@ -190,7 +188,7 @@ export class FireSession {
     this.setStatus('connecting');
     try {
       const { url, token, captionsAvailable } = await this.deps.token(mode);
-      this.state = { ...this.state, captionsAvailable: captionsAvailable === true };
+      this.state = { ...this.state, captionsAvailable };
       // Headed home while the token was on its way: nothing is opened.
       if (this.closed) return false;
       await AudioSession.startAudioSession();

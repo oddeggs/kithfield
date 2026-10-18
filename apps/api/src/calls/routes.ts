@@ -43,12 +43,6 @@ const AUDIO_TYPES = new Set(['audio/wav', 'audio/x-wav', 'audio/wave', 'audio/mp
 
 const seconds = (ms: number) => Math.floor(ms / 1000);
 
-/**
- * The token's answer, with one field beyond the contract: whether captions can be had at all here
- * (both seams filled). A phone that doesn't know it reads it as unavailable.
- */
-type FireTokenAnswer = FireTokenResponse & { readonly captionsAvailable: boolean };
-
 export const callsRoutes = (): Hono<SessionEnv> => {
   const app = new Hono<SessionEnv>();
 
@@ -72,7 +66,7 @@ export const callsRoutes = (): Hono<SessionEnv> => {
     const token = await roomToken(lk, m.person, room, attributes, seconds(now));
     // A listener joining in keeps their seat: the room lets them publish without reconnecting.
     if (req.mode === 'join') await letJoinIn(lk, room, m.person, seconds(now));
-    const answer: FireTokenAnswer = {
+    const answer: FireTokenResponse = {
       url: lk.url,
       room,
       token,

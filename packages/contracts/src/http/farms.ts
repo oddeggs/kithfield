@@ -233,6 +233,11 @@ export const FireTokenResponse = z.object({
   room: text(128),
   token: z.string().min(16).max(4096),
   expiresAt: EpochMs,
+  /**
+   * Whether live captions can be had here at all (speech to text and the patron perks are both
+   * wired up). An answer without it reads as unavailable.
+   */
+  captionsAvailable: z.boolean().default(false),
 });
 export type FireTokenResponse = z.infer<typeof FireTokenResponse>;
 
