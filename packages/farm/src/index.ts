@@ -10,6 +10,7 @@ export {
   reduce,
   replay,
 } from './reducer';
+export { type CommandCheck, type CommandContext, checkCommand } from './commands';
 export { type CritterView, type FarmView, type PlanView, type PlantView, farmView } from './view';
 export {
   type Care,
