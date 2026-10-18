@@ -54,6 +54,9 @@ export function setCaptionPerks(fn: CaptionPerks | null): () => void {
   };
 }
 
+/** Whether captions can be had at all: both seams are filled. */
+export const captionsAvailable = (): boolean => captionAudio !== null && captionPerks !== null;
+
 /** Whether the person said yes to captions, and hasn't taken it back. */
 export async function captionsAllowed(db: D1Database, person: PersonId): Promise<boolean> {
   const row = await db

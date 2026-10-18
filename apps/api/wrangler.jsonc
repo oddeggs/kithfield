@@ -98,6 +98,12 @@
           "namespace_id": "1251",
           "simple": { "limit": 10, "period": 60 },
         },
+        // Pieces of a speaker's voice for live captions, per person.
+        {
+          "name": "FIRE_LIMIT",
+          "namespace_id": "1263",
+          "simple": { "limit": 12, "period": 60 },
+        },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
       "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@kithfield.com"] }],
@@ -204,6 +210,12 @@
           "name": "REPORT_LIMIT",
           "namespace_id": "1252",
           "simple": { "limit": 10, "period": 60 },
+        },
+        // Pieces of a speaker's voice for live captions, per person.
+        {
+          "name": "FIRE_LIMIT",
+          "namespace_id": "1264",
+          "simple": { "limit": 12, "period": 60 },
         },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.

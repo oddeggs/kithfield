@@ -87,7 +87,8 @@ const participant = (event: string, farm: string, who: Person, at: number) => ({
 
 describe('the fire token', () => {
   it('lets a listener hear but never publish, and someone joining in publish their mic', async () => {
-    const { farm } = await plantFarm(pip, [bea]);
+    const { farm, stub } = await plantFarm(pip, [bea]);
+    await stub.command(pip.id, { opId: op(1), kind: 'fire', payload: { state: 'lit' } });
     const listen = await api(pip, 'POST', `/v1/farms/${farm}/fire-token`, { mode: 'listen' });
     expect(listen.status).toBe(200);
     const issued = FireTokenResponse.parse(listen.body);
@@ -110,7 +111,8 @@ describe('the fire token', () => {
   });
 
   it('carries the speaker’s caption consent, and is only for people who live there', async () => {
-    const { farm } = await plantFarm(pip);
+    const { farm, stub } = await plantFarm(pip);
+    await stub.command(pip.id, { opId: op(1), kind: 'fire', payload: { state: 'lit' } });
     await api(pip, 'PUT', '/v1/me/consents/captions', { allowed: true, textVersion: 'v1' });
     const mine = await api(pip, 'POST', `/v1/farms/${farm}/fire-token`, { mode: 'join' });
     expect(claimsOf(FireTokenResponse.parse(mine.body).token).attributes.captionsOk).toBe('yes');

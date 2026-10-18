@@ -17,8 +17,12 @@ export const liveKitOf = (env: Bindings): LiveKitConfig | null =>
     ? { url: env.LIVEKIT_URL, key: env.LIVEKIT_API_KEY, secret: env.LIVEKIT_API_SECRET }
     : null;
 
-/** A room token lasts long enough to sit a whole evening; LiveKit keeps a joined room open past it. */
-export const ROOM_TOKEN_TTL_S = 6 * 60 * 60;
+/**
+ * A room token is good for ten minutes: enough to connect. LiveKit hands connected phones fresh
+ * tokens as they sit, so a long evening never needs a new one, and someone removed from the farm
+ * can't come back with an old one.
+ */
+export const ROOM_TOKEN_TTL_S = 10 * 60;
 
 export type FireMode = FireAttributes['mode'];
 
@@ -67,7 +71,13 @@ export const stringAttributes = (a: FireAttributes): Record<string, string> => (
 });
 
 /** A participant as the room service lists one. */
-export type RoomParticipant = { identity: string; attributes: Record<string, string> };
+export type RoomParticipant = {
+  identity: string;
+  sid: string;
+  /** When they joined, Unix seconds (0 when LiveKit left it out). */
+  joinedAt: number;
+  attributes: Record<string, string>;
+};
 
 const SERVICE = 'livekit.RoomService';
 /** Room-service calls give up after this long: a slow LiveKit never holds a phone's request. */
@@ -119,13 +129,26 @@ export async function listParticipants(
   if (!Array.isArray(list)) return [];
   return list.flatMap((p: unknown) => {
     if (typeof p !== 'object' || p === null) return [];
-    const { identity, attributes } = p as { identity?: unknown; attributes?: unknown };
+    const { identity, attributes, sid, joinedAt } = p as {
+      identity?: unknown;
+      attributes?: unknown;
+      sid?: unknown;
+      joinedAt?: unknown;
+    };
     if (typeof identity !== 'string') return [];
     const attrs: Record<string, string> = {};
     if (typeof attributes === 'object' && attributes !== null) {
       for (const [k, v] of Object.entries(attributes)) if (typeof v === 'string') attrs[k] = v;
     }
-    return [{ identity, attributes: attrs }];
+    const at = Number(joinedAt ?? 0);
+    return [
+      {
+        identity,
+        sid: typeof sid === 'string' ? sid : '',
+        joinedAt: Number.isFinite(at) ? at : 0,
+        attributes: attrs,
+      },
+    ];
   });
 }
 
@@ -182,4 +205,20 @@ export async function sendData(
     { room, data: toBase64(data), kind: 'RELIABLE', destinationIdentities: to, topic },
     nowSeconds,
   );
+}
+
+/** Takes someone out of the room now. Answers false when they weren't in it. */
+export async function removeParticipant(
+  lk: LiveKitConfig,
+  room: FireRoom,
+  identity: string,
+  nowSeconds: number,
+): Promise<boolean> {
+  try {
+    await call(lk, 'RemoveParticipant', room, { room, identity }, nowSeconds);
+    return true;
+  } catch (error) {
+    if (error instanceof Error && error.message.endsWith('404')) return false;
+    throw error;
+  }
 }

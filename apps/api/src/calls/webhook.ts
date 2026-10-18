@@ -27,7 +27,9 @@ export async function verifiedBody(
   if (authorization === undefined) return undefined;
   const token = authorization.replace(/^Bearer\s+/i, '').trim();
   const claims = await verifyJwt(token, lk.secret, nowSeconds);
-  if (claims === null || claims['iss'] !== lk.key) return undefined;
+  // LiveKit's signatures always expire; one that never would is refused.
+  if (claims === null || claims['iss'] !== lk.key || typeof claims['exp'] !== 'number')
+    return undefined;
   if (claims['sha256'] !== (await sha256Base64(body))) return undefined;
   try {
     return JSON.parse(new TextDecoder().decode(body)) as unknown;
@@ -51,6 +53,8 @@ export function fireRoomEvent(raw: unknown): FireRoomEvent | null {
       at: Number(hook.createdAt),
       room: hook.room.sid,
       identity: hook.participant?.identity ?? null,
+      sid: hook.participant?.sid ?? '',
+      id: hook.id,
     },
   };
 }

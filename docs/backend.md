@@ -82,6 +82,7 @@ JSON frames over the farm socket (`GET /v1/farms/:id/socket`, upgraded and forwa
 - **Trades.** Two farms trade at most once in a rolling 90 days, and only a visitor the gate would let in can trade. `traded` is written on both farms; the visited farm writes first and owes the other half until it lands.
 - **Blocks** apply to visits, the gate and trades: between two people where either blocked the other no visit opens, no gate gesture or trade from one reaches the other, and the gate doesn't show one to the other.
 - **Blocks inside a shared farm**: a gesture addressed to one person (firefly, gift, slow post, knock, hug, wave) between two people where either blocked the other is rejected `unavailable` (design 11-12); the rest of the chat is unchanged.
+- **Blocks and the fire room**: blocks cover gestures addressed to one person only. Who sits by the fire is room presence, shared with everyone on the farm, blocked or not; leaving the farm, removal, a ban or deleting the account takes a person out of the room at once.
 
 **Wire conventions.** JSON with camelCase keys. Ids are named by their noun: `farm`, `person`, `device`, `report`, never `farmId`. Ids are made by the server, except device ids, which the app makes. Times are epoch milliseconds (integers, UTC), never ISO strings. Calendar days are `YYYY-MM-DD` in the farm's time zone, birthdays `MM-DD`, wall-clock times `HH:MM`.
 

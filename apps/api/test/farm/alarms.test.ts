@@ -1,8 +1,10 @@
 import { FarmEvent } from '@kithfield/contracts';
 import { runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { FIRE_RECHECK_MS } from '../../src/calls/farm-fire';
+import { standInLiveKit } from '../../src/calls/livekit-double.test-data';
 import { noWeather } from '../../src/farm/adapters/weather';
 import { cottageOf } from '../../src/cottage/stub';
 import type { FarmDO } from '../../src/farm/farm-object';
@@ -21,6 +23,10 @@ import {
 
 let ports: TestPorts;
 let pip: Person;
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 beforeEach(async () => {
   ports = useTestPorts();
   ({ pip } = await cast('pip'));
@@ -117,6 +123,8 @@ describe('the weather', () => {
 
 describe('the fire', () => {
   it('goes out three minutes after the last person leaves the room', async () => {
+    // The room itself, asked when the fire's timer is due: nobody is left in it.
+    standInLiveKit();
     const { stub } = await plantFarm(pip);
     await stub.command(pip.id, { opId: op(1), kind: 'fire', payload: { state: 'lit' } });
     await stub.fireRoomEvent({
@@ -125,7 +133,8 @@ describe('the fire', () => {
       room: 'RM_a',
       identity: pip.id,
     });
-    expect(await alarmAt(stub)).toBe(Date.UTC(2054, 10, 29, 0, 0));
+    // While someone sits, the farm looks at the room again every few minutes.
+    expect(await alarmAt(stub)).toBe(ports.clock.at + FIRE_RECHECK_MS);
     ports.clock.advance(20 * 60_000);
     await stub.fireRoomEvent({ event: 'participant_left', at: 2, room: 'RM_a', identity: pip.id });
     expect(await fire(stub)).toBe(ports.clock.at);

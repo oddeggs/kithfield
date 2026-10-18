@@ -1,13 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyRoomEvent, circlePeople, EMPTY_CIRCLE, type RoomEvent } from './circle';
+import {
+  applyRoomEvent,
+  circlePeople,
+  EMPTY_CIRCLE,
+  rebuildCircle,
+  type RoomEvent,
+} from './circle';
 
-const ev = (event: string, at: number, identity: string | null, room = 'RM_a'): RoomEvent => ({
-  event,
-  at,
-  room,
-  identity,
-});
+const ev = (
+  event: string,
+  at: number,
+  identity: string | null,
+  room = 'RM_a',
+  sid = '',
+): RoomEvent => ({ event, at, room, identity, sid });
 
 const run = (...events: RoomEvent[]) => events.reduce(applyRoomEvent, EMPTY_CIRCLE);
 
@@ -61,5 +68,39 @@ describe('who is by the fire', () => {
   it('leaves events it doesn’t know alone', () => {
     const circle = run(ev('participant_joined', 1, 'bea'));
     expect(applyRoomEvent(circle, ev('track_published', 2, 'bea'))).toBe(circle);
+  });
+
+  it('frees a seat when someone sits and leaves within the same second', () => {
+    const circle = run(
+      ev('participant_joined', 50, 'fig', 'RM_a', 'PA_1'),
+      ev('participant_left', 50, 'fig', 'RM_a', 'PA_1'),
+    );
+    expect(circlePeople(circle)).toEqual([]);
+  });
+
+  it('ignores a join that arrives after its own leave, in the same second', () => {
+    const circle = run(
+      ev('participant_left', 50, 'fig', 'RM_a', 'PA_1'),
+      ev('participant_joined', 50, 'fig', 'RM_a', 'PA_1'),
+    );
+    expect(circlePeople(circle)).toEqual([]);
+  });
+
+  it('keeps the seat of someone who reconnected when the old connection’s leave comes late', () => {
+    const circle = run(
+      ev('participant_joined', 10, 'bea', 'RM_a', 'PA_old'),
+      ev('participant_joined', 20, 'bea', 'RM_a', 'PA_new'),
+      ev('participant_left', 21, 'bea', 'RM_a', 'PA_old'),
+    );
+    expect(circlePeople(circle)).toEqual(['bea']);
+    const left = applyRoomEvent(circle, ev('participant_left', 30, 'bea', 'RM_a', 'PA_new'));
+    expect(circlePeople(left)).toEqual([]);
+  });
+
+  it('takes the room’s own list over a circle that went stale', () => {
+    const stale = run(ev('participant_joined', 1, 'mo', 'RM_a', 'PA_mo'));
+    const now = rebuildCircle(stale, [{ identity: 'pip', sid: 'PA_pip', at: 5 }]);
+    expect(circlePeople(now)).toEqual(['pip']);
+    expect(circlePeople(rebuildCircle(stale, []))).toEqual([]);
   });
 });

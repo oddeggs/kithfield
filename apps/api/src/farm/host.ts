@@ -7,6 +7,7 @@ import {
   type SocketErrorCode,
 } from '@kithfield/contracts';
 
+import { evictFromFire } from '../calls/farm-fire';
 import type { Bindings } from '../env';
 import { forgetMedia } from '../media/deletion';
 import { markMediaReferenced } from '../media/sweep';
@@ -69,8 +70,13 @@ export class FarmHost {
     return joined(this.ctx.getWebSockets(), closing);
   }
 
-  /** Closes a person's sockets (or everyone's) with `error {code}`. */
+  /**
+   * Closes a person's sockets (or everyone's) with `error {code}`, and takes them out of the fire
+   * room: whoever may no longer hear the farm may no longer sit by its fire. Closing everyone's
+   * (a person merge, which reconnects every phone) leaves the room as it is.
+   */
   closeSockets(person: PersonId | null, code: SocketErrorCode): void {
+    if (person !== null) evictFromFire(this, person);
     const ids = person === null ? null : new Set(this.store.idsOf(this.farm.actorOf(person)));
     for (const ws of this.ctx.getWebSockets()) {
       const who = attachmentOf(ws).person;
