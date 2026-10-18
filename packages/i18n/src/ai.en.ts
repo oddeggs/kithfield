@@ -29,7 +29,7 @@ export const aiEn = {
   'ai.consent.recap.leadAll':
     'To write a short letter about the week on your farms, their messages are sent to {processor}.',
   'ai.consent.recap.sent':
-    'The text of this week’s messages and the kinds of care given, only from friends who said yes. Names stay here, and no photos, voice notes or visits are sent.',
+    'The text of this week’s messages and the kinds of care given, only from friends who said yes. Names are never sent: they are filled in here. No photos, voice notes or visits are sent.',
   'ai.consent.recap.kept':
     'The letter is kept with the farm’s week. Take your words back and every letter they went into is deleted.',
 
@@ -39,7 +39,7 @@ export const aiEn = {
   'ai.consent.voiceNotes.lead':
     'When a friend asks to read one of your voice notes, its audio is sent to {processor}. Here is exactly what happens.',
   'ai.consent.voiceNotes.sent':
-    'The audio of one voice note of yours, only when a friend on that farm asks to read it.',
+    'The audio of one voice note of yours, only when a friend on that farm asks to read it. Voice notes you forward are never sent.',
   'ai.consent.voiceNotes.use': 'Turn it into text, and translate it into your friend’s language.',
   'ai.consent.voiceNotes.stays': 'What stays here',
   'ai.consent.voiceNotes.staysText':
@@ -56,6 +56,9 @@ export const aiEn = {
   'ai.data.takeBackText':
     'Switching something off stops sending right away. {provider} keeps nothing once the work is done, and you can ask us to delete the captions and letters we kept.',
   'ai.data.forgotten': 'We’re deleting what we kept for this. It will be gone within a day.',
+
+  /** The Sunday letter's name for a farm that has none. */
+  'ai.letter.theFarm': 'the farm',
 
   /* The fire's caption sheet */
   'ai.fire.captionsLead':

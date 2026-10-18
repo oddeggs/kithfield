@@ -36,15 +36,14 @@ export async function eventAt(
 const WEEK_PAGES = 20;
 
 /**
- * The events whose farm day is within `[from, to]`, oldest first, read newest first from the end
- * of the log, as `reader`. Null when the reader can't read the farm.
+ * The events from the farm day `from` to the end of the log, oldest first, read newest first, as
+ * `reader`. Null when the reader can't read the farm.
  */
-export async function eventsBetween(
+export async function eventsSince(
   env: Bindings,
   farm: FarmId,
   reader: PersonId,
   from: string,
-  to: string,
 ): Promise<Envelope[] | null> {
   const stub = farmStub(env, farm);
   const found: Envelope[] = [];
@@ -55,11 +54,9 @@ export async function eventsBetween(
       ...(before === undefined ? {} : { before }),
     });
     if (page === null) return i === 0 ? null : found.reverse();
-    const events = [...page.events].reverse();
-    for (const event of events) {
+    for (const event of [...page.events].reverse()) {
       const day = (event as EventEnvelope).day;
-      if (day === undefined || day > to) continue;
-      if (day < from) return found.reverse();
+      if (day !== undefined && day < from) return found.reverse();
       found.push(event);
     }
     const oldest = page.events[0];

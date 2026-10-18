@@ -2,10 +2,18 @@ import type { FarmId, Lang, RecapJob, WeeklyRecap } from '@kithfield/contracts';
 
 import type { Bindings } from '../env';
 import { consentingMembers, hasConsent } from './consent';
-import { eventsBetween, farmState } from './farm-reads';
+import { eventsSince, farmState } from './farm-reads';
 import { weekFacts, writeLetter } from './letter';
 import type { AiBinding } from './models';
-import { dropLetters, getJson, type Letter, letterKey, letterRows, putJson } from './store';
+import {
+  dropLetters,
+  getJson,
+  type Letter,
+  letterKey,
+  letterRows,
+  putJson,
+  settleLetter,
+} from './store';
 
 /*
  * The Sunday recap letter. A `RecapJob` writes the week's letter in each language the farm's
@@ -97,14 +105,25 @@ export class LetterRefused extends Error {
   }
 }
 
+/** Whether everyone whose words went into the letter still says yes. */
+async function stillAllowed(
+  env: Bindings,
+  people: readonly { person: string }[],
+): Promise<boolean> {
+  for (const p of people) if (!(await hasConsent(env.DB, p.person, 'recap'))) return false;
+  return true;
+}
+
 /**
- * Runs a recap job. Safe to run again: letters already written are left alone. With nobody saying
- * yes now, or nothing they did this week, no letter is written and the app writes its own.
+ * Runs a recap job. Safe to run again: only letters still being written are worked on. With
+ * nobody saying yes now, or nothing they did this week, no letter is written and the app writes
+ * its own. A letter is served only once it is marked written, which happens after a last look at
+ * consent; words written for a letter withdrawn or forgotten meanwhile are deleted again.
  */
 export async function runRecap(env: Bindings, ai: AiBinding, job: RecapJob): Promise<void> {
   const { farm, week } = job;
   const rows = await letterRows(env.DB, farm, week);
-  const todo = job.langs.filter((l) => rows.find((r) => r.lang === l)?.state !== 'written');
+  const todo = job.langs.filter((l) => rows.find((r) => r.lang === l)?.state === 'writing');
   if (todo.length === 0) return;
   const consenting = await consentingMembers(env.DB, farm, 'recap');
   const state = consenting.length === 0 ? null : await farmState(env, farm);
@@ -112,14 +131,23 @@ export async function runRecap(env: Bindings, ai: AiBinding, job: RecapJob): Pro
   const events =
     state === null || reader === undefined
       ? null
-      : await eventsBetween(env, farm, reader, weekStart(week), week);
+      : await eventsSince(env, farm, reader, weekStart(week));
+  if (state === null || events === null) {
+    await dropLetters(env, farm, week);
+    return;
+  }
   const names = new Map<string, string>();
-  for (const m of state?.members ?? []) if (m.name !== null) names.set(m.person, m.name);
-  const facts =
-    events === null || state === null
-      ? null
-      : weekFacts(events, consenting, names, state.name ?? '');
-  if (facts === null || facts.people.length === 0) {
+  for (const m of state.members) if (m.name !== null) names.set(m.person, m.name);
+  const everyName = [...state.members, ...state.former].flatMap((m) =>
+    m.name === null ? [] : [m.name],
+  );
+  const facts = weekFacts(
+    events,
+    { from: weekStart(week), to: week },
+    { consenting, names, everyName },
+    state.name,
+  );
+  if (facts.people.length === 0) {
     await dropLetters(env, farm, week);
     return;
   }
@@ -134,16 +162,16 @@ export async function runRecap(env: Bindings, ai: AiBinding, job: RecapJob): Pro
   for (const lang of todo) {
     const letter = await writeLetter(ai, facts, lang);
     if (letter === null) throw new LetterRefused();
-    await putJson(env, letterKey(farm, week, lang), letter);
-    await setLetterState(env.DB, farm, week, lang, 'written');
+    const wanted = (await letterRows(env.DB, farm, week)).find((r) => r.lang === lang);
+    if (wanted?.state !== 'writing') continue;
+    if (!(await stillAllowed(env, facts.people))) break;
+    const key = letterKey(farm, week, lang);
+    await putJson(env, key, letter);
+    // The last look before it can be served: someone who said no meanwhile is never in a letter.
+    if (!(await stillAllowed(env, facts.people))) break;
+    if (!(await settleLetter(env.DB, farm, week, lang, Date.now()))) await env.MEDIA.delete(key);
   }
-  // Someone who said no while it was being written is never in a letter.
-  for (const p of facts.people) {
-    if (!(await hasConsent(env.DB, p.person, 'recap'))) {
-      await dropLetters(env, farm, week);
-      return;
-    }
-  }
+  if (!(await stillAllowed(env, facts.people))) await dropLetters(env, farm, week);
 }
 
 /** A recap job that ran out of tries: the app writes its own letter. */

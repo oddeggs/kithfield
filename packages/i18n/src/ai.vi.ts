@@ -18,7 +18,7 @@ export const aiVi: ViCatalogue<typeof aiEn> = {
   'ai.consent.recap.leadAll':
     'Để viết một lá thư ngắn về tuần qua ở các nông trại của bạn, tin nhắn ở đó được gửi đến {processor}.',
   'ai.consent.recap.sent':
-    'Chữ trong tin nhắn tuần này và những kiểu chăm sóc đã trao, chỉ từ những người bạn đã đồng ý. Tên ở lại đây, và không có ảnh, tin nhắn thoại hay lần ghé thăm nào được gửi.',
+    'Chữ trong tin nhắn tuần này và những kiểu chăm sóc đã trao, chỉ từ những người bạn đã đồng ý. Tên không bao giờ được gửi: chúng được điền vào ở đây. Không có ảnh, tin nhắn thoại hay lần ghé thăm nào được gửi.',
   'ai.consent.recap.kept':
     'Lá thư được giữ cùng tuần đó của nông trại. Khi bạn rút lời của mình lại, mọi lá thư có lời bạn đều bị xoá.',
 
@@ -27,7 +27,7 @@ export const aiVi: ViCatalogue<typeof aiEn> = {
   'ai.consent.voiceNotes.lead':
     'Khi một người bạn muốn đọc tin nhắn thoại của bạn, âm thanh của nó được gửi đến {processor}. Đây là chính xác những gì xảy ra.',
   'ai.consent.voiceNotes.sent':
-    'Âm thanh của một tin nhắn thoại của bạn, chỉ khi một người bạn ở nông trại đó muốn đọc nó.',
+    'Âm thanh của một tin nhắn thoại của bạn, chỉ khi một người bạn ở nông trại đó muốn đọc nó. Tin nhắn thoại bạn chuyển tiếp không bao giờ được gửi.',
   'ai.consent.voiceNotes.use': 'Chuyển thành chữ, và dịch sang ngôn ngữ của bạn ấy.',
   'ai.consent.voiceNotes.stays': 'Những gì ở lại đây',
   'ai.consent.voiceNotes.staysText':
@@ -44,6 +44,8 @@ export const aiVi: ViCatalogue<typeof aiEn> = {
     'Tắt một mục là ngừng gửi ngay lập tức. {provider} không giữ lại gì khi đã xong việc, và bạn có thể nhờ chúng mình xoá phụ đề và lá thư chúng mình đã giữ.',
   'ai.data.forgotten':
     'Chúng mình đang xoá những gì đã giữ cho mục này. Mọi thứ sẽ biến mất trong vòng một ngày.',
+
+  'ai.letter.theFarm': 'nông trại',
 
   'ai.fire.captionsLead':
     'Phụ đề hiện ra khi bạn bè trò chuyện, được dịch sang ngôn ngữ của bạn nếu muốn. Giọng của những người bạn đã đồng ý được gửi đến {processor} và trở về thành chữ: không gì được ghi âm hay lưu lại, và không ai được báo.',

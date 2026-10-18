@@ -1,13 +1,21 @@
-import { type EventKind, isTombstone, type Lang, MessagePayload } from '@kithfield/contracts';
+import {
+  EditPayload,
+  type EventKind,
+  isTombstone,
+  type Lang,
+  MessagePayload,
+} from '@kithfield/contracts';
 
 import type { Envelope } from './farm-reads';
+import { checkLetter, type WrittenLetter } from './letter-rules';
 import { type AiBinding, type ChatMessage, write } from './models';
 
 /*
  * The Sunday letter's words. The text model sees only what friends who said yes to `recap` wrote
- * that week and the kinds of care they gave, with every person (and the farm) as a placeholder, so
- * no name leaves. It never sees a count. What it writes is checked before it is kept: no numbers,
- * no counting or ranking words, no line lifted from a message, no name it wasn't given.
+ * that week (as last edited, never what they forwarded) and the kinds of care they gave, with every
+ * person and the farm as a placeholder, so no name is sent. It never sees a count. Names reach the
+ * letter only through those placeholders, filled in here; what the model writes is checked before
+ * it is kept (`letter-rules.ts`).
  */
 
 /** Kinds of care a letter may name, in the words the model is given. Never how many. */
@@ -41,47 +49,78 @@ const WORDS_BUDGET = 6000;
 
 export type LetterPerson = { person: string; name: string; tag: string; care: string[] };
 export type WeekFacts = {
-  farmName: string;
+  /** Null for a farm with no name: the letter says "the farm". */
+  farmName: string | null;
   people: LetterPerson[];
   messages: { tag: string; text: string }[];
+  /** Every member's and former member's name, which a letter may show only through a placeholder. */
+  names: string[];
 };
 
+export type WeekPeople = {
+  /** Members who said yes to `recap`, longest-standing first. */
+  consenting: readonly string[];
+  /** Names of the consenting members. */
+  names: ReadonlyMap<string, string>;
+  /** Every name on the farm, now or before, whoever said yes. */
+  everyName: readonly string[];
+};
+
+/** The latest text of each message edited by its author, from every event read. */
+function latestEdits(
+  events: readonly Envelope[],
+): Map<number, { actor: string | null; text: string }> {
+  const edits = new Map<number, { actor: string | null; text: string }>();
+  for (const event of events) {
+    if (event.kind !== 'edit' || isTombstone(event.payload)) continue;
+    const edit = EditPayload.safeParse(event.payload);
+    if (edit.success) edits.set(edit.data.target, { actor: event.actor, text: edit.data.text });
+  }
+  return edits;
+}
+
 /**
- * What the letter is written from: the people who said yes and tended this week, the kinds of
- * care each gave, and their messages. Unsent and removed things are left out.
+ * What the letter is written from: the people who said yes and tended in the week `[from, to]`,
+ * the kinds of care each gave, and their messages as last edited. Unsent, removed and forwarded
+ * things are left out. `events` may run past `to`, so later edits are applied too.
  */
 export function weekFacts(
   events: readonly Envelope[],
-  consenting: readonly string[],
-  names: ReadonlyMap<string, string>,
-  farmName: string,
+  week: { from: string; to: string },
+  people: WeekPeople,
+  farmName: string | null,
 ): WeekFacts {
-  const allowed = new Set(consenting);
+  const allowed = new Set(people.consenting);
+  const edits = latestEdits(events);
   const care = new Map<string, Set<string>>();
   const messages: { person: string; text: string }[] = [];
   for (const event of events) {
     const actor = event.actor;
-    if (actor === null || !allowed.has(actor) || !names.has(actor)) continue;
+    if (actor === null || !allowed.has(actor) || !people.names.has(actor)) continue;
+    if (event.day === undefined || event.day < week.from || event.day > week.to) continue;
     if (isTombstone(event.payload)) continue;
     const word = CARE_WORDS[event.kind as EventKind];
     if (word === undefined) continue;
+    if (event.kind === 'message') {
+      const parsed = MessagePayload.safeParse(event.payload);
+      // Forwarded words are someone else's, who never said yes here.
+      if (!parsed.success || parsed.data.forwardedFrom !== undefined) continue;
+      const edit = edits.get(event.seq);
+      messages.push({ person: actor, text: edit?.actor === actor ? edit.text : parsed.data.text });
+    }
     const kinds = care.get(actor) ?? new Set<string>();
     kinds.add(word);
     care.set(actor, kinds);
-    if (event.kind === 'message') {
-      const parsed = MessagePayload.safeParse(event.payload);
-      if (parsed.success) messages.push({ person: actor, text: parsed.data.text });
-    }
   }
-  const people: LetterPerson[] = consenting
+  const tended: LetterPerson[] = people.consenting
     .filter((p) => care.has(p))
     .map((person, i) => ({
       person,
-      name: names.get(person) ?? '',
+      name: people.names.get(person) ?? '',
       tag: `{p${i + 1}}`,
       care: [...(care.get(person) ?? [])],
     }));
-  const tagOf = new Map(people.map((p) => [p.person, p.tag]));
+  const tagOf = new Map(tended.map((p) => [p.person, p.tag]));
   const chosen: { tag: string; text: string }[] = [];
   let budget = WORDS_BUDGET;
   for (const m of [...messages].reverse()) {
@@ -91,10 +130,21 @@ export function weekFacts(
     budget -= text.length;
     chosen.push({ tag, text });
   }
-  return { farmName, people, messages: chosen.reverse() };
+  return {
+    farmName,
+    people: tended,
+    messages: chosen.reverse(),
+    names: [...new Set(people.everyName)],
+  };
 }
 
 const LANGUAGE: Record<Lang, string> = { en: 'English', vi: 'Vietnamese' };
+
+/** Words the model is asked to leave out, beyond the rules; the checks refuse them anyway. */
+const AVOID: Record<Lang, string> = {
+  en: 'Avoid the words one, both, first, best, daily and every day.',
+  vi: 'Avoid the words một, hai, năm, nhất, đầu tiên, mỗi ngày and hằng ngày.',
+};
 
 /** The prompt: the house rules first, then the week as data. */
 export function letterPrompt(facts: WeekFacts, lang: Lang): ChatMessage[] {
@@ -104,8 +154,9 @@ export function letterPrompt(facts: WeekFacts, lang: Lang): ChatMessage[] {
     'The title is a warm headline of at most eight words about the week on {farm}.',
     'The body is one or two short sentences, under 300 characters, about what friends did together this week.',
     'Refer to the farm only as {farm} and to people only by the placeholders given, exactly as written, such as {p1}.',
-    'Never use digits or number words. Never count, total, compare or rank anything, and never say who did the most or least.',
-    'Never mention streaks, missed days, or anyone being quiet or absent.',
+    'Never use digits or number words. Never count, total, compare or rank anything, and never say who did the most, least, first or best.',
+    'Never mention streaks, days in a row, missed days, or anyone being quiet or absent.',
+    AVOID[lang],
     'Never quote or repeat anyone’s messages: describe what the week was about in your own gentle words.',
     'Keep private things private: nothing about health, money, love lives or arguments.',
   ].join('\n');
@@ -118,77 +169,6 @@ export function letterPrompt(facts: WeekFacts, lang: Lang): ChatMessage[] {
     { role: 'system', content: rules },
     { role: 'user', content: JSON.stringify(week) },
   ];
-}
-
-/**
- * Counting, ranking and streak words a letter must not use (house rules), per language. Vietnamese
- * number words that are everyday words too (chín is also ripe, ba also dad, hai in cả hai is both)
- * are left to the digit check and the prompt.
- */
-const NO_COUNTS: Record<Lang, RegExp> = {
-  en: /(?<![\p{L}\p{M}])(once|twice|thrice|times|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|dozens?|hundreds?|most|least|top|ranked|ranking|winner|champion|streaks?|record|more than|fewer than|less than|every single|count(ed|ing|s)?|tally)(?![\p{L}\p{M}])/iu,
-  vi: /(?<![\p{L}\p{M}])(lần|bốn|mười|chục|trăm|nhiều nhất|ít nhất|đứng đầu|xếp hạng|hạng|vô địch|kỷ lục|chuỗi|đếm|tổng cộng)(?![\p{L}\p{M}])/iu,
-};
-
-const DIGIT = /\p{Nd}/u;
-const PLACEHOLDER = /\{[^{}]*\}/g;
-
-/** Lowercase words, without punctuation, for spotting a line lifted from a message. */
-const wordsOf = (text: string): string[] =>
-  text
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-    .split(/\s+/)
-    .filter((w) => w !== '');
-
-/** Runs of this many words in a row from a message may not appear in the letter. */
-const LIFTED_RUN = 5;
-
-function liftsFrom(letter: string, messages: readonly { text: string }[]): boolean {
-  const said = ` ${wordsOf(letter).join(' ')} `;
-  for (const m of messages) {
-    const words = wordsOf(m.text);
-    for (let i = 0; i + LIFTED_RUN <= words.length; i += 1) {
-      if (said.includes(` ${words.slice(i, i + LIFTED_RUN).join(' ')} `)) return true;
-    }
-  }
-  return false;
-}
-
-export type WrittenLetter = { lang: Lang; title: string; body: string };
-
-/**
- * Checks what the model wrote and fills in the names; null when it breaks a rule, so it is
- * written again.
- */
-export function checkLetter(raw: string, facts: WeekFacts, lang: Lang): WrittenLetter | null {
-  // The object may come pretty-printed or fenced; a placeholder's brace is never followed by a quote.
-  const start = raw.search(/\{\s*"/);
-  const end = raw.lastIndexOf('}');
-  if (start < 0 || end <= start) return null;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw.slice(start, end + 1));
-  } catch {
-    return null;
-  }
-  const { title, body } = (parsed ?? {}) as { title?: unknown; body?: unknown };
-  if (typeof title !== 'string' || typeof body !== 'string') return null;
-  if (title.trim() === '' || body.trim() === '') return null;
-  const names = new Map<string, string>([
-    ['{farm}', facts.farmName],
-    ...facts.people.map((p) => [p.tag, p.name] as const),
-  ]);
-  for (const text of [title, body]) {
-    const words = text.normalize('NFC').replace(PLACEHOLDER, ' ');
-    if (DIGIT.test(words) || NO_COUNTS[lang].test(words)) return null;
-    if ((text.match(PLACEHOLDER) ?? []).some((tag) => !names.has(tag))) return null;
-    if (liftsFrom(text, facts.messages)) return null;
-  }
-  const fill = (text: string) => text.replace(PLACEHOLDER, (tag) => names.get(tag) ?? tag).trim();
-  const letter = { lang, title: fill(title), body: fill(body) };
-  if (letter.title.length > 80 || letter.body.length > 1200) return null;
-  return letter;
 }
 
 /** Tries this many times for a letter that keeps the rules before giving up for now. */
