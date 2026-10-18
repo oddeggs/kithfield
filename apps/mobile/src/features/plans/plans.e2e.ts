@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Phone } from '../../../e2e/person';
 import { startLocalApi, type LocalApi } from '../../../e2e/wrangler';
 import { plantPayload } from './draft';
+import { memoryPlantedStore, plantAndJoin, settlePlanted } from './planted';
 import { bedKindOf, leadingOptions, planDay, stageOf } from './plan-status';
 
 /*
@@ -34,6 +35,9 @@ const critter = (species: string) => ({
 let api: LocalApi;
 let bea: Phone;
 let pip: Phone;
+let fig: Phone;
+let otis: Phone;
+const planted = memoryPlantedStore();
 let farm = '';
 let seq = 0;
 let today = '';
@@ -63,11 +67,18 @@ beforeAll(async () => {
   api = await startLocalApi(PORT, TRANSCRIPT);
   bea = new Phone('bea', api.base);
   pip = new Phone('pip', api.base);
+  fig = new Phone('fig', api.base);
+  otis = new Phone('otis', api.base);
 }, 120_000);
 
 afterAll(() => {
-  bea?.kill();
-  pip?.kill();
+  for (const phone of [bea, pip, fig, otis]) {
+    try {
+      phone?.kill();
+    } catch {
+      // Never launched.
+    }
+  }
   api?.stop();
   console.log(`transcript: ${TRANSCRIPT}`);
 });
@@ -110,11 +121,17 @@ describe('a plan between two friends', () => {
       place: 'Willow bend, Hollow Creek',
       yeses: 'couple',
     });
-    expect((await bea.client.send(farm, 'seed_planted', payload)).status).toBe('queued');
+    const sent = await plantAndJoin(bea.client, planted, farm, bea.person, payload);
+    expect(sent.status).toBe('queued');
     await until('the seed is planted', settled(bea));
     const seed = (await confirmed(bea)).seeds.find((s) => s.title === 'Picnic by the river');
     if (!seed) throw new Error('no seed');
     seq = seed.seq;
+    // The planter's own yes follows once the farm has numbered the plan.
+    await until('bea said yes', async () => (await settlePlanted(bea.client, planted, bea.person)) === 0);
+    await until('bea is in', async () =>
+      ((await seedOn(bea))?.rsvps ?? []).some((r) => r.person === bea.person && r.answer === 'in'),
+    );
     await until('pip has the seed', async () => (await seedOn(pip)) !== undefined);
     const view = farmView(await confirmed(pip), Date.now());
     const plan = view.plans.find((p) => p.seed.seq === seq);
@@ -128,7 +145,6 @@ describe('a plan between two friends', () => {
     await pip.client.send(farm, 'vote', { seed: seq, option: 1, on: true });
     await pip.client.send(farm, 'vote', { seed: seq, option: 1, on: false });
     await pip.client.send(farm, 'vote', { seed: seq, option: 0, on: true });
-    await bea.client.send(farm, 'rsvp', { seed: seq, answer: 'in' });
     await pip.client.send(farm, 'rsvp', { seed: seq, answer: 'in' });
     await until('bea settled', settled(bea));
     await until('pip settled', settled(pip));
@@ -161,19 +177,53 @@ describe('a plan between two friends', () => {
     await until('pip wears the hat', async () => (await seedOn(pip))?.hat === pip.person);
   });
 
-  it('checks both in at the fire: alone it grows nothing, together it grows', async () => {
-    const before = await confirmed(bea);
-    await bea.client.send(farm, 'checkin', { seed: seq });
-    await until('bea is here', settled(bea));
-    await until('pip sees bea', async () => (await seedOn(pip))?.checkins.length === 1);
-    const alone = await confirmed(bea);
-    expect(alone.plants).toEqual(before.plants);
+  it('checks two friends in at the fire: alone it grows nothing, together it grows', async () => {
+    // Two friends who haven't tended the farm today, so the hangout's dew isn't capped.
+    for (const [phone, species] of [
+      [fig, 'frog'],
+      [otis, 'owl'],
+    ] as const) {
+      const me = await phone.session.ensure();
+      api.sql(
+        `UPDATE people SET display_name = '${phone.name}', critter = '${JSON.stringify(critter(species))}' WHERE id = '${me.person}'`,
+      );
+      await phone.launch();
+      const invite = await bea.call<{ code: string }>('POST', `/v1/farms/${farm}/invites`, {
+        expiresAt: null,
+      });
+      await phone.call('POST', `/v1/invites/${invite.code}/join`, {
+        name: phone.name,
+        critter: critter(species),
+      });
+      phone.client.hold(farm);
+      await until(`${phone.name} live`, () => phone.client.link(farm).status === 'live');
+    }
+    const gatheringsDew = async (phone: Phone) => {
+      const state = await confirmed(phone);
+      const plant = farmView(state, Date.now()).plants.find((p) => p.family === 'gatherings');
+      return state.plants.find((p) => p.plant === plant?.plant)?.dew ?? 0;
+    };
+    // Arriving can bring shared rain (three friends opening the farm at once): let it land first.
+    await new Promise((r) => setTimeout(r, 500));
+    await until('everyone at the same seq', async () => {
+      const seqs = await Promise.all([bea, pip, fig, otis].map(async (p) => (await state(p)).lastSeq));
+      return seqs.every((s) => s === seqs[0]);
+    });
+    const before = await gatheringsDew(bea);
 
-    await pip.client.send(farm, 'checkin', { seed: seq });
-    await until('pip is here', settled(pip));
+    await fig.client.send(farm, 'checkin', { seed: seq });
+    await until('fig is here', settled(fig));
+    await until('bea sees fig', async () => (await seedOn(bea))?.checkins.length === 1);
+    expect(await gatheringsDew(bea)).toBe(before);
+
+    await otis.client.send(farm, 'checkin', { seed: seq });
+    await until('otis is here', settled(otis));
+    await until('bea sees otis', async () => (await seedOn(bea))?.checkins.length === 2);
     await until('both at the same seq', level);
+    // A hangout of two gives each of them three (less whatever they already gave today).
+    expect(await gatheringsDew(bea)).toBeGreaterThan(before);
     const [b, p] = await Promise.all([confirmed(bea), confirmed(pip)]);
-    expect((await seedOn(bea))?.checkins).toEqual([bea.person, pip.person]);
+    expect((await seedOn(bea))?.checkins).toEqual([fig.person, otis.person]);
     expect(b.seeds).toEqual(p.seeds);
     expect(b.plants).toEqual(p.plants);
     expect(b.familyTendedAt).toEqual(p.familyTendedAt);
@@ -196,7 +246,7 @@ describe('a plan between two friends', () => {
 
   it('keeps a remember-me seed out of the farm', async () => {
     const head = (await state(bea)).lastSeq;
-    const made = await bea.call<{ id: string }>('POST', '/v1/remember', {
+    const made = await bea.api.remember({
       farm,
       about: pip.person,
       title: "pip's interview, Thursday",
