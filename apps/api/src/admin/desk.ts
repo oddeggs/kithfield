@@ -13,7 +13,7 @@ import { blockedByCount } from './blocking';
 import type { Moderator } from './moderator';
 import { farmNameOf, filingsOf, loadReport, personOf, toReport } from './store';
 
-/* The queue (urgent first, then oldest first) and a single report, claimed when opened. */
+/* The queue (urgent first, then oldest first), a single report, and claiming one. */
 
 const PAGE = 100;
 const DAY_MS = 24 * 60 * 60_000;
@@ -79,8 +79,34 @@ export async function queuePage(db: D1Database, query: QueueQuery): Promise<Queu
 }
 
 /**
- * `GET /admin/v1/reports/:id`: opening a report claims it (when nobody has) and logs the look at
- * its context. Null when there is no such report.
+ * Claims an open report nobody holds. `taken` when someone else holds it or it is closed; the
+ * claim is in the audit log.
+ */
+export async function claimReport(
+  env: Bindings,
+  moderator: Moderator,
+  id: string,
+  now: number,
+): Promise<'claimed' | 'mine' | 'taken' | 'missing'> {
+  const report = await loadReport(env.DB, id);
+  if (report === null) return 'missing';
+  const [claim] = await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE reports SET claimed_by = ?, status = CASE WHEN status = 'open' THEN 'claimed' ELSE status END
+       WHERE id = ? AND closed_at IS NULL AND claimed_by IS NULL`,
+    ).bind(moderator.id, id),
+  ]);
+  if (claim?.meta.changes === 1) {
+    await auditStatement(env.DB, { at: now, by: moderator.id, what: 'claimed', item: id }).run();
+    return 'claimed';
+  }
+  const after = await loadReport(env.DB, id);
+  return after?.claimedBy === moderator.id && after.closedAt === null ? 'mine' : 'taken';
+}
+
+/**
+ * `GET /admin/v1/reports/:id`: the report, and the look at its context logged. Reading never
+ * claims it: that is `POST …/claim`, or the first decision. Null when there is no such report.
  */
 export async function openReport(
   env: Bindings,
@@ -88,22 +114,14 @@ export async function openReport(
   id: string,
   now: number,
 ): Promise<ReportDetail | null> {
-  let report = await loadReport(env.DB, id);
+  const report = await loadReport(env.DB, id);
   if (report === null) return null;
-  const claiming =
-    report.status === 'open' || (report.status === 'escalated' && report.claimedBy === null);
-  await env.DB.batch([
-    ...(claiming
-      ? [
-          env.DB.prepare(
-            "UPDATE reports SET status = CASE WHEN status = 'open' THEN 'claimed' ELSE status END, claimed_by = ? WHERE id = ?",
-          ).bind(moderator.id, report.id),
-          auditStatement(env.DB, { at: now, by: moderator.id, what: 'claimed', item: report.id }),
-        ]
-      : []),
-    auditStatement(env.DB, { at: now, by: moderator.id, what: 'opened_context', item: report.id }),
-  ]);
-  if (claiming) report = (await loadReport(env.DB, id)) ?? report;
+  await auditStatement(env.DB, {
+    at: now,
+    by: moderator.id,
+    what: 'opened_context',
+    item: report.id,
+  }).run();
 
   const [filings, reported, farmName, earlier, blockedBy] = await Promise.all([
     filingsOf(env.DB, report.id),

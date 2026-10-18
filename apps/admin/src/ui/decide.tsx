@@ -114,6 +114,7 @@ export function DecideForm(props: { detail: ReportDetail; name: string; senior: 
       method="post"
       action={`/reports/${detail.report}/decide`}
       data-decide
+      data-claim={`/admin/v1/reports/${detail.report}/claim`}
     >
       <span class="eyebrow">{tr('moderation.decide.title')}</span>
       {opts.map((o) => (

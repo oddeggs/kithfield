@@ -44,7 +44,7 @@ describe('the audit log', () => {
     const { id } = await handled();
     const page = AuditPage.parse((await desk(access, ANA, 'GET', '/audit')).body);
     const mine = page.entries.filter((e) => e.item === id);
-    expect(mine.map((e) => e.what)).toEqual(['remove_warn', 'opened_context', 'claimed']);
+    expect(mine.map((e) => e.what)).toEqual(['remove_warn', 'claimed', 'opened_context']);
     expect(mine[0]).toMatchObject({
       by: 'ana',
       byName: 'ana',

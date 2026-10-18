@@ -222,32 +222,64 @@ describe('reporting from the app', () => {
     expect(statuses.at(-1)).toBe(429);
   });
 
-  it('claims a report when it is opened, and logs every look', async () => {
+  it('logs every look, and claims a report only when asked to (or on its first decision)', async () => {
     const lot = await thursdayLot();
-    const { report: id } = ReportResponse.parse(
-      (
-        await report(lot.june, {
-          farm: lot.farm,
-          about: { about: 'event', seq: lot.unkind },
-          reason: 'unkind',
-          alsoBlock: false,
-        })
-      ).body,
-    );
+    const filed = async () =>
+      ReportResponse.parse(
+        (
+          await report(lot.june, {
+            farm: lot.farm,
+            about: { about: 'event', seq: lot.unkind },
+            reason: 'unkind',
+            alsoBlock: false,
+          })
+        ).body,
+      ).report;
+    const id = await filed();
     await desk(access, ANA, 'GET', `/reports/${id}`);
+    expect((await queue()).rows.find((r) => r.report === id)?.claimedBy).toBeNull();
+    expect((await desk(access, ANA, 'POST', `/reports/${id}/claim`, {})).status).toBe(204);
+    expect((await desk(access, ANA, 'POST', `/reports/${id}/claim`, {})).status).toBe(204);
+    expect((await desk(access, KOFI, 'POST', `/reports/${id}/claim`, {})).status).toBe(409);
     await desk(access, KOFI, 'GET', `/reports/${id}`);
-    const row = (await queue()).rows.find((r) => r.report === id);
-    expect(row?.claimedBy).toBe('ana');
+    expect((await queue()).rows.find((r) => r.report === id)?.claimedBy).toBe('ana');
     const { results } = await env.DB.prepare(
       'SELECT moderator_id, what FROM audit_log WHERE item = ? ORDER BY at, rowid',
     )
       .bind(id)
       .all();
     expect(results).toEqual([
-      { moderator_id: 'ana', what: 'claimed' },
       { moderator_id: 'ana', what: 'opened_context' },
+      { moderator_id: 'ana', what: 'claimed' },
       { moderator_id: 'kofi', what: 'opened_context' },
     ]);
+    // A decision on an unclaimed report claims it for whoever made it.
+    const other = await thursdayLot();
+    const second = ReportResponse.parse(
+      (
+        await report(other.june, {
+          farm: other.farm,
+          about: { about: 'event', seq: other.unkind },
+          reason: 'unkind',
+          alsoBlock: false,
+        })
+      ).body,
+    ).report;
+    await desk(access, KOFI, 'POST', `/reports/${second}/actions`, {
+      action: 'escalate_urgent',
+      rule: null,
+      note: 'Needs a closer look',
+      tellReporters: false,
+      tellMember: false,
+    });
+    const claim = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM audit_log WHERE item = ? AND what = 'claimed'",
+    )
+      .bind(second)
+      .first<{ n: number }>();
+    expect(claim?.n).toBe(1);
+    expect((await desk(access, ANA, 'POST', '/reports/R-NOPE/claim', {})).status).toBe(404);
+    void filed;
     expect((await desk(access, ANA, 'GET', '/reports/R-NOPE')).status).toBe(404);
   });
 });

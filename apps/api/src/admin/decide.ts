@@ -13,6 +13,7 @@ import { mintId, ruleFromDb, ruleToDb } from './ids';
 import type { Moderator } from './moderator';
 import { leaveNote } from './notes';
 import { farmNameOf, filingsOf, loadReport, type ReportRow } from './store';
+import { claimReport } from './desk';
 import { dueAfter } from './signals';
 
 /*
@@ -193,6 +194,10 @@ export async function decide(
   if (report === null) return { ok: false, status: 404, code: 'not_found' };
   if (SENIOR_ONLY.has(req.action) && moderator.role !== 'senior') {
     return { ok: false, status: 403, code: 'forbidden' };
+  }
+  // A decision on a report nobody holds claims it for whoever made it.
+  if (report.claimedBy === null && report.closedAt === null) {
+    await claimReport(env, moderator, report.id, now);
   }
   // The verdict on the item claims the close first, so two at the same moment can't both land,
   // and none lands while a removal from Kithfield waits for its second moderator. A closed report

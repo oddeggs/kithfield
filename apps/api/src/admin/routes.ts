@@ -17,7 +17,7 @@ import { requireSession, type SessionEnv } from '../auth';
 import { appealPage, decideAppeal, readAppeal, takeAppeal } from './appeals';
 import { auditCsv, auditPage, quarterOf, quarterRange } from './audit';
 import { approve, decide } from './decide';
-import { openReport, queuePage } from './desk';
+import { claimReport, openReport, queuePage } from './desk';
 import { takeReport } from './intake';
 import { memberRecord } from './members';
 import { deny, type ModeratorEnv, requireModerator } from './moderator';
@@ -122,6 +122,14 @@ export function adminRoutes(): Hono<ModeratorEnv> {
     const id = idParam(c);
     const detail = id === null ? null : await openReport(c.env, c.get('moderator'), id, Date.now());
     return detail === null ? deny(c, 404, 'not_found') : c.json(detail);
+  });
+
+  app.post('/reports/:id/claim', async (c) => {
+    const id = idParam(c);
+    const out =
+      id === null ? 'missing' : await claimReport(c.env, c.get('moderator'), id, Date.now());
+    if (out === 'missing') return deny(c, 404, 'not_found');
+    return out === 'taken' ? deny(c, 409, 'conflict') : c.body(null, 204);
   });
 
   app.post('/reports/:id/actions', async (c) => {

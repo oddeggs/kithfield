@@ -30,6 +30,10 @@ export const clientScript = `
   });
 
   const form = document.querySelector('[data-decide]');
+  // Opening a report to decide on it claims it, so nobody else picks it up meanwhile.
+  if (form && form.dataset.claim) {
+    fetch(form.dataset.claim, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).catch(() => {});
+  }
   if (form) {
     const apply = form.querySelector('[data-apply]');
     const note = form.querySelector('[data-apply-note]');
