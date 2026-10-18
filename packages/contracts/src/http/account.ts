@@ -20,7 +20,10 @@ export type RtTokenResponse = z.infer<typeof RtTokenResponse>;
 export const Platform = z.enum(['ios', 'android', 'web', 'macos', 'windows']);
 export type Platform = z.infer<typeof Platform>;
 
-/** `PUT /v1/devices/:deviceId`: register a device and its push token with the person's cottage. */
+/**
+ * `PUT /v1/devices/:deviceId`: register a device and its push token with the person's cottage. The
+ * device id is made by the app on first launch (a UUID kept in the Keychain), not by the server.
+ */
 export const RegisterDeviceRequest = z.object({
   platform: Platform,
   name: text(64),

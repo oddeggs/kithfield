@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { peerMatches, VisitPeer } from '../cottage';
 import { AnyEventKind, EventEnvelope, EventKindSchema } from '../events';
 import { GateGesture } from '../payloads/care';
 import { SeasonRef } from '../payloads/farm';
@@ -35,8 +36,9 @@ const queryInt = z
   .transform(Number);
 
 /**
- * `GET /v1/farms/:id/events?after=&before=&limit=&kinds=`: paging history. `kinds` is a
- * comma-separated filter, such as `media,link` for shared media.
+ * `GET /v1/farms/:id/events?after=&before=&limit=&kinds=`: paging history. With `after`, the page
+ * starts just after it; with `before`, it ends just before it; with neither, it is the newest page.
+ * `kinds` is a comma-separated filter, such as `media,link` for shared media.
  */
 export const EventsQuery = z
   .object({
@@ -45,7 +47,7 @@ export const EventsQuery = z
     limit: queryInt.pipe(z.int().min(1).max(LIMITS.eventsBatch)).default(50),
     kinds: z
       .string()
-      .regex(/^[a-z_]+(,[a-z_]+)*$/)
+      .regex(/^[a-z][a-z0-9_]*(,[a-z][a-z0-9_]*)*$/)
       .transform((s) => s.split(','))
       .pipe(z.array(EventKindSchema).min(1).max(40))
       .optional(),
@@ -105,18 +107,23 @@ export type OpenVisitRequest = z.infer<typeof OpenVisitRequest>;
 export const OpenVisitResponse = z.object({ farm: FarmId });
 export type OpenVisitResponse = z.infer<typeof OpenVisitResponse>;
 
-/** `GET /v1/farms`: the valley switcher. Visits have no name. */
+/** `GET /v1/farms`: the valley switcher. A visit has no name; it shows the other person. */
 export const FarmList = z.object({
   farms: z
     .array(
-      z.object({
-        farm: FarmId,
-        kind: FarmKind,
-        name: FarmName.nullable(),
-        land: ArtId,
-        role: Role,
-        joinedAt: EpochMs,
-      }),
+      z
+        .object({
+          farm: FarmId,
+          kind: FarmKind,
+          name: FarmName.nullable(),
+          with: VisitPeer.nullable(),
+          land: ArtId,
+          role: Role,
+          joinedAt: EpochMs,
+        })
+        .refine((r) => peerMatches(r.kind === 'visit', r.name, r.with), {
+          message: 'A visit has a peer and no name; a farm the opposite',
+        }),
     )
     .max(500),
 });
@@ -221,6 +228,8 @@ export type GateRequest = z.infer<typeof GateRequest>;
 export const TradeRequest = z.object({
   opId: OpId,
   from: FarmId,
+  /** The member of the visited farm met at the gate. */
+  with: PersonId,
   give: PlantId.nullable(),
   take: PlantId,
 });

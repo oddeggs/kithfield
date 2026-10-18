@@ -62,6 +62,7 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
             farm,
             kind: 'farm',
             name: 'The Thursday Lot',
+            with: null,
             land: 'meadow',
             role: 'keeper',
             joinedAt: at,
@@ -70,6 +71,7 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
             farm: 'f_visit',
             kind: 'visit',
             name: null,
+            with: { person: 'p_otis', name: 'Otis', critter },
             land: 'porch',
             role: 'critter',
             joinedAt: at,
@@ -77,7 +79,22 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         ],
       },
     ],
-    [{ farms: [{ farm, kind: 'group' }] }],
+    [
+      { farms: [{ farm, kind: 'group' }] },
+      {
+        farms: [
+          {
+            farm,
+            kind: 'visit',
+            name: null,
+            with: null,
+            land: 'porch',
+            role: 'critter',
+            joinedAt: at,
+          },
+        ],
+      },
+    ],
   ],
   CreateInviteRequest: [[{ expiresAt: null }, { expiresAt: at }], [{}]],
   InvitePreview: [
@@ -165,11 +182,12 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
   ],
   TradeRequest: [
     [
-      { opId, from: farm, give: 'lavender', take: 'plum' },
-      { opId, from: farm, give: null, take: 'plum' },
+      { opId, from: farm, with: 'p_kit', give: 'lavender', take: 'plum' },
+      { opId, from: farm, with: 'p_kit', give: null, take: 'plum' },
     ],
     [
-      { opId, from: farm, give: 'lavender' },
+      { opId, from: farm, give: 'lavender', take: 'plum' },
+      { opId, from: farm, with: 'p_kit', give: 'lavender' },
       { opId, give: null, take: 'plum' },
     ],
   ],
@@ -210,6 +228,7 @@ describe('the events paging query', () => {
       { limit: ' 5' },
       { after: '0x10' },
       { kinds: 'media,gossip' },
+      { kinds: 'media,,link' },
       { kinds: '' },
     ]) {
       expect(farms.EventsQuery.safeParse(bad).success, JSON.stringify(bad)).toBe(false);
