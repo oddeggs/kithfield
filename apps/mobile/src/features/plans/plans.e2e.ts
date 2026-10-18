@@ -3,14 +3,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { CreateFarmResponse, FarmState, RememberList } from '@kithfield/contracts';
-import { addDays, farmView } from '@kithfield/farm';
+import { addDays, farmView, leadingOptions, planDay } from '@kithfield/farm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { Phone } from '../../../e2e/person';
 import { startLocalApi, type LocalApi } from '../../../e2e/wrangler';
 import { plantPayload } from './draft';
 import { memoryPlantedStore, plantAndJoin, settlePlanted } from './planted';
-import { bedKindOf, leadingOptions, planDay, stageOf } from './plan-status';
+import { bedKindOf, stageOf } from './plan-status';
 
 /*
  * A plan between two friends against `wrangler dev`: planted, voted on, answered, sprouted and

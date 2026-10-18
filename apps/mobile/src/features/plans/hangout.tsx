@@ -1,4 +1,5 @@
 import type { FarmId, Seq } from '@kithfield/contracts';
+import { isHangoutDay, planDay } from '@kithfield/farm';
 import { StatusBar } from 'expo-status-bar';
 import { useRef, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
@@ -17,7 +18,7 @@ import { openDirections } from './directions';
 import { Arriving, Campfire } from './hangout-art';
 import { personOn } from './people';
 import { fireside } from './plan-look';
-import { canCheckIn, planDay, planTime } from './plan-status';
+import { planTime } from './plan-status';
 import { hangoutPhoto } from './photo-seam';
 import { useMe, usePlan, usePlanRejections, usePlanSend } from './use-plans';
 
@@ -82,7 +83,7 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
 
   const seed = plan?.seed ?? null;
   const today = here?.view.today ?? null;
-  const onTheDay = !!seed && !!today && canCheckIn(seed, today);
+  const onTheDay = !!seed && !!today && isHangoutDay(seed, today);
   const people = seed && here ? seed.checkins.map((p) => personOn(here.state, p, me, t)) : [];
   const imHere = people.some((p) => p.you);
   const latest = [...people].reverse().find((p) => !p.you);

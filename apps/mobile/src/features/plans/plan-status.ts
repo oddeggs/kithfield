@@ -1,9 +1,11 @@
 import type { FarmId, LocalDate, PersonId, SeedState, Yeses } from '@kithfield/contracts';
-import { addDays, type PlanConditions } from '@kithfield/farm';
+import { addDays, planDay, type PlanConditions } from '@kithfield/farm';
 
 /*
- * Where a plan stands, read from the shared farm state: which day it is on, what it still needs
- * and where it sits in the seed bed. Nothing here is stored; it is all worked out from the seed.
+ * Where a plan stands, read from the shared farm state: what it still needs and where it sits in
+ * the seed bed. Nothing here is stored; it is all worked out from the seed. The plan's day, the
+ * leading day options and whether today is its hangout day are the farm rules' own
+ * (`planDay`, `leadingOptions`, `isHangoutDay` in `@kithfield/farm`).
  */
 
 /** A seed's art stage: one per condition met, and full bloom once it has sprouted. */
@@ -15,31 +17,9 @@ export function stageOf(seed: SeedState, conditions: PlanConditions): SeedStage 
   return Math.min(met, 3) as SeedStage;
 }
 
-/** The day options the most people lean on, by index, earliest first. */
-export function leadingOptions(seed: SeedState): number[] {
-  const counts = seed.days.map((_, i) => seed.votes.find((v) => v.option === i)?.people.length ?? 0);
-  const most = Math.max(0, ...counts);
-  if (most === 0) return [];
-  return counts
-    .map((count, i) => ({ count, i }))
-    .filter((c) => c.count === most)
-    .map((c) => c.i);
-}
-
 /** Who leans on a day option. */
 export const votersOf = (seed: SeedState, option: number): readonly PersonId[] =>
   seed.votes.find((v) => v.option === option)?.people ?? [];
-
-/**
- * The plan's day, once it has one: its only day, or the fullest bud (the earliest of a tie) once
- * a settling day is set. Null while friends are still picking with no settling day.
- */
-export function planDay(seed: SeedState): LocalDate | null {
-  if (seed.days.length === 1) return seed.days[0]?.date ?? null;
-  if (seed.settleOn === null) return null;
-  const leading = leadingOptions(seed)[0] ?? 0;
-  return seed.days[leading]?.date ?? null;
-}
 
 /** Friends can still lean on a day: more than one, and the settling day hasn't come. */
 export const stillVoting = (seed: SeedState, today: LocalDate): boolean =>
@@ -127,10 +107,6 @@ export function needsKey(conditions: PlanConditions) {
   if (!conditions.day && !conditions.place) return 'plans.bed.needsBoth' as const;
   return conditions.day ? ('plans.bed.needsPlace' as const) : ('plans.bed.needsDay' as const);
 }
-
-/** "I'm here" is for a sprouted plan's own day: the day it settled on, in the farm's time. */
-export const canCheckIn = (seed: SeedState, today: LocalDate): boolean =>
-  seed.sproutedAt !== null && planDay(seed) === today;
 
 /** Whoever wears the organiser's hat passes it on. */
 export const canPassHat = (seed: SeedState, me: PersonId | null): boolean =>

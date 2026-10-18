@@ -1,5 +1,5 @@
 import type { FarmId, FarmState, LocalDate, PersonId, SeedState } from '@kithfield/contracts';
-import type { PlanView } from '@kithfield/farm';
+import { isHangoutDay, leadingOptions, type PlanView } from '@kithfield/farm';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -16,7 +16,7 @@ import { PlanHeader, useBottomButtonOffset, useFromTop } from './chrome';
 import { personOn, youLast, type PlanPerson } from './people';
 import { ConditionCard, DayChoices, InSoFar, PlaceChoice } from './plan-sections';
 import { usePlanLook } from './plan-look';
-import { canCheckIn, leadingOptions, peopleIn, stageOf, stillVoting, votersOf } from './plan-status';
+import { peopleIn, stageOf, stillVoting, votersOf } from './plan-status';
 import { SeedArt } from './seed-art';
 import { planDetail } from './seed-card';
 import { useMe, usePlan, usePlanRejections, usePlanSend, usePlantedAnswers } from './use-plans';
@@ -232,7 +232,7 @@ export function PlanScreen({ farm, seq }: { readonly farm: FarmId; readonly seq:
     seed.days.map((d) => d.date),
     view.today,
   );
-  const onTheDay = canCheckIn(seed, view.today);
+  const onTheDay = isHangoutDay(seed, view.today);
   const bottom = canSettle || onTheDay;
   const params = { farm, seed: String(seq) };
   return (

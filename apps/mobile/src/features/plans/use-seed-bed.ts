@@ -1,11 +1,11 @@
 import type { FarmId, FarmList, FarmState } from '@kithfield/contracts';
-import { farmView } from '@kithfield/farm';
+import { farmView, planDay } from '@kithfield/farm';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useCottage, useDataClient } from '../../data';
 import { bringUpToDate } from './bed-sync';
-import { bedKindOf, planDay, sortBed, stageOf, stillGrowing, type BedEntry } from './plan-status';
+import { bedKindOf, sortBed, stageOf, stillGrowing, type BedEntry } from './plan-status';
 import { useNow } from './use-plans';
 
 type FarmItem = FarmList['farms'][number];

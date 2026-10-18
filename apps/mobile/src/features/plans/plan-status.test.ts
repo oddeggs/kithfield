@@ -1,16 +1,13 @@
 import { describe, expect, it } from '@jest/globals';
 import type { SeedState } from '@kithfield/contracts';
 import { translator } from '@kithfield/i18n';
-import { planConditions } from '@kithfield/farm';
+import { isHangoutDay, leadingOptions, planConditions, planDay } from '@kithfield/farm';
 
 import { canPlant, draftStage, joinNames, placeSuggestions, plantPayload, titleFrom } from './draft';
 import {
   answerSeenBy,
   bedKindOf,
-  canCheckIn,
   canPassHat,
-  leadingOptions,
-  planDay,
   sortBed,
   stageOf,
   stillGrowing,
@@ -162,15 +159,15 @@ describe('the day of a hangout', () => {
     seed({ place: { name: 'Willow' }, sproutedAt: 1, ...over });
 
   it('takes check-ins on the plan’s day once it has sprouted', () => {
-    expect(canCheckIn(sprouted({ days: [{ date: today }] }), today)).toBe(true);
+    expect(isHangoutDay(sprouted({ days: [{ date: today }] }), today)).toBe(true);
   });
 
   it('refuses them off the day', () => {
-    expect(canCheckIn(sprouted({ days: [{ date: '2026-10-19' }] }), today)).toBe(false);
+    expect(isHangoutDay(sprouted({ days: [{ date: '2026-10-19' }] }), today)).toBe(false);
   });
 
   it('refuses them before the plan has sprouted', () => {
-    expect(canCheckIn(seed({ days: [{ date: today }] }), today)).toBe(false);
+    expect(isHangoutDay(seed({ days: [{ date: today }] }), today)).toBe(false);
   });
 
   it('refuses them on a day friends leaned away from', () => {
@@ -182,8 +179,8 @@ describe('the day of a hangout', () => {
         { option: 1, people: ['b', 'c'] },
       ],
     });
-    expect(canCheckIn(losing, today)).toBe(false);
-    expect(canCheckIn(losing, '2026-10-19')).toBe(true);
+    expect(isHangoutDay(losing, today)).toBe(false);
+    expect(isHangoutDay(losing, '2026-10-19')).toBe(true);
   });
 });
 
