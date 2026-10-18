@@ -22,7 +22,6 @@ import { useKitColors } from '../kit/colors';
 import { IconSegments } from '../kit/icon-segments';
 import { useDesignTop } from '../kit/layout';
 import { KText } from '../kit/text';
-import { useTimeZoneSync } from '../time-zone';
 import { go } from '../go';
 import { useRemote } from '../use-remote';
 import { useBattery, type Battery } from './battery';
@@ -46,7 +45,6 @@ export function YouScreen() {
   const { width } = useWindowDimensions();
   const me = useRemote(() => api.me());
   const farms = useRemote(() => api.farms());
-  useTimeZoneSync(me.data?.settings ?? null);
   useSafetyNoteArrival();
   useFocusEffect(
     useCallback(() => {

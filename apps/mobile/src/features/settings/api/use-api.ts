@@ -23,6 +23,11 @@ const authHeaders = async (): Promise<Record<string, string>> => {
   return bearer ? { authorization: `Bearer ${bearer}` } : {};
 };
 
+/**
+ * The one authenticated request every settings and safety call goes through. When the data layer
+ * offers its own (on its network and session, with the same 401 handling), this is the one place
+ * that changes.
+ */
 function useRequest(): Request {
   const client = useDataClient();
   return useMemo(() => {
