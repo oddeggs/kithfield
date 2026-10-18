@@ -114,25 +114,43 @@ function laterTerms(
 }
 
 /**
+ * Runs between a merge's reads and its batch. Nothing waits here in the service; a test puts
+ * another request's write into this gap to show the batch re-checks what the reads saw.
+ */
+export const mergeGap: { wait: (merge: { from: string; into: string }) => Promise<void> } = {
+  wait: () => Promise.resolve(),
+};
+
+/**
  * An anonymous person signed in as someone who already exists (a second device, or a reinstall).
  * The returning person wins: they keep everything they have, and take from the anonymous person
  * only what they lack (the age check, a later Terms acceptance, a name and critter chosen before
  * signing in). Then the registered merge steps (`merge-steps.ts`) move other tables' rows, and the
- * anonymous person is deleted with their sessions; all in one batch.
+ * anonymous person is deleted with their sessions; all in one batch. The batch's first statement
+ * fails it, rolling back everything, unless the anonymous person is still anonymous then, so a
+ * merge never lands on someone another request has just signed in. Answers whether it landed.
  */
 export async function mergeIntoReturning(
   db: D1Database,
   input: { anonymous: string; returning: string; now: number },
-): Promise<void> {
+): Promise<boolean> {
   const [from, into] = await Promise.all([
     findPerson(db, input.anonymous),
     findPerson(db, input.returning),
   ]);
   if (into === null) throw new Error('the returning person is missing');
-  if (from === null) return;
+  if (!from?.isAnonymous) return false;
   const terms = laterTerms(into, from);
   const merge = { from: input.anonymous, into: input.returning, now: input.now };
-  await db.batch([
+  await mergeGap.wait(merge);
+  const statements = [
+    // `json_extract` of something that isn't JSON raises an error, which aborts the batch.
+    db
+      .prepare(
+        `SELECT CASE WHEN EXISTS (SELECT 1 FROM people WHERE id = ?1 AND is_anonymous = 1)
+         THEN 1 ELSE json_extract('not json', '$') END`,
+      )
+      .bind(input.anonymous),
     db
       .prepare(
         `UPDATE people
@@ -151,7 +169,15 @@ export async function mergeIntoReturning(
       ),
     ...mergeStepStatements(db, merge),
     db.prepare('DELETE FROM people WHERE id = ? AND is_anonymous = 1').bind(input.anonymous),
-  ]);
+  ];
+  try {
+    await db.batch(statements);
+    return true;
+  } catch (error) {
+    const now = await findPerson(db, input.anonymous);
+    if (!now?.isAnonymous) return false;
+    throw error;
+  }
 }
 
 /**

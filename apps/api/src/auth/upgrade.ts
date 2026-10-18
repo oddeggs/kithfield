@@ -130,7 +130,12 @@ async function upgrade(
 
   if (!fresh) {
     const merge = { from: input.anonymous, into: input.signedIn.person, now };
-    await mergeIntoReturning(db, { anonymous: merge.from, returning: merge.into, now });
+    const merged = await mergeIntoReturning(db, {
+      anonymous: merge.from,
+      returning: merge.into,
+      now,
+    });
+    if (!merged) return refuseWith(conflict());
     try {
       await announceMerge(deps.deletionQueue, merge);
     } catch (error) {

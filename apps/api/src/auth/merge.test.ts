@@ -2,7 +2,7 @@ import { env } from 'cloudflare:workers';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { registerMergeStep } from '.';
-import { mergeIntoReturning } from './people';
+import { mergeGap, mergeIntoReturning } from './people';
 import {
   readSignIn,
   sendCode,
@@ -15,6 +15,7 @@ const unregister: (() => void)[] = [];
 
 afterEach(() => {
   vi.restoreAllMocks();
+  mergeGap.wait = () => Promise.resolve();
   for (const undo of unregister.splice(0)) undo();
 });
 
@@ -60,6 +61,39 @@ describe('merging an anonymous person into a returning one', () => {
       into: person.user.id,
       at: expect.any(Number) as number,
     });
+  });
+
+  it('refuses, and changes nothing, when another request upgraded the anonymous person first', async () => {
+    const email = `race.${crypto.randomUUID().slice(0, 8)}@example.com`;
+    const { person, letters } = await returningPerson(email);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const enqueue = env.DELETION_QUEUE.send;
+    const queued = vi
+      .spyOn(env.DELETION_QUEUE, 'send')
+      .mockImplementation((message: unknown) => enqueue(message));
+    const laptop = await signInAnonymously();
+    await env.DB.prepare('UPDATE people SET age_ok = 1 WHERE id = ?').bind(laptop.user.id).run();
+    // Between this sign-in's checks and its merge, another upgrade of the same person lands.
+    mergeGap.wait = async ({ from }) => {
+      await env.DB.prepare('UPDATE people SET is_anonymous = 0 WHERE id = ?').bind(from).run();
+    };
+
+    await sendCode(email, { token: laptop.token });
+    const refused = await signInWithCode(email, letters.codeFor(email), { token: laptop.token });
+
+    expect(refused.status).toBe(409);
+    expect(await refused.json()).toMatchObject({ code: 'conflict' });
+    expect(queued).not.toHaveBeenCalled();
+    const kept = await env.DB.prepare('SELECT is_anonymous FROM people WHERE id = ?')
+      .bind(laptop.user.id)
+      .first();
+    expect(kept).toEqual({ is_anonymous: 0 });
+    const returning = await env.DB.prepare(
+      'SELECT age_ok, (SELECT COUNT(*) FROM sessions WHERE person_id = ?1) AS sessions FROM people WHERE id = ?1',
+    )
+      .bind(person.user.id)
+      .first();
+    expect(returning).toEqual({ age_ok: null, sessions: 1 });
   });
 
   it('changes nothing when one step fails', async () => {
