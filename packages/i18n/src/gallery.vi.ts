@@ -73,6 +73,9 @@ export const galleryVi: ViCatalogue<typeof galleryEn> = {
   'gallery.sheet.title': 'Tiêu đề bảng',
   'gallery.sheet.body': 'Bảng chuẩn trên nền tranh: bo góc 30, có tay nắm, lề hai bên 18.',
   'gallery.sheet.open': 'Mở một bảng',
+  'gallery.nativeSheet.open': 'Mở một bảng gốc',
+  'gallery.nativeSheet.tap': 'Chạm vào trong bảng',
+  'gallery.nativeSheet.tapped': 'Bảng đã nhận cú chạm.',
   'gallery.tabBar.note':
     'Thanh thẻ kính nổi, cao 64. Điều mới là một chấm mật ong, không bao giờ là con số.',
   'gallery.tray.dewdrop': 'Đã thấy, đã mỉm cười.',

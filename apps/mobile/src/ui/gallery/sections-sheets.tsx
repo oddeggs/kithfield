@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -53,6 +54,12 @@ export function SheetsSection({ onOpenSheet }: { readonly onOpenSheet: () => voi
         </Sheet>
       </View>
       <Button label={t('gallery.sheet.open')} kind="secondary" size="small" onPress={onOpenSheet} />
+      <Button
+        label={t('gallery.nativeSheet.open')}
+        kind="secondary"
+        size="small"
+        onPress={() => router.push('/sheet-lab')}
+      />
       <TabBarFrame active="farm" />
       <ThemeScope appearance="night">
         <TabBarFrame active="chat" dot="chat" />

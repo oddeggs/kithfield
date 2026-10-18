@@ -78,6 +78,9 @@ export const galleryEn = {
   'gallery.sheet.title': 'Sheet title',
   'gallery.sheet.body': 'Standard sheet over art: 30 radius, grabber, 18 side padding.',
   'gallery.sheet.open': 'Open a sheet',
+  'gallery.nativeSheet.open': 'Open a native sheet',
+  'gallery.nativeSheet.tap': 'Tap inside the sheet',
+  'gallery.nativeSheet.tapped': 'The sheet took the tap.',
   'gallery.tabBar.note':
     'Floating glass tab bar, 64 tall. New activity is a honey dot, never a number.',
   'gallery.tray.dewdrop': 'Saw this, smiled.',
