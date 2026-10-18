@@ -9,11 +9,20 @@ function isBlank(entry: Entry): boolean {
   return (typeof entry === 'string' ? entry : entry.other).trim() === '';
 }
 
-/** The entry for a key in a language, falling back to English when the language lacks it. */
-function lookup(language: Language, key: string): { entry: Entry; language: Language } | null {
-  const entry = (catalogues[language] as Readonly<Record<string, Entry | undefined>>)[key];
+type LooseCatalogues = { readonly [L in Language]: Readonly<Record<string, Entry | undefined>> };
+
+/**
+ * The entry for a key in a language and the language it is written in: the language's own when it
+ * has a non-empty one, otherwise English's, otherwise null.
+ */
+export function resolveEntry(
+  from: LooseCatalogues,
+  language: Language,
+  key: string,
+): { entry: Entry; language: Language } | null {
+  const entry = from[language][key];
   if (entry !== undefined && !isBlank(entry)) return { entry, language };
-  return language === defaultLanguage ? null : lookup(defaultLanguage, key);
+  return language === defaultLanguage ? null : resolveEntry(from, defaultLanguage, key);
 }
 
 /**
@@ -26,7 +35,7 @@ export function t<Key extends StringKey>(
   key: Key,
   ...[params]: ParamsArgument<Key>
 ): string {
-  const found = lookup(language, key);
+  const found = resolveEntry(catalogues, language, key);
   if (found === null) return key;
   return formatEntry(found.language, found.entry, params);
 }
