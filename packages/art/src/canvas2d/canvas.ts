@@ -1,4 +1,6 @@
 import type { SkCanvas, SkImage, SkSurface } from '@shopify/react-native-skia';
+
+import type { SkiaCaches } from './caches';
 import type { SkiaApi } from './skia-api';
 
 import { ArtContext2D } from './context';
@@ -9,12 +11,10 @@ import type { Affine } from './matrix';
 export interface SkiaEnv {
   skia: SkiaApi;
   fonts: FontBook;
-  /** `raster` (CPU, the default) or `offscreen` (GPU where the platform has one). */
-  surface: 'raster' | 'offscreen';
   /** Canvas `shadowBlur` to a Gaussian sigma in device pixels. */
   shadowSigma: (blur: number) => number;
-  /** Called when a canvas allocates or frees pixels, for the cache's byte count. */
-  onPixels?: (delta: number) => void;
+  /** Colour filters by CSS `filter` string and gradient shaders by their parameters. */
+  caches: SkiaCaches;
   /**
    * Canvases not to draw while set (the critters, when a companion is drawn on its own): drawing
    * one reports the transform it would have been drawn with instead.
@@ -68,13 +68,10 @@ export class ArtCanvas {
     if (!this.surf) {
       if (this.w === 0 || this.h === 0) return null;
       const { skia } = this.env;
-      this.surf =
-        this.env.surface === 'offscreen'
-          ? skia.Surface.MakeOffscreen(this.w, this.h)
-          : skia.Surface.Make(this.w, this.h);
+      // CPU raster: snapshots are plain images any thread (and the UI thread's canvas) can draw.
+      this.surf = skia.Surface.Make(this.w, this.h);
       if (!this.surf) throw new Error(`Could not make a ${this.w}×${this.h} surface`);
       this.bytes = this.w * this.h * 4;
-      this.env.onPixels?.(this.bytes);
     }
     this.image = null;
     return this.surf.getCanvas();
@@ -93,7 +90,6 @@ export class ArtCanvas {
     if (this.surf) {
       this.surf.dispose?.();
       this.surf = null;
-      this.env.onPixels?.(-this.bytes);
       this.bytes = 0;
     }
   }

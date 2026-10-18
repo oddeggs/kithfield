@@ -1,5 +1,6 @@
 import type { SkCanvas, SkPaint, SkPath } from '@shopify/react-native-skia';
 
+import { remember } from './caches';
 import type { ArtCanvas } from './canvas';
 import { parseColor, serializeColor } from './color';
 import { parseFont } from './font';
@@ -171,10 +172,17 @@ export class ArtContext2D {
     return this.s.filter;
   }
   set filter(v: string) {
-    const chain = parseFilter(String(v));
-    if (!chain) return;
-    this.s.filter = String(v);
-    this.s.colorFilter = toColorFilter(this.env.skia, chain);
+    const css = String(v);
+    const filters = this.env.caches.colorFilters;
+    let cf = filters.get(css);
+    if (cf === undefined) {
+      const chain = parseFilter(css);
+      if (!chain) return;
+      cf = toColorFilter(this.env.skia, chain);
+      remember(filters, css, cf);
+    }
+    this.s.filter = css;
+    this.s.colorFilter = cf;
   }
   get shadowColor(): string {
     return serializeColor(this.s.shadowColor);
@@ -284,7 +292,29 @@ export class ArtContext2D {
     const { skia } = this.env;
     const p = skia.Path.MakeFromCmds(cmds as PathCmd[]);
     if (!p || rule === FillType.Winding) return p;
-    return skia.PathBuilder.MakeFromPath(p).setFillType(rule).detach();
+    const out = skia.PathBuilder.MakeFromPath(p).setFillType(rule).detach();
+    p.dispose?.();
+    return out;
+  }
+
+  private ownPaint: SkPaint | null = null;
+  private ownLayerPaint: SkPaint | null = null;
+  private readonly rgba = new Float32Array(4);
+
+  /**
+   * The context's one paint, reset: every draw is synchronous, so a paint (and a layer paint for
+   * composites) per context is enough and nothing is allocated per call.
+   */
+  freshPaint(): SkPaint {
+    this.ownPaint ??= this.env.skia.Paint();
+    this.ownPaint.reset();
+    return this.ownPaint;
+  }
+
+  private freshLayerPaint(): SkPaint {
+    this.ownLayerPaint ??= this.env.skia.Paint();
+    this.ownLayerPaint.reset();
+    return this.ownLayerPaint;
   }
 
   /** Device-space commands for `fill`/`clip` of the current path or a `Path2D`. */
@@ -293,14 +323,17 @@ export class ArtContext2D {
   }
 
   private paintFor(style: Style, local: Affine | null): SkPaint | null {
-    const { skia } = this.env;
-    const paint = skia.Paint();
+    const paint = this.freshPaint();
     paint.setAntiAlias(true);
     if (style.css !== null) {
       const [r, g, b, a] = style.color;
-      paint.setColor(skia.Color(new Float32Array([r, g, b, a * this.s.alpha])));
+      this.rgba[0] = r;
+      this.rgba[1] = g;
+      this.rgba[2] = b;
+      this.rgba[3] = a * this.s.alpha;
+      paint.setColor(this.rgba);
     } else {
-      const shader = style.gradient.shader(skia, local);
+      const shader = style.gradient.shader(this.env, local);
       if (!shader) return null;
       paint.setShader(shader);
       paint.setAlphaf(this.s.alpha);
@@ -321,7 +354,7 @@ export class ArtContext2D {
       draw(paint);
       return;
     }
-    const layer = skia.Paint();
+    const layer = this.freshLayerPaint();
     layer.setBlendMode(mode);
     if (shadow) {
       const sigma = this.env.shadowSigma(this.s.shadowBlur);
@@ -346,8 +379,8 @@ export class ArtContext2D {
     if (!sk || !isInvertible(this.s.m)) return;
     const path = this.skPath(cmds, rule);
     const paint = path && this.paintFor(this.s.fill, this.s.m);
-    if (!path || !paint) return;
-    this.composite(sk, paint, (p) => sk.drawPath(path, p));
+    if (path && paint) this.composite(sk, paint, (p) => sk.drawPath(path, p));
+    path?.dispose?.();
   }
 
   private strokeUserCmds(cmds: readonly PathCmd[]): void {
@@ -355,7 +388,10 @@ export class ArtContext2D {
     if (!sk || !isInvertible(this.s.m)) return;
     const path = this.skPath(cmds, FillType.Winding);
     const paint = path && this.paintFor(this.s.stroke, null);
-    if (!path || !paint) return;
+    if (!path || !paint) {
+      path?.dispose?.();
+      return;
+    }
     paint.setStyle(PaintStyle.Stroke);
     paint.setStrokeWidth(this.s.lineWidth);
     paint.setStrokeCap(CAPS[this.s.lineCap] ?? 0);
@@ -364,10 +400,15 @@ export class ArtContext2D {
     if (this.s.dash.length > 0 && this.s.dash.some((d) => d > 0)) {
       paint.setPathEffect(this.env.skia.PathEffect.MakeDash(this.s.dash, this.s.dashOffset));
     }
-    sk.save();
-    sk.concat(toSkia(this.s.m));
-    this.composite(sk, paint, (p) => sk.drawPath(path, p));
-    sk.restore();
+    // Shadows and layers are in device space: the transform applies inside the draw only.
+    const m = toSkia(this.s.m);
+    this.composite(sk, paint, (p) => {
+      sk.save();
+      sk.concat(m);
+      sk.drawPath(path, p);
+      sk.restore();
+    });
+    path.dispose?.();
   }
 
   fill(a?: ArtPath2D | Rule, b?: Rule): void {
@@ -385,9 +426,10 @@ export class ArtContext2D {
     const sk = this.sk();
     if (!sk) return;
     const path = a instanceof ArtPath2D ? a : undefined;
-    const p = this.skPath(this.deviceCmds(path), ruleOf(path ? b : a));
     // An empty path clips everything out.
-    sk.clipPath(p ?? this.env.skia.Path.Make(), ClipOp.Intersect, true);
+    const p = this.skPath(this.deviceCmds(path), ruleOf(path ? b : a)) ?? this.env.skia.Path.Make();
+    sk.clipPath(p, ClipOp.Intersect, true);
+    p.dispose?.();
   }
 
   private rectCmds(x: number, y: number, w: number, h: number): PathCmd[] {
@@ -413,10 +455,11 @@ export class ArtContext2D {
     if (!sk || ![x, y, w, h].every(Number.isFinite) || w === 0 || h === 0) return;
     const path = this.skPath(this.rectCmds(x, y, w, h), FillType.Winding);
     if (!path) return;
-    const paint = this.env.skia.Paint();
+    const paint = this.freshPaint();
     paint.setAntiAlias(true);
     paint.setBlendMode(BlendMode.Clear);
     sk.drawPath(path, paint);
+    path.dispose?.();
   }
 
   drawImage(source: ArtCanvas, ...args: number[]): void {

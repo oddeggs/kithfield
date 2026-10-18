@@ -64,7 +64,7 @@ export function drawImageOn(ctx: ArtContext2D, source: ArtCanvas, args: ImageArg
   const m = ctx.s.m;
   if (!image || !sk || !isInvertible(m)) return;
   const { skia } = ctx.env;
-  const paint = skia.Paint();
+  const paint = ctx.freshPaint();
   paint.setAlphaf(ctx.s.alpha);
   paint.setAntiAlias(imageAntialias(m, dw, dh));
   const src = skia.XYWHRect(sx, sy, sw, sh);

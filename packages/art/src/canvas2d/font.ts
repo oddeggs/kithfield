@@ -64,6 +64,11 @@ export interface ResolvedRun {
  */
 export class FontBook {
   private fonts = new Map<string, SkFont>();
+  /**
+   * Characters drawn as a missing glyph (none of the listed faces has them) since the count was
+   * last reset. The goldens fail on any: the browser would have used a system font instead.
+   */
+  missingGlyphs = 0;
 
   constructor(
     private readonly skia: SkiaApi,
@@ -94,6 +99,8 @@ export class FontBook {
       f.setSubpixel(true);
       f.setLinearMetrics(true);
       if (needsSyntheticBold(weight, face.weight)) f.setEmbolden(true);
+      // Sizes come from layout maths, so the map is bounded rather than trusted to stay small.
+      if (this.fonts.size >= 64) this.fonts.clear();
       this.fonts.set(key, f);
     }
     return f;
@@ -105,12 +112,17 @@ export class FontBook {
     return face ? this.skFont(face, font.size, font.weight) : null;
   }
 
-  /** Splits `text` into runs, each in the first listed face that has its glyphs. */
+  /**
+   * Splits `text` into runs, each in the first listed face that has its glyphs. Text is
+   * normalised to NFC first (Patrick Hand has precomposed Vietnamese, not the combining marks).
+   * Glyphs are placed by their advances: GPOS kerning is not applied (measured against Chrome,
+   * caption bounds match to the pixel; see the golden text scenes).
+   */
   shape(text: string, font: ParsedFont): ResolvedRun[] {
     const faces = this.facesFor(font.families, font.weight);
     const runs: ResolvedRun[] = [];
     let current: ResolvedRun | null = null;
-    for (const ch of text) {
+    for (const ch of text.normalize('NFC')) {
       let chosen: SkFont | null = null;
       let glyph = 0;
       for (const face of faces) {
@@ -123,6 +135,7 @@ export class FontBook {
         }
       }
       if (!chosen) {
+        if (ch >= ' ') this.missingGlyphs++;
         const first = faces[0];
         if (!first) continue;
         chosen = this.skFont(first, font.size, font.weight);

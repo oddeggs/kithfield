@@ -1,6 +1,8 @@
 import type { SkColorFilter, SkShader } from '@shopify/react-native-skia';
 import type { SkiaApi } from './skia-api';
 
+import { remember } from './caches';
+import type { SkiaEnv } from './canvas';
 import { parseColor, type Rgba } from './color';
 import { defaultFont, type ParsedFont } from './font';
 import { IDENTITY, toSkia, type Affine } from './matrix';
@@ -29,8 +31,19 @@ export class ArtGradient {
   }
 
   /** The SkiaApi shader, or null when canvas paints nothing (no stops, degenerate geometry). */
-  shader(skia: SkiaApi, local: Affine | null): SkShader | null {
+  shader(env: SkiaEnv, local: Affine | null): SkShader | null {
     if (this.stops.length === 0) return null;
+    const key = `${this.kind}|${this.coords.join(',')}|${this.stops
+      .map((s) => `${s.offset}:${s.color.join(',')}`)
+      .join(';')}|${local?.join(',') ?? ''}`;
+    const hit = env.caches.shaders.get(key);
+    if (hit !== undefined) return hit;
+    const shader = this.makeShader(env.skia, local);
+    remember(env.caches.shaders, key, shader);
+    return shader;
+  }
+
+  private makeShader(skia: SkiaApi, local: Affine | null): SkShader | null {
     const colors = this.stops.map((s) => skia.Color(new Float32Array(s.color)));
     const pos = this.stops.map((s) => s.offset);
     const matrix = local ? skia.Matrix(toSkia(local)) : undefined;
