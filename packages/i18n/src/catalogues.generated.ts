@@ -3,23 +3,28 @@
 import type { FeatureCatalogues } from './catalogue-types';
 import { glossaryEn } from './glossary.en';
 import { glossarySameInBoth, glossaryVi } from './glossary.vi';
+import { pushEn } from './push.en';
+import { pushSameInBoth, pushVi } from './push.vi';
 import { signInCodeEn } from './sign-in-code.en';
 import { signInCodeVi } from './sign-in-code.vi';
 
 /** Every feature catalogue pair, in file-name order. */
 export const features: readonly FeatureCatalogues[] = [
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
+  { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
 ];
 
 /** The source catalogue: every key, in English. */
 export const en = {
   ...glossaryEn,
+  ...pushEn,
   ...signInCodeEn,
 };
 
 /** Every key, in Vietnamese. */
 export const vi = {
   ...glossaryVi,
+  ...pushVi,
   ...signInCodeVi,
 };

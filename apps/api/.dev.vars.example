@@ -3,3 +3,5 @@
 # Each name added here is also added to `secretNames` in src/env.ts.
 # Signs sessions and socket tokens; at least 32 random characters (`openssl rand -base64 32`).
 BETTER_AUTH_SECRET=
+# Expo's enhanced push security; empty until it is turned on for the project.
+EXPO_ACCESS_TOKEN=
