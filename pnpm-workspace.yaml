@@ -1,0 +1,110 @@
+packages:
+  - apps/*
+  - packages/*
+  - tools/*
+
+saveExact: true
+
+# One pinned version per shared dependency; workspace packages reference them as `catalog:`.
+# Pins follow 6pm (same Expo / React Native release) so native fixes carry across.
+catalog:
+  '@astrojs/check': 0.9.10
+  '@babel/core': 7.29.7
+  '@bacons/apple-targets': 5.0.0
+  '@better-auth/expo': 1.7.6
+  '@cloudflare/vitest-pool-workers': 0.22.0
+  '@cloudflare/workers-types': 5.20260926.1
+  '@eslint/js': 10.0.1
+  '@expo/log-box': 58.0.10
+  '@expo/metro-runtime': 58.0.14
+  '@expo/ui': 58.0.13
+  '@jest/globals': 29.7.0
+  '@playwright/test': 1.58.2
+  '@react-native/jest-preset': 0.88.0-rc.3
+  '@react-native/metro-config': 0.88.0-rc.3
+  '@sentry/react-native': 8.28.0
+  '@shopify/react-native-skia': 2.13.1
+  '@types/node': 26.6.3
+  '@types/react': 19.3.0
+  astro: 7.3.5
+  babel-preset-expo: 58.0.10
+  better-auth: 1.7.6
+  esbuild: 0.28.2
+  eslint: 10.11.0
+  eslint-config-prettier: 10.1.8
+  expo: 58.0.9
+  expo-apple-authentication: 58.0.2
+  expo-application: 58.1.1
+  expo-asset: 58.0.15
+  expo-blur: 58.0.3
+  expo-build-properties: 58.0.10
+  expo-camera: 58.0.10
+  expo-clipboard: 58.0.3
+  expo-constants: 58.0.12
+  expo-crypto: 58.0.6
+  expo-dev-client: 58.0.13
+  expo-device: 58.0.5
+  expo-doctor: 1.20.4
+  expo-file-system: 58.0.9
+  expo-font: 58.0.8
+  expo-haptics: 58.0.6
+  expo-linking: 58.0.13
+  expo-localization: 58.0.4
+  expo-location: 58.0.16
+  expo-media-library: 58.0.8
+  expo-notifications: 58.1.4
+  expo-router: 58.0.19
+  expo-secure-store: 58.0.2
+  expo-sharing: 58.0.18
+  expo-splash-screen: 58.0.9
+  expo-sqlite: 58.0.13
+  expo-status-bar: 58.0.3
+  expo-system-ui: 58.0.5
+  expo-updates: 58.0.16
+  fast-check: 4.10.2
+  globals: 17.12.0
+  hono: 4.13.13
+  jest: 29.7.0
+  jest-expo: 58.0.10
+  playwright: 1.58.2
+  prettier: 3.9.9
+  react: 19.3.0
+  react-native: 0.88.0-rc.3
+  react-native-gesture-handler: 3.2.1
+  react-native-keyboard-controller: 1.22.4
+  react-native-keychain: 10.0.0
+  react-native-purchases: 10.11.0
+  react-native-reanimated: 4.7.0
+  react-native-safe-area-context: 5.9.1
+  react-native-screens: 4.28.0
+  react-native-worklets: 0.13.0
+  react-test-renderer: 19.3.0
+  tsx: 4.23.15
+  typescript: 6.0.3
+  typescript-eslint: 8.70.1
+  vitest: 5.0.2
+  wrangler: 4.141.0
+  zod: 4.6.5
+
+# The Workers test pool (@cloudflare/vitest-pool-workers) supports Vitest 4 only; Worker apps use
+# `catalog:workers` for vitest until the pool supports the default pin.
+catalogs:
+  workers:
+    vitest: 4.1.11
+
+# A native build may hold one copy of a native module: Expo's own packages take the pinned version.
+overrides:
+  '@expo/log-box': 'catalog:'
+  expo-application: 'catalog:'
+  expo-asset: 'catalog:'
+  expo-constants: 'catalog:'
+  expo-file-system: 'catalog:'
+  expo-font: 'catalog:'
+
+# pnpm refuses dependency install scripts unless they are listed here.
+allowBuilds:
+  '@parcel/watcher': false
+  '@sentry/cli': true
+  esbuild: true
+  sharp: false
+  workerd: true

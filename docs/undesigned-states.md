@@ -1,0 +1,24 @@
+# Undesigned states
+
+States the product needs that no design covers. Each is built from existing components and copy
+in the house voice, and is logged here so design can draw it later.
+
+| Screen | State | Reason |
+|---|---|---|
+| 03-02 Sign in (email) | The letter that carries the 6-digit sign-in code: subject with the code for autofill, greeting, the code, its 10-minute lifetime, a "not you" line and the owl's sign-off, in en and vi (`packages/i18n/src/sign-in-code.*.ts`), plain text | 03-02 says "Email sends a 6-digit code" but no design shows the letter |
+| Tab bar | The You tab before the person's critter is known: a soft empty circle in the critter's place | The design always shows a critter there; the critter arrives from the data layer after sign-in |
+| Component library at night | Night colours for buttons, chips, fields, the segmented control, the toggle, the plan, notice and quiet-note cards, the tray's dewdrop tint and the failed-send line, taken from the night palette (`apps/mobile/src/ui/theme/palette.ts`) | `01 Foundations` draws the library in day only; `12 States` (12-08, 12-09) gives night only for sheets, the tab bar, bubbles and quiet notes |
+| Any screen | Toast: the notice card at the top of the screen, rising 8 points as hint cards do (12-07), fading under Reduce Motion, read out politely by VoiceOver | No toast is designed; the notice card is the library's card for gentle warnings |
+| Any route | Not found (a link to a path the app doesn't have): the offline spot critter, a title, one line and "Back to the farm" | No design for an unknown link |
+| Any control | Haptics: a selection tick for tabs, segments, chips, toggles and sheet stops; a light tap for long-press; a soft tap as a dewdrop or firefly leaves; success when something you made is done | The design names no haptics |
+| App start (12-05) | A first launch that can't reach the server, so nothing is on the phone yet: the 12-05 error shell (the error spot, "The path washed out for a moment", "Try again"), with its body saying to check the connection instead of "your messages are safe" | 12-05 covers a farm that couldn't load; a first launch has no messages to keep safe |
+| 17-01 Landing, waitlist form | Sending, "invalid email", "too many tries" and "the gate didn't answer" notes in the hand line under the form; the button reads "Saving…" while it sends; after it, "Almost there: we sent a letter to confirm your email" | The design shows only a saved state, before double opt-in |
+| 17-05 Invite page | "Opening the gate…" while the preview loads; "This gate is closed" (title, body, a button to the waitlist) for an unknown or expired code; a farm with no room left; a retry when the API doesn't answer. The kicker reads "you're invited" and the headline names only the farm | The notes name the closed gate but no design draws it; the invite preview carries no inviter |
+| 17-06 Waitlist | Only the email field: no phone (phone sign-in is deferred) and no "I'm on iPhone" (the request has no platform yet) | Docs and contracts over design |
+| 17-06, 17-07 Waitlist | The confirmation letter (double opt-in, linking to `/waitlist/confirm#<token>`), the confirm page (checking, expired link with a way back to the waitlist, retry), and the thank-you page's "one more step: check your inbox" until the link is opened; "you're on the list" shows only after it | The notes ask for double opt-in; no design shows the letter or the confirm step |
+| 17-07 Thank you | "Saving a critter early opens soon" under the save button | The waitlist request can't carry a critter yet |
+| 17-07 Thank you | The "tell a friend: everyone who joins from your link saves a cottage next to yours" line is left out, deferred until referral links exist | Nothing records who invited whom to the waitlist |
+| Site-wide | A 404 page ("This path doesn't lead anywhere", back to the farm) in the text-page layout | No design for an unknown address |
+| 17-08 Privacy | A "The waitlist" section, and "what we keep" rewritten: no end-to-end encryption in v1 (`docs/backend.md` §8) | The draft promised end-to-end encryption and on-device captions |
+| 17-10 Support | Answers that open under each question, a topic filter on the six tiles and a "nothing matches" line | The design shows only the list |
+| 17-11 Account deletion | The "code is on its way" and error notes under the button | The design shows only the form |

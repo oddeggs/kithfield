@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // A Worker made only of static assets: `astro build` writes the site, `wrangler deploy --env <dev|prd>`
+  // uploads it. No script runs per request. Each environment's site takes every path of its host;
+  // the API Worker's route `<host>/api/*` is more specific, so it wins for the API.
+  "name": "kithfield-web",
+  "compatibility_date": "2026-08-01",
+  // Unknown paths get the site's own 404 page (`src/pages/404.astro`).
+  "assets": {
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+  },
+  "env": {
+    "dev": {
+      "name": "kithfield-web-dev",
+      "routes": [{ "pattern": "dev.kithfield.com/*", "zone_name": "kithfield.com" }],
+    },
+    "prd": {
+      "name": "kithfield-web",
+      "routes": [{ "pattern": "kithfield.com/*", "zone_name": "kithfield.com" }],
+    },
+  },
+}

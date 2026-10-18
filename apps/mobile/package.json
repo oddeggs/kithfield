@@ -1,0 +1,82 @@
+{
+  "name": "@kithfield/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start --dev-client",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:e2e": "vitest run --config vitest.e2e.config.mts"
+  },
+  "dependencies": {
+    "@expo/log-box": "catalog:",
+    "@expo/metro-runtime": "catalog:",
+    "@kithfield/art": "workspace:*",
+    "@kithfield/contracts": "workspace:*",
+    "@kithfield/farm": "workspace:*",
+    "@kithfield/i18n": "workspace:*",
+    "@kithfield/theme": "workspace:*",
+    "@react-native/metro-config": "catalog:",
+    "@shopify/react-native-skia": "catalog:",
+    "better-auth": "catalog:",
+    "expo": "catalog:",
+    "expo-blur": "catalog:",
+    "expo-constants": "catalog:",
+    "expo-crypto": "catalog:",
+    "expo-dev-client": "catalog:",
+    "expo-font": "catalog:",
+    "expo-haptics": "catalog:",
+    "expo-linking": "catalog:",
+    "expo-localization": "catalog:",
+    "expo-router": "catalog:",
+    "expo-secure-store": "catalog:",
+    "expo-splash-screen": "catalog:",
+    "expo-sqlite": "catalog:",
+    "expo-status-bar": "catalog:",
+    "expo-system-ui": "catalog:",
+    "react": "catalog:",
+    "react-native": "catalog:",
+    "react-native-gesture-handler": "catalog:",
+    "react-native-reanimated": "catalog:",
+    "react-native-safe-area-context": "catalog:",
+    "react-native-screens": "catalog:",
+    "react-native-worklets": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@babel/core": "catalog:",
+    "@jest/globals": "catalog:",
+    "@react-native/jest-preset": "catalog:",
+    "@types/react": "catalog:",
+    "babel-preset-expo": "catalog:",
+    "expo-doctor": "catalog:",
+    "jest": "catalog:",
+    "jest-expo": "catalog:",
+    "react-test-renderer": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "expo": {
+    "autolinking": {
+      "android": {
+        "buildFromSource": [
+          ".*"
+        ]
+      }
+    }
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|react-navigation|@react-navigation))",
+      "/node_modules/react-native-reanimated/plugin/"
+    ]
+  },
+  "reanimated": {
+    "staticFeatureFlags": {
+      "IOS_SYNCHRONOUSLY_UPDATE_UI_PROPS": true
+    }
+  }
+}

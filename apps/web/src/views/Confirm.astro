@@ -1,0 +1,72 @@
+---
+/**
+ * Where the waitlist letter's link lands (`/waitlist/confirm#<token>`). The token stays in the
+ * fragment, so it never reaches a server log or a link checker; this page posts it to the API and
+ * goes on to the thank-you page, or says the link has expired.
+ */
+import { pageStyles } from '../components/page/styles';
+import Page from '../layouts/Page.astro';
+import { copyFor, pathFor, type Language } from '../lib/site';
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const t = copyFor(lang);
+const s = pageStyles(lang);
+---
+
+<Page lang={lang} path="/waitlist/confirm" title={t('websitePages.confirm.title')} noindex>
+  <section
+    data-kf="confirm"
+    data-state="working"
+    data-next={`${pathFor(lang, '/waitlist/thanks')}?confirmed=1`}
+    style="display:flex;flex-direction:column;gap:16px"
+  >
+    <style>
+      [data-kf='confirm'] [data-show] {
+        display: none;
+      }
+      [data-kf='confirm'][data-state='working'] [data-show='working'],
+      [data-kf='confirm'][data-state='expired'] [data-show='expired'],
+      [data-kf='confirm'][data-state='error'] [data-show='error'] {
+        display: flex;
+      }
+    </style>
+    <h1 style={s.title}>{t('websitePages.confirm.title')}</h1>
+    <p data-show="working" role="status" style={s.hand}>{t('websitePages.confirm.working')}</p>
+    <div data-show="expired" style="flex-direction:column;gap:16px">
+      <p style={s.body}>{t('websitePages.confirm.expired')}</p>
+      <a href={pathFor(lang, '/waitlist')} style={`${s.button};background:#2a221d;color:#F5EEE2`}
+        >{t('websitePages.confirm.again')}</a
+      >
+    </div>
+    <div data-show="error" role="alert" style="flex-direction:column;gap:16px">
+      <p style={s.body}>{t('websitePages.confirm.error')}</p>
+      <button
+        type="button"
+        data-kf="confirm-retry"
+        style={`${s.button};background:#2a221d;color:#F5EEE2`}>{t('websitePages.confirm.retry')}</button
+      >
+    </div>
+  </section>
+</Page>
+
+<script>
+  import { confirmWaitlist } from '../scripts/waitlist';
+
+  const root = document.querySelector<HTMLElement>('[data-kf="confirm"]');
+  const token = location.hash.slice(1);
+  // The token has done its job once read; keep it out of history and shared links.
+  if (token) history.replaceState(null, '', location.pathname);
+  const run = (): void => {
+    if (!root) return;
+    root.dataset.state = 'working';
+    void confirmWaitlist(token).then((outcome) => {
+      if (outcome === 'confirmed') location.replace(root.dataset.next ?? '/waitlist/thanks');
+      else root.dataset.state = outcome;
+    });
+  };
+  document.querySelector('[data-kf="confirm-retry"]')?.addEventListener('click', run);
+  run();
+</script>

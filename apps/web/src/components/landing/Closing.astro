@@ -1,0 +1,202 @@
+---
+/**
+ * The rest of the landing page: the house rules on a taped note, the people behind the critters,
+ * dusk, and the closing scene with the waitlist form and the footer.
+ */
+import { SOURCE_URL, copyFor, facesFor, pathFor, type Language } from '../../lib/site';
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const t = copyFor(lang);
+const f = facesFor(lang);
+const vi = lang === 'vi';
+const nevers = (
+  [
+    'website.rules.never1',
+    'website.rules.never2',
+    'website.rules.never3',
+    'website.rules.never4',
+    'website.rules.never5',
+  ] as const
+).map((key, i) => ({ text: t(key), delay: `${(0.3 + i * 0.18).toFixed(2)}s` }));
+const kicker = `font:700 clamp(19px,1.7vw,24px)/1 ${f.hand}`;
+const lead = 'margin:0;font:400 clamp(16px,1.35vw,20px)/1.5 -apple-system,system-ui;text-wrap:pretty';
+const footerLinks = [
+  { href: pathFor(lang, '/privacy'), text: t('website.footer.privacy') },
+  { href: pathFor(lang, '/terms'), text: t('website.footer.terms') },
+  { href: pathFor(lang, '/support'), text: t('website.footer.support') },
+  { href: pathFor(lang, '/press'), text: t('website.footer.press') },
+  { href: SOURCE_URL, text: t('website.footer.github') },
+];
+---
+
+<section
+  id="rules"
+  data-kf="rules"
+  style="background:#E6EDD8;padding:clamp(64px,9vw,140px) clamp(16px,5vw,72px);display:flex;justify-content:center"
+>
+  <div
+    style="width:100%;max-width:1180px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:clamp(36px,6vw,90px);align-items:center"
+  >
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div style={`${kicker};color:#3f5a31`}>{t('website.rules.kicker')}</div>
+      <h2
+        style={`margin:0;font:400 clamp(52px,8vw,132px)/${vi ? '1.12' : '.88'} ${f.serif};letter-spacing:-.025em`}
+      >
+        {t('website.rules.title')}
+      </h2>
+      <p style={`${lead};color:#3a4a30;max-width:440px`}>{t('website.rules.body')}</p>
+      <a
+        href={SOURCE_URL}
+        style="align-self:flex-start;height:48px;padding:0 20px;border-radius:24px;background:#2a221d;color:#F5EEE2;display:flex;align-items:center;gap:8px;font:600 15px/1 -apple-system,system-ui;text-decoration:none"
+        >{t('website.rules.source')}</a
+      >
+    </div>
+    <div style="position:relative;justify-self:center;width:min(100%,520px)">
+      <div
+        style="position:absolute;left:50%;top:-14px;width:120px;height:30px;transform:translateX(-50%) rotate(-3deg);background:rgba(232,180,78,.55);z-index:2"
+      >
+      </div>
+      <div
+        style={`position:relative;background:#fbf6ec;background-image:repeating-linear-gradient(transparent 0 45px,rgba(94,127,74,.18) 45px 46px);border-radius:6px;padding:40px clamp(24px,3vw,40px) 34px;transform:rotate(-1.4deg);box-shadow:0 30px 50px -24px rgba(40,50,30,.45);display:flex;flex-direction:column;gap:8px;font:700 clamp(28px,2.7vw,36px)/1.28 ${f.hand}`}
+      >
+        <span style="font-size:20px;color:#7a6a5c">{t('website.rules.never')}</span>
+        {
+          nevers.map((n) => (
+            <span style="position:relative;align-self:flex-start">
+              {n.text}
+              <span
+                class="kf-strike"
+                aria-hidden="true"
+                style={`position:absolute;left:-4px;right:-6px;top:54%;height:3px;border-radius:2px;background:#c4523a;transform-origin:0 50%;transition:transform .5s cubic-bezier(.3,.7,.3,1) ${n.delay}`}
+              />
+            </span>
+          ))
+        }
+        <span style="font-size:20px;color:#7a6a5c;margin-top:12px">{t('website.rules.always')}</span>
+        <span style="color:#3f5a31">{t('website.rules.always1')}</span><span style="color:#3f5a31"
+          >{t('website.rules.always2')}</span
+        ><span style="color:#3f5a31">{t('website.rules.always3')}</span>
+      </div>
+      <div
+        style="position:absolute;right:-12px;bottom:-40px;width:150px;display:flex;flex-direction:column;align-items:center;gap:0;transform:rotate(3deg)"
+      >
+        <kf-art scene="stage" kind="owl" state="sleep" style="width:150px;height:150px"></kf-art><span
+          style={`font:700 16px/1.1 ${f.hand};text-align:center;color:#3a4a30`}
+          >{t('website.rules.otis')}</span
+        >
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="people" style="padding:clamp(64px,9vw,140px) clamp(16px,5vw,72px);display:flex;justify-content:center">
+  <div
+    style="width:100%;max-width:1180px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:clamp(36px,6vw,90px);align-items:center"
+  >
+    <div style="position:relative;height:clamp(420px,46vw,620px)">
+      <div
+        style="position:absolute;left:0;top:0;width:76%;height:86%;border-radius:22px;overflow:hidden;transform:rotate(-2deg);box-shadow:0 30px 50px -24px rgba(60,40,20,.5)"
+      >
+        <kf-art scene="sofa" style="position:absolute;inset:0;width:100%;height:100%"></kf-art>
+      </div>
+      <div
+        style="position:absolute;right:0;bottom:0;width:52%;height:46%;border-radius:20px;overflow:hidden;transform:rotate(3deg);box-shadow:0 0 0 6px #F5EEE2,0 30px 50px -24px rgba(60,40,20,.5)"
+      >
+        <kf-art scene="apart" style="position:absolute;inset:0;width:100%;height:100%"></kf-art>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div style={`${kicker};color:#7a3f22`}>{t('website.people.kicker')}</div>
+      <h2
+        style={`margin:0;font:400 clamp(48px,6.6vw,108px)/.9 ${f.serif};letter-spacing:-.025em;text-wrap:balance`}
+      >
+        {t('website.people.title')}
+      </h2>
+      <p style={`${lead};color:#3a302a;max-width:460px`}>{t('website.people.body1')}</p>
+      <p style={`${lead};color:#3a302a;max-width:460px`}>{t('website.people.body2')}</p>
+    </div>
+  </div>
+</section>
+
+<div
+  style="height:36vh;background:linear-gradient(#F5EEE2 0%,#e9c9ae 30%,#5a4a5e 66%,#1b1f3d 100%);display:flex;align-items:flex-start;justify-content:center;padding-top:6vh;box-sizing:border-box"
+>
+  <span style={`font:700 clamp(22px,2.2vw,30px)/1 ${f.hand};color:#4a2e22`}>{t('website.dusk')}</span>
+</div>
+
+<section
+  id="join"
+  style="position:relative;min-height:max(100vh,720px);background:#1b1f3d;overflow:hidden;display:flex;flex-direction:column"
+>
+  <kf-art
+    scene="evening"
+    progress="0.8"
+    class="kf-join-art"
+    style="position:absolute;left:50%;bottom:0;width:max(100%,1180px);aspect-ratio:1.6"></kf-art>
+  <div
+    style="position:absolute;inset:0;background:linear-gradient(rgba(27,31,61,.92) 0%,rgba(27,31,61,.55) 36%,rgba(27,31,61,0) 58%,rgba(20,18,30,0) 80%,rgba(20,18,30,.85) 100%)"
+  >
+  </div>
+  <div
+    style="position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:18px;padding:clamp(110px,15vh,170px) 20px 0;color:#f6eedb"
+  >
+    <div style={`${kicker};color:#f2c25a`}>{t('website.join.kicker')}</div>
+    <h2
+      style={`margin:0;font:400 clamp(56px,9vw,148px)/${vi ? '1.12' : '.88'} ${f.serif};letter-spacing:-.025em${vi ? ';text-wrap:balance' : ''}`}
+    >
+      {t('website.join.title')}
+    </h2>
+    <p style={`${lead};color:#e6dccb;max-width:480px`}>{t('website.join.body')}</p>
+    <form
+      data-kf="join"
+      data-lang={lang}
+      data-saved={t('website.join.saved')}
+      data-done={t('website.join.done')}
+      data-sending={t('website.join.sending')}
+      data-invalid={t('website.join.invalid')}
+      data-busy={t('website.join.busy')}
+      data-unreachable={t('website.join.unreachable')}
+      style="display:flex;gap:8px;width:min(100%,480px);margin-top:6px;flex-wrap:wrap"
+    >
+      <label for="join-email" class="kf-sr">{t('website.join.emailLabel')}</label>
+      <input
+        id="join-email"
+        name="email"
+        type="email"
+        required
+        autocomplete="email"
+        maxlength="254"
+        placeholder={t('website.join.placeholder')}
+        style="flex:1 1 220px;min-width:0;height:56px;border-radius:28px;border:1.5px solid rgba(246,238,219,.3);background:rgba(20,22,44,.55);color:#f6eedb;padding:0 22px;font:400 16px/1 -apple-system,system-ui;outline:none;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)"
+      />
+      <button
+        type="submit"
+        style="flex:0 0 auto;height:56px;padding:0 26px;border-radius:28px;border:0;background:#E8B44E;color:#2a221d;font:600 16px/1 -apple-system,system-ui;cursor:pointer;box-shadow:0 8px 24px -8px rgba(232,180,78,.7)"
+        >{t('website.join.submit')}</button
+      >
+    </form>
+    <div
+      data-kf="join-note"
+      role="status"
+      style={`font:700 18px/1.2 ${f.hand};color:#f2c25a;min-height:22px`}
+    >
+    </div>
+  </div>
+  <div style="flex:1"></div>
+  <footer
+    style="position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;padding:28px clamp(16px,4vw,48px) 30px;color:rgba(246,238,219,.82);font:13.5px/1.4 -apple-system,system-ui"
+  >
+    <span style="display:flex;align-items:center;gap:8px;color:#f6eedb"
+      ><kf-art scene="appicon" style="width:24px;height:24px;border-radius:7px;overflow:hidden"></kf-art>{
+        t('website.footer.made')
+      }</span
+    >
+    <div style="flex:1"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px">
+      {footerLinks.map((l) => <a href={l.href} style="color:inherit">{l.text}</a>)}
+    </div>
+  </footer>
+</section>

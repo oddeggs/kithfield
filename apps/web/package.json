@@ -1,0 +1,30 @@
+{
+  "name": "@kithfield/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The Kithfield website (landing pages, legal, invite page, waitlist): a static Astro site served by Cloudflare Workers static assets at <host>/",
+  "scripts": {
+    "dev": "astro dev",
+    "bake": "tsx scripts/bake-images.ts",
+    "build": "tsx scripts/bake-images.ts && astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check && tsc -p scripts",
+    "shoot": "tsx scripts/shoot.ts"
+  },
+  "dependencies": {
+    "@kithfield/art": "workspace:*",
+    "@kithfield/contracts": "workspace:*",
+    "@kithfield/i18n": "workspace:*",
+    "@kithfield/theme": "workspace:*",
+    "astro": "catalog:"
+  },
+  "devDependencies": {
+    "@astrojs/check": "catalog:",
+    "@types/node": "catalog:",
+    "playwright": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "wrangler": "catalog:"
+  }
+}

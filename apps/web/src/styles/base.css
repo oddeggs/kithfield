@@ -1,0 +1,66 @@
+/* The page ground from `17 Landing`: paper, ink and the system face for running text. */
+html {
+  scroll-behavior: smooth;
+  height: auto;
+  overflow-x: clip;
+}
+body {
+  margin: 0;
+  background: var(--kf-paper);
+  font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif;
+  color: var(--kf-ink);
+  -webkit-font-smoothing: antialiased;
+  height: auto;
+}
+a {
+  color: var(--kf-moss);
+}
+a:hover {
+  color: var(--kf-ink);
+}
+/* Art reserves its box before the renderer arrives, so nothing moves when it draws. */
+kf-art {
+  display: block;
+}
+::selection {
+  background: var(--kf-honey);
+  color: var(--kf-ink);
+}
+:focus-visible {
+  outline: 2px solid var(--kf-moss);
+  outline-offset: 3px;
+}
+.kf-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
+}
+/* Fields on the text pages take the moss ring the design draws on the active one. */
+.kf-field:focus {
+  border: 2px solid var(--kf-moss) !important;
+  padding: 0 13px !important;
+}
+.kf-field::placeholder {
+  color: var(--kf-ink-4);
+}
+textarea.kf-field:focus {
+  padding: 13px !important;
+}
+/* The icon shows before the renderer starts; the live drawing covers it. */
+kf-art[scene='appicon'] {
+  background: url('/apple-touch-icon.png') center / cover;
+}

@@ -1,0 +1,77 @@
+---
+/** Privacy and the house rules: plain, dated text from the catalogue. */
+import { pageStyles } from '../components/page/styles';
+import Page from '../layouts/Page.astro';
+import { copyFor, pathFor, type Language } from '../lib/site';
+
+interface Props {
+  lang: Language;
+  page: 'privacy' | 'terms';
+}
+const { lang, page } = Astro.props;
+const t = copyFor(lang);
+const s = pageStyles(lang);
+const LINK = '\u0000';
+
+const content =
+  page === 'privacy'
+    ? {
+        title: t('websitePages.privacy.title'),
+        lead: t('websitePages.privacy.lead'),
+        sections: [
+          { heading: t('websitePages.privacy.keepTitle'), body: t('websitePages.privacy.keep') },
+          { heading: t('websitePages.privacy.neverTitle'), body: t('websitePages.privacy.never') },
+          {
+            heading: t('websitePages.privacy.partnersTitle'),
+            body: t('websitePages.privacy.partners'),
+          },
+          {
+            heading: t('websitePages.privacy.waitlistTitle'),
+            body: t('websitePages.privacy.waitlist'),
+          },
+          {
+            heading: t('websitePages.privacy.choicesTitle'),
+            body: t('websitePages.privacy.choices', { link: LINK }),
+          },
+        ],
+      }
+    : {
+        title: t('websitePages.terms.title'),
+        lead: t('websitePages.terms.lead'),
+        sections: [
+          { heading: t('websitePages.terms.kindTitle'), body: t('websitePages.terms.kind') },
+          {
+            heading: t('websitePages.terms.purchasesTitle'),
+            body: t('websitePages.terms.purchases'),
+          },
+          { heading: t('websitePages.terms.leavingTitle'), body: t('websitePages.terms.leaving') },
+        ],
+      };
+const deleteHref = pathFor(lang, '/delete-account');
+---
+
+<Page lang={lang} path={`/${page}`} title={content.title}>
+  <h1 style={s.title}>{content.title}</h1>
+  <p style={s.body}>{content.lead}</p>
+  {
+    content.sections.map((section) => {
+      const [before, after] = section.body.split(LINK);
+      return (
+        <>
+          <h2 style={s.heading}>{section.heading}</h2>
+          <p style={s.body}>
+            {before}
+            {after !== undefined && (
+              <>
+                <a href={deleteHref} style="color:#5E7F4A">
+                  {t('websitePages.privacy.onTheWeb')}
+                </a>
+                {after}
+              </>
+            )}
+          </p>
+        </>
+      );
+    })
+  }
+</Page>

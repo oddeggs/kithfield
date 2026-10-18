@@ -1,0 +1,27 @@
+{
+  "name": "@kithfield/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The Kithfield API: Hono on Cloudflare Workers with the farm and cottage Durable Objects, D1, R2 and Queues, served at <host>/api",
+  "scripts": {
+    "dev": "wrangler dev --env dev",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:auth": "vitest run src/auth"
+  },
+  "dependencies": {
+    "@kithfield/contracts": "workspace:*",
+    "@kithfield/farm": "workspace:*",
+    "@kithfield/i18n": "workspace:*",
+    "better-auth": "catalog:",
+    "hono": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "catalog:",
+    "@cloudflare/workers-types": "catalog:",
+    "vitest": "catalog:workers",
+    "wrangler": "catalog:"
+  }
+}

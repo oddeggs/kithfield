@@ -1,0 +1,20 @@
+{
+  "name": "@kithfield/admin",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The moderation console's Worker, behind Cloudflare Access",
+  "scripts": {
+    "dev": "wrangler dev --env dev --port 8788",
+    "build": "wrangler deploy --dry-run --env dev --outdir dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@kithfield/contracts": "workspace:*",
+    "hono": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
+    "wrangler": "catalog:"
+  }
+}

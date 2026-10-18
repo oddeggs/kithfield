@@ -1,0 +1,22 @@
+{
+  "name": "@kithfield/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "English and Vietnamese copy: per-feature catalogues, the glossary, lookup and the completeness test",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "gen": "tsx scripts/generate-catalogues.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
