@@ -175,7 +175,12 @@ describe('reporting from the app', () => {
     const detail = ReportDetail.parse((await desk(access, ANA, 'GET', `/reports/${id}`)).body);
     expect(detail.reportedSeq).toBeNull();
     expect(detail.reported.person).toBe(lot.bram.id);
+    // Only Bram's own words, and words aimed at him, are copied.
     expect(detail.context.length).toBeGreaterThan(0);
+    for (const event of detail.context) {
+      const aimed = JSON.stringify(event.payload).includes(lot.bram.id);
+      expect(event.actor === lot.bram.id || aimed, `seq ${event.seq}`).toBe(true);
+    }
   });
 
   it('refuses what a person can’t report', async () => {

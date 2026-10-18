@@ -1,4 +1,4 @@
-import { clearOldEvidence } from './admin/retention';
+import { keepModerationTidy } from './admin/retention';
 import { createApp } from './app';
 import type { Bindings } from './env';
 import { consumeQueue } from './queues';
@@ -16,6 +16,6 @@ export default {
   // The daily cron (`wrangler.jsonc` triggers).
   scheduled: (controller, env, ctx) => {
     ctx.waitUntil(keepWaitlistTidy(env.DB, controller.scheduledTime));
-    ctx.waitUntil(clearOldEvidence(env.DB, controller.scheduledTime));
+    ctx.waitUntil(keepModerationTidy(env.DB, controller.scheduledTime));
   },
 } satisfies ExportedHandler<Bindings>;

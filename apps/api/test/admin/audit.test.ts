@@ -2,8 +2,13 @@ import { AuditPage, ReportDetail, ReportResponse, ResponseTimes } from '@kithfie
 import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { clearOldEvidence, CONTEXT_KEPT_AFTER_CLOSE_MS } from '../../src/admin/retention';
-import { ANA, desk, report, type TestAccess, thursdayLot, useTestAccess } from './support';
+import {
+  AUDIT_KEPT_MS,
+  clearOldEvidence,
+  CONTEXT_KEPT_AFTER_CLOSE_MS,
+  keepModerationTidy,
+} from '../../src/admin/retention';
+import { ANA, desk, notesOf, report, type TestAccess, thursdayLot, useTestAccess } from './support';
 
 let access: TestAccess;
 beforeEach(async () => {
@@ -18,6 +23,7 @@ async function handled() {
         farm: lot.farm,
         about: { about: 'event', seq: lot.unkind },
         reason: 'unkind',
+        note: 'third time this week',
         alsoBlock: false,
       })
     ).body,
@@ -65,6 +71,21 @@ describe('the audit log', () => {
     await expect(env.DB.prepare('DELETE FROM audit_log').run()).rejects.toThrow(/append-only/);
   });
 
+  it('lets go of entries after two years', async () => {
+    const { id } = await handled();
+    const now = Date.now();
+    const old = now - AUDIT_KEPT_MS - 24 * 60 * 60_000;
+    await env.DB.prepare(
+      "INSERT INTO audit_log (id, at, moderator_id, what, item) VALUES ('L-OLD', ?, 'ana', 'claimed', ?)",
+    )
+      .bind(old, id)
+      .run();
+    await keepModerationTidy(env.DB, now);
+    const left = await env.DB.prepare('SELECT id FROM audit_log WHERE item = ?').bind(id).all();
+    expect(left.results.map((r) => r['id'])).not.toContain('L-OLD');
+    expect(left.results.length).toBeGreaterThan(0);
+  });
+
   it('exports a quarter as CSV', async () => {
     const { id } = await handled();
     const now = new Date();
@@ -98,7 +119,7 @@ describe('response times', () => {
 
 describe('report retention', () => {
   it('deletes the copied context 90 days after the report closes', async () => {
-    const { id } = await handled();
+    const { id, lot } = await handled();
     const open = await thursdayLot();
     const { report: stillOpen } = ReportResponse.parse(
       (
@@ -115,6 +136,9 @@ describe('report retention', () => {
     await clearOldEvidence(env.DB, now + CONTEXT_KEPT_AFTER_CLOSE_MS + 1000);
     const closed = ReportDetail.parse((await desk(access, ANA, 'GET', `/reports/${id}`)).body);
     expect(closed.context).toEqual([]);
+    expect(closed.notes).toEqual([]);
+    const [removal] = await notesOf(lot.bram);
+    expect(removal).toMatchObject({ note: 'content_removed', excerpt: null });
     const kept = ReportDetail.parse((await desk(access, ANA, 'GET', `/reports/${stillOpen}`)).body);
     expect(kept.context.length).toBeGreaterThan(0);
   });

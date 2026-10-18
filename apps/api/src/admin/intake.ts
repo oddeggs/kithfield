@@ -46,6 +46,27 @@ async function contextFor(
   return { context, event };
 }
 
+/** Whether an event is aimed at a person: it mentions them, replies to them, or is sent to them. */
+function aimsAt(
+  event: EventEnvelope,
+  context: readonly EventEnvelope[],
+  person: string,
+  now: (person: string) => string,
+): boolean {
+  const payload =
+    typeof event.payload === 'object' && event.payload !== null
+      ? (event.payload as Record<string, unknown>)
+      : {};
+  const mentions = payload['mentions'];
+  if (Array.isArray(mentions) && mentions.some((m) => typeof m === 'string' && now(m) === person)) {
+    return true;
+  }
+  if (typeof payload['to'] === 'string' && now(payload['to']) === person) return true;
+  const replyTo = payload['replyTo'];
+  const target = typeof replyTo === 'number' ? context.find((e) => e.seq === replyTo) : undefined;
+  return target?.actor != null && now(target.actor) === person;
+}
+
 /** The farm's members and its merged-away people (merged-away id → kept id). */
 async function whoIsWho(env: Bindings, farm: string) {
   const state = await farmStub(env, farm).state();
@@ -65,8 +86,8 @@ export async function takeReport(
 ): Promise<IntakeOutcome> {
   const read = await contextFor(env, reporter, req);
   if (read === null) return { ok: false, status: 404, code: 'not_found' };
-  const { context, event } = read;
   const who = await whoIsWho(env, req.farm);
+  const { event } = read;
   const me = who.now(reporter);
 
   let reported: string;
@@ -84,6 +105,15 @@ export async function takeReport(
     if (!who.livesHere(reported)) return { ok: false, status: 404, code: 'not_found' };
   }
 
+  // About a person: only their own words, and words aimed at them, are copied.
+  const context =
+    req.about.about === 'event'
+      ? read.context
+      : read.context.filter(
+          (e) =>
+            (e.actor !== null && who.now(e.actor) === reported) ||
+            aimsAt(e, read.context, reported, who.now),
+        );
   const seq = req.about.about === 'event' ? req.about.seq : null;
   const item = { farm: req.farm, reported, seq };
   const note = req.note ?? null;
