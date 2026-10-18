@@ -4,9 +4,9 @@ import type { DocumentPickerAsset } from 'expo-document-picker';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
-import { useDataClient, type DataClient } from '../../data';
+import { useDataClient } from '../../data';
 import { createOpIdMaker } from '../../data/op-id';
-import { nativeMediaApi } from './native-api';
+import { dataClient, handOverDataClient, nativeMediaApi } from './native-api';
 import { encodePhoto, prepareAsset, prepareDocument, prepareVoice } from './prepare';
 import { ReadUrls } from './read-urls';
 import { nativeTransport, uploadsDirectory } from './transport';
@@ -20,7 +20,6 @@ import { Uploader } from './uploader';
  * from the first screen that uses it.
  */
 
-let client: DataClient | null = null;
 let uploader: Uploader | null = null;
 let reads: ReadUrls | null = null;
 
@@ -32,11 +31,13 @@ const sharedUploader = (): Uploader =>
     now: Date.now,
     newId: randomUUID,
     newOpId: createOpIdMaker(getRandomBytes),
-    // The data layer picks its own op id until `client.send` takes one; then pass `opId` through.
-    sendCommand: (farm, kind, payload, _opId) =>
-      client === null
+    // The message's own op id: a send repeated after a crash is queued once.
+    sendCommand: (farm, kind, payload, opId) => {
+      const client = dataClient();
+      return client === null
         ? Promise.reject(new Error('the data layer has not started'))
-        : client.send(farm, kind, payload),
+        : client.send(farm, kind, payload, opId);
+    },
     shrink: (item, longSide) => encodePhoto(item.uri, item.width ?? 0, item.height ?? 0, longSide),
   }));
 
@@ -44,8 +45,7 @@ const sharedReads = (): ReadUrls => (reads ??= new ReadUrls(nativeMediaApi()));
 
 /** Starts the queue (once) with the data layer's client. */
 function useStarted(): Uploader {
-  const data = useDataClient();
-  client = data;
+  handOverDataClient(useDataClient());
   const queue = sharedUploader();
   useEffect(() => {
     void queue.start();

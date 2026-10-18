@@ -1,20 +1,37 @@
 import {
   CommandResult,
+  CompleteUploadResponse,
+  CopyMediaResponse,
   CreateFarmResponse,
   ErrorBody,
   FarmList,
   Invite,
+  InvitePreview,
   JoinResponse,
   LIMITS,
   Me,
+  OpenVisitResponse,
+  QuickTendList,
+  ReadUrlsResponse,
+  RememberResponse,
   RtTokenResponse,
   SignInNonceResponse,
+  UploadUrlResponse,
+  type AbortUploadRequest,
+  type AgeRequest,
+  type CompleteUploadRequest,
+  type CopyMediaRequest,
   type CreateFarmRequest,
   type CreateInviteRequest,
   type ErrorCode,
   type FarmId,
   type JoinRequest,
   type MeProfileUpdate,
+  type OpenVisitRequest,
+  type ReadUrlsRequest,
+  type RememberRequest,
+  type TermsRequest,
+  type UploadUrlRequest,
 } from '@kithfield/contracts';
 import { z } from 'zod';
 
@@ -51,6 +68,9 @@ export interface EventsRange {
   readonly limit?: number;
 }
 
+/** How the age check went: `under_age` means the server removed the person. */
+export type AgeAnswer = 'ok' | 'under_age';
+
 /** A write as the outbox holds it: sent as it was made, whatever this app version thinks of it. */
 export interface RawCommand {
   readonly opId: string;
@@ -74,6 +94,9 @@ const parseJson = (text: string): unknown => {
     return undefined;
   }
 };
+
+/** An answer with no body (204). */
+const NoContent = z.null();
 
 /** The HTTP endpoints the data layer uses. Every answer is checked against its contract. */
 export function createApiClient(deps: ApiClientDeps) {
@@ -162,6 +185,70 @@ export function createApiClient(deps: ApiClientDeps) {
     /** Moves in with an invite's code, or waits for the keeper when the farm asks first. */
     join: (code: string, join: JoinRequest) =>
       request(JoinResponse, 'POST', `/v1/invites/${encodeURIComponent(code)}/join`, join),
+
+    /** The farm an invite opens onto, or null for a link that's gone; needs no session. */
+    invite: async (code: string): Promise<InvitePreview | null> => {
+      try {
+        return await request(
+          InvitePreview,
+          'GET',
+          `/v1/invites/${encodeURIComponent(code)}`,
+          undefined,
+          false,
+        );
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
+      }
+    },
+
+    /**
+     * The age check: only the birth year and the phone's country go, and the year is never kept.
+     * Under the age for that country the server removes the person and this answers `under_age`.
+     */
+    age: async (age: AgeRequest): Promise<AgeAnswer> => {
+      try {
+        await request(NoContent, 'POST', '/v1/me/age', age);
+        return 'ok';
+      } catch (error) {
+        if (error instanceof ApiError && error.code === 'under_age') return 'under_age';
+        throw error;
+      }
+    },
+
+    /** The person accepts the Terms version in force. */
+    acceptTerms: async (terms: TermsRequest): Promise<void> => {
+      await request(NoContent, 'POST', '/v1/me/terms', terms);
+    },
+
+    /** Opens (or reopens) the one-to-one visit with a person. */
+    openVisit: (visit: OpenVisitRequest) => request(OpenVisitResponse, 'POST', '/v1/visits', visit),
+
+    /** What waits for the person across their farms and visits, newest first. */
+    quickTend: () => request(QuickTendList, 'GET', '/v1/quick-tend'),
+
+    /** Plants a remember-me seed, kept by the person's cottage. */
+    remember: (seed: RememberRequest) => request(RememberResponse, 'POST', '/v1/remember', seed),
+
+    /** Somewhere to upload one file: a presigned PUT, or presigned parts above 50 MB. */
+    uploadUrl: (upload: UploadUrlRequest) =>
+      request(UploadUrlResponse, 'POST', '/v1/media/upload-url', upload),
+
+    /** Finishes a multipart upload with each part's ETag. */
+    complete: (upload: CompleteUploadRequest) =>
+      request(CompleteUploadResponse, 'POST', '/v1/media/complete', upload),
+
+    /** Short-lived signed reads; keys the person can't see are left out. */
+    readUrls: (read: ReadUrlsRequest) =>
+      request(ReadUrlsResponse, 'POST', '/v1/media/read-urls', read),
+
+    /** Copies finished media into another farm, for forwarding: each original with its copy. */
+    copyMedia: (copy: CopyMediaRequest) =>
+      request(CopyMediaResponse, 'POST', '/v1/media/copy', copy),
+
+    /** Gives up on an upload nothing points at yet: its parts or its object go. */
+    abortUpload: (upload: AbortUploadRequest) =>
+      request(NoContent, 'POST', '/v1/media/abort', upload),
   };
 }
 

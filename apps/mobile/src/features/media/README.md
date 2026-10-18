@@ -40,16 +40,17 @@ Each call prepares the files and answers a batch id at once; the rest happens in
 - **Sent**: once every item of a message is up, the queue writes the `media` (photos, video, files,
   with the caption) or `voice` command with the keys into the farm's outbox. Its op id (UUIDv7) is
   saved with the message before the send, so a send cut short by the app going away is repeated
-  with the same id (`sendCommand` in `use-upload.tsx`; it passes the id on once `client.send`
-  takes one). The chat then draws the pending write like any other.
+  with the same id (`sendCommand` in `use-upload.tsx` passes it to `client.send`, which never
+  queues an op id it already holds). The chat then draws the pending write like any other.
 - **Stops**: an item that can't go (too big, not on the farm, unreadable, signed out) waits for
   "Try again"; a message that failed is let go a week later with its files.
 
-Mount `<MediaUploads />` once under the data layer so the queue resumes at launch (until then it
-starts with the first screen that uses these hooks). On sign-out or when the phone moves to another
-person, call `clearMediaForSignOut()`: it stops every upload, deletes the queue's files and forgets
-the read URLs. `pendingUploadCount()` counts messages not yet in the outbox, for the warning
-before signing out.
+`<MediaUploads />` is mounted once under the data layer (`app/_layout.tsx`) so the queue resumes
+at launch. The calls go through the data layer's API client (`native-api.ts`), with its session.
+The root layout hands the queue to the data layer as what the person holds elsewhere: signing out
+counts `pendingUploadCount()` (messages not yet in the outbox) in its warning, and wiping the
+tables calls `clearMediaForSignOut()`, which stops every upload, deletes the queue's files and
+forgets the read URLs.
 
 ## Showing progress: `<UploadProgress>` and friends
 
@@ -78,5 +79,6 @@ key, so a new URL for the same photo is never downloaded twice. Use the URL the 
 
 - **Wait for Wi-Fi** needs to tell Wi-Fi from cellular, and no module in the app does
   (`expo-network` would).
-- **Forwarding** media to another farm copies it there first: `POST /v1/media/copy {fromFarm,
-  keys, farm}` answers `{keys: {old: new}}`; the forwarded message carries the new keys.
+- **Forwarding** media to another farm copies it there first: `api.copyMedia({fromFarm, keys,
+  farm})` answers `{keys: {old: new}}`; the forwarded message carries the new keys. No screen
+  forwards yet.

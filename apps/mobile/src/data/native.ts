@@ -7,6 +7,7 @@ import { openDatabase } from '../db/open-database';
 import { createApiClient } from './api-client';
 import type { SyncReport } from './apply-events';
 import { authPort, createKithfieldAuthClient, type KithfieldAuthClient } from './auth-client';
+import type { HeldElsewhere } from './client-types';
 import { createDataClient, type DataClient } from './data-client';
 import type { NetworkSwitch, createNetworkSwitch } from './dev-network';
 import type { FarmRules } from './farm-rules';
@@ -44,6 +45,11 @@ export interface DataRuntime<View> {
   readonly network: NetworkSwitch | null;
 }
 
+export interface StartOptions {
+  /** What the person keeps outside the data layer (the media queue), for signing out. */
+  readonly heldElsewhere?: HeldElsewhere;
+}
+
 const platformSocket: OpenSocket = (url) => new WebSocket(url) as unknown as WebSocketLike;
 
 type DevNetwork = { createNetworkSwitch: typeof createNetworkSwitch };
@@ -65,6 +71,7 @@ const makeNetworkSwitch = __DEV__
 export async function startData<View>(
   rules: FarmRules<View>,
   report: (report: SyncReport) => void = () => undefined,
+  options: StartOptions = {},
 ): Promise<DataRuntime<View>> {
   const { apiBase } = Constants.expoConfig?.extra as AppExtra;
   const network =
@@ -104,6 +111,7 @@ export async function startData<View>(
     appState: AppState,
     newOpId: createOpIdMaker(getRandomBytes),
     report,
+    ...(options.heldElsewhere ? { heldElsewhere: options.heldElsewhere } : {}),
   });
 
   const signIn = createSignIn({

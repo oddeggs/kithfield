@@ -8,7 +8,12 @@ import { runMigrations } from '../../db/migrate';
 import { MIGRATIONS } from '../../db/migrations';
 import type { SqlDatabase, SqlValue } from '../../db/sql';
 import { createApiClient } from '../api-client';
-import { createDataClient, type AppStateSource, type DataClient } from '../data-client';
+import {
+  createDataClient,
+  type AppStateSource,
+  type DataClient,
+  type HeldElsewhere,
+} from '../data-client';
 import type { SyncReport } from '../farm-replica';
 import { createOpIdMaker } from '../op-id';
 import { createRtTokens } from '../rt-tokens';
@@ -92,8 +97,17 @@ export class TestPhone {
     this.path = join(mkdtempSync(join(tmpdir(), 'kithfield-sync-')), 'phone.db');
   }
 
-  static async start(server: FarmTestServer, person: string, tuning = FAST): Promise<TestPhone> {
+  /** What the phone keeps outside the data layer (the media queue), when the test gives one. */
+  heldElsewhere: HeldElsewhere | undefined;
+
+  static async start(
+    server: FarmTestServer,
+    person: string,
+    tuning = FAST,
+    heldElsewhere?: HeldElsewhere,
+  ): Promise<TestPhone> {
     const phone = new TestPhone(server, person, tuning);
+    phone.heldElsewhere = heldElsewhere;
     await phone.boot();
     return phone;
   }
@@ -119,6 +133,7 @@ export class TestPhone {
       now: this.server.now,
       report: (report) => this.reports.push(report),
       tuning: this.tuning,
+      ...(this.heldElsewhere ? { heldElsewhere: this.heldElsewhere } : {}),
     });
     await this.client.start();
   }

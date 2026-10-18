@@ -4,7 +4,9 @@
  *
  * Starting it (once, at app start, by the shell):
  *
- *   const { client, session, signIn, network } = await startData(kithfieldRules, report);
+ *   const { client, session, signIn, network } = await startData(kithfieldRules, report, {
+ *     heldElsewhere, // what the person keeps outside the data layer (the media queue)
+ *   });
  *   <DataProvider client={client} rules={kithfieldRules} network={network}>…</DataProvider>
  *
  * `network` is a switch that cuts the data layer's network (development builds only; null in
@@ -29,22 +31,26 @@
  *   its op id, or `refused` with the reason when the shared rules already say no. A queued write
  *   is retried until the farm answers; a rejection is final and shows in `useRejections`.
  *
- * The rest of the API (the profile, the farm list, planting a farm, invites, joining):
- * `useDataClient().api`.
+ * The rest of the API: `useDataClient().api`. The profile, the farm list, planting a farm,
+ * invites (`invite(code)` previews one without a session; null for a link that's gone), joining,
+ * the age check (`age`: `ok` or `under_age`), the Terms, opening a visit, Quick Tend, remember-me
+ * seeds, and media uploads, read URLs and copies. Each answer is checked against its contract;
+ * a failure is an `ApiError` with the status and the API's code.
  *
  * Sockets: `useOpenFarm(farm)` keeps a farm's socket open while a screen shows it (the last one
  * held wins). The cottage socket runs while the app is in the foreground and there is a person.
  *
  * Signing in and out: `signIn.withIdToken('apple' | 'google', openSheet)`, `signIn.sendEmailCode`
  * and `signIn.withEmailCode` upgrade the anonymous person (a merge reconnects as the kept one).
- * `client.signOut({force})` answers how many writes would be lost before it wipes anything; then
+ * `client.signOut({force})` answers how many writes would be lost (messages still uploading
+ * included) before it wipes anything, the media queue with the tables; then
  * `session.signOut()` and start again with `startData`.
  */
-export { startData, type DataRuntime } from './native';
+export { startData, type DataRuntime, type StartOptions } from './native';
 export { kithfieldRules } from './farm-rules';
 export type { NetworkSwitch } from './dev-network';
-export type { ApiClient } from './api-client';
-export type { DataClient, DataStatus } from './data-client';
+export { ApiError, type AgeAnswer, type ApiClient } from './api-client';
+export type { DataClient, DataStatus, HeldElsewhere } from './data-client';
 export type { FarmRules } from './farm-rules';
 export type { FarmLink, BlockedCode } from './farm-connection';
 export type { CottageLink, CottageState } from './cottage-connection';

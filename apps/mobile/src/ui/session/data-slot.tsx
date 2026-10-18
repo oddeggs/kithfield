@@ -7,6 +7,7 @@ import {
   startData,
   useDataStatus,
   type DataRuntime,
+  type HeldElsewhere,
   type SessionPerson,
   type SyncReport,
 } from '../../data';
@@ -75,14 +76,27 @@ function StartFailed({ onRetry }: { readonly onRetry: () => void }) {
  * session in the shell's `SessionProvider`. Nothing below renders while it starts, so the splash
  * stays up; a returning install starts from what the phone holds even offline.
  */
-export function DataSlot({ children }: { readonly children: ReactNode }) {
+export function DataSlot({
+  heldElsewhere,
+  children,
+}: {
+  /** What the person keeps outside the data layer (the media queue): signing out clears it. */
+  readonly heldElsewhere?: HeldElsewhere;
+  readonly children: ReactNode;
+}) {
   const [phase, setPhase] = useState<Phase>({ kind: 'starting' });
   // One start per attempt, even when an effect runs twice in development.
   const started = useRef<Promise<Runtime> | null>(null);
+  // Read when the data layer starts; a later change doesn't restart it.
+  const held = useRef(heldElsewhere);
 
   useEffect(() => {
     if (phase.kind !== 'starting') return;
-    started.current ??= startData<unknown>(kithfieldRules, report);
+    started.current ??= startData<unknown>(
+      kithfieldRules,
+      report,
+      held.current ? { heldElsewhere: held.current } : {},
+    );
     let live = true;
     started.current.then(
       (runtime) => live && setPhase({ kind: 'ready', runtime }),

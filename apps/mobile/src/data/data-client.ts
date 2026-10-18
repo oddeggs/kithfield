@@ -9,7 +9,7 @@ import { createOutboxDrainer } from './outbox-drainer';
 import { createReplicas } from './replicas';
 import { createSyncStore, type StoredEvent, type StoredRejection } from './sync-store';
 
-export type { AppStateSource, DataClientDeps, DataStatus } from './client-types';
+export type { AppStateSource, DataClientDeps, DataStatus, HeldElsewhere } from './client-types';
 
 /** The link of a farm never opened: one object, so hooks reading it see no change. */
 const STOPPED: FarmLink = { status: 'stopped' };
@@ -191,12 +191,14 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
 
     /**
      * Makes a write: checked against the shared rules, queued in the outbox, drawn at once, then
-     * sent on the farm's socket (or over HTTP when that farm isn't open).
+     * sent on the farm's socket (or over HTTP when that farm isn't open). `opId` is for a write
+     * that may be made again (the media queue after a crash): one this phone holds isn't queued
+     * twice. Without it the write gets a new op id.
      */
-    async send(farm: FarmId, kind: string, payload: unknown): Promise<EnqueueResult> {
+    async send(farm: FarmId, kind: string, payload: unknown, opId?: OpId): Promise<EnqueueResult> {
       const me = deps.me();
       if (me === null) throw new Error('Writing needs a session');
-      const result = await (await replica(farm)).enqueue(me, { kind, payload });
+      const result = await (await replica(farm)).enqueue(me, { kind, payload, opId });
       if (result.status === 'queued' && open?.farm !== farm)
         guard('outbox.drain', drainer.drainAll());
       return result;
@@ -253,12 +255,14 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
 
     /**
      * Before signing out: sends what it can, then (unless writes are still waiting and `force` is
-     * false) stops every socket and wipes this person's tables. Answers how many writes would be
-     * lost, so the UI can warn first.
+     * false) stops every socket and wipes this person's tables and what they hold elsewhere (the
+     * media queue). Answers how many writes would be lost, counting messages still uploading, so
+     * the UI can warn first.
      */
     async signOut(options: { force: boolean }): Promise<{ unsent: number; signedOut: boolean }> {
       await drainer.drainAll();
-      const unsent = await store.unsentCount();
+      const unsent =
+        (await store.unsentCount()) + ((await deps.heldElsewhere?.pendingCount()) ?? 0);
       if (unsent > 0 && !options.force) return { unsent, signedOut: false };
       if (unsent > 0) report({ type: 'unsent_at_sign_out', count: unsent });
       holds.splice(0);
@@ -268,6 +272,9 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
       replicas.clear();
       links.clear();
       rejections = [];
+      await deps.heldElsewhere
+        ?.clear()
+        .catch((error: unknown) => report(failure('sign_out.held_elsewhere', error)));
       notify();
       return { unsent, signedOut: true };
     },
