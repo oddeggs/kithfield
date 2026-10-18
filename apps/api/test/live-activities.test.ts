@@ -122,8 +122,7 @@ beforeEach(async () => {
     keyId: 'KEY1234567',
     teamId: 'YFND2EEW8S',
     bundleId: 'com.kithfield.app.dev',
-    host: 'api.push.apple.com',
-    relayUrl: null,
+    hosts: ['api.push.apple.com'],
   };
   activityPorts.config = () => config;
   activityPorts.farmState = () => Promise.resolve(farm);

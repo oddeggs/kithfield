@@ -1,8 +1,10 @@
+import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   type ApnsConfig,
   apnsConfig,
+  d1TokenStore,
   forgetProviderTokens,
   providerToken,
   sendLiveActivity,
@@ -23,9 +25,9 @@ beforeEach(async () => {
     keyId: 'KEY1234567',
     teamId: 'YFND2EEW8S',
     bundleId: 'com.kithfield.app.dev',
-    host: null,
-    relayUrl: null,
+    hosts: ['api.push.apple.com', 'api.sandbox.push.apple.com'],
   };
+  await env.DB.exec('DELETE FROM apns_tokens');
 });
 
 type Sent = { url: string; headers: Record<string, string>; body: unknown };
@@ -67,6 +69,32 @@ describe('the APNs provider token', () => {
   it('is off without the key', () => {
     expect(apnsConfig({ APPLE_BUNDLE_ID: 'x' } as never)).toBeNull();
   });
+
+  it('is made once for every isolate: one kept in D1 is reused until it is 50 minutes old', async () => {
+    const store = d1TokenStore(env.DB);
+    const now = Date.UTC(2026, 9, 19, 12);
+    const first = await providerToken(config, now, store);
+    // Another isolate, with nothing in memory, takes the same token.
+    forgetProviderTokens();
+    expect(await providerToken(config, now + 10 * 60_000, store)).toBe(first);
+    forgetProviderTokens();
+    const next = await providerToken(config, now + 51 * 60_000, store);
+    expect(next).not.toBe(first);
+    forgetProviderTokens();
+    expect(await providerToken(config, now + 52 * 60_000, store)).toBe(next);
+  });
+
+  it('converges when two isolates refresh it at once', async () => {
+    const store = d1TokenStore(env.DB);
+    const now = Date.UTC(2026, 9, 19, 12);
+    const [a, b] = await Promise.all([
+      providerToken(config, now, store),
+      providerToken(config, now + 1000, store),
+    ]);
+    forgetProviderTokens();
+    const kept = await providerToken(config, now + 2000, store);
+    expect([a, b]).toContain(kept);
+  });
 });
 
 describe('sending a Live Activity push', () => {
@@ -106,14 +134,43 @@ describe('sending a Live Activity push', () => {
   it('says a token is dead when Apple no longer takes it', async () => {
     const apns = fakeApns(() => Response.json({ reason: 'Unregistered' }, { status: 410 }));
     expect(
-      await sendLiveActivity(apns.fetch, { ...config, host: 'api.push.apple.com' }, push, 0),
+      await sendLiveActivity(apns.fetch, { ...config, hosts: ['api.push.apple.com'] }, push, 0),
     ).toEqual({ kind: 'dead', reason: 'Unregistered' });
   });
 
-  it('goes through the relay when one is set, naming the host', async () => {
-    const apns = fakeApns(() => new Response(null, { status: 200 }));
-    await sendLiveActivity(apns.fetch, { ...config, relayUrl: 'https://relay.example' }, push, 0);
-    expect(apns.sent[0]!.url).toBe(`https://relay.example/3/device/${push.token}`);
-    expect(apns.sent[0]!.headers['apns-host']).toBe('api.push.apple.com');
+  it('sends to the environment’s hosts in order: production only, or the sandbox first', () => {
+    const base = { APPLE_BUNDLE_ID: 'com.kithfield.app', APNS_KEY_P8: 'k', APNS_KEY_ID: 'K' };
+    expect(apnsConfig({ ...base, APNS_HOST: 'api.push.apple.com' } as never)?.hosts).toEqual([
+      'api.push.apple.com',
+    ]);
+    expect(
+      apnsConfig({ ...base, APNS_HOST: 'api.sandbox.push.apple.com,api.push.apple.com' } as never)
+        ?.hosts,
+    ).toEqual(['api.sandbox.push.apple.com', 'api.push.apple.com']);
+  });
+
+  it('keeps its token when Apple says it was refreshed too often, and tries again later', async () => {
+    const now = Date.UTC(2026, 9, 19, 12);
+    const store = d1TokenStore(env.DB);
+    const apns = fakeApns(() =>
+      Response.json({ reason: 'TooManyProviderTokenUpdates' }, { status: 429 }),
+    );
+    const before = await providerToken(config, now, store);
+    expect(await sendLiveActivity(apns.fetch, config, push, now, store)).toEqual({
+      kind: 'failed',
+      reason: 'TooManyProviderTokenUpdates',
+    });
+    expect(await providerToken(config, now + 60_000, store)).toBe(before);
+  });
+
+  it('makes a new token for an expired one, but never within 20 minutes of the last', async () => {
+    const now = Date.UTC(2026, 9, 19, 12);
+    const store = d1TokenStore(env.DB);
+    const apns = fakeApns(() => Response.json({ reason: 'ExpiredProviderToken' }, { status: 403 }));
+    const first = await providerToken(config, now, store);
+    await sendLiveActivity(apns.fetch, config, push, now + 5 * 60_000, store);
+    expect(await providerToken(config, now + 6 * 60_000, store)).toBe(first);
+    await sendLiveActivity(apns.fetch, config, push, now + 25 * 60_000, store);
+    expect(await providerToken(config, now + 26 * 60_000, store)).not.toBe(first);
   });
 });

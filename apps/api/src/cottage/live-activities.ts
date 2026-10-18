@@ -2,7 +2,14 @@ import type { CottageDelivery, FarmState, PushJob } from '@kithfield/contracts';
 import { t } from '@kithfield/i18n';
 
 import type { Bindings } from '../env';
-import { type ApnsConfig, apnsConfig, type LiveActivityPush, sendLiveActivity } from '../push/apns';
+import {
+  type ApnsConfig,
+  apnsConfig,
+  d1TokenStore,
+  type LiveActivityPush,
+  sendLiveActivity,
+  type TokenStore,
+} from '../push/apns';
 import { collapseKeyFor } from '../push/catalogue';
 import { holdUntil, localClock } from '../push/policy';
 import {
@@ -31,6 +38,7 @@ import { quietOf, readProfile, zoneOf } from './profile';
 /** The edges, replaced in tests: the network and the farm's state. */
 export const activityPorts = {
   config: (env: Bindings): ApnsConfig | null => apnsConfig(env),
+  tokens: (env: Bindings): TokenStore => d1TokenStore(env.DB),
   fetch: ((input, init) => fetch(input, init)) as typeof fetch,
   farmState: async (env: Bindings, farm: string): Promise<FarmState | null> =>
     env.FARM.get(env.FARM.idFromName(farm)).state(),
@@ -57,7 +65,13 @@ async function sendAll(
   pushes: readonly LiveActivityPush[],
 ): Promise<void> {
   for (const push of pushes) {
-    const result = await sendLiveActivity(activityPorts.fetch, config, push, intake.now);
+    const result = await sendLiveActivity(
+      activityPorts.fetch,
+      config,
+      push,
+      intake.now,
+      activityPorts.tokens(intake.env),
+    );
     if (result.kind === 'dead') activities.dropDeadToken(intake.sql, push.token);
     else if (result.kind === 'failed') {
       console.error('live activity push failed', { reason: result.reason });

@@ -41,6 +41,8 @@
         // `APNS_KEY_P8` secret. Without the secret, Live Activities only move while the app runs.
         "APNS_KEY_ID": "4QN5TUP479",
         "APNS_TEAM_ID": "YFND2EEW8S",
+        // Dev builds run on the sandbox; a TestFlight build of Kithfield Dev on production.
+        "APNS_HOST": "api.sandbox.push.apple.com,api.push.apple.com",
       },
       "durable_objects": {
         "bindings": [
@@ -150,6 +152,7 @@
         // `APNS_KEY_P8` secret. Without the secret, Live Activities only move while the app runs.
         "APNS_KEY_ID": "4QN5TUP479",
         "APNS_TEAM_ID": "YFND2EEW8S",
+        "APNS_HOST": "api.push.apple.com",
       },
       "durable_objects": {
         "bindings": [

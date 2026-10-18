@@ -73,12 +73,10 @@ export type Bindings = Secrets & {
   /** The Apple team the key belongs to; `YFND2EEW8S` when unset. */
   readonly APNS_TEAM_ID?: string;
   /**
-   * `api.push.apple.com` or `api.sandbox.push.apple.com`. Unset, production is tried first and a
-   * development build's token falls back to the sandbox.
+   * The APNs hosts to send to, in order, comma-separated; the next is tried only for a token the
+   * last called a bad device token. prd: `api.push.apple.com`; dev: the sandbox, then production.
    */
   readonly APNS_HOST?: string;
-  /** A relay that forwards APNs requests over HTTP/2, if the Worker's own `fetch` can't. */
-  readonly APNS_RELAY_URL?: string;
   /** At most 20 sign-in nonces a minute per client address. */
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Gestures at another farm's gate, per visitor. */
