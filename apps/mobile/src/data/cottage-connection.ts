@@ -30,7 +30,7 @@ export interface CottageConnectionDeps {
   readonly backoff?: BackoffOptions;
   readonly keepAlive?: KeepAlive;
   readonly random?: () => number;
-  /** The session is gone (401 for a token, or `session_ended`): the app offers sign-in. */
+  /** The cottage said `session_ended` (signed out from another device): the phone wipes. */
   readonly onSessionEnded: () => void;
   /** The person is banned: every socket stops. */
   readonly onBanned: () => void;
@@ -67,10 +67,9 @@ export async function createCottageConnection(deps: CottageConnectionDeps) {
       JSON.stringify({ type: 'hello', protocol: PROTOCOL_VERSION, token: await tokens.get() }),
     onHelloError: (error) => {
       if (!(error instanceof ApiError)) return 'retry';
-      if (error.status === 401) {
-        deps.onSessionEnded();
-        return 'stop';
-      }
+      // A token's 401 already had the session re-checked: ended, it stopped this socket; else
+      // try again later.
+      if (error.status === 401) return 'retry';
       if (error.status === 403 && error.code === 'banned') {
         block('banned');
         return 'stop';

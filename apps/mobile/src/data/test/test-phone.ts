@@ -17,6 +17,7 @@ import {
 import type { SyncReport } from '../farm-replica';
 import { createOpIdMaker } from '../op-id';
 import { createRtTokens } from '../rt-tokens';
+import { sessionRecheck } from '../session-check';
 import type { FarmTestServer } from './farm-test-server';
 import type { FarmView } from '@kithfield/farm';
 import { kithfieldRules } from '../farm-rules';
@@ -86,6 +87,12 @@ export class TestPhone {
   db!: FileDb;
   readonly appState = testAppState();
   readonly reports: SyncReport[] = [];
+  /** How many times a 401 had the session re-checked. */
+  rechecks = 0;
+  /** Calls whose path contains one of these answer 401 once, as a stale token would. */
+  readonly staleFor: string[] = [];
+  /** Every HTTP call the phone made, as `METHOD path`. */
+  readonly calls: string[] = [];
   readonly path: string;
 
   private constructor(
@@ -117,9 +124,26 @@ export class TestPhone {
     await runMigrations(this.db, MIGRATIONS);
     const api = createApiClient({
       baseUrl: 'https://test.kithfield.invalid/api',
-      fetch: this.server.fetch,
+      fetch: (input, init) => {
+        const url = String(input instanceof Request ? input.url : input);
+        this.calls.push(`${init?.method ?? 'GET'} ${url.replace(/^.*\/api/, '')}`);
+        const stale = this.staleFor.findIndex((path) => url.includes(path));
+        if (stale >= 0) {
+          this.staleFor.splice(stale, 1);
+          const body = JSON.stringify({ error: { code: 'unauthorized' } });
+          return Promise.resolve(new Response(body, { status: 401 }));
+        }
+        return this.server.fetch(input, init);
+      },
       authHeaders: () => Promise.resolve({ authorization: `Bearer ${this.person}` }),
-      onUnauthorized: () => this.client.endSession(),
+      // The session's re-check, as the phone's refresh asks the server: still known, or ended.
+      onUnauthorized: sessionRecheck(async () => {
+        this.rechecks += 1;
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        if (this.server.people.has(this.person)) return true;
+        this.client.endSession();
+        return false;
+      }),
     });
     this.client = await createDataClient({
       db: this.db,

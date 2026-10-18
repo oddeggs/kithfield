@@ -73,15 +73,25 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
   }
 
   /**
-   * The session is over (signed out from another device, revoked, expired): every socket stops,
-   * this person's data is wiped as signing out does, and the app offers sign-in.
+   * The session is over, as confirmed by a socket's `session_ended`, the session's re-check or
+   * the launch check (never by one call's 401): every socket stops, this person's data is wiped
+   * as signing out does, and the app offers sign-in. Writes still waiting are counted first, the
+   * way signing out reports them.
    */
   const sessionEnded = () => {
     if (status.sessionEnded) return;
     open?.stop();
     cottage.stop();
     setStatus({ sessionEnded: true });
-    guard('session_ended.wipe', wipe());
+    guard(
+      'session_ended.wipe',
+      (async () => {
+        const unsent =
+          (await store.unsentCount()) + ((await deps.heldElsewhere?.pendingCount()) ?? 0);
+        if (unsent > 0) report({ type: 'unsent_at_session_end', count: unsent });
+        await wipe();
+      })(),
+    );
   };
   const banned = () => {
     if (status.banned) return;
@@ -95,8 +105,9 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
     replica,
     api: deps.api,
     isOpen: (farm) => open?.farm === farm,
+    // A 401 while draining already had the session re-checked (`onUnauthorized`); the drain
+    // stops for now and the writes stay queued.
     onOutcome: (_farm, outcome) => {
-      if (outcome === 'session_ended') sessionEnded();
       if (outcome === 'banned') banned();
     },
     report,
@@ -272,8 +283,8 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
     },
 
     /**
-     * The session ended outside the sockets (a launch or a refresh found it gone, an API call
-     * answered 401): stop, wipe this person's data and offer sign-in. Once per ended session.
+     * The session ended outside the sockets, as the launch check or a re-check confirmed: stop,
+     * wipe this person's data and offer sign-in. Once per ended session.
      */
     endSession: () => sessionEnded(),
 

@@ -203,25 +203,43 @@ describe('the way in', () => {
 });
 
 describe('a session the server no longer knows', () => {
-  it('tells onUnauthorized of a signed-in call’s 401, never of a signed-out one’s', async () => {
-    let endings = 0;
-    const answers = [401, 401, 403];
+  it('re-checks the session on a signed-in call’s 401, retrying once only while it is live', async () => {
+    let checks = 0;
+    let live = true;
+    const blocked = { blocked: [] };
+    const answers = [
+      { status: 401 },
+      { status: 200, body: blocked },
+      { status: 401 },
+      { status: 401 },
+      { status: 403 },
+    ];
+    let calls = 0;
     const api = createApiClient({
       baseUrl: BASE,
-      fetch: () =>
-        Promise.resolve(
-          new Response(JSON.stringify({ error: { code: 'unauthorized', message: 'No' } }), {
-            status: answers.shift() ?? 500,
-          }),
-        ),
+      fetch: () => {
+        calls += 1;
+        const answer = answers.shift() ?? { status: 500 };
+        const text = JSON.stringify(answer.body ?? { error: { code: 'unauthorized' } });
+        return Promise.resolve(new Response(text, { status: answer.status }));
+      },
       authHeaders: () => Promise.resolve({ authorization: 'Bearer t' }),
-      onUnauthorized: () => (endings += 1),
+      onUnauthorized: () => {
+        checks += 1;
+        return Promise.resolve(live);
+      },
     });
+    // A stale 401 while the session is live: one re-check, one retry.
+    expect(await api.blocks()).toEqual(blocked);
+    expect([checks, calls]).toEqual([1, 2]);
+    // Confirmed gone: no retry, the 401 is thrown.
+    live = false;
     await expect(api.blocks()).rejects.toMatchObject({ status: 401 });
-    expect(endings).toBe(1);
+    expect([checks, calls]).toEqual([2, 3]);
+    // A signed-out call's 401, and a 403, ask for no re-check.
     await expect(api.invite('code')).rejects.toMatchObject({ status: 401 });
     await expect(api.me()).rejects.toMatchObject({ status: 403 });
-    expect(endings).toBe(1);
+    expect(checks).toBe(2);
   });
 });
 

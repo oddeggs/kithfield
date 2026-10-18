@@ -38,9 +38,11 @@
  * `api.request(schema, method, path, body?)`. Each answer is checked against its contract; a
  * failure is an `ApiError` with the status and the API's code.
  *
- * An ended session (signed out from another device: a socket's `session_ended`, or any 401 from
- * the API or the session's refresh) stops the sockets and wipes this person's data as signing
- * out does, the media queue included, then sets `useDataStatus().sessionEnded`.
+ * A call's 401 asks for one re-check of the session (a burst of 401s shares it) and, if the
+ * session is still live, tries the call once more. A session confirmed gone (the re-check, the
+ * launch check, or a socket's `session_ended`) stops the sockets, counts the writes still waiting
+ * (`unsent_at_session_end`) and wipes this person's data as signing out does, the media queue
+ * included, then sets `useDataStatus().sessionEnded`.
  *
  * Sockets: `useOpenFarm(farm)` keeps a farm's socket open while a screen shows it (the last one
  * held wins). The cottage socket runs while the app is in the foreground and there is a person.

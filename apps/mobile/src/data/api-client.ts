@@ -61,8 +61,12 @@ export interface ApiClientDeps {
   /** The session's bearer header. */
   readonly authHeaders: () => Promise<Record<string, string>>;
   readonly timeoutMs?: number;
-  /** A signed-in call answered 401: the session is over (signed out elsewhere, revoked). */
-  readonly onUnauthorized?: () => void;
+  /**
+   * A signed-in call answered 401. A 401 alone proves nothing (a token refreshed meanwhile, a
+   * clock skew): this re-checks the session and answers whether it is still live, in which case
+   * the call is tried once more. Wiping is for the re-check to decide, never for one call.
+   */
+  readonly onUnauthorized?: () => Promise<boolean>;
 }
 
 export interface EventsRange {
@@ -105,8 +109,8 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 /**
  * One call to the API, its answer checked against `schema` (`z.null()` for a 204). Signed in
- * (the default), it carries the session's bearer, and a 401 means the server no longer knows the
- * session: `onUnauthorized` hears of it before the `ApiError` is thrown.
+ * (the default), it carries the session's bearer. A 401 asks `onUnauthorized` to re-check the
+ * session; when it is still live the call is tried once more, else the `ApiError` is thrown.
  */
 export function createRequest(deps: ApiClientDeps) {
   return async function request<S extends z.ZodType>(
@@ -115,6 +119,23 @@ export function createRequest(deps: ApiClientDeps) {
     path: string,
     body?: unknown,
     signedIn = true,
+  ): Promise<z.infer<S>> {
+    try {
+      return await once(schema, method, path, body, signedIn);
+    } catch (error) {
+      const unauthorized = signedIn && error instanceof ApiError && error.status === 401;
+      if (!unauthorized || deps.onUnauthorized === undefined) throw error;
+      if (!(await deps.onUnauthorized())) throw error;
+      return once(schema, method, path, body, signedIn);
+    }
+  };
+
+  async function once<S extends z.ZodType>(
+    schema: S,
+    method: HttpMethod,
+    path: string,
+    body: unknown,
+    signedIn: boolean,
   ): Promise<z.infer<S>> {
     const headers: Record<string, string> = {
       accept: 'application/json',
@@ -134,7 +155,6 @@ export function createRequest(deps: ApiClientDeps) {
       const data = parseJson(await response.text());
       if (!response.ok) {
         const error = ErrorBody.safeParse(data);
-        if (signedIn && response.status === 401) deps.onUnauthorized?.();
         throw new ApiError(response.status, error.success ? error.data.error.code : 'unknown');
       }
       const parsed = schema.safeParse(data);
@@ -144,7 +164,7 @@ export function createRequest(deps: ApiClientDeps) {
     } finally {
       clearTimeout(timer);
     }
-  };
+  }
 }
 
 export type ApiRequest = ReturnType<typeof createRequest>;
