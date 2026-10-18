@@ -1,6 +1,6 @@
 import type { FarmState } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useArt } from '../../ui/art/art-provider';
 import { bakeBackdrop, bakeCritter, type Backdrop } from './farm-bake';
@@ -15,6 +15,16 @@ export interface FarmScene {
   readonly critters: readonly CanvasCritter[];
   /** Who is asleep now, by person. */
   readonly asleep: ReadonlySet<string>;
+}
+
+/** Critters drawn per idle moment. */
+const BAKE_CHUNK = 4;
+
+/** A critter's breathing phase, from who they are, so it never changes as others come and go. */
+export function phaseOf(person: string): number {
+  let h = 0;
+  for (let i = 0; i < person.length; i++) h = (h * 31 + person.charCodeAt(i)) >>> 0;
+  return (h % 1000) / 500;
 }
 
 const byJoin = <T extends { joinedAt: number }>(list: readonly T[]) =>
@@ -74,27 +84,55 @@ export function useFarmScene(
     }),
   );
   const [critters, setCritters] = useState<readonly CanvasCritter[]>([]);
+  // Drawn critters by what was drawn, so a change re-bakes only the critters it touches.
+  const baked = useRef(new Map<string, CanvasCritter>());
   useEffect(() => {
-    return whenIdle(() => {
-      const drawn = placement.critters.flatMap((p, i): CanvasCritter[] => {
-        const m = members.find((x) => x.person === p.person);
-        if (!m) return [];
-        const size = width * p.spot.size;
-        const sleeping = asleep.has(p.person);
-        return [
-          {
-            person: p.person,
-            x: width * p.spot.x,
-            y: height * p.spot.y,
-            size,
-            asleep: sleeping,
-            ph: i * 0.37,
-            poses: bakeCritter(store, m.critter, size, p.spot.dir, sleeping),
-          },
-        ];
-      });
-      setCritters(drawn);
+    const wanted = placement.critters.flatMap((p) => {
+      const m = members.find((x) => x.person === p.person);
+      if (!m) return [];
+      const sleeping = asleep.has(p.person);
+      return [
+        { p, m, sleeping, key: JSON.stringify([p.person, m.critter, p.spot, sleeping, width]) },
+      ];
     });
+    const showing = new Map(critters.map((c) => [c.person, c]));
+    const keys = new Set(wanted.map((w) => w.key));
+    for (const k of [...baked.current.keys()]) if (!keys.has(k)) baked.current.delete(k);
+    const publish = () =>
+      setCritters(
+        wanted.flatMap((w) => {
+          const c = baked.current.get(w.key) ?? showing.get(w.p.person);
+          return c ? [c] : [];
+        }),
+      );
+    // Front-most first, a few at a time on idle moments, so the nearest critters appear first
+    // and no single bake holds up a frame.
+    const todo = [...wanted]
+      .filter((w) => !baked.current.has(w.key))
+      .sort((a, b) => b.p.spot.y - a.p.spot.y);
+    if (todo.length === 0) {
+      publish();
+      return;
+    }
+    let cancel: () => void = () => undefined;
+    const step = () => {
+      for (const w of todo.splice(0, BAKE_CHUNK)) {
+        const size = width * w.p.spot.size;
+        baked.current.set(w.key, {
+          person: w.p.person,
+          x: width * w.p.spot.x,
+          y: height * w.p.spot.y,
+          size,
+          asleep: w.sleeping,
+          ph: phaseOf(w.p.person),
+          poses: bakeCritter(store, w.m.critter, size, w.p.spot.dir, w.sleeping),
+        });
+      }
+      publish();
+      if (todo.length > 0) cancel = whenIdle(step);
+    };
+    cancel = whenIdle(step);
+    return () => cancel();
     // `crittersKey` stands for the placement, the members' critters and who sleeps.
   }, [store, crittersKey, width, height]);
 

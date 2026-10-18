@@ -1,4 +1,4 @@
-import { night, radii, sizes } from '@kithfield/theme';
+import { farm, radii, sizes } from '@kithfield/theme';
 import { Canvas, Image } from '@shopify/react-native-skia';
 import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
@@ -107,7 +107,7 @@ export function NightVeil({ width, height }: { readonly width: number; readonly 
         left: 0,
         width,
         height,
-        backgroundColor: withAlpha(night.sky, 0.7),
+        backgroundColor: withAlpha(farm.night.color, farm.night.strength),
         mixBlendMode: 'multiply',
       }}
     />

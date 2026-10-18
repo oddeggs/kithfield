@@ -1,3 +1,4 @@
+import { farm as farmTokens } from '@kithfield/theme';
 import type { FarmId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
 import { router } from 'expo-router';
@@ -122,7 +123,7 @@ function IslandLabel({
           paddingRight: 11,
           borderRadius: 17,
           backgroundColor: here ? overArt.ink : overArt.paper,
-          boxShadow: overArt.shadow,
+          boxShadow: farmTokens.shadows.islandLabel,
         }}
       >
         {out.length > 0 ? (

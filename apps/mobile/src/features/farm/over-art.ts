@@ -17,5 +17,4 @@ export const overArt = {
   paperNight: withAlpha(palettes.day.panel, 0.86),
   ink: day.ink,
   inkFg: day.paper,
-  shadow: '0 4px 12px -6px rgba(60,40,20,0.45)',
 } as const;

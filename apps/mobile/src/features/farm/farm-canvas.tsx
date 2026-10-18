@@ -1,4 +1,5 @@
-import { Canvas, ColorMatrix, Group, Image, Oval, Paint } from '@shopify/react-native-skia';
+import { farm, nightMatrix } from '@kithfield/theme';
+import { Canvas, ColorMatrix, Group, Image, Paint } from '@shopify/react-native-skia';
 import { useEffect, useRef, useState } from 'react';
 import {
   Easing,
@@ -12,6 +13,7 @@ import {
 
 import { fadeTo } from '../../ui/motion/motion';
 import { STILL_T, type Backdrop, type CloudSprite, type CritterPoses } from './farm-bake';
+import { breathOf, isBlinking, tick } from './farm-clock';
 
 /** A critter as the canvas draws it: where its feet are, and its cached poses. */
 export interface CanvasCritter {
@@ -25,39 +27,19 @@ export interface CanvasCritter {
   readonly poses: CritterPoses;
 }
 
-/** Season changes cross-fade the whole scene (the farm's developer notes). */
-const SEASON_FADE_MS = 1200;
+const fadeOf = (to: number, reduce: boolean) =>
+  reduce
+    ? fadeTo(to)
+    : withTiming(to, {
+        duration: farm.seasonFade.durationMs,
+        easing: Easing.bezier(...farm.seasonFade.bezier),
+        reduceMotion: ReduceMotion.Never,
+      });
 
 /**
- * The art's night pass (`night()` in the renderer): a multiply of #1b1f3d at 0.82 over the scene.
- * The still has it already; the critters drawn over it take the same darkening as a colour matrix.
+ * The scene's breathing and blinking (`critter()` and `blinkAt()` in the renderer). Its worklets
+ * read only numbers and the two pose images, and one image switches between eyes open and a blink.
  */
-const NIGHT_K = 0.82;
-const nightScale = (c: number) => 1 - NIGHT_K * (1 - c / 255);
-const NIGHT = [
-  nightScale(0x1b),
-  0,
-  0,
-  0,
-  0,
-  0,
-  nightScale(0x1f),
-  0,
-  0,
-  0,
-  0,
-  0,
-  nightScale(0x3d),
-  0,
-  0,
-  0,
-  0,
-  0,
-  1,
-  0,
-];
-
-/** The scene's breathing and blinking (`critter()` and `blinkAt()` in the renderer), per frame. */
 function CritterDrawing({
   c,
   clock,
@@ -65,46 +47,21 @@ function CritterDrawing({
   readonly c: CanvasCritter;
   readonly clock: SharedValue<number>;
 }) {
+  const { x, y, ph, asleep } = c;
+  const open = c.poses.open;
+  const openImage = open.image;
+  const blinkImage = c.poses.blink?.image ?? null;
   const transform = useDerivedValue(() => {
-    const t = clock.get();
-    const br = c.asleep
-      ? Math.sin((t / 4.4) * 2 * Math.PI + c.ph * 6) * 0.028
-      : Math.sin((t / 3.1) * 2 * Math.PI + c.ph * 6) * 0.015;
-    return [{ translateX: c.x }, { translateY: c.y }, { scaleX: 1 - br * 0.5 }, { scaleY: 1 + br }];
+    const br = breathOf(clock.get(), ph, asleep);
+    return [{ translateX: x }, { translateY: y }, { scaleX: 1 - br * 0.5 }, { scaleY: 1 + br }];
   });
-  const blinking = useDerivedValue(() => {
-    if (c.asleep) return 0;
-    const period = 3.4 + c.ph * 2.1;
-    return (clock.get() + c.ph * 7) % period < 0.13 ? 1 : 0;
+  const image = useDerivedValue(() => {
+    if (blinkImage === null) return openImage;
+    return isBlinking(clock.get(), ph) ? blinkImage : openImage;
   });
-  const open = useDerivedValue(() => 1 - blinking.get());
   return (
     <Group transform={transform}>
-      {c.poses.sleep.map((l) => (
-        <Image key={l.key} image={l.image} x={l.x} y={l.y} width={l.w} height={l.h} />
-      ))}
-      {c.poses.open.map((l) => (
-        <Image
-          key={l.key}
-          image={l.image}
-          x={l.x}
-          y={l.y}
-          width={l.w}
-          height={l.h}
-          opacity={open}
-        />
-      ))}
-      {c.poses.blink.map((l) => (
-        <Image
-          key={l.key}
-          image={l.image}
-          x={l.x}
-          y={l.y}
-          width={l.w}
-          height={l.h}
-          opacity={blinking}
-        />
-      ))}
+      <Image image={image} x={-open.ox} y={-open.oy} width={open.w} height={open.h} />
     </Group>
   );
 }
@@ -121,9 +78,8 @@ function CloudDrawing({
   readonly height: number;
   readonly clock: SharedValue<number>;
 }) {
-  const x = useDerivedValue(
-    () => ((width * cloud.x0 + clock.get() * cloud.speed) % (width + 160)) - 80 - cloud.ox,
-  );
+  const { x0, speed, ox } = cloud;
+  const x = useDerivedValue(() => ((width * x0 + clock.get() * speed) % (width + 160)) - 80 - ox);
   return (
     <Image
       image={cloud.image}
@@ -160,8 +116,9 @@ function BackdropDrawing({
 
 /**
  * The live farm: the cached still, clouds drifting, and every critter breathing and blinking,
- * all moved on the UI thread from one clock. The clock runs only while `running` (the farm is
- * the screen showing, the app is in front, and Reduce Motion is off).
+ * all moved on the UI thread from one clock on twos. The clock runs only while `running` (the farm
+ * is the screen showing, the app is in front, and Reduce Motion is off), and carries on from where
+ * it stopped, so coming back never resets the clouds or the breathing.
  */
 export function FarmCanvas({
   width,
@@ -181,39 +138,45 @@ export function FarmCanvas({
   readonly reduce: boolean;
 }) {
   const clock = useSharedValue(STILL_T);
+  const base = useSharedValue(STILL_T);
   const frame = useFrameCallback((info) => {
-    clock.set(STILL_T + info.timeSinceFirstFrame / 1000);
+    const next = tick(base.get(), info.timeSinceFirstFrame / 1000, clock.get());
+    if (next.changed) clock.set(next.t);
   }, false);
   useEffect(() => {
+    if (!running) base.set(clock.get());
     frame.setActive(running);
-  }, [frame, running]);
+  }, [frame, running, base, clock]);
 
-  // The backdrop before a change stays underneath while the new one fades in over it.
+  // The backdrop before a change stays underneath while the new one fades in over it; the
+  // critters' night darkening fades with it.
   const [under, setUnder] = useState<Backdrop | null>(null);
   const shown = useRef<Backdrop | null>(backdrop);
   const fade = useSharedValue(1);
+  const dark = useSharedValue(night ? 1 : 0);
+  const [tinting, setTinting] = useState(night);
   useEffect(() => {
     const before = shown.current;
     shown.current = backdrop;
-    if (!backdrop || !before || before.key === backdrop.key) return;
-    setUnder(before);
-    fade.set(0);
-    fade.set(
-      reduce
-        ? fadeTo(1)
-        : withTiming(1, {
-            duration: SEASON_FADE_MS,
-            easing: Easing.inOut(Easing.quad),
-            reduceMotion: ReduceMotion.Never,
-          }),
-    );
-    const timer = setTimeout(() => setUnder(null), SEASON_FADE_MS + 50);
+    if (!backdrop) return;
+    dark.set(fadeOf(night ? 1 : 0, reduce));
+    if (night) setTinting(true);
+    const timer = setTimeout(() => {
+      setUnder(null);
+      if (!night) setTinting(false);
+    }, farm.seasonFade.durationMs + 50);
+    if (before && before.key !== backdrop.key) {
+      setUnder(before);
+      fade.set(0);
+      fade.set(fadeOf(1, reduce));
+    }
     return () => clearTimeout(timer);
-  }, [backdrop, fade, reduce]);
+  }, [backdrop, night, fade, dark, reduce]);
+  const matrix = useDerivedValue(() => nightMatrix(dark.get()));
 
-  const tint = night ? (
+  const tint = tinting ? (
     <Paint>
-      <ColorMatrix matrix={NIGHT} />
+      <ColorMatrix matrix={matrix} />
     </Paint>
   ) : undefined;
 
@@ -232,17 +195,6 @@ export function FarmCanvas({
         />
       ) : null}
       <Group {...(tint ? { layer: tint } : {})}>
-        {critters.map((c) => (
-          // The scene's own soft shadow under each critter (`critter()` in the renderer).
-          <Oval
-            key={`shadow:${c.person}`}
-            x={c.x - c.size * 0.36}
-            y={c.y - c.size * 0.01 - c.size * 0.065}
-            width={c.size * 0.72}
-            height={c.size * 0.13}
-            color="rgba(55,40,25,0.16)"
-          />
-        ))}
         {critters.map((c) => (
           <CritterDrawing key={c.person} c={c} clock={clock} />
         ))}

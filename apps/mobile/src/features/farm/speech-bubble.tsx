@@ -1,3 +1,4 @@
+import { farm } from '@kithfield/theme';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import Animated, {
@@ -17,8 +18,8 @@ import type { ViewStyleProp } from '../../ui/style';
 import { overArt } from './over-art';
 
 /** Bubbles bob 2 points on a 3-second loop. */
-const BOB = 2;
-const BOB_MS = 3000;
+const BOB = farm.bob.distance;
+const BOB_MS = farm.bob.periodMs;
 
 /** A gentle bob of 2 points on a 3-second loop, while `running` and Reduce Motion is off. */
 export function useBob(running: boolean, phase = 0) {
@@ -95,7 +96,7 @@ export function SpeechBubble({
           borderRadius: r,
           borderBottomLeftRadius: tail === 'left' ? 4 : r,
           borderBottomRightRadius: tail === 'right' ? 4 : r,
-          boxShadow: overArt.shadow,
+          boxShadow: farm.shadows.bubble,
         }}
       >
         <Txt variant="handS" multiline color={fg} style={{ lineHeight: 16.5 }}>

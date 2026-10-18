@@ -51,6 +51,30 @@ const CLOUDS = [
 
 const held = new WeakMap<ArtStore, Map<string, Backdrop>>();
 
+/**
+ * The renderer's cloud sprites, as `art.env.hidden` asks for them while a scene draws. Sprites
+ * are made as the scene goes, so the set is looked up again whenever the sprite map has grown.
+ */
+class CloudCanvases extends WeakSet<object> {
+  private seen = -1;
+  private readonly known = new Set<object>();
+
+  constructor(
+    private readonly sprites: Map<string, { cv: ArtCanvas }>,
+    private readonly isCloud: (key: string) => boolean,
+  ) {
+    super();
+  }
+
+  override has(source: object): boolean {
+    if (this.sprites.size !== this.seen) {
+      this.seen = this.sprites.size;
+      for (const [k, sp] of this.sprites) if (this.isCloud(k)) this.known.add(sp.cv);
+    }
+    return this.known.has(source);
+  }
+}
+
 /** The farm's still for these settings, drawn once and held in the art's capped cache. */
 export function bakeBackdrop(store: ArtStore, r: BackdropRequest): Backdrop {
   const art = store.art;
@@ -81,42 +105,41 @@ export function bakeBackdrop(store: ArtStore, r: BackdropRequest): Backdrop {
     return hit;
   }
 
-  let clouds: CloudSprite[] = [];
-  let hidden: ArtCanvas[] = [];
-  if (!r.night) {
-    // Drawn once as the scene draws it, so its cloud sprites exist to be lifted out.
-    art.draw(req, STILL_T);
-    const found = CLOUDS.flatMap((c) => {
-      const prefix = `cloud${c.seed}:${Math.round(r.width * c.size)}|`;
-      for (const [k, sp] of art.internals.sprites) {
-        if (!k.startsWith(prefix) || !k.endsWith(`|${dpr}`)) continue;
-        const image = sp.cv.snapshot();
-        if (!image) return [];
-        const cloud = {
-          image,
-          x0: c.x0,
-          speed: c.speed,
-          y: c.y,
-          w: sp.W,
-          h: sp.H,
-          ox: sp.ox,
-          oy: sp.oy,
-        };
-        return [{ cloud, canvas: sp.cv }];
-      }
-      return [];
-    });
-    clouds = found.map((f) => f.cloud);
-    hidden = found.map((f) => f.canvas);
-  }
-  art.env.hidden = { sources: new WeakSet<object>(hidden), drawn: () => undefined };
+  // The scene is drawn once, with its clouds lifted out as it draws them: a cloud's sprite is
+  // made just before it is drawn, so the set of clouds to hide is looked up as drawing goes.
+  const prefixes = CLOUDS.map((c) => `cloud${c.seed}:${Math.round(r.width * c.size)}|`);
+  const isCloudKey = (k: string) => prefixes.some((p) => k.startsWith(p)) && k.endsWith(`|${dpr}`);
+  const clouds = new CloudCanvases(art.internals.sprites, isCloudKey);
+  art.env.hidden = { sources: clouds, drawn: () => undefined };
   let image: SkImage | null;
   try {
     image = art.image(req, STILL_T);
   } finally {
     art.env.hidden = null;
   }
-  const backdrop = { key, image, clouds };
+  const sprites: CloudSprite[] = r.night
+    ? []
+    : CLOUDS.flatMap((c, i) => {
+        for (const [k, sp] of art.internals.sprites) {
+          if (!k.startsWith(prefixes[i] ?? '') || !k.endsWith(`|${dpr}`)) continue;
+          const cloud = sp.cv.snapshot();
+          if (!cloud) return [];
+          return [
+            {
+              image: cloud,
+              x0: c.x0,
+              speed: c.speed,
+              y: c.y,
+              w: sp.W,
+              h: sp.H,
+              ox: sp.ox,
+              oy: sp.oy,
+            },
+          ];
+        }
+        return [];
+      });
+  const backdrop = { key, image, clouds: sprites };
   map.set(key, backdrop);
   const bytes = Math.round(r.width * dpr) * Math.round(r.height * dpr) * 4;
   const owner = map;
@@ -126,22 +149,22 @@ export function bakeBackdrop(store: ArtStore, r: BackdropRequest): Backdrop {
   return backdrop;
 }
 
-/** One cached layer of a critter, placed from its feet. */
-export interface PlacedLayer {
-  readonly key: string;
+/**
+ * A critter in one pose, its layers and the scene's soft shadow under its feet composed into one
+ * image, drawn from its feet at (`ox`, `oy`) in a `w`×`h` box.
+ */
+export interface Pose {
   readonly image: SkImage | null;
-  readonly x: number;
-  readonly y: number;
   readonly w: number;
   readonly h: number;
+  readonly ox: number;
+  readonly oy: number;
 }
 
 export interface CritterPoses {
-  /** Eyes open, then blinking; empty for a sleeping critter. */
-  readonly open: readonly PlacedLayer[];
-  readonly blink: readonly PlacedLayer[];
-  /** Eyes shut; empty for one awake. */
-  readonly sleep: readonly PlacedLayer[];
+  /** Eyes open and blinking while awake; eyes shut for a sleeping critter (`blink` is null). */
+  readonly open: Pose;
+  readonly blink: Pose | null;
 }
 
 /** The art's look for a critter as the contracts carry it: coat, marking, outfit, accessory. */
@@ -170,7 +193,61 @@ export const castOf = (critter: Critter, asleep = false): string =>
     asleep ? 'z' : '',
   ].join('/');
 
-/** A critter's layers in the poses it needs: awake (open and blinking) or asleep. */
+const poses = new WeakMap<ArtStore, Map<string, Pose>>();
+
+/**
+ * One pose as one image: the scene's shadow (`critter()` in the renderer: a 0.16 ink ellipse
+ * 0.72 by 0.13 of the critter's size, just under its feet) and the cached layers on top, drawn
+ * through the art's own canvas, once, and held in the art's capped cache.
+ */
+function composePose(
+  store: ArtStore,
+  critter: Critter,
+  size: number,
+  dir: 1 | -1,
+  state: 'open' | 'blink' | 'sleep',
+): Pose {
+  const art = store.art;
+  const dpr = store.dpr;
+  const layers = critterLayers(art, critter.species, lookOf(critter), { size, state, dir, dpr });
+  const first = layers[0];
+  const key = `farm-pose:${layers.map((l) => l.key).join('+')}`;
+  let map = poses.get(store);
+  if (!map) {
+    map = new Map();
+    poses.set(store, map);
+  }
+  const hit = map.get(key);
+  if (hit && art.cache.has(key)) {
+    art.cache.touch(key);
+    return hit;
+  }
+  const w = first?.width ?? 0;
+  const h = first?.height ?? 0;
+  const ox = first?.originX ?? 0;
+  const oy = first?.originY ?? 0;
+  const s = Math.max(8, Math.round(size));
+  const cv = art.canvas(Math.ceil(w * dpr), Math.ceil(h * dpr));
+  const g = cv.getContext('2d');
+  if (g) {
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = 'rgba(55,40,25,.16)';
+    g.beginPath();
+    g.ellipse(ox, oy - s * 0.01, s * 0.36, s * 0.065, 0, 0, Math.PI * 2);
+    g.fill();
+    for (const l of layers) g.drawImage(l.canvas, 0, 0, w, h);
+  }
+  const pose: Pose = { image: cv.snapshot(), w, h, ox, oy };
+  cv.release();
+  map.set(key, pose);
+  const owner = map;
+  art.cache.track(key, Math.ceil(w * dpr) * Math.ceil(h * dpr) * 4, () => {
+    if (owner.get(key) === pose) owner.delete(key);
+  });
+  return pose;
+}
+
+/** A critter's poses: awake (open and blinking) or asleep. */
 export function bakeCritter(
   store: ArtStore,
   critter: Critter,
@@ -178,21 +255,10 @@ export function bakeCritter(
   dir: 1 | -1,
   asleep: boolean,
 ): CritterPoses {
-  const pose = (state: 'open' | 'blink' | 'sleep'): PlacedLayer[] =>
-    critterLayers(store.art, critter.species, lookOf(critter), {
-      size,
-      state,
-      dir,
-      dpr: store.dpr,
-    }).map((l) => ({
-      key: l.key,
-      image: l.image,
-      x: -l.originX,
-      y: -l.originY,
-      w: l.width,
-      h: l.height,
-    }));
   return asleep
-    ? { open: [], blink: [], sleep: pose('sleep') }
-    : { open: pose('open'), blink: pose('blink'), sleep: [] };
+    ? { open: composePose(store, critter, size, dir, 'sleep'), blink: null }
+    : {
+        open: composePose(store, critter, size, dir, 'open'),
+        blink: composePose(store, critter, size, dir, 'blink'),
+      };
 }

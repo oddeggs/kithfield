@@ -1,3 +1,4 @@
+import { farm } from '@kithfield/theme';
 import { View } from 'react-native';
 
 import { ArtIcon } from '../../ui/art/art-view';
@@ -8,7 +9,6 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 
 const PILL = 44;
-const GLASS_SHADOW = '0 8px 24px -12px rgba(60,40,20,0.3)';
 
 /**
  * The glass pills over the farm: its name (tap for the valley of farms) and the season in hand
@@ -54,7 +54,7 @@ export function FarmHeader({
           radius={PILL / 2}
           fill={glass.fill}
           border={glass.border}
-          shadow={GLASS_SHADOW}
+          shadow={farm.shadows.glassPill}
           style={{
             height: PILL,
             paddingLeft: 6,

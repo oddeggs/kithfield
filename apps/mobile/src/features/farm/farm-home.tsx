@@ -105,7 +105,8 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
         width={width}
         height={height}
         night={appearance === 'night'}
-        running={visible && !reduce}
+        // The farm rests while the sheet covers it at full height.
+        running={visible && !reduce && sheet === 0}
         now={now}
         targets={{
           onCritter: openCritter,
