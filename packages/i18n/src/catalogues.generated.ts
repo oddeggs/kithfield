@@ -11,6 +11,8 @@ import { shellEn } from './shell.en';
 import { shellSameInBoth, shellVi } from './shell.vi';
 import { signInCodeEn } from './sign-in-code.en';
 import { signInCodeVi } from './sign-in-code.vi';
+import { syncLabEn } from './sync-lab.en';
+import { syncLabVi } from './sync-lab.vi';
 
 /** Every feature catalogue pair, in file-name order. */
 export const features: readonly FeatureCatalogues[] = [
@@ -19,6 +21,7 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
+  { name: 'syncLab', file: 'sync-lab', en: syncLabEn, vi: syncLabVi, sameInBoth: [] },
 ];
 
 /** The source catalogue: every key, in English. */
@@ -28,6 +31,7 @@ export const en = {
   ...pushEn,
   ...shellEn,
   ...signInCodeEn,
+  ...syncLabEn,
 };
 
 /** Every key, in Vietnamese. */
@@ -37,4 +41,5 @@ export const vi = {
   ...pushVi,
   ...shellVi,
   ...signInCodeVi,
+  ...syncLabVi,
 };

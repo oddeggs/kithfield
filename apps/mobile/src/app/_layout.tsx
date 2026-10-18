@@ -46,6 +46,7 @@ function Screens() {
         </Stack.Protected>
         <Stack.Protected guard={__DEV__}>
           <Stack.Screen name="(dev)/gallery" />
+          <Stack.Screen name="(dev)/sync-lab" />
         </Stack.Protected>
         <Stack.Screen name="+not-found" />
       </Stack>

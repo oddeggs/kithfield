@@ -13,7 +13,7 @@ screens there without editing a shared file.
 | `(onboarding)/` | Onboarding | Shown instead of the tabs to someone not signed in. Replace `welcome.tsx` (the URL `/welcome`; `index.tsx` would collide with the app's own `/`) |
 | `(modal)/` | Any feature | A sheet over the app: name files `<feature>-<screen>.tsx` (`chat-search.tsx`) |
 | `(cover)/` | Any feature | Full screen over everything (the photo viewer, the fire room): `<feature>-<screen>.tsx` |
-| `(dev)/` | The shell | Development-only screens (the component gallery), removed from release builds |
+| `(dev)/` | The shell | Development-only screens (the component gallery, the sync lab), removed from release builds |
 
 ## How it fits
 
