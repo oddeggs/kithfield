@@ -93,6 +93,7 @@ describe('planting and joining', () => {
     );
     expect(preview).toEqual({
       name: 'The Thursday Lot',
+      from: profile(pip),
       land: 'meadow',
       critters: [pip.critter],
       full: false,
@@ -118,6 +119,28 @@ describe('planting and joining', () => {
     expect((await api(null, 'GET', '/v1/invites/nope1234')).body).toEqual({
       error: { code: 'invite_invalid' },
     });
+  });
+
+  it('shows who made the link only while they still live on the farm', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    const { farm, invite } = await plant(pip);
+    await api(fig, 'POST', `/v1/invites/${invite.code}/join`, profile(fig));
+    const fromOf = async () =>
+      InvitePreview.parse((await api(null, 'GET', `/v1/invites/${invite.code}`)).body).from;
+    expect(await fromOf()).toEqual(profile(pip));
+    await farmStub(farm).command(pip.id, { opId: op(1), kind: 'left', payload: {} });
+    expect(await fromOf()).toBeNull();
+  });
+
+  it('shows nobody as the link’s maker once they have deleted their account', async () => {
+    const { pip } = await cast('pip');
+    const { invite } = await plant(pip);
+    await env.DB.prepare('UPDATE people SET deleted_at = ? WHERE id = ?')
+      .bind(ports.clock.at, pip.id)
+      .run();
+    const preview = await api(null, 'GET', `/v1/invites/${invite.code}`);
+    expect(preview.status).toBe(200);
+    expect(InvitePreview.parse(preview.body).from).toBeNull();
   });
 
   it('retires the old link when a keeper makes a new one', async () => {

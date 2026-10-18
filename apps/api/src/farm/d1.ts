@@ -115,7 +115,12 @@ export const endMembership = async (db: D1Database, farm: FarmId, person: Person
 
 /* Invites: only a hash of the code is kept. A new invite retires the farm's old ones. */
 
-export type InviteRow = { farm_id: FarmId; expires_at: number | null; uses_left: number | null };
+export type InviteRow = {
+  farm_id: FarmId;
+  created_by: PersonId;
+  expires_at: number | null;
+  uses_left: number | null;
+};
 
 export const replaceInvite = async (
   db: D1Database,
@@ -138,7 +143,7 @@ export const liveInvite = async (
   now: number,
 ): Promise<InviteRow | null> => {
   const row = await db
-    .prepare('SELECT farm_id, expires_at, uses_left FROM invites WHERE code_hash = ?')
+    .prepare('SELECT farm_id, created_by, expires_at, uses_left FROM invites WHERE code_hash = ?')
     .bind(hash)
     .first<InviteRow>();
   if (row === null) return null;
