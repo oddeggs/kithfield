@@ -4,6 +4,7 @@
  * midnight) that the scroll drives (`scripts/landing.ts`). Markup and measures are `17 Landing`'s.
  */
 import { SOURCE_URL, copyFor, facesFor, pathFor, type Language } from '../../lib/site';
+import { posterUri } from '../../lib/poster';
 
 interface Props {
   lang: Language;
@@ -13,6 +14,7 @@ const t = copyFor(lang);
 const f = facesFor(lang);
 const vi = lang === 'vi';
 const other = vi ? 'en' : 'vi';
+const poster = posterUri('evening');
 
 const note = `font:700 clamp(13px,1.45vw,21px)/1.1 ${f.hand};background:#fbf6ec;padding:.25em .55em .3em;border-radius:10px;box-shadow:0 5px 14px -7px rgba(60,40,20,.55);white-space:nowrap`;
 const time = `font:700 clamp(19px,1.6vw,24px)/1 ${f.hand};margin-bottom:12px`;
@@ -84,8 +86,16 @@ const heroSub = vi
   <div data-kf="stage" style="position:sticky;top:0;height:100vh;overflow:hidden">
     <div
       data-kf="world"
-      style="position:absolute;left:0;top:0;width:100vw;height:62.5vw;transform-origin:0 0;will-change:transform"
+      style="position:absolute;left:0;top:0;width:max(100vw,160vh);height:calc(max(100vw,160vh) / 1.6);transform-origin:0 0;will-change:transform"
     >
+      {
+        poster && (
+          <div
+            aria-hidden="true"
+            style={`position:absolute;inset:0;background:url(${poster}) 0 0/100% 100%;filter:blur(18px);transform:scale(1.04)`}
+          />
+        )
+      }
       <kf-art data-kf="art" scene="evening" style="position:absolute;inset:0;width:100%;height:100%"
       ></kf-art>
       <div data-ann="1" aria-hidden="true" style="position:absolute;inset:0;pointer-events:none">

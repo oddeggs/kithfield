@@ -46,6 +46,15 @@ for (const lang of ['en', 'vi'] as const) {
   );
 }
 
+// A tiny still of the evening, shown softened under the hero until the live art draws over it.
+// At 48 × 30 it carries the colours, not the drawing, and weighs about a kilobyte.
+{
+  const drawn = art.draw({ scene: 'evening', width: 480, height: 300, dpr: 1 }, 4.5);
+  const small = art.canvas(48, 30);
+  small.getContext('2d')?.drawImage(drawn, 0, 0, 48, 30);
+  write('poster/evening.png', encodePng(small));
+}
+
 const icon = (size: number): Uint8Array =>
   bakeScene(art, { scene: 'appicon', width: size, height: size, dpr: 1 }, 0);
 write('favicon-32.png', icon(32));

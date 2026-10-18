@@ -60,3 +60,7 @@ kf-art {
 textarea.kf-field:focus {
   padding: 13px !important;
 }
+/* The icon shows before the renderer starts; the live drawing covers it. */
+kf-art[scene='appicon'] {
+  background: url('/apple-touch-icon.png') center / cover;
+}

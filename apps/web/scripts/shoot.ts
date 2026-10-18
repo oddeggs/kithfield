@@ -92,6 +92,7 @@ async function open(
   const page = await context.newPage();
   await prepare?.(page);
   await page.goto(new URL(path, values.base).href, { waitUntil: 'load' });
+  await page.mouse.move(1, 1);
   await page.waitForFunction(() => !!customElements.get('kf-art'));
   await page.evaluate(async () => {
     await Promise.all([...document.fonts].map((f) => f.load().catch(() => null)));
