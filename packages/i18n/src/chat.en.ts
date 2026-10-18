@@ -219,6 +219,7 @@ export const chatEn = {
     'Kithfield needs the microphone for voice notes. You can turn it on in Settings.',
   'chat.voice.failed':
     'That voice note didn’t send. It’s still on your phone; try again in a moment.',
+  'chat.voice.cantRecord': 'The microphone isn’t free right now. Try again in a moment.',
   'chat.voice.maxReached': 'Five minutes is the longest a voice note can be.',
 
   /* The viewer */

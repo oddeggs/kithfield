@@ -21,6 +21,7 @@ import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { clock } from '../model/format';
+import { beginRecording } from '../model/recording';
 import { useChatColours } from '../ui/chat-colours';
 
 /** A finished voice note, ready to upload. */
@@ -94,11 +95,24 @@ export function useVoiceRecorder(onDone: (note: Recorded) => void) {
       toast.show(t('chat.voice.noMic'));
       return;
     }
-    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-    if (!want.current) return;
     levels.current = [];
-    await recorder.prepareToRecordAsync();
-    recorder.record();
+    const begun = await beginRecording(
+      {
+        open: () => setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true }),
+        prepare: () => recorder.prepareToRecordAsync(),
+        record: () => recorder.record(),
+        close: () =>
+          setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(
+            () => undefined,
+          ),
+      },
+      () => want.current,
+    );
+    if (begun !== 'recording') {
+      want.current = false;
+      if (begun === 'failed') toast.show(t('chat.voice.cantRecord'));
+      return;
+    }
     started.current = Date.now();
     haptics.tap();
     setPhase((p) => (p === 'idle' ? 'held' : p));

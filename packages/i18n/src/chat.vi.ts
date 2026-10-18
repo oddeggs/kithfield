@@ -203,6 +203,7 @@ export const chatVi: ViCatalogue<typeof chatEn> = {
     'Kithfield cần micrô để ghi tin nhắn thoại. Bạn có thể bật trong phần Cài đặt.',
   'chat.voice.failed':
     'Tin nhắn thoại chưa gửi được. Nó vẫn còn trên điện thoại; thử lại sau một chút nhé.',
+  'chat.voice.cantRecord': 'Micrô đang bận. Thử lại sau một chút nhé.',
   'chat.voice.maxReached': 'Tin nhắn thoại dài nhất là năm phút.',
 
   'chat.viewer.close': 'Đóng',
