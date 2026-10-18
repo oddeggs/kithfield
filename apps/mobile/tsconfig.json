@@ -9,6 +9,7 @@
   },
   "include": [
     "src",
+    "modules",
     "test",
     "e2e",
     "app.config.ts",
