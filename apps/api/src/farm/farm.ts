@@ -149,7 +149,7 @@ export class Farm {
       // Reduced once the event is stored, so a `restored` finds its target's payload put back.
       then?.(event);
       // Slow posts reach the cottages when they arrive, not when sent.
-      if (event.kind !== 'slow_post') this.store.oweDelivery(event.seq);
+      if (event.kind !== 'slow_post') this.store.oweDelivery(event.seq, event.at);
       const next = this.reduce(state, event);
       this.store.saveSnapshot(event.seq, next);
       const words = searchText(event);

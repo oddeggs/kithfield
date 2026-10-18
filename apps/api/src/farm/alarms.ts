@@ -43,11 +43,12 @@ export const resetWeather = (store: FarmStore, state: FarmState, now: number): v
 export const nextWake = (farm: Farm, ports: FarmPorts): number | null => {
   const state = farm.state;
   const now = ports.clock.now();
-  const owed = farm.store.owedDeliveries().length > 0 || farm.store.tradeHalves().length > 0;
+  const halves = farm.store.tradeHalves().length > 0;
   const times = [
     farm.store.nextDue(),
+    farm.store.nextDelivery(),
     state === null ? null : ports.rules.nextChoreAt(state, now),
-    owed ? now + RETRY_MS : null,
+    halves ? now + RETRY_MS : null,
   ].filter((t): t is number => t !== null);
   if (times.length === 0) return null;
   const next = Math.min(...times);

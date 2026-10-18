@@ -124,6 +124,31 @@ describe('the cottages', () => {
     expect(await hostOf(stub, (h) => h.store.owedDeliveries())).toEqual([]);
   });
 
+  it('are tried again later and later when a cottage keeps failing, and given up after a day', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    const { stub } = await plantFarm(pip, [fig]);
+    await settled(stub);
+    vi.spyOn(CottageDO.prototype, 'deliver').mockRejectedValue(new Error('down'));
+    const log = vi.spyOn(console, 'error');
+    await stub.command(pip.id, { opId: op(1), kind: 'message', payload: { text: 'hello' } });
+    await settled(stub);
+    const sent = ports.clock.at;
+    const retries = () => hostOf(stub, (h) => h.store.deliveryRetries());
+    expect(await retries()).toEqual([{ seq: 4, attempts: 1, nextAt: sent + 60_000 }]);
+    const gaps: number[] = [];
+    for (const step of [60_000, 5 * 60_000, 30 * 60_000]) {
+      ports.clock.advance(step);
+      await runDurableObjectAlarm(stub);
+      const [retry] = await retries();
+      gaps.push((retry?.nextAt ?? 0) - ports.clock.at);
+    }
+    expect(gaps).toEqual([5 * 60_000, 30 * 60_000, 60 * 60_000]);
+    ports.clock.at = sent + 24 * 60 * 60_000;
+    await runDurableObjectAlarm(stub);
+    expect(await retries()).toEqual([]);
+    expect(log.mock.calls.some(([line]) => String(line).includes('gave up'))).toBe(true);
+  });
+
   it('hear every event meant for them in a burst, and of the rest only the newest', async () => {
     const { pip, fig } = await cast('pip', 'fig');
     const { stub } = await plantFarm(pip, [fig]);

@@ -24,7 +24,11 @@ export const SCHEMA = [
   // Phones that hold less than `below` take a snapshot: the farm's state changed outside the log.
   'CREATE TABLE IF NOT EXISTS resync (id INTEGER PRIMARY KEY CHECK (id = 1), below INTEGER NOT NULL)',
   // Committed events whose news hasn't reached every member's cottage yet.
-  'CREATE TABLE IF NOT EXISTS deliveries (seq INTEGER PRIMARY KEY)',
+  // `attempts` failed so far; tried again from `next_at`; given up a day after `first_at`.
+  `CREATE TABLE IF NOT EXISTS deliveries (
+    seq INTEGER PRIMARY KEY, first_at INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
+    next_at INTEGER NOT NULL
+  )`,
   // A trade's second half, written on the visitor's own farm, until it lands.
   `CREATE TABLE IF NOT EXISTS trade_halves (
     op_id TEXT PRIMARY KEY, other_farm TEXT NOT NULL, actor TEXT NOT NULL, payload TEXT NOT NULL

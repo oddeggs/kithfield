@@ -12,6 +12,12 @@ export const REJECTIONS_KEPT_MS = 30 * 86_400_000;
 /** A removed payload is held 180 days, the appeal window, then dropped for good. */
 export const HELD_KEPT_MS = 180 * 86_400_000;
 
+const HOUR_MS = 60 * 60_000;
+/** How long a failed delivery waits after its first, second and third failure; hourly after. */
+const DELIVERY_BACKOFF_MS = [60_000, 5 * 60_000, 30 * 60_000];
+/** News that hasn't reached a cottage in a day is given up. */
+const DELIVERY_GIVE_UP_MS = 24 * HOUR_MS;
+
 export class FarmTables {
   constructor(protected readonly sql: SqlStorage) {
     for (const statement of SCHEMA) sql.exec(statement);
@@ -109,13 +115,56 @@ export class FarmTables {
     this.sql.exec(sql, below);
   }
 
-  oweDelivery(seq: number): void {
-    this.sql.exec('INSERT OR IGNORE INTO deliveries (seq) VALUES (?)', seq);
+  oweDelivery(seq: number, at: number): void {
+    const sql = 'INSERT OR IGNORE INTO deliveries (seq, first_at, next_at) VALUES (?, ?, ?)';
+    this.sql.exec(sql, seq, at, at);
   }
 
+  /** Every event whose news is still owed, due or not. */
   owedDeliveries(): number[] {
     const rows = this.sql.exec<{ seq: number }>('SELECT seq FROM deliveries ORDER BY seq');
     return rows.toArray().map((r) => r.seq);
+  }
+
+  /** The owed news due to be sent now. */
+  dueDeliveries(now: number): number[] {
+    const sql = 'SELECT seq FROM deliveries WHERE next_at <= ? ORDER BY seq';
+    return this.sql
+      .exec<{ seq: number }>(sql, now)
+      .toArray()
+      .map((r) => r.seq);
+  }
+
+  /** When owed news is next due. */
+  nextDelivery(): number | null {
+    const sql = 'SELECT min(next_at) AS at FROM deliveries';
+    return this.sql.exec<{ at: number | null }>(sql).one().at;
+  }
+
+  deliveryRetries(): { seq: number; attempts: number; nextAt: number }[] {
+    const sql = 'SELECT seq, attempts, next_at AS nextAt FROM deliveries ORDER BY seq';
+    return this.sql.exec<{ seq: number; attempts: number; nextAt: number }>(sql).toArray();
+  }
+
+  /**
+   * A delivery that failed again: tried later each time (1, 5 and 30 minutes, then hourly), and
+   * given up a day after it was first owed. True when it was given up.
+   */
+  deliveryFailed(seq: number, now: number): boolean {
+    const sql = 'SELECT first_at, attempts FROM deliveries WHERE seq = ?';
+    const row = this.sql.exec<{ first_at: number; attempts: number }>(sql, seq).toArray()[0];
+    if (row === undefined) return false;
+    if (now - row.first_at >= DELIVERY_GIVE_UP_MS) {
+      this.delivered(seq);
+      return true;
+    }
+    const wait = DELIVERY_BACKOFF_MS[row.attempts] ?? HOUR_MS;
+    this.sql.exec(
+      'UPDATE deliveries SET attempts = attempts + 1, next_at = ? WHERE seq = ?',
+      now + wait,
+      seq,
+    );
+    return false;
   }
 
   delivered(seq: number): void {

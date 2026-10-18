@@ -216,17 +216,21 @@ export class FarmHost {
 
   private async flushOnce(): Promise<void> {
     const state = this.farm.state;
-    const owed = this.store.owedDeliveries();
+    const owed = this.store.dueDeliveries(this.now());
     if (state === null || owed.length === 0) return;
     const events = owed.flatMap((seq) => {
       const parsed = FarmEvent.safeParse(this.store.event(seq));
       return parsed.success ? [parsed.data] : [];
     });
-    const failed = await handOff(this.env, state, events, connected(this.sockets()), (e) =>
-      this.repliedTo(e),
-    );
-    for (const seq of owed) if (!failed.has(seq)) this.store.delivered(seq);
-    // The alarm leaves its retry slot once nothing is owed, or keeps it for what failed.
+    const open = connected(this.sockets());
+    const failed = await handOff(this.env, state, events, open, (e) => this.repliedTo(e));
+    for (const seq of owed) {
+      if (!failed.has(seq)) this.store.delivered(seq);
+      else if (this.store.deliveryFailed(seq, this.now())) {
+        console.error('farm gave up telling the cottages', { seq });
+      }
+    }
+    // The alarm moves to the next retry once something failed, or leaves it once nothing is owed.
     await this.schedule();
   }
 
@@ -256,7 +260,7 @@ export class FarmHost {
     if (post === null || isTombstone(post.payload)) return;
     const text = (post.payload as { text?: unknown }).text;
     this.ctx.storage.transactionSync(() => {
-      this.store.oweDelivery(seq);
+      this.store.oweDelivery(seq, this.now());
       if (typeof text === 'string') this.store.index(seq, text);
     });
   }
