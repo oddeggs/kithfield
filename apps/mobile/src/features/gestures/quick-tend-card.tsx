@@ -1,5 +1,5 @@
 import { gestureMotion } from '@kithfield/theme';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
@@ -58,19 +58,26 @@ export function QuickTendCard({
   sent,
   onReply,
   onUndo,
+  stickers,
+  stickerSent = false,
 }: {
   readonly item: QuickTendItem;
   readonly who: Friend | null;
   readonly sent: QuickReply | null;
   readonly onReply: (reply: QuickReply) => void;
   readonly onUndo: () => void;
+  /** Sticker answers beside the chips (08-03); hidden once words are sent. */
+  readonly stickers?: ReactNode;
+  /** A sticker answer was sent: the card dims and its chips step aside. */
+  readonly stickerSent?: boolean;
 }) {
   const { t } = useLocale();
   const { palette } = useTheme();
-  const dim = useSharedValue(sent ? SENT_OPACITY : 1);
+  const done = sent !== null || stickerSent;
+  const dim = useSharedValue(done ? SENT_OPACITY : 1);
   useEffect(() => {
-    dim.set(fadeTo(sent ? SENT_OPACITY : 1));
-  }, [sent, dim]);
+    dim.set(fadeTo(done ? SENT_OPACITY : 1));
+  }, [done, dim]);
   const style = useAnimatedStyle(() => ({ opacity: dim.get() }));
   const name = who?.name ?? item.with?.name ?? item.name ?? t('gestures.aFriend');
   const preview =
@@ -126,7 +133,7 @@ export function QuickTendCard({
         }}
         accessibilityLiveRegion="polite"
       >
-        {sent ? (
+        {stickerSent ? null : sent ? (
           <QuickChip
             label={t('gestures.quickTend.sent', {
               reply: t(`gestures.quickTend.reply.${sent.words}`),
@@ -145,6 +152,7 @@ export function QuickTendCard({
           ))
         )}
       </View>
+      {sent ? null : stickers}
     </Animated.View>
   );
 }

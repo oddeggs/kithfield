@@ -1,4 +1,4 @@
-import type { FarmState } from '@kithfield/contracts';
+import type { FarmState, StickerPayload } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -11,9 +11,12 @@ import { EmptyState, ErrorState } from '../../ui/components/state-shell';
 import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
+import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { timing, TravelAnchor, travelIds, useTravel, type SpriteSpec } from '../../ui/travel';
 import { Txt } from '../../ui/type/text';
+import { QuickTendStickers, quickStickers, type StickerPerson } from '../stickers';
+import { stickersApi } from '../stickers/api';
 import { createGrace } from './model/grace';
 import { friendOf } from './model/people';
 import {
@@ -81,6 +84,10 @@ export function QuickTendScreen() {
   const [failed, setFailed] = useState(false);
   const [states, setStates] = useState<Record<string, FarmState | null>>({});
   const [sent, setSent] = useState<Record<string, QuickReply>>({});
+  const [stickerSent, setStickerSent] = useState<Record<string, StickerPayload>>({});
+  // Who each farm can draw into a together sticker (`GET /v1/farms/:id/together`).
+  const [drawable, setDrawable] = useState<Record<string, ReadonlySet<string>>>({});
+  const me = useSession().person?.id ?? null;
   const grace = useRef(createGrace(UNDO_MS)).current;
   const stems = useStems();
 
@@ -100,6 +107,16 @@ export function QuickTendScreen() {
     void Promise.all(
       farms.map(async (f) => [f, (await client.replica(f)).getState().state] as const),
     ).then((found) => setStates(Object.fromEntries(found)));
+    const stickers = stickersApi(client.api);
+    void Promise.all(
+      farms.map(async (f) => {
+        const people = await stickers.together(f).then(
+          (r) => r.people,
+          () => [],
+        );
+        return [f, new Set(people)] as const;
+      }),
+    ).then((found) => setDrawable(Object.fromEntries(found)));
   }, [items, client]);
 
   // Leaving sends every answer still in its grace period.
@@ -122,6 +139,23 @@ export function QuickTendScreen() {
     if (!grace.undo(key)) return;
     stems(key, true);
     setSent(({ [key]: _gone, ...rest }) => rest);
+    setStickerSent(({ [key]: _gone, ...rest }) => rest);
+  };
+  // A sticker answer goes through the same grace as words.
+  const sendSticker = (item: QuickTendItem, sticker: StickerPayload) => {
+    const key = keyOf(item);
+    grace.hold(key, () => {
+      void client.send(item.farm, 'sticker', sticker).then((result) => {
+        if (result.status === 'queued') markOurs(result.opId);
+        else toast.show(reject(result.reason));
+      });
+    });
+    setStickerSent((s) => ({ ...s, [key]: sticker }));
+    stems(key, false);
+  };
+  const stickerPerson = (farm: string, person: string | null): StickerPerson | null => {
+    const m = states[farm]?.members.find((x) => x.person === person);
+    return m ? { name: m.name, critter: m.critter } : null;
   };
 
   const whoOf = (i: QuickTendItem) => friendOf(states[i.farm] ?? null, i.actor);
@@ -198,6 +232,19 @@ export function QuickTendScreen() {
                 sent={sent[keyOf(item)] ?? null}
                 onReply={(r) => reply(item, r)}
                 onUndo={() => undo(item)}
+                stickerSent={stickerSent[keyOf(item)] !== undefined}
+                stickers={
+                  <QuickTendStickers
+                    stickers={quickStickers(item, me, drawable[item.farm] ?? new Set())}
+                    me={stickerPerson(item.farm, me)}
+                    personOf={(p) => stickerPerson(item.farm, p)}
+                    replyName={whoOf(item)?.name ?? item.with?.name ?? null}
+                    sent={stickerSent[keyOf(item)] ?? null}
+                    onSend={(s) => sendSticker(item, s)}
+                    onUndo={() => undo(item)}
+                    onWrite={() => router.push(routes.chatAt(item.farm, item.seq))}
+                  />
+                }
               />
             </TravelAnchor>
           ))}
