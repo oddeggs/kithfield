@@ -31,6 +31,11 @@ describe('snapshot', () => {
       { ...farmState, members: [{ ...farmState.members[0], pausedUntil: true }] },
       { ...farmState, doorstep: [{ seq: 3, kind: 'knock', from: 'p_a', to: 'p_b' }] },
       { ...farmState, doorstep: [{ seq: 3, kind: 'gift', from: 'p_a' }] },
+      { ...farmState, doorstep: [{ seq: 3, kind: 'gift', from: 'p_a', to: 'p_b' }] },
+      {
+        ...farmState,
+        doorstep: [{ seq: 3, kind: 'firefly', from: 'p_a', to: 'p_b', gift: 'g_1' }],
+      },
       {
         ...farmState,
         plants: [

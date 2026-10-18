@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-import { EventKindSchema, RulesVersion } from './events';
+import { AnyEventKind, RulesVersion } from './events';
 import { DayOption, Yeses } from './payloads/care';
-import { SeasonRef } from './payloads/farm';
+import { Crop, SeasonRef } from './payloads/farm';
 import {
   ArtId,
   CareFamily,
@@ -15,6 +15,7 @@ import {
   FarmName,
   FarmPlace,
   Hemisphere,
+  Id,
   LIMITS,
   LocalDate,
   MonthDay,
@@ -32,11 +33,14 @@ import {
 
 const people = z.array(PersonId).max(LIMITS.members);
 
-/** Who helped a plant and with which kinds of care. Credits name people and kinds, never totals. */
+/**
+ * Who helped a plant and with which kinds of care. Credits name people and kinds, never totals.
+ * Kinds are open, so a newer credited kind doesn't break an older app's snapshot.
+ */
 export const Credit = z.object({
   person: PersonId,
   kinds: z
-    .array(EventKindSchema)
+    .array(AnyEventKind)
     .max(40)
     .refine((kinds) => new Set(kinds).size === kinds.length, { message: 'Each kind once' }),
 });
@@ -113,20 +117,26 @@ export const FieldGuidePage = z.object({
 });
 export type FieldGuidePage = z.infer<typeof FieldGuidePage>;
 
-export const Crop = z.object({ plant: PlantId, variant: RareVariant.nullable() });
-export type Crop = z.infer<typeof Crop>;
-
 /**
  * Something addressed to a person that waits on their doorstep: a firefly or gift not yet opened,
- * or a slow post not yet delivered (`deliverAt`).
+ * or a slow post not yet delivered (`deliverAt`). `gift` is the gift's id, present exactly for
+ * gifts, so `gift {action: 'opened'}` finds it. `visitor` is set when it came through the gate
+ * from another farm (`from` is then the visitor).
  */
-export const DoorstepItem = z.object({
-  seq: Seq,
-  kind: z.enum(['firefly', 'gift', 'slow_post']),
-  from: PersonId,
-  to: PersonId,
-  deliverAt: EpochMs.optional(),
-});
+export const DoorstepItem = z
+  .object({
+    seq: Seq,
+    kind: z.enum(['firefly', 'gift', 'slow_post']),
+    from: PersonId,
+    to: PersonId,
+    deliverAt: EpochMs.optional(),
+    gift: Id.optional(),
+    visitor: z.object({ name: DisplayName, critter: Critter }).optional(),
+  })
+  .refine((d) => (d.kind === 'gift') === (d.gift !== undefined), {
+    message: 'A gift id goes with a gift, and only a gift',
+    path: ['gift'],
+  });
 export type DoorstepItem = z.infer<typeof DoorstepItem>;
 
 /** A visit's porch pot: one plant a season from both people's care, and its own scrapbook. */

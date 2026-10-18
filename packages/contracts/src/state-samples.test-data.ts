@@ -104,6 +104,15 @@ export const farmState = {
   doorstep: [
     { seq: 30, kind: 'firefly', from: pip, to: fig },
     { seq: 31, kind: 'slow_post', from: bea, to: pip, deliverAt: at + 3_600_000 },
+    { seq: 32, kind: 'gift', from: pip, to: bea, gift: 'g_1' },
+    {
+      seq: 33,
+      kind: 'gift',
+      from: 'p_kit',
+      to: fig,
+      gift: 'g_2',
+      visitor: { name: 'Kit', critter: { ...critter, species: 'fox' } },
+    },
   ],
   fireLitAt: null,
 };
