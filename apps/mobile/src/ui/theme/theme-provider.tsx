@@ -94,7 +94,10 @@ export function useTheme(): Theme {
   return theme;
 }
 
-/** Hands the theme the open farm's town, so night follows its sunset. */
+/**
+ * Hands the theme the open farm's town, so night follows its sunset. The last town given is kept
+ * when a screen has none, so leaving the farm for a chat doesn't turn night back to day.
+ */
 export function useSunPlace(place: SunPlace | null): void {
   const control = useContext(ControlContext);
   if (control === null) throw new Error('useSunPlace needs a ThemeProvider');
@@ -102,6 +105,6 @@ export function useSunPlace(place: SunPlace | null): void {
   const lat = place?.lat;
   const lng = place?.lng;
   useEffect(() => {
-    setSunPlace(lat === undefined || lng === undefined ? null : { lat, lng });
+    if (lat !== undefined && lng !== undefined) setSunPlace({ lat, lng });
   }, [setSunPlace, lat, lng]);
 }

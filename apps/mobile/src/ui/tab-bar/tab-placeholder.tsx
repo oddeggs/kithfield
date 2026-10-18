@@ -13,7 +13,8 @@ import { Txt } from '../type/text';
 export function TabPlaceholder({
   title,
 }: {
-  readonly title: 'shell.tab.farm' | 'shell.tab.chat' | 'shell.tab.seedBed' | 'shell.tab.you';
+  readonly title:
+    'shell.appName' | 'shell.tab.farm' | 'shell.tab.chat' | 'shell.tab.seedBed' | 'shell.tab.you';
 }) {
   const { palette } = useTheme();
   const { t } = useLocale();
