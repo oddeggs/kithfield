@@ -7,6 +7,7 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { tabBarClearance } from '../../../ui/tab-bar/tab-bar';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
+import { AI_PROVIDER, aiDataCount } from '../ai/consent';
 import { useSettingsApi } from '../api/use-api';
 import { useDevicePref } from '../device-prefs';
 import { HOUSE_HOURS, clockTime, zoneName } from '../format';
@@ -37,10 +38,11 @@ export function SettingsScreen() {
   const api = useSettingsApi();
   const { settings, change } = useMeSettings();
   const [catchUp, setCatchUp] = useDevicePref('aiCatchUp');
-  const consents = useRemote(() => api.consents());
+  const consents = useRemote(() =>
+    AI_PROVIDER === null ? Promise.resolve({ consents: [] }) : api.consents(),
+  );
   const catchUpOn = catchUp === 'on';
-  const outsideOn = (consents.data?.consents ?? []).filter((c) => c.allowed).length;
-  const aiOff = 3 - outsideOn - (catchUpOn ? 1 : 0);
+  const aiCount = aiDataCount(AI_PROVIDER, catchUpOn, consents.data?.consents ?? []);
 
   const quiet = settings?.quietHours ?? null;
   const quietValue = quiet
@@ -114,7 +116,7 @@ export function SettingsScreen() {
           <SettingRow
             indent
             title={t('settings.aiData')}
-            value={t('settings.aiData.value', { off: aiOff, all: 3 })}
+            {...(aiCount ? { value: t('settings.aiData.value', aiCount) } : {})}
             onPress={() => go('/(tabs)/you/ai')}
           />
         </Section>

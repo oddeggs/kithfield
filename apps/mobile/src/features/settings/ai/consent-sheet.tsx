@@ -1,6 +1,6 @@
 import type { AiFeature, FarmId } from '@kithfield/contracts';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { useFarmSelector } from '../../../data';
@@ -32,15 +32,15 @@ function Lead({ text }: { readonly text: string }) {
 }
 
 /** The recap's lead names the farm whose letter it is. */
-function RecapLead({ farm }: { readonly farm: FarmId }) {
+function RecapLead({ farm, provider }: { readonly farm: FarmId; readonly provider: string }) {
   const { t } = useLocale();
   const name = useFarmSelector(farm, farmName);
   return (
     <Lead
       text={
         name
-          ? t('settings.consent.recap.lead', { farm: name, provider: AI_PROVIDER })
-          : t('settings.consent.recap.leadAll', { provider: AI_PROVIDER })
+          ? t('settings.consent.recap.lead', { farm: name, provider })
+          : t('settings.consent.recap.leadAll', { provider })
       }
     />
   );
@@ -93,6 +93,23 @@ export function ConsentSheet({
 }: {
   readonly feature: AiFeature;
   readonly farm?: FarmId;
+}) {
+  // Without a provider there is nothing to agree to: the route closes without asking.
+  useEffect(() => {
+    if (AI_PROVIDER === null) router.back();
+  }, []);
+  if (AI_PROVIDER === null) return null;
+  return <Asking feature={feature} provider={AI_PROVIDER} {...(farm ? { farm } : {})} />;
+}
+
+function Asking({
+  feature,
+  farm,
+  provider,
+}: {
+  readonly feature: AiFeature;
+  readonly farm?: FarmId;
+  readonly provider: string;
 }) {
   const { t, language } = useLocale();
   const { palette } = useTheme();
@@ -179,11 +196,11 @@ export function ConsentSheet({
         {captions ? t('settings.consent.captions.title') : t('settings.consent.recap.title')}
       </Txt>
       {captions ? (
-        <Lead text={t('settings.consent.captions.lead', { provider: AI_PROVIDER })} />
+        <Lead text={t('settings.consent.captions.lead', { provider })} />
       ) : farm ? (
-        <RecapLead farm={farm} />
+        <RecapLead farm={farm} provider={provider} />
       ) : (
-        <Lead text={t('settings.consent.recap.leadAll', { provider: AI_PROVIDER })} />
+        <Lead text={t('settings.consent.recap.leadAll', { provider })} />
       )}
       <View style={{ gap: 12 }}>
         <Point

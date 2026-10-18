@@ -47,7 +47,9 @@ export function AiScreen() {
   const insets = useSafeAreaInsets();
   const top = useDesignTop();
   const api = useSettingsApi();
-  const consents = useRemote(() => api.consents());
+  const consents = useRemote(() =>
+    AI_PROVIDER === null ? Promise.resolve({ consents: [] }) : api.consents(),
+  );
   const [catchUp, setCatchUp] = useDevicePref('aiCatchUp');
   useFocusEffect(
     useCallback(() => {
@@ -77,6 +79,8 @@ export function AiScreen() {
       () => toast.show(t('settings.failed')),
     );
   };
+  // Without a provider nothing is sent out, so its section and the deletion request are left out.
+  const provider = AI_PROVIDER ?? '';
   const captions = allowedIn(consents.data, 'captions');
   const recap = allowedIn(consents.data, 'recap');
 
@@ -124,54 +128,58 @@ export function AiScreen() {
             }
           />
         </Section>
-        <Section label={t('settings.ai.outside', { provider: AI_PROVIDER })}>
-          <SettingRow
-            icon="mic"
-            roomy
-            title={t('settings.ai.captions')}
-            subtitle={captions ? t('settings.ai.captionsOn') : t('settings.ai.captionsOff')}
-            trailing={
-              <Toggle
-                value={captions}
-                onChange={(v) => set('captions', v)}
-                label={t('settings.ai.captions')}
-                disabled={consents.data === null && !consents.failed}
+        {AI_PROVIDER === null ? null : (
+          <>
+            <Section label={t('settings.ai.outside', { provider })}>
+              <SettingRow
+                icon="mic"
+                roomy
+                title={t('settings.ai.captions')}
+                subtitle={captions ? t('settings.ai.captionsOn') : t('settings.ai.captionsOff')}
+                trailing={
+                  <Toggle
+                    value={captions}
+                    onChange={(v) => set('captions', v)}
+                    label={t('settings.ai.captions')}
+                    disabled={consents.data === null && !consents.failed}
+                  />
+                }
               />
-            }
-          />
-          <SettingRow
-            icon="envelope"
-            roomy
-            title={t('settings.ai.recap')}
-            subtitle={recap ? t('settings.ai.recapOn') : t('settings.ai.recapOff')}
-            trailing={
-              <Toggle
-                value={recap}
-                onChange={(v) => set('recap', v)}
-                label={t('settings.ai.recap')}
-                disabled={consents.data === null && !consents.failed}
+              <SettingRow
+                icon="envelope"
+                roomy
+                title={t('settings.ai.recap')}
+                subtitle={recap ? t('settings.ai.recapOn') : t('settings.ai.recapOff')}
+                trailing={
+                  <Toggle
+                    value={recap}
+                    onChange={(v) => set('recap', v)}
+                    label={t('settings.ai.recap')}
+                    disabled={consents.data === null && !consents.failed}
+                  />
+                }
               />
-            }
-          />
-        </Section>
-        <View
-          style={{
-            borderRadius: 20,
-            backgroundColor: palette.card,
-            borderWidth: 1,
-            borderColor: palette.hairline,
-            padding: 14,
-            gap: 10,
-          }}
-        >
-          <KText kind="rowTitle" style={{ fontSize: 15, lineHeight: 18.8 }}>
-            {t('settings.ai.takeBack')}
-          </KText>
-          <KText kind="card" multiline color={kit.body2} style={{ lineHeight: 18.9 }}>
-            {t('settings.ai.takeBackText', { provider: AI_PROVIDER })}
-          </KText>
-          <Pill label={t('settings.ai.forget')} height={42} onPress={forget} />
-        </View>
+            </Section>
+            <View
+              style={{
+                borderRadius: 20,
+                backgroundColor: palette.card,
+                borderWidth: 1,
+                borderColor: palette.hairline,
+                padding: 14,
+                gap: 10,
+              }}
+            >
+              <KText kind="rowTitle" style={{ fontSize: 15, lineHeight: 18.8 }}>
+                {t('settings.ai.takeBack')}
+              </KText>
+              <KText kind="card" multiline color={kit.body2} style={{ lineHeight: 18.9 }}>
+                {t('settings.ai.takeBackText', { provider })}
+              </KText>
+              <Pill label={t('settings.ai.forget')} height={42} onPress={forget} />
+            </View>
+          </>
+        )}
         <View
           style={{
             flexDirection: 'row',
