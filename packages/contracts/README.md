@@ -35,6 +35,9 @@ only through the contracts owner.
   the farm writes a follow-up of the same kind restoring the previous values. For a plan edit that
   changed its title, days or place, the follow-up restores the planter's plan, with the editor of
   the removed edit as actor.
+- A profile change (`PATCH /v1/me/profile`, `MeProfileUpdate`) reaches every farm the person lives
+  on as a `critter_changed` the farm writes on their behalf, with exactly the changed keys: `name`,
+  `critter` and `birthday` map one to one onto its payload.
 - A removed, unsent or deleted author's event keeps its `seq` and `kind`; its `payload` becomes a
   `Tombstone`. Check with `isTombstone`. The farm builds it with `tombstoneOf`, which keeps the
   facts the reducer reads (`TOMBSTONE_KEEPS`), so a phone catching up past an unsend or a deleted
