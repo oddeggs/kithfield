@@ -63,14 +63,23 @@ describe('POST /v1/rt-token', () => {
     expect(await verifyRtToken(env, 42, { farm: 'farm-1' })).toBeNull();
     expect(
       await verifyRtToken(
-        { BETTER_AUTH_SECRET: 'another-secret-another-secret-another' },
+        { BETTER_AUTH_SECRET: 'another-secret-another-secret-another', DB: env.DB },
         issued.token,
         {
           farm: 'farm-1',
         },
       ),
     ).toBeNull();
-    expect(await verifyRtToken({}, issued.token, { farm: 'farm-1' })).toBeNull();
+    expect(await verifyRtToken({ DB: env.DB }, issued.token, { farm: 'farm-1' })).toBeNull();
+  });
+
+  it('stops working once the person asks for their account to be deleted', async () => {
+    const { token, user } = await signInAnonymously();
+    const issued = await issue(token, { farm: 'farm-1' });
+    await env.DB.prepare('UPDATE people SET deleted_at = ? WHERE id = ?')
+      .bind(Date.now(), user.id)
+      .run();
+    expect(await verifyRtToken(env, issued.token, { farm: 'farm-1' })).toBeNull();
   });
 
   it('needs a session and a valid body', async () => {
