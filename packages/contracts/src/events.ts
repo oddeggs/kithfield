@@ -49,17 +49,41 @@ import {
   WeatherPayload,
 } from './payloads/farm';
 import { Tombstone } from './payloads/tombstone';
-import { EpochMs, OpId, PersonId, Seq } from './primitives';
+import { EpochMs, LocalDate, OpId, PersonId, Seq } from './primitives';
 
 /** The version of the farm rules an event was applied under. */
 export const RulesVersion = z.int().min(1);
 export type RulesVersion = z.infer<typeof RulesVersion>;
 
 /**
- * Every event: its place in the log, the writer's op id (the farm mints one for its own events),
- * server time, and the rules version it was applied under.
+ * The first rules version whose events carry `day`. From it on, every event has one; events
+ * applied under an older rules version (development data only) may lack it.
  */
-const envelope = { seq: Seq, opId: OpId, at: EpochMs, rulesVersion: RulesVersion };
+export const DAY_FROM_RULES_VERSION = 2;
+
+/**
+ * Every event: its place in the log, the writer's op id (the farm mints one for its own events),
+ * server time, the farm-time local day, and the rules version it was applied under.
+ */
+const envelope = {
+  seq: Seq,
+  opId: OpId,
+  at: EpochMs,
+  /**
+   * The farm's local day the event happened on, set by the farm at commit from the farm's time
+   * zone. Caps, roses and every other day rule read it, never the device's time-zone data.
+   */
+  day: LocalDate.optional(),
+  rulesVersion: RulesVersion,
+};
+
+/** From `DAY_FROM_RULES_VERSION` on, an event must carry its day. */
+const hasDay = (e: { day?: string | undefined; rulesVersion: number }) =>
+  e.rulesVersion < DAY_FROM_RULES_VERSION || e.day !== undefined;
+const dayRule = {
+  message: 'Events from this rules version carry their farm-time day',
+  path: ['day'],
+};
 
 export const isTombstone = (payload: unknown): payload is Tombstone =>
   typeof payload === 'object' && payload !== null && 'tombstone' in payload;
@@ -71,14 +95,17 @@ const tombstonable = <P extends z.ZodType>(payload: P) => z.union([Tombstone, pa
 const personEvent = <K extends string, P extends z.ZodType>(kind: K, payload: P) =>
   z.object({ ...envelope, actor: PersonId, kind: z.literal(kind), payload: tombstonable(payload) });
 
+/** Who may write a payload: a person, only the farm or the safety team (null actor), or either. */
+type Writer = 'person' | 'farm' | 'either';
+
 /**
  * A person's event that the safety team or the farm may also write, then with a null actor.
- * `bySafety` says which payloads those are; the actor must be null exactly for them.
+ * `writer` says which payloads those are.
  */
 const sharedEvent = <K extends string, S extends z.ZodType>(
   kind: K,
   payload: S,
-  bySafety: (payload: Record<string, unknown>) => boolean,
+  writer: (payload: Record<string, unknown>) => Writer,
 ) =>
   z.object({ ...envelope, actor: PersonId.nullable(), kind: z.literal(kind), payload }).refine(
     (e) => {
@@ -86,73 +113,85 @@ const sharedEvent = <K extends string, S extends z.ZodType>(
         actor: string | null;
         payload: Record<string, unknown>;
       };
-      return isTombstone(p) || (actor === null) === bySafety(p);
+      if (isTombstone(p)) return true;
+      const w = writer(p);
+      return w === 'either' || (actor === null) === (w === 'farm');
     },
     { message: 'Only the farm or the safety team writes with a null actor', path: ['actor'] },
   );
+
+const safetyIf = (yes: boolean): Writer => (yes ? 'farm' : 'person');
 
 /** An event the farm writes by itself, never tombstoned. */
 const farmEvent = <K extends string, P extends z.ZodType>(kind: K, payload: P) =>
   z.object({ ...envelope, actor: z.null(), kind: z.literal(kind), payload });
 
 /** One entry of a farm's log. Edits and unsends never take dew back. */
-export const FarmEvent = z.discriminatedUnion('kind', [
-  // Chat
-  personEvent('message', MessagePayload),
-  personEvent('edit', EditPayload),
-  sharedEvent('unsend', tombstonable(UnsendPayload), (p) => p['by'] === 'safety'),
-  personEvent('reaction', ReactionPayload),
-  personEvent('sticker', StickerPayload),
-  personEvent('media', MediaPayload),
-  personEvent('voice', VoicePayload),
-  personEvent('link', LinkPayload),
-  personEvent('pin', PinPayload),
-  // Gestures
-  personEvent('dewdrop', DewdropPayload),
-  personEvent('firefly', FireflyPayload),
-  personEvent('wave', WavePayload),
-  personEvent('knock', KnockPayload),
-  personEvent('hug', HugPayload),
-  personEvent('quiet_note', QuietNotePayload),
-  personEvent('slow_post', SlowPostPayload),
-  personEvent('card_signed', CardSignedPayload),
-  /** A visitor from another farm at the gate; the actor is the visitor. */
-  personEvent('gate', GatePayload),
-  // Plans
-  personEvent('seed_planted', SeedPlantedPayload),
-  personEvent('seed_changed', SeedChangedPayload),
-  personEvent('vote', VotePayload),
-  personEvent('rsvp', RsvpPayload),
-  personEvent('checkin', CheckinPayload),
-  // Keepsakes
-  personEvent('gift', GiftPayload),
-  personEvent('scrapbook_page', ScrapbookPagePayload),
-  personEvent('traded', TradedPayload),
-  // Presence
-  personEvent('farm_opened', FarmOpenedPayload),
-  personEvent('hibernate', HibernatePayload),
-  personEvent('status', StatusPayload),
-  sharedEvent('fire', tombstonable(FirePayload), (p) => p['state'] === 'out'),
-  // Membership
-  personEvent('joined', JoinedPayload),
-  personEvent('left', LeftPayload),
-  sharedEvent('removed', tombstonable(RemovedPayload), (p) => p['by'] === 'safety'),
-  personEvent('critter_changed', CritterChangedPayload),
-  /** Farm settings are the farm's, not a person's content: never tombstoned. */
-  sharedEvent(
-    'settings_changed',
-    SettingsChangedPayload,
-    (p) => p['setting'] === 'frozen' || p['setting'] === 'paused',
-  ),
-  // Written by the farm
-  farmEvent('farm_created', FarmCreatedPayload),
-  farmEvent('weather', WeatherPayload),
-  farmEvent('shared_rain', SharedRainPayload),
-  farmEvent('season_rolled', SeasonRolledPayload),
-  farmEvent('harvested', HarvestedPayload),
-  farmEvent('rules_changed', RulesChangedPayload),
-  farmEvent('restored', RestoredPayload),
-]);
+export const FarmEvent = z
+  .discriminatedUnion('kind', [
+    // Chat
+    personEvent('message', MessagePayload),
+    personEvent('edit', EditPayload),
+    sharedEvent('unsend', tombstonable(UnsendPayload), (p) => safetyIf(p['by'] === 'safety')),
+    personEvent('reaction', ReactionPayload),
+    personEvent('sticker', StickerPayload),
+    personEvent('media', MediaPayload),
+    personEvent('voice', VoicePayload),
+    personEvent('link', LinkPayload),
+    personEvent('pin', PinPayload),
+    // Gestures
+    personEvent('dewdrop', DewdropPayload),
+    personEvent('firefly', FireflyPayload),
+    personEvent('wave', WavePayload),
+    personEvent('knock', KnockPayload),
+    personEvent('hug', HugPayload),
+    personEvent('quiet_note', QuietNotePayload),
+    personEvent('slow_post', SlowPostPayload),
+    personEvent('card_signed', CardSignedPayload),
+    /** A visitor from another farm at the gate; the actor is the visitor. */
+    personEvent('gate', GatePayload),
+    // Plans
+    personEvent('seed_planted', SeedPlantedPayload),
+    personEvent('seed_changed', SeedChangedPayload),
+    personEvent('vote', VotePayload),
+    personEvent('rsvp', RsvpPayload),
+    personEvent('checkin', CheckinPayload),
+    // Keepsakes
+    personEvent('gift', GiftPayload),
+    personEvent('scrapbook_page', ScrapbookPagePayload),
+    personEvent('traded', TradedPayload),
+    // Presence
+    personEvent('farm_opened', FarmOpenedPayload),
+    personEvent('hibernate', HibernatePayload),
+    personEvent('status', StatusPayload),
+    sharedEvent('fire', tombstonable(FirePayload), (p) => safetyIf(p['state'] === 'out')),
+    // Membership
+    personEvent('joined', JoinedPayload),
+    personEvent('left', LeftPayload),
+    sharedEvent('removed', tombstonable(RemovedPayload), (p) => safetyIf(p['by'] === 'safety')),
+    personEvent('critter_changed', CritterChangedPayload),
+    /**
+     * Farm settings are the farm's, not a person's content: never tombstoned. `frozen` and `paused`
+     * come from the safety team; a keeper handover when the last keeper leaves or is removed comes
+     * from the farm. Both with a null actor.
+     */
+    sharedEvent('settings_changed', SettingsChangedPayload, (p) =>
+      p['setting'] === 'frozen' || p['setting'] === 'paused'
+        ? 'farm'
+        : p['setting'] === 'role' && p['role'] === 'keeper'
+          ? 'either'
+          : 'person',
+    ),
+    // Written by the farm
+    farmEvent('farm_created', FarmCreatedPayload),
+    farmEvent('weather', WeatherPayload),
+    farmEvent('shared_rain', SharedRainPayload),
+    farmEvent('season_rolled', SeasonRolledPayload),
+    farmEvent('harvested', HarvestedPayload),
+    farmEvent('rules_changed', RulesChangedPayload),
+    farmEvent('restored', RestoredPayload),
+  ])
+  .refine(hasDay, dayRule);
 export type FarmEvent = z.infer<typeof FarmEvent>;
 export type EventKind = FarmEvent['kind'];
 export type EventOf<K extends EventKind> = Extract<FarmEvent, { kind: K }>;
@@ -183,15 +222,33 @@ export const FARM_WRITTEN_KINDS = [
 export const AnyEventKind = z.string().regex(/^[a-z][a-z0-9_]{0,39}$/);
 
 /**
+ * Kinds the farm may write on a person's behalf, with that person as actor and an op id the farm
+ * mints. The first five come only from the farm. `critter_changed` and `status` are also phone
+ * commands; the farm writes them after a safety removal of one, to restore the person's previous
+ * critter, name, birthday or status.
+ */
+export const ON_BEHALF_KINDS = [
+  'joined',
+  'farm_opened',
+  'hibernate',
+  'gate',
+  'traded',
+  'critter_changed',
+  'status',
+] as const satisfies readonly EventKind[];
+
+/**
  * Any event's envelope, with the payload unchecked. Sockets and paging carry events in this form so
  * one kind this app doesn't know never fails a batch.
  */
-export const EventEnvelope = z.object({
-  ...envelope,
-  actor: PersonId.nullable(),
-  kind: AnyEventKind,
-  payload: z.unknown(),
-});
+export const EventEnvelope = z
+  .object({
+    ...envelope,
+    actor: PersonId.nullable(),
+    kind: AnyEventKind,
+    payload: z.unknown(),
+  })
+  .refine(hasDay, dayRule);
 export type EventEnvelope = z.infer<typeof EventEnvelope>;
 
 /** Where a check failed, as a path into the event. Carries no content. */

@@ -1,4 +1,6 @@
+import { consumeDeletion } from './deletion';
 import type { Bindings } from './env';
+import { consumePush } from './push/consumer';
 
 /** The queues in `wrangler.jsonc`, by their name without the `kithfield-` prefix and `-dev` suffix. */
 export const queueNames = ['push', 'media-jobs', 'ai', 'deletion'] as const;
@@ -17,7 +19,10 @@ export function queueNameOf(queue: string): QueueName | undefined {
 }
 
 /** Each queue's consumer, registered here as it is built. */
-const handlers: Partial<Record<QueueName, QueueHandler>> = {};
+const handlers: Partial<Record<QueueName, QueueHandler>> = {
+  push: (batch, env, ctx) => consumePush(batch, env, ctx),
+  deletion: (batch, env) => consumeDeletion(batch, env),
+};
 
 /** Hands a batch to its queue's consumer. Without one, the batch is retried rather than acked. */
 export async function consumeQueue(

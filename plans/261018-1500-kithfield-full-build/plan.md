@@ -19,7 +19,7 @@ The plan is built for parallel subagents, not one developer.
 |---|---|
 | Routes | Each feature owns its own route folder under `apps/mobile/src/app/(feature)/`. Only the shell lane edits `_layout.tsx` and the tab bar |
 | i18n | One catalogue file per feature: `packages/i18n/src/<feature>.en.ts` / `.vi.ts`. `pnpm --filter @kithfield/i18n gen` writes `catalogues.generated.ts`; re-run it after a merge conflict |
-| D1 migrations | Number ranges per lane (below). Never edit another lane's migration |
+| D1 migrations | Number ranges per lane (below; the farm object lane, 1d, takes `0400–0449`). Never edit another lane's migration |
 | Contracts | Owned by the contracts lane only |
 | `package.json` dependencies | A lane may add dependencies only to the packages it owns, at versions already in the catalogue; new catalogue entries go through the integration agent |
 | Native config (`app.config.ts`, `targets/`) | Owned by the native-surfaces lane from wave 3; earlier lanes request changes through `NEEDS_CONTEXT` |
