@@ -20,15 +20,18 @@ import type { Bindings } from '../env';
 import type { Decision } from '../push/policy';
 import { cottageAdapters } from './adapters';
 import * as chats from './chats';
-import { type Claim, claimJob, nextHeldAt, releaseHeld } from './claim';
+import { alarmDelay, nextAlarmAt, ringAlarm } from './alarm';
+import { type Claim, claimJob } from './claim';
 import { cottageClock } from './clock';
 import * as devices from './devices';
-import { farmFromDirectory } from './directory';
-import { considerDelivery, considerJob, type Intake, reminderJob } from './intake';
+import { decideDelivery, receiveDelivery } from './deliver';
+import { considerJob, type Intake } from './intake';
+import * as merge from './merge';
 import { applySettings, readProfile, updateProfile } from './profile';
 import { applySchema } from './schema';
 import * as seeds from './seeds';
 import * as sockets from './socket';
+import { cottageOf } from './stub';
 
 /**
  * One per person, named by their person id (`cottageOf` in `./stub`). It keeps the chat list and
@@ -54,37 +57,52 @@ export class CottageDO extends DurableObject<Bindings> {
     return name;
   }
 
-  private intake(): Intake {
-    return { sql: this.sql, env: this.env, person: this.person, now: cottageClock.now() };
-  }
-
   private get now(): number {
     return cottageClock.now();
   }
 
+  private intake(): Intake {
+    return { sql: this.sql, env: this.env, person: this.person, now: this.now };
+  }
+
   /**
    * A farm committed an event: update the chat list and Quick Tend, tell the phone, and decide
-   * whether to push. A repeated delivery does nothing; a late one (a slow post) still counts. A
-   * farm the cottage wasn't told about is looked up, so a missed `upsertFarm` never hides a chat.
+   * whether to push. A repeated delivery does nothing; a late one (a slow post) still counts.
    */
   async deliver(delivery: CottageDelivery): Promise<void> {
     const parsed = CottageDelivery.parse(delivery);
     const intake = this.intake();
-    if (!chats.knowsFarm(this.sql, parsed.farm)) {
-      const info = await farmFromDirectory(this.env.DB, parsed.farm, intake.person);
-      if (info !== null) chats.upsertFarm(this.sql, info);
-    }
-    if (!chats.applyDelivery(this.sql, parsed, intake.person, intake.now)) return;
-    if (parsed.actor === intake.person && parsed.kind === 'farm_opened') this.cameBack();
+    if (!(await receiveDelivery(intake, parsed))) return;
     this.sendRow(parsed.farm, intake.now);
-    try {
-      await considerDelivery(intake, parsed);
-    } catch (error) {
-      // The farm retries a failed call: let that retry be taken rather than seen as a repeat.
-      chats.forgetDelivered(this.sql, parsed.farm, parsed.seq);
-      throw error;
-    }
+    await decideDelivery(intake, parsed);
     await this.scheduleAlarm();
+  }
+
+  /**
+   * Takes in a merged person's cottage (`PersonMergedJob {from, into}`, called on `into`): their
+   * chats, waiting items, devices, seeds and held pushes, their settings if this person has none,
+   * and their action keys in D1; then empties theirs. Safe to run again.
+   */
+  async absorb(from: string): Promise<void> {
+    if (from === this.person) return;
+    const other = cottageOf(this.env, from);
+    merge.mergeInto(this.sql, await other.exportForMerge(), this.person);
+    await merge.moveActionKeys(this.env.DB, from, this.person);
+    await other.clearForMerge();
+    this.broadcast({ type: 'chats', chats: chats.chatList(this.sql, this.now) });
+    await this.scheduleAlarm();
+  }
+
+  exportForMerge(): merge.CottageExport {
+    return merge.exportCottage(this.sql);
+  }
+
+  /** Empties a cottage whose person was merged into another: sockets closed, storage gone. */
+  async clearForMerge(): Promise<void> {
+    this.closeSockets('unauthorized');
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    applySchema(this.sql);
   }
 
   /** The person lives on this farm or visit: its kind, and its name or peer. */
@@ -159,8 +177,7 @@ export class CottageDO extends DurableObject<Bindings> {
     devices.forgetDevice(this.sql, device);
   }
 
-  /* Settings, for `GET /v1/me` and `PATCH /v1/me/settings`. */
-
+  /** For `GET /v1/me`. */
   settings(): { settings: MeSettings; hibernating: boolean } {
     const { settings, hibernating } = readProfile(this.sql);
     return { settings, hibernating };
@@ -195,8 +212,7 @@ export class CottageDO extends DurableObject<Bindings> {
     return removed;
   }
 
-  /* Safety notes: the frame carries no content; the phone fetches the note. */
-
+  /** A note from the safety team waits; the frame carries no content. */
   noteSafety(): void {
     updateProfile(this.sql, (profile) => ({ ...profile, safetyNote: true }));
     this.broadcast({ type: 'safety_note' });
@@ -211,35 +227,18 @@ export class CottageDO extends DurableObject<Bindings> {
     for (const ws of this.ctx.getWebSockets()) sockets.refuse(ws, code);
   }
 
-  /* Alarms: held pushes when quiet hours end, remember-me nudges, and late hellos. */
-
+  /** Late hellos, held pushes and due seeds; after a failure, it rings again in a minute. */
   override async alarm(): Promise<void> {
-    const intake = this.intake();
-    sockets.closeLate(this.ctx.getWebSockets(), intake.now);
-    try {
-      await releaseHeld(intake);
-      for (const seed of seeds.dueSeeds(this.sql, intake.now)) {
-        await considerJob(intake, reminderJob(intake.person, seed, intake.now), false);
-        seeds.removeSeed(this.sql, seed.id);
-      }
-    } catch (error) {
-      // What wasn't handled stays held or planted; try again in a minute.
-      console.error('cottage alarm failed', { error: String(error) });
-      await this.ctx.storage.setAlarm(Date.now() + 60_000);
-      return;
-    }
-    await this.scheduleAlarm();
+    sockets.closeLate(this.ctx.getWebSockets(), this.now);
+    if (await ringAlarm(this.intake())) await this.scheduleAlarm();
+    else await this.ctx.storage.setAlarm(Date.now() + 60_000);
   }
 
   /** Rings at the earliest thing due, as a delay from the cottage's clock. */
   private async scheduleAlarm(): Promise<void> {
-    const times = [
-      nextHeldAt(this.sql),
-      seeds.nextSeedAt(this.sql),
-      sockets.nextDeadline(this.ctx.getWebSockets()),
-    ].filter((t) => t !== null);
-    if (times.length === 0) await this.ctx.storage.deleteAlarm();
-    else await this.ctx.storage.setAlarm(Date.now() + Math.max(0, Math.min(...times) - this.now));
+    const at = nextAlarmAt(this.sql, this.ctx.getWebSockets());
+    if (at === null) await this.ctx.storage.deleteAlarm();
+    else await this.ctx.storage.setAlarm(Date.now() + alarmDelay(at, this.now));
   }
 
   /** The person came back on their own: nudges start again from the first. */
