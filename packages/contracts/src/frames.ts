@@ -115,8 +115,17 @@ const farmServerFrames = z.discriminatedUnion('type', [
   z.object({ type: z.literal('event'), event: EventEnvelope }),
   Ack.extend({ type: z.literal('ack') }),
   Rejection.extend({ type: z.literal('rejected') }),
-  /** Everyone whose farm is open right now (their window is lit). */
-  z.object({ type: z.literal('presence'), here: z.array(PersonId).max(LIMITS.members) }),
+  /**
+   * Everyone whose farm is open right now (their window is lit), and who is by the fire: from the
+   * room (`LiveKitWebhook`), listening or talking alike, empty while the fire is out. Sent after
+   * `hello` and whenever either changes. Never stored, and never how long anyone stayed. A farm
+   * from before the fire room leaves `fire` out.
+   */
+  z.object({
+    type: z.literal('presence'),
+    here: z.array(PersonId).max(LIMITS.members),
+    fire: z.array(PersonId).max(LIMITS.fireVoices).optional(),
+  }),
   /** Everyone writing right now. */
   z.object({ type: z.literal('typing'), people: z.array(PersonId).max(LIMITS.members) }),
   errorFrame,

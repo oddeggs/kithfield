@@ -34,6 +34,20 @@ export const LIMITS = {
   url: 2048,
   /** Socket tokens live 5 minutes. */
   rtTokenMs: 5 * 60_000,
+  /** The words on a gift's tag. */
+  giftNote: 140,
+  /** Items on Rocco's cart in one week. */
+  cartItems: 12,
+  /** Things a person wishes for on their critter card. */
+  wishlist: 30,
+  /** Voices by the fire; eight seats are drawn, the rest sit as small lanterns. */
+  fireVoices: 24,
+  /** One piece of a speaker's audio sent for live captions. */
+  captionChunkMs: 15_000,
+  captionChunkBytes: 512 * 1024,
+  /** A caption line, and the Sunday recap letter's body. */
+  captionText: 2000,
+  recapLetter: 1200,
 } as const;
 
 /** A server-assigned id (person, farm, device, report): URL-safe, at most 64 characters. */
@@ -75,6 +89,16 @@ export const TimeZone = z.string().regex(/^(UTC|[A-Za-z_]+(\/[A-Za-z0-9_+-]+){1,
 export type TimeZone = z.infer<typeof TimeZone>;
 
 export const CountryCode = z.string().regex(/^[A-Z]{2}$/);
+
+/** An ISO 4217 currency code. */
+export const CurrencyCode = z.string().regex(/^[A-Z]{3}$/);
+
+/**
+ * Money we charge outside the app stores (the printed book), in minor units. App Store and Play
+ * prices are never sent: the app shows the store's own display price.
+ */
+export const Money = z.object({ amount: z.int().min(0), currency: CurrencyCode });
+export type Money = z.infer<typeof Money>;
 export const HexColor = z.string().regex(/^#[0-9a-f]{6}$/);
 
 /** An identifier the art renderer knows (coat, marking, outfit, sticker, land, theme). */
