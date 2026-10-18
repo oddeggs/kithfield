@@ -19,7 +19,7 @@ export const SEASONS = [
   'winter',
 ] as const satisfies readonly Season[];
 
-/** The six families in the order every list shows them (15-01). */
+/** The six families in the order every list shows them. */
 export const FAMILIES = [
   'dew',
   'words',
@@ -65,10 +65,10 @@ export const SIGNATURE_POOL = [
 
 export type SignatureId = (typeof SIGNATURE_POOL)[number]['id'];
 
-export type PlantId = FamilyPlantId | PorchPotId | SignatureId | 'rose';
+export type CatalogPlantId = FamilyPlantId | PorchPotId | SignatureId | 'rose';
 
 export interface PlantEntry {
-  readonly id: PlantId;
+  readonly id: CatalogPlantId;
   /** A family plant, the birthday rose, a signature crop, or a porch pot plant. */
   readonly role: 'family' | 'rose' | 'signature' | 'pot';
   readonly family: CareFamily | null;
@@ -109,7 +109,7 @@ const signatureEntries: PlantEntry[] = SIGNATURE_POOL.map(({ id }) => ({
   canBeRare: true,
 }));
 
-/** The birthday rose: blooms over a member's cottage on their birthday (07-01). */
+/** The birthday rose: blooms over a member's cottage on their birthday. */
 export const ROSE: PlantEntry = {
   id: 'rose',
   role: 'rose',
@@ -127,7 +127,9 @@ export const PLANTS: readonly PlantEntry[] = [
   ...potEntries,
 ];
 
-export const PLANT_BY_ID: ReadonlyMap<PlantId, PlantEntry> = new Map(PLANTS.map((p) => [p.id, p]));
+export const PLANT_BY_ID: ReadonlyMap<CatalogPlantId, PlantEntry> = new Map(
+  PLANTS.map((p) => [p.id, p]),
+);
 
 /** Stage names by index 0–4; the art draws `stage=<index>`, and sleepy as `state="sleepy"`. */
 export const STAGES = PLANT_STAGES;
@@ -146,7 +148,11 @@ export const SLEEPY_AFTER_DAYS = {
   winter: 14,
 } as const satisfies Record<Season, number>;
 
-/** Rare variants: what weather brings each, and the art state that draws it. */
+/**
+ * Rare variants: the weather that brings each and the art state that draws it. `sharedRain` says
+ * whether a shared rain day (3+ members on the farm within 10 minutes) also counts as that
+ * weather; only rain-kissed does. Shared rain raises the chance for every variant all the same.
+ */
 export const RARE_VARIANTS = [
   { id: 'rain_kissed', weather: 'rain', sharedRain: true, artState: 'rain' },
   { id: 'frost_lace', weather: 'frost', sharedRain: false, artState: 'frost' },

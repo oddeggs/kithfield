@@ -1,8 +1,7 @@
-import { readFileSync } from 'node:fs';
-
 import { CareFamily, PlantId as PlantIdSchema, RareVariant, Season } from '@kithfield/contracts';
 import { describe, expect, it } from 'vitest';
 
+import art from '../../../design/kithfield-art.js?raw';
 import {
   FAMILIES,
   FAMILY_PLANTS,
@@ -18,7 +17,6 @@ import {
 } from './catalog';
 
 /** Reads what the art renderer can draw straight from the design's art file. */
-const art = readFileSync(new URL('../../../design/kithfield-art.js', import.meta.url), 'utf8');
 const block = (name: string) => {
   const match = new RegExp(`const ${name} = \\{([\\s\\S]*?)\\};`).exec(art);
   if (!match?.[1]) throw new Error(`${name} not found in the art file`);

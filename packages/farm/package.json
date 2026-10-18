@@ -16,7 +16,6 @@
     "@kithfield/contracts": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "catalog:",
     "vitest": "catalog:"
   }
 }
