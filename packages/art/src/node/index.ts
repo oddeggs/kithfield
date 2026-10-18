@@ -7,6 +7,7 @@ import { nodeFaces } from './fonts';
 import { loadNodeSkia } from './skia';
 
 export { loadNodeSkia } from './skia';
+export { bakeScene } from './bake';
 export { nodeFaces, themeFontDir } from './fonts';
 
 /** The renderer on CanvasKit in Node, with the theme's fonts. */
