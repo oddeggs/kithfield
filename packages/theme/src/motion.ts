@@ -19,6 +19,7 @@ export interface SpringConfig {
  * for unit mass: stiffness (2π / response)², damping 2 · dampingFraction · 2π / response.
  */
 export function springFromResponse(response: number, dampingFraction: number): SpringConfig {
+  'worklet';
   const omega = (2 * Math.PI) / response;
   return { mass: 1, stiffness: omega * omega, damping: 2 * dampingFraction * omega };
 }
@@ -73,6 +74,7 @@ export const reduceMotion = {
 
 /** The motion to run for `name`, or null where Reduce Motion holds the art still. */
 export function motionFor(name: MotionName, reduce: boolean): MotionName | null {
+  'worklet';
   if (!reduce) return name;
   if (name === 'twos' || name === 'breath') return null;
   return reduceMotion.transition;

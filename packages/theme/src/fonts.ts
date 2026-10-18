@@ -84,9 +84,10 @@ export interface FontOptions {
   multiline?: boolean;
 }
 
-/** True for `vi` and its regional tags (`vi-VN`). */
+/** True for `vi` and its regional tags, in any case and with either separator (`VI`, `vi_VN`). */
 export function isVietnamese(locale: string): boolean {
-  return locale === 'vi' || locale.toLowerCase().startsWith('vi-');
+  const l = locale.toLowerCase().replace('_', '-');
+  return l === 'vi' || l.startsWith('vi-');
 }
 
 /** The type style `style` as set in `locale`, with the Vietnamese stack swapped in. */

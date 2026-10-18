@@ -110,6 +110,8 @@ describe('fontFor', () => {
   it('treats only vi tags as Vietnamese', () => {
     expect(isVietnamese('vi')).toBe(true);
     expect(isVietnamese('vi-VN')).toBe(true);
+    expect(isVietnamese('VI')).toBe(true);
+    expect(isVietnamese('vi_VN')).toBe(true);
     expect(isVietnamese('en')).toBe(false);
     expect(isVietnamese('video')).toBe(false);
   });
