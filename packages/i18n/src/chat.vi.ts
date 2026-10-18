@@ -83,6 +83,7 @@ export const chatVi: ViCatalogue<typeof chatEn> = {
   'chat.bubble.sent': 'Đã gửi',
   'chat.bubble.edited': 'đã sửa',
   'chat.bubble.didntSend': 'Chưa gửi được',
+  'chat.bubble.meet': 'Xem {name} trên nông trại',
   'chat.bubble.tryAgain': 'Thử lại',
   'chat.refused.editClosed': 'Chỉ sửa được trong 15 phút sau khi gửi.',
   'chat.refused.gone': 'Tin nhắn đó không còn nữa.',
