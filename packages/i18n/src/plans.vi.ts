@@ -114,7 +114,7 @@ export const plansVi: ViCatalogue<typeof plansEn> = {
   'plans.rsvp.maybe': 'Có thể',
   'plans.rsvp.out': 'Mình không đến được',
 
-  'plans.hat.screen': 'Trả lời',
+  'plans.hat.screen': 'Trả lời cho {plan}',
   'plans.hat.titleYou': 'Bạn thú của bạn đang đội mũ',
   'plans.hat.title': 'Bạn thú của {name} đang đội mũ',
   'plans.hat.bodyYou':

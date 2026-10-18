@@ -135,7 +135,7 @@ export function RepliesScreen({ farm, seq }: { readonly farm: FarmId; readonly s
           : { text: t('plans.hat.waiting'), color: look.waiting };
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <PlanHeader title={t('plans.hat.screen')} top={fromTop(56)} />
+      <PlanHeader title={t('plans.hat.screen', { plan: seed.title ?? '' })} top={fromTop(56)} />
       <HatStage wearer={wearer} season={state.season.season} top={fromTop(112)} />
       <ScrollView
         contentContainerStyle={{ paddingTop: fromTop(356), paddingBottom: offset + 56 + 20 }}
@@ -204,7 +204,20 @@ export function RepliesScreen({ farm, seq }: { readonly farm: FarmId; readonly s
           })}
         </View>
       </ScrollView>
-      <View style={{ position: 'absolute', left: 24, right: 24, bottom: offset, flexDirection: 'row', gap: 10 }}>
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingHorizontal: 24,
+          paddingTop: 12,
+          paddingBottom: offset,
+          flexDirection: 'row',
+          gap: 10,
+          backgroundColor: palette.background,
+        }}
+      >
         {canPass ? (
           <Button
             label={passing ? t('plans.hat.keep') : t('plans.hat.pass')}

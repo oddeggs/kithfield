@@ -66,7 +66,8 @@ export function VoteBud({
       accessibilityState={{ selected: mine }}
       style={{
         flex: 1,
-        height: 236,
+        // The design's 236 is its content box: 250 tall with the padding under the critters.
+        height: 250,
         borderRadius: 26,
         backgroundColor: look.bud,
         boxShadow: `0 0 0 1px ${palette.cardBorder}${mine ? `, 0 0 0 3px ${palette.go.bg}` : ''}`,

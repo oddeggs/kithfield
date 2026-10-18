@@ -161,7 +161,7 @@ export function PlantSheet({
           </View>
         ) : null}
 
-        <Txt variant="body" multiline color={palette.body} style={{ fontSize: 14, lineHeight: 19.6 }}>
+        <Txt variant="body" multiline color={palette.body} style={{ fontSize: 14, lineHeight: 19.6, letterSpacing: -0.15 }}>
           {t('plans.plant.lead')}
         </Txt>
 
@@ -181,7 +181,18 @@ export function PlantSheet({
           onPress={() => void plant(true)}
         />
       </ScrollView>
-      <View style={{ position: 'absolute', left: 24, right: 24, bottom: 34 }}>
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingHorizontal: 24,
+          paddingTop: 12,
+          paddingBottom: 34,
+          backgroundColor: palette.sheet,
+        }}
+      >
         <Button
           label={t('plans.plant.action')}
           kind="go"

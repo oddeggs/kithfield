@@ -169,7 +169,7 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <View style={{ flex: 1, gap: 3 }} accessible accessibilityLiveRegion="polite">
-            <Txt variant="rowTitle" color={fireside.label} style={{ fontSize: 13 }}>
+            <Txt variant="rowTitle" color={fireside.label} style={{ fontSize: 13, lineHeight: 16, marginVertical: -1.5 }}>
               {t('plans.hangout.around')}
             </Txt>
             <Txt variant="handL" multiline color={fireside.text} style={{ fontSize: 19, lineHeight: 20.9 }}>

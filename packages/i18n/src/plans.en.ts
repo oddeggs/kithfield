@@ -130,7 +130,7 @@ export const plansEn = {
   'plans.rsvp.out': "Can't make it",
 
   /* The organiser's hat */
-  'plans.hat.screen': 'Replies',
+  'plans.hat.screen': '{plan} replies',
   'plans.hat.titleYou': 'Your critter has the hat on',
   'plans.hat.title': "{name}'s critter has the hat on",
   'plans.hat.bodyYou': 'The hat follows up on {plan} for you. Gently, and never more than twice.',

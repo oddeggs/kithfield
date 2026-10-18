@@ -115,7 +115,7 @@ function Voting({
           );
         })}
       </View>
-      <View style={{ paddingHorizontal: 16, marginTop: 22 }}>
+      <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
         <SunPatch options={dates} leading={leading} />
       </View>
     </View>
@@ -261,7 +261,18 @@ export function PlanScreen({ farm, seq }: { readonly farm: FarmId; readonly seq:
         </View>
       </ScrollView>
       {bottom ? (
-        <View style={{ position: 'absolute', left: 24, right: 24, bottom: offset }}>
+        <View
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            paddingHorizontal: 24,
+            paddingTop: 12,
+            paddingBottom: offset,
+            backgroundColor: palette.background,
+          }}
+        >
           {onTheDay ? (
             <Button
               label={t('plans.plan.toTheFire')}
