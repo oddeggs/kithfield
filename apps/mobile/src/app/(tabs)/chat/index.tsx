@@ -1,6 +1,5 @@
-import { TabPlaceholder } from '../../../ui/tab-bar/tab-placeholder';
+import { ChatListScreen } from '../../../features/chat/list/chat-list-screen';
 
-/** Stands in until the chat screens are built here. */
 export default function ChatHome() {
-  return <TabPlaceholder title="shell.tab.chat" />;
+  return <ChatListScreen />;
 }

@@ -1,0 +1,48 @@
+/*
+ * A write the farm refused, as the chat explains it. Some reasons won't change by trying again (the
+ * edit window closed, the message is gone, a pause, a frozen farm, a file too big to send), so those offer no retry.
+ */
+
+export type RefusalCopy =
+  | 'chat.refused.editClosed'
+  | 'chat.refused.gone'
+  | 'chat.refused.notAllowed'
+  | 'chat.refused.paused'
+  | 'chat.refused.frozen'
+  | 'chat.refused.tooBig'
+  | 'chat.refused.unreadable'
+  | 'chat.refused.other';
+
+const PERMANENT: Readonly<Record<string, RefusalCopy>> = {
+  edit_window_closed: 'chat.refused.editClosed',
+  gone: 'chat.refused.gone',
+  not_allowed: 'chat.refused.notAllowed',
+  account_paused: 'chat.refused.paused',
+  farm_frozen: 'chat.refused.frozen',
+  // A file that stopped on its way up.
+  too_large: 'chat.refused.tooBig',
+  unreadable: 'chat.refused.unreadable',
+  not_member: 'chat.refused.notAllowed',
+};
+
+export function refusalOf(reason: string): { readonly copy: RefusalCopy; readonly retry: boolean } {
+  const permanent = PERMANENT[reason];
+  return permanent
+    ? { copy: permanent, retry: false }
+    : { copy: 'chat.refused.other', retry: true };
+}
+
+/**
+ * Tries a refused write again: writes it anew first, and lets the refusal go only once the new
+ * write is queued, so a failure to queue never loses the words. Permanent refusals stay as they are.
+ */
+export async function retryRefused(
+  refused: { readonly kind: string; readonly payload: unknown; readonly reason: string },
+  io: {
+    readonly write: (kind: string, payload: unknown) => Promise<boolean>;
+    readonly dismiss: () => Promise<void>;
+  },
+): Promise<void> {
+  if (!refusalOf(refused.reason).retry) return;
+  if (await io.write(refused.kind, refused.payload)) await io.dismiss();
+}
