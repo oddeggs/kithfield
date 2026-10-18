@@ -1,4 +1,4 @@
-import { day, travel } from '@kithfield/theme';
+import { travel } from '@kithfield/theme';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 import Animated, {
@@ -24,6 +24,7 @@ export const POP = 1.12;
 /** The hand-lettered line above the tray: the reaction's name and what it means. */
 export function MeaningLabel({ reaction }: { readonly reaction: TrayReaction }) {
   const { t } = useLocale();
+  const { palette } = useTheme();
   return (
     <View
       style={{
@@ -32,11 +33,12 @@ export function MeaningLabel({ reaction }: { readonly reaction: TrayReaction }) 
         paddingBottom: 8,
         paddingHorizontal: 12,
         borderRadius: 14,
-        backgroundColor: day.ink,
+        // Ink on paper by day, moon at night: the library's notice colours.
+        backgroundColor: palette.notice.bg,
         alignSelf: 'flex-start',
       }}
     >
-      <Txt variant="handS" color={day.paper} style={{ fontSize: 16, lineHeight: 16 }}>
+      <Txt variant="handS" color={palette.notice.fg} style={{ fontSize: 16, lineHeight: 16 }}>
         {t('gestures.reaction.label', {
           name: t(`gestures.reactionName.${reaction}`),
           meaning: t(`gestures.meaning.${reaction}`),
