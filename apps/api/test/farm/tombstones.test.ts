@@ -1,9 +1,18 @@
 import { FarmEvent } from '@kithfield/contracts';
 import { env } from 'cloudflare:workers';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { op, TestSocket } from './support/client';
-import { cast, plantFarm, profile, useTestPorts, pageOf, searchOf } from './support/doubles';
+import { deleteAccount } from '../../src/farm/safety';
+import {
+  cast,
+  hostOf,
+  plantFarm,
+  profile,
+  useTestPorts,
+  pageOf,
+  searchOf,
+} from './support/doubles';
 
 beforeEach(() => {
   useTestPorts();
@@ -237,6 +246,27 @@ describe('account deletion', () => {
     expect(former).toEqual([
       expect.objectContaining({ person: fig.id, name: null, how: 'account_deleted' }),
     ]);
+  });
+
+  it('keeps the media it couldn’t delete owed, and deletes it when asked again', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    const { farm, stub } = await plantFarm(pip, [fig]);
+    const pic = await photo(farm, 'eeee');
+    await stub.command(fig.id, { opId: op(1), ...pic, kind: 'media' });
+    const down = vi.spyOn(env.MEDIA, 'delete').mockRejectedValueOnce(new Error('R2 is down'));
+    const first = await hostOf(stub, (host) =>
+      deleteAccount(host, fig.id).then(
+        () => 'deleted',
+        () => 'failed',
+      ),
+    );
+    expect(first).toBe('failed');
+    expect(await env.MEDIA.head(pic.key)).not.toBeNull();
+    down.mockRestore();
+    const before = (await pageOf(stub, { limit: 50 })).events.length;
+    await stub.deleteAccount(fig.id);
+    expect(await env.MEDIA.head(pic.key)).toBeNull();
+    expect((await pageOf(stub, { limit: 50 })).events).toHaveLength(before);
   });
 
   it('tombstones a visitor’s gate events on a farm they only visited, then writes their left', async () => {

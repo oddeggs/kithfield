@@ -199,4 +199,20 @@ export class FarmTables {
   tradeHalfDone(opId: string): void {
     this.sql.exec('DELETE FROM trade_halves WHERE op_id = ?', opId);
   }
+
+  /** Media to delete from R2, owed until `mediaDeleted`; kept in the write's transaction. */
+  oweMediaDelete(keys: readonly string[]): void {
+    for (const key of keys) this.sql.exec('INSERT OR IGNORE INTO media_owed (key) VALUES (?)', key);
+  }
+
+  mediaOwed(): string[] {
+    return this.sql
+      .exec<{ key: string }>('SELECT key FROM media_owed ORDER BY key LIMIT 1000')
+      .toArray()
+      .map((r) => r.key);
+  }
+
+  mediaDeleted(keys: readonly string[]): void {
+    for (const key of keys) this.sql.exec('DELETE FROM media_owed WHERE key = ?', key);
+  }
 }

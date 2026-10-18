@@ -33,6 +33,8 @@ export const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS trade_halves (
     op_id TEXT PRIMARY KEY, other_farm TEXT NOT NULL, actor TEXT NOT NULL, payload TEXT NOT NULL
   )`,
+  // Media an account deletion tombstoned and still has to delete from R2; gone once deleted.
+  'CREATE TABLE IF NOT EXISTS media_owed (key TEXT PRIMARY KEY)',
   "CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5 (body, tokenize = 'unicode61 remove_diacritics 2')",
 ];
 
