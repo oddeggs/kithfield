@@ -1,6 +1,5 @@
 import type { FarmId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
-import { night } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
@@ -21,7 +20,8 @@ import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { lookOf } from './farm-bake';
-import { overArt, withAlpha } from './over-art';
+import { overArt } from './over-art';
+import { NightVeil } from './panel';
 import { backToFarm, farmRoutes } from './routes';
 import { useBob } from './speech-bubble';
 import { useNow } from './use-now';
@@ -152,25 +152,10 @@ function IslandLabel({
 /** The valley in the open farm's season, as a still: looped whole, it is over the art's budget. */
 function ValleyArt({ farm, width, height }: { farm: FarmId; width: number; height: number }) {
   const season = useFarm(farm)?.state?.season.season ?? 'spring';
-  const { appearance } = useTheme();
   return (
     <View style={{ width, height }}>
       <ArtStill scene="valley" width={width} height={height} attrs={{ season }} />
-      {appearance === 'night' ? (
-        // The valley has no night of its own: the farm's night pass, a multiply of the night sky.
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width,
-            height,
-            backgroundColor: withAlpha(night.sky, 0.7),
-            mixBlendMode: 'multiply',
-          }}
-        />
-      ) : null}
+      <NightVeil width={width} height={height} />
     </View>
   );
 }

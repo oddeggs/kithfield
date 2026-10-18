@@ -5,7 +5,6 @@ import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFarm, useFarmView } from '../../data';
-import { ArtStill } from '../../ui/art/art-view';
 import { Avatar } from '../../ui/art/avatar';
 import { Button, CircleButton } from '../../ui/components/button';
 import { useLocale } from '../../ui/locale/locale-provider';
@@ -15,7 +14,7 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { castOf, lookOf } from './farm-bake';
 import { crowdLine } from './farm-copy';
-import { GlyphButton, Panel } from './panel';
+import { GlyphButton, Panel, SceneArt } from './panel';
 import { farmRoutes } from './routes';
 import { useNow } from './use-now';
 
@@ -51,7 +50,7 @@ export function CrittersScreen({ farm }: { readonly farm: FarmId }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <ArtStill
+      <SceneArt
         scene="crowd"
         width={width}
         height={236 * k}

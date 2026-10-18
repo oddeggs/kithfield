@@ -1,4 +1,4 @@
-import { radii, sizes } from '@kithfield/theme';
+import { night, radii, sizes } from '@kithfield/theme';
 import { Canvas, Image } from '@shopify/react-native-skia';
 import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
@@ -13,6 +13,7 @@ import { useArtVisible } from '../../ui/motion/visibility';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import type { ViewStyleProp } from '../../ui/style';
+import { withAlpha } from './over-art';
 
 /**
  * The resting sheet of a full-screen farm moment (move-in, leaving, a dozing cottage): the
@@ -77,13 +78,38 @@ export function SceneArt({
   readonly t?: number;
 }) {
   return (
-    <ArtStill
-      scene={scene}
-      width={width}
-      height={height}
-      attrs={attrs}
-      {...(t === undefined ? {} : { t })}
-      style={{ position: 'absolute', top: 0, left: 0 }}
+    <View style={{ position: 'absolute', top: 0, left: 0, width, height }}>
+      <ArtStill
+        scene={scene}
+        width={width}
+        height={height}
+        attrs={attrs}
+        {...(t === undefined ? {} : { t })}
+      />
+      <NightVeil width={width} height={height} />
+    </View>
+  );
+}
+
+/**
+ * Night over a scene that has no night of its own (the valley, the crowd, the moments): the
+ * farm's own night pass, a multiply of the night sky over the drawing. Nothing by day.
+ */
+export function NightVeil({ width, height }: { readonly width: number; readonly height: number }) {
+  const { appearance } = useTheme();
+  if (appearance !== 'night') return null;
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width,
+        height,
+        backgroundColor: withAlpha(night.sky, 0.7),
+        mixBlendMode: 'multiply',
+      }}
     />
   );
 }

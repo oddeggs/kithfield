@@ -7,6 +7,7 @@ import { View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFarm, useSend } from '../../data';
+import { ArtStill } from '../../ui/art/art-view';
 import { Avatar } from '../../ui/art/avatar';
 import { Button } from '../../ui/components/button';
 import { useToast } from '../../ui/components/toast';
@@ -112,7 +113,7 @@ export function RemovedFromFarm({ farm }: { readonly farm: FarmId }) {
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <View style={{ position: 'absolute', top: 110 * k, left: 0 }}>
-        <SceneArt
+        <ArtStill
           scene="spot"
           width={width}
           height={280 * k}

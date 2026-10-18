@@ -15,7 +15,7 @@ import { Txt } from '../../ui/type/text';
 import { castOf } from './farm-bake';
 import { listOf } from './farm-copy';
 import { withAlpha } from './over-art';
-import { GlyphButton, Panel, SceneArt, SceneLoop } from './panel';
+import { GlyphButton, NightVeil, Panel, SceneArt, SceneLoop } from './panel';
 import { farmRoutes } from './routes';
 import { SpeechBubble } from './speech-bubble';
 
@@ -149,6 +149,7 @@ export function MoveIn({ farm, person }: { readonly farm: FarmId; readonly perso
         // art's budget; then the crisp still underneath shows.
         <SceneLoop scene="movein" width={width} height={height} attrs={attrs} dpr={1.4} />
       ) : null}
+      {celebrating ? <NightVeil width={width} height={height} /> : null}
       <GlyphButton
         glyph="✕"
         label={t('farm.close')}
