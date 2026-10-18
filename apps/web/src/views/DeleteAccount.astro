@@ -1,0 +1,86 @@
+---
+/**
+ * The public account-deletion request (`17-11`), required by the App Store and Google Play for
+ * people who can't open the app. It asks the API to send a confirmation code; nothing is deleted
+ * before the code comes back.
+ */
+import { pageStyles } from '../components/page/styles';
+import Page from '../layouts/Page.astro';
+import { copyFor, type Language } from '../lib/site';
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const t = copyFor(lang);
+const s = pageStyles(lang);
+const points = [
+  t('websitePages.delete.critter'),
+  t('websitePages.delete.cottages'),
+  t('websitePages.delete.days'),
+  t('websitePages.delete.purchases'),
+];
+---
+
+<Page lang={lang} path="/delete-account" title={t('websitePages.delete.title')}>
+  <h1 style={s.title}>{t('websitePages.delete.title')}</h1>
+  <p style={s.body}>{t('websitePages.delete.lead')}</p>
+  <form
+    data-kf="delete"
+    data-lang={lang}
+    data-sent={t('websitePages.delete.sent')}
+    data-invalid={t('websitePages.delete.invalid')}
+    data-busy={t('websitePages.delete.busy')}
+    data-unreachable={t('websitePages.delete.unreachable')}
+    style="display:flex;flex-direction:column;gap:16px"
+  >
+    <label style="display:flex;flex-direction:column;gap:6px">
+      <span style={s.label}>{t('websitePages.delete.label')}</span>
+      <input
+        class="kf-field"
+        name="email"
+        type="email"
+        required
+        maxlength="254"
+        autocomplete="email"
+        autofocus
+        style={s.field}
+      />
+    </label>
+    <ul style="display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none">
+      {
+        points.map((point) => (
+          <li style="display:flex;gap:10px;font:15px/1.4 -apple-system,system-ui;color:#4a3f37">
+            <kf-art scene="icon" name="check" color="#5E7F4A" style="width:18px;height:18px;flex:none;margin-top:2px" />
+            {point}
+          </li>
+        ))
+      }
+    </ul>
+    <button type="submit" style={`${s.button};background:#b0482f;color:#fff`}
+      >{t('websitePages.delete.submit')}</button
+    >
+    <p data-kf="delete-note" role="status" hidden style={`${s.body};color:#2a221d`}></p>
+  </form>
+  <p style={`margin:0;${s.small}`}>{t('websitePages.delete.foot')}</p>
+</Page>
+
+<script>
+  import { requestDeletion } from '../scripts/waitlist';
+
+  const form = document.querySelector<HTMLFormElement>('[data-kf="delete"]');
+  const note = document.querySelector<HTMLElement>('[data-kf="delete-note"]');
+  form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const input = form.querySelector('input');
+    const button = form.querySelector('button');
+    if (!input || !button || !note || button.disabled) return;
+    button.disabled = true;
+    void requestDeletion(input.value, form.dataset.lang === 'vi' ? 'vi' : 'en').then((outcome) => {
+      button.disabled = outcome === 'listed';
+      note.hidden = false;
+      note.textContent =
+        (outcome === 'listed' ? form.dataset.sent : form.dataset[outcome]) ?? '';
+    });
+  });
+</script>

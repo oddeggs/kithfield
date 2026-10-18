@@ -1,0 +1,285 @@
+---
+/**
+ * The top of the landing page: the nav, the cursor's firefly and the pinned evening (5:47 pm to
+ * midnight) that the scroll drives (`scripts/landing.ts`). Markup and measures are `17 Landing`'s.
+ */
+import { SOURCE_URL, copyFor, facesFor, pathFor, type Language } from '../../lib/site';
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const t = copyFor(lang);
+const f = facesFor(lang);
+const vi = lang === 'vi';
+const other = vi ? 'en' : 'vi';
+
+const note = `font:700 clamp(13px,1.45vw,21px)/1.1 ${f.hand};background:#fbf6ec;padding:.25em .55em .3em;border-radius:10px;box-shadow:0 5px 14px -7px rgba(60,40,20,.55);white-space:nowrap`;
+const time = `font:700 clamp(19px,1.6vw,24px)/1 ${f.hand};margin-bottom:12px`;
+const h2 = `margin:0;font:400 clamp(46px,6.4vw,108px)/${vi ? '1.12' : '.92'} ${f.serif};letter-spacing:-.02em;text-wrap:balance`;
+const body = `margin:18px 0 0;font:400 clamp(16px,1.3vw,19px)/1.5 -apple-system,system-ui;max-width:430px;text-wrap:pretty`;
+const chip =
+  'height:40px;padding:0 14px 0 8px;border-radius:20px;background:rgba(255,250,242,.94);display:flex;align-items:center;gap:6px;font:600 14px/1 -apple-system,system-ui;box-shadow:0 4px 12px -8px rgba(60,40,20,.5)';
+const ch = 'position:absolute;display:flex;flex-direction:column;opacity:0;visibility:hidden';
+const tick =
+  'width:28px;height:28px;border-radius:14px;border:2px solid #5E7F4A;box-sizing:border-box;display:flex;align-items:center;justify-content:center;color:#fff;font:700 15px/1 -apple-system,system-ui;transition:background .25s';
+const ticks = [
+  { at: '0.44', label: t('website.plans.day'), value: t('website.plans.dayValue') },
+  { at: '0.48', label: t('website.plans.place'), value: t('website.plans.placeValue') },
+  { at: '0.52', label: t('website.plans.yeses'), value: t('website.plans.yesesValue') },
+];
+const heroTitle = vi
+  ? `margin:0;padding-top:.1em;font:400 clamp(46px,min(10.6vw,14vh),170px)/1.02 ${f.serif};letter-spacing:-.02em`
+  : `margin:0;font:400 clamp(62px,min(11.4vw,21vh),184px)/.88 ${f.serif};letter-spacing:-.025em`;
+const heroSub = vi
+  ? `font:400 clamp(20px,min(3.6vw,5.2vh),56px)/1.15 ${f.serif};letter-spacing:-.01em;margin-top:clamp(2px,.6vw,8px);color:#4a2e22;padding:.05em .5em .12em;border-radius:999px;background:radial-gradient(closest-side,rgba(240,206,170,.85),rgba(240,206,170,.55) 70%,rgba(240,206,170,0))`
+  : `font:400 clamp(26px,min(4vw,7.4vh),62px)/1 ${f.serif};letter-spacing:-.01em;margin-top:clamp(6px,1vw,14px);color:#4a2e22`;
+---
+
+<nav
+  data-kf="nav"
+  style="position:fixed;top:0;left:0;right:0;z-index:50;height:64px;display:flex;align-items:center;gap:20px;padding:0 clamp(16px,4vw,48px);color:#2a221d;transition:background .3s,color .3s,box-shadow .3s"
+>
+  <a href="#top" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit"
+    ><kf-art
+      scene="appicon"
+      style="width:32px;height:32px;border-radius:9px;overflow:hidden;box-shadow:0 2px 8px -3px rgba(40,25,10,.4)"
+    ></kf-art><span style={`font:400 22px/1 ${f.serif}`}>{t('website.brand')}</span></a
+  >
+  <div style="flex:1"></div>
+  <div class="kf-links" style="gap:26px;font:500 14.5px/1 -apple-system,system-ui">
+    <a href="#evening" style="color:inherit;text-decoration:none">{t('website.nav.evening')}</a><a
+      href="#critters"
+      style="color:inherit;text-decoration:none">{t('website.nav.critters')}</a
+    ><a href="#rules" style="color:inherit;text-decoration:none">{t('website.nav.rules')}</a><a
+      href={SOURCE_URL}
+      style="color:inherit;text-decoration:none">{t('website.nav.source')}</a
+    >
+  </div>
+  <a
+    href={pathFor(other, '/')}
+    hreflang={other}
+    lang={other}
+    aria-label={t('website.otherLanguageName')}
+    style="color:inherit;text-decoration:none;font:600 13px/1 -apple-system,system-ui;padding:8px 10px;border-radius:14px;border:1px solid currentColor;opacity:.75"
+    >{t('website.otherLanguage')}</a
+  ><a
+    href="#join"
+    style="height:40px;padding:0 18px;border-radius:20px;background:#E8B44E;color:#2a221d;display:flex;align-items:center;font:600 14.5px/1 -apple-system,system-ui;text-decoration:none;box-shadow:0 4px 14px -6px rgba(120,70,10,.6);white-space:nowrap"
+    >{t('website.nav.cta')}</a
+  >
+</nav>
+
+<div
+  data-kf="fly"
+  aria-hidden="true"
+  style="position:fixed;left:0;top:0;width:46px;height:46px;z-index:60;pointer-events:none;opacity:0;transition:opacity .4s;border-radius:50%;background:radial-gradient(circle,rgba(255,220,120,.55) 0%,rgba(255,220,120,.18) 45%,rgba(255,220,120,0) 70%)"
+>
+  <kf-art scene="icon" name="firefly" style="position:absolute;left:9px;top:9px;width:28px;height:28px"
+  ></kf-art>
+</div>
+
+<section id="top"></section>
+<section id="evening" data-kf="pin" style="position:relative;height:640vh;background:#1b1f3d">
+  <div data-kf="stage" style="position:sticky;top:0;height:100vh;overflow:hidden">
+    <div
+      data-kf="world"
+      style="position:absolute;left:0;top:0;width:100vw;height:62.5vw;transform-origin:0 0;will-change:transform"
+    >
+      <kf-art data-kf="art" scene="evening" style="position:absolute;inset:0;width:100%;height:100%"
+      ></kf-art>
+      <div data-ann="1" aria-hidden="true" style="position:absolute;inset:0;pointer-events:none">
+        <div
+          style="position:absolute;left:2.5%;top:52%;display:flex;flex-direction:column;align-items:flex-start;transform:rotate(-3deg)"
+        >
+          <span style={note}>{t('website.hero.bea')}</span><kf-art
+            scene="arrow"
+            name="dr"
+            style="width:clamp(30px,3.6vw,54px);aspect-ratio:1.2;margin-left:clamp(40px,5vw,76px)"
+          ></kf-art>
+        </div>
+        <div
+          style="position:absolute;left:21.5%;top:59.5%;display:flex;flex-direction:column;align-items:flex-start;transform:rotate(2deg)"
+        >
+          <span style={note}>{t('website.hero.june')}</span><kf-art
+            scene="arrow"
+            name="dr"
+            style="width:clamp(26px,3vw,46px);aspect-ratio:1.1;margin-left:clamp(36px,4.4vw,66px)"
+          ></kf-art>
+        </div>
+        <div
+          style="position:absolute;left:50.5%;top:61%;display:flex;flex-direction:column;align-items:flex-start;transform:rotate(-2deg)"
+        >
+          <span style={note}>{t('website.hero.pip')}</span>
+        </div>
+        <div
+          style="position:absolute;left:75.5%;top:45.5%;display:flex;flex-direction:column;align-items:flex-start;transform:rotate(3deg)"
+        >
+          <span style={note}>{t('website.hero.otis')}</span><kf-art
+            scene="arrow"
+            name="dl"
+            style="width:clamp(26px,3vw,44px);aspect-ratio:.85;margin-left:4px"></kf-art>
+        </div>
+      </div>
+    </div>
+
+    <div
+      data-veil="paper"
+      class="kf-veil-paper"
+      style="position:absolute;inset:0;pointer-events:none;opacity:0"
+    >
+    </div>
+    <div
+      data-veil="night"
+      class="kf-veil-night"
+      style="position:absolute;inset:0;pointer-events:none;opacity:0"
+    >
+    </div>
+
+    <div
+      data-a="-1"
+      data-b="0.035"
+      style={`position:absolute;left:0;right:0;top:${vi ? 'clamp(56px,7vh,110px)' : 'clamp(76px,12vh,140px)'};display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 20px;pointer-events:none`}
+    >
+      <div
+        style={`font:700 clamp(19px,1.7vw,25px)/1.1 ${f.hand};color:#7a3f22;margin-bottom:${vi ? 'clamp(4px,1vw,14px)' : '6px'}`}
+      >
+        {t('website.hero.kicker')}
+      </div>
+      <h1 style={heroTitle}>{t('website.hero.title')}</h1>
+      <div style={heroSub}>{t('website.hero.subtitle')}</div>
+    </div>
+    <div
+      data-a="-1"
+      data-b="0.025"
+      style="position:absolute;left:0;right:0;bottom:26px;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none"
+    >
+      <span
+        style={`font:700 19px/1.1 ${f.hand};background:rgba(251,246,236,.92);padding:5px 13px 6px;border-radius:12px`}
+        >{t('website.hero.scroll')}</span
+      ><kf-art scene="arrow" name="d" style="width:22px;height:34px"></kf-art>
+    </div>
+
+    <div data-a="0.085" data-b="0.21" class="kf-ch" style={ch}>
+      <div style={`${time};color:#7a3f22`}>{t('website.hi.time')}</div>
+      <h2 style={h2}>{t('website.hi.title')}</h2>
+      <p style={`${body};color:#3a302a`}>{t('website.hi.body')}</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:20px">
+        <div style={chip}>
+          <kf-art scene="icon" name="firefly" style="width:26px;height:26px"></kf-art>{t('website.hi.firefly')}
+        </div>
+        <div style={chip}>
+          <kf-art scene="icon" name="dewdrop" style="width:26px;height:26px"></kf-art>{t('website.hi.dewdrop')}
+        </div>
+        <div style={chip}>
+          <kf-art scene="icon" name="wave" style="width:24px;height:24px"></kf-art>{t('website.hi.wave')}
+        </div>
+        <div style={chip}>
+          <kf-art scene="icon" name="note" style="width:24px;height:24px"></kf-art>{t('website.hi.note')}
+        </div>
+      </div>
+    </div>
+
+    <div data-a="0.255" data-b="0.385" class="kf-ch" style={ch}>
+      <div style={`${time};color:#7a3f22`}>{t('website.quiet.time')}</div>
+      <h2 style={h2}>{t('website.quiet.title')}</h2>
+      <p style={`${body};color:#3a302a`}>{t('website.quiet.body')}</p>
+      <div
+        style={`display:flex;flex-direction:column;gap:6px;margin-top:20px;font:700 clamp(19px,1.6vw,23px)/1.15 ${f.hand};color:#3a302a`}
+      >
+        <span>{t('website.quiet.noStreaks')}</span><span>{t('website.quiet.noReceipts')}</span><span
+          >{t('website.quiet.noSeen')}</span
+        >
+      </div>
+    </div>
+
+    <div data-a="0.425" data-b="0.555" class="kf-ch" style={ch}>
+      <div style={`${time};color:#7a3f22`}>{t('website.plans.time')}</div>
+      <h2 style={h2}>{t('website.plans.title')}</h2>
+      <p style={`${body};color:#3a302a`}>{t('website.plans.body')}</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:22px">
+        {
+          ticks.map((k) => (
+            <div style="display:flex;align-items:center;gap:12px">
+              <span data-tick={k.at} aria-hidden="true" style={tick}>
+                ✓
+              </span>
+              <span style="font:600 16px/1.2 -apple-system,system-ui">
+                {k.label} <span style="font-weight:400;color:#5b5048">{k.value}</span>
+              </span>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+
+    <div data-a="0.625" data-b="0.8" class="kf-ch" style={`${ch};color:#f6eedb`}>
+      <div style={`${time};color:#f2c25a`}>{t('website.fire.time')}</div>
+      <h2 style={h2}>{t('website.fire.title')}</h2>
+      <p style={`${body};color:#e6dccb`}>{t('website.fire.body')}</p>
+    </div>
+
+    <div data-a="0.865" data-b="2" class="kf-ch" style={`${ch};color:#f6eedb`}>
+      <div style={`${time};color:#f2c25a`}>{t('website.night.time')}</div>
+      <h2 style={h2}>{t('website.night.title')}</h2>
+      <p style={`${body.replace('max-width:430px', 'max-width:400px')};color:#e6dccb`}>
+        {t('website.night.body')}
+      </p>
+    </div>
+
+    <div
+      data-phone="1"
+      class="kf-phone"
+      aria-hidden="true"
+      style="position:absolute;aspect-ratio:9/19.5;border-radius:44px;background:#1d1a18;padding:9px;box-sizing:border-box;box-shadow:0 0 0 1.5px #4a4441,0 40px 80px -20px rgba(0,0,0,.7);transform:translateY(130%) rotate(4deg);transform-origin:50% 100%"
+    >
+      <div
+        style="position:relative;width:100%;height:100%;border-radius:36px;overflow:hidden;background:radial-gradient(120% 70% at 30% 0%,#3a3a5c 0%,#23263f 60%)"
+      >
+        <div
+          style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:32%;height:24px;border-radius:14px;background:#000"
+        >
+        </div>
+        <div style="position:absolute;top:13px;left:22px;font:600 13px/1 -apple-system,system-ui;color:#f4ecda">
+          {t('website.night.clock')}
+        </div>
+        <div
+          style="position:absolute;top:50px;left:7%;right:7%;aspect-ratio:2.15;border-radius:18px;overflow:hidden;box-shadow:0 10px 24px -10px rgba(0,0,0,.6)"
+        >
+          <kf-art
+            scene="widget"
+            lit="hedgehog,frog,sheep,rabbit"
+            style="position:absolute;inset:0;width:100%;height:100%"></kf-art>
+          <div
+            style="position:absolute;left:10px;top:9px;font:600 9px/1 -apple-system,system-ui;color:rgba(246,238,219,.8);letter-spacing:.04em"
+          >
+            {t('website.night.farm')}
+          </div>
+          <div style={`position:absolute;left:10px;bottom:9px;font:700 14px/1 ${f.hand};color:#f6eedb`}>
+            {t('website.night.up')}
+          </div>
+        </div>
+        <div
+          style="position:absolute;top:calc(50px + 41%);left:7%;right:7%;display:grid;grid-template-columns:repeat(4,1fr);gap:14px 10%"
+        >
+          <div style="aspect-ratio:1;border-radius:24%;background:rgba(255,255,255,.14)"></div><div
+            style="aspect-ratio:1;border-radius:24%;background:rgba(255,255,255,.14)"
+          >
+          </div><kf-art scene="appicon" style="aspect-ratio:1;width:100%;border-radius:24%;overflow:hidden"
+          ></kf-art>
+          {
+            Array.from({ length: 5 }, () => (
+              <div style="aspect-ratio:1;border-radius:24%;background:rgba(255,255,255,.14)" />
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div
+  style="height:44vh;background:linear-gradient(#1b1f3d 0%,#5a4a5e 38%,#e9c9ae 72%,#F5EEE2 100%);display:flex;align-items:flex-end;justify-content:center;padding-bottom:4vh;box-sizing:border-box"
+>
+  <span style={`font:700 clamp(22px,2.2vw,30px)/1 ${f.hand};color:#4a2e22`}>{t('website.morning')}</span>
+</div>

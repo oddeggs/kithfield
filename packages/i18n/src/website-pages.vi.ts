@@ -146,7 +146,7 @@ export const websitePagesVi: ViCatalogue<typeof websitePagesEn> = {
   'websitePages.press.download': 'Tải tất cả (ZIP)',
   'websitePages.press.blurb':
     'Kithfield là nhóm chat ấm áp, nơi bạn bè là các bé trên một nông trại chung. Làm bởi oddeggs studio. Ra mắt mùa xuân 2027 trên iPhone và Android. Liên hệ {email}.',
-  'websitePages.press.wordmark': 'Chữ logo · SVG, PNG',
+  'websitePages.press.wordmark': 'Chữ logo · PNG',
   'websitePages.press.icon': 'Biểu tượng ứng dụng · 1024 px',
   'websitePages.press.critters': '16 bé · PNG nền trong',
   'websitePages.press.screenshots': 'Ảnh chụp màn hình',

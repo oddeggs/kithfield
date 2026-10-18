@@ -1,0 +1,105 @@
+---
+/**
+ * The press kit (`17-13`). Every image here, and in the ZIP, is drawn by the same art module the
+ * app uses, baked at build time (`scripts/bake-images.ts`).
+ */
+import { pageStyles } from '../components/page/styles';
+import Base from '../layouts/Base.astro';
+import { contacts, copyFor, type Language } from '../lib/site';
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const t = copyFor(lang);
+const s = pageStyles(lang);
+const poses = ['rabbit', 'fox', 'owl', 'sheep', 'frog', 'bear'];
+const shots = [
+  { scene: 'farm' },
+  { scene: 'strip' },
+  { scene: 'farm', night: 'true', firefly: 'true' },
+  { scene: 'campfire' },
+  { scene: 'widget', lit: 'hedgehog,frog,sheep' },
+];
+const caption = 'font:13px/1 -apple-system,system-ui;color:#6b5f55';
+---
+
+<Base lang={lang} path="/press" title={`${t('websitePages.press.title')} · ${t('website.brand')}`}>
+  <style>
+    .kf-press-assets {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 16px;
+    }
+    .kf-press-shots {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 899.98px) {
+      .kf-press-assets {
+        grid-template-columns: 1fr;
+      }
+      .kf-press-shots {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+  <main style="padding:56px clamp(20px,6.5vw,72px) 64px;display:flex;flex-direction:column;gap:26px">
+    <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap">
+      <div style="flex:1 1 420px">
+        <div style={s.hand}>{t('websitePages.press.kicker')}</div>
+        <h1 style={`margin:0;font:400 48px/1.04 ${s.serif}`}>{t('websitePages.press.title')}</h1>
+      </div>
+      <a
+        href="/press/kithfield-press-kit.zip"
+        download
+        style={`${s.button};background:#2a221d;color:#F5EEE2`}>{t('websitePages.press.download')}</a
+      >
+    </div>
+    <p style="margin:0;font:16px/1.6 -apple-system,system-ui;color:#4a3f37;max-width:760px">
+      {t('websitePages.press.blurb', { email: contacts.press })}
+    </p>
+    <div class="kf-press-assets">
+      <div
+        style="border-radius:24px;background:#fffaf2;padding:28px;display:flex;flex-direction:column;gap:14px;justify-content:center"
+      >
+        <div style={`font:400 64px/1 ${s.serif}`}>{t('website.brand')}</div>
+        <div style={caption}>{t('websitePages.press.wordmark')}</div>
+      </div>
+      <a
+        href="/press/app-icon-1024.png"
+        style="border-radius:24px;background:#1b1f3d;padding:28px;display:flex;flex-direction:column;align-items:center;gap:12px;text-decoration:none"
+      >
+        <kf-art scene="appicon" style="width:120px;height:120px;border-radius:27px;overflow:hidden"
+        ></kf-art>
+        <div style="font:13px/1 -apple-system,system-ui;color:#d9cfbd">{t('websitePages.press.icon')}</div>
+      </a>
+      <div
+        style="border-radius:24px;background:#fffaf2;padding:20px;display:grid;grid-template-columns:repeat(3,1fr);gap:4px"
+      >
+        {
+          poses.map((kind) => (
+            <kf-art scene="pose" kind={kind} pose="awake" style="width:100%;height:80px" />
+          ))
+        }
+        <div style={`grid-column:1 / -1;margin-top:6px;${caption}`}>
+          {t('websitePages.press.critters')}
+        </div>
+      </div>
+    </div>
+    <h2 style={`margin:0;font:400 24px/1.1 ${s.serif}`}>{t('websitePages.press.screenshots')}</h2>
+    <div class="kf-press-shots">
+      {
+        shots.map(({ scene, ...attrs }) => (
+          <div style="height:300px;border-radius:24px;overflow:hidden;box-shadow:0 0 0 6px #1d1a18">
+            <kf-art scene={scene} {...attrs} style="width:100%;height:100%" />
+          </div>
+        ))
+      }
+    </div>
+    <p style="margin:0;font:13.5px/1.5 -apple-system,system-ui;color:#6b5f55">
+      {t('websitePages.press.rules')}
+    </p>
+  </main>
+</Base>

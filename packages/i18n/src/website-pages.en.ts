@@ -151,7 +151,7 @@ export const websitePagesEn = {
   'websitePages.press.download': 'Download everything (ZIP)',
   'websitePages.press.blurb':
     'Kithfield is a cosy group chat where friends are critters on a shared farm. Made by oddeggs studio. Launching spring 2027 on iPhone and Android. Contact {email}.',
-  'websitePages.press.wordmark': 'Wordmark · SVG, PNG',
+  'websitePages.press.wordmark': 'Wordmark · PNG',
   'websitePages.press.icon': 'App icon · 1024 px',
   'websitePages.press.critters': '16 critters · transparent PNG',
   'websitePages.press.screenshots': 'Screenshots',

@@ -1,0 +1,96 @@
+---
+/**
+ * Save your spot (`17-06`): the gate on one side, the form on the other; stacked on phones. A spot
+ * is saved once the letter's link is tapped (double opt-in); the thank-you page follows at once.
+ */
+import { pageStyles } from '../components/page/styles';
+import Base from '../layouts/Base.astro';
+import { copyFor, pathFor, type Language } from '../lib/site';
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const t = copyFor(lang);
+const s = pageStyles(lang);
+---
+
+<Base lang={lang} path="/waitlist" title={`${t('websitePages.waitlist.title')} · ${t('website.brand')}`}>
+  <style>
+    .kf-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+    }
+    @media (max-width: 759.98px) {
+      .kf-split {
+        grid-template-columns: 1fr;
+        grid-template-rows: 340px auto;
+      }
+    }
+  </style>
+  <main class="kf-split">
+    <div style="position:relative;overflow:hidden">
+      <kf-art scene="gate" style="position:absolute;inset:0;width:100%;height:100%"></kf-art>
+    </div>
+    <div
+      style="padding:56px clamp(20px,5.4vw,48px);display:flex;flex-direction:column;gap:16px;justify-content:center"
+    >
+      <div style={s.hand}>{t('websitePages.waitlist.kicker')}</div>
+      <h1 style={`margin:0;font:400 38px/1.06 ${s.serif}`}>
+        {t('websitePages.waitlist.title')}
+      </h1>
+      <p style={`${s.body};font-size:15.5px;line-height:1.55`}>{t('websitePages.waitlist.body')}</p>
+      <form
+        data-kf="waitlist"
+        data-lang={lang}
+        data-next={pathFor(lang, '/waitlist/thanks')}
+        data-invalid={t('website.join.invalid')}
+        data-busy={t('website.join.busy')}
+        data-unreachable={t('website.join.unreachable')}
+        style="display:flex;flex-direction:column;gap:16px"
+      >
+        <label style="display:flex;flex-direction:column;gap:6px">
+          <span style={s.label}>{t('websitePages.waitlist.email')}</span>
+          <input
+            class="kf-field"
+            name="email"
+            type="email"
+            required
+            maxlength="254"
+            autocomplete="email"
+            autofocus
+            style={s.field}
+          />
+        </label>
+        <button type="submit" style={`${s.button};background:#2a221d;color:#F5EEE2`}
+          >{t('websitePages.waitlist.submit')}</button
+        >
+        <p data-kf="waitlist-note" role="status" hidden style={`${s.body};color:#b0482f`}></p>
+      </form>
+    </div>
+  </main>
+</Base>
+
+<script>
+  import { joinWaitlist } from '../scripts/waitlist';
+
+  const form = document.querySelector<HTMLFormElement>('[data-kf="waitlist"]');
+  const note = document.querySelector<HTMLElement>('[data-kf="waitlist-note"]');
+  form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const input = form.querySelector('input');
+    const button = form.querySelector('button');
+    if (!input || !button || !note || button.disabled) return;
+    button.disabled = true;
+    void joinWaitlist(input.value, form.dataset.lang === 'vi' ? 'vi' : 'en').then((outcome) => {
+      if (outcome === 'listed') {
+        location.href = form.dataset.next ?? '/waitlist/thanks';
+        return;
+      }
+      button.disabled = false;
+      note.hidden = false;
+      note.textContent = form.dataset[outcome] ?? '';
+    });
+  });
+</script>

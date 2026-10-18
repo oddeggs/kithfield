@@ -1,0 +1,160 @@
+---
+/**
+ * The invite page a friend opens from a farm link (`17-05`), at `/i/<code>`. One static page reads
+ * the code from the address and asks the API for the farm's preview (`GET /v1/invites/:code`,
+ * contracts `InvitePreview`). Unknown or expired links show "This gate is closed".
+ */
+import { pageStyles } from '../components/page/styles';
+import Base from '../layouts/Base.astro';
+import { appLinks, copyFor, pathFor, type Language } from '../lib/site';
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const t = copyFor(lang);
+const s = pageStyles(lang);
+const FARM = '\u0000';
+const MANY = 987654321;
+const waitlist = pathFor(lang, '/waitlist');
+const store =
+  'flex:1;height:46px;border-radius:12px;background:#2a221d;color:#fff;display:flex;align-items:center;justify-content:center;font:600 15px/1 -apple-system,system-ui;text-decoration:none';
+---
+
+<Base lang={lang} path="/invite" title={t('websitePages.invite.title')} card="invite" noindex>
+  <style>
+    .kf-invite {
+      position: relative;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .kf-invite-art {
+      position: absolute;
+      inset: 0;
+    }
+    .kf-invite-wash {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 520px;
+      background: linear-gradient(90deg, #f5eee2 70%, rgba(245, 238, 226, 0));
+    }
+    .kf-invite-copy {
+      position: absolute;
+      left: 72px;
+      top: 90px;
+      width: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    @media (max-width: 759.98px) {
+      .kf-invite-art {
+        position: relative;
+        height: 300px;
+      }
+      .kf-invite-wash {
+        display: none;
+      }
+      .kf-invite-copy {
+        position: relative;
+        left: auto;
+        top: auto;
+        width: auto;
+        padding: 28px 20px 40px;
+      }
+    }
+    [data-kf='invite'] [data-show] {
+      display: none;
+    }
+    [data-kf='invite'][data-state='ready'] [data-show~='ready'],
+    [data-kf='invite'][data-state='full'] [data-show~='full'],
+    [data-kf='invite'][data-state='closed'] [data-show~='closed'],
+    [data-kf='invite'][data-state='loading'] [data-show~='loading'],
+    [data-kf='invite'][data-state='error'] [data-show~='error'] {
+      display: flex;
+    }
+  </style>
+  <main
+    class="kf-invite"
+    data-kf="invite"
+    data-state="loading"
+    data-farm-mark={FARM}
+    data-many={MANY}
+    data-members-one={t('websitePages.invite.members', { count: 1 })}
+    data-members-other={t('websitePages.invite.members', { count: MANY })}
+    data-headline={t('websitePages.invite.headline', { farm: FARM })}
+    data-full={t('websitePages.invite.full', { farm: FARM })}
+    data-web-join={appLinks.webJoin ?? ''}
+  >
+    <div class="kf-invite-art">
+      <kf-art scene="invite" style="position:absolute;left:0;top:0;width:100%;height:100%"></kf-art>
+    </div>
+    <div class="kf-invite-wash"></div>
+    <div class="kf-invite-copy">
+      <div data-show="ready full" style="align-items:center;gap:10px">
+        <kf-art
+          data-field="avatar"
+          scene="avatar"
+          kind="rabbit"
+          style="width:44px;height:44px;border-radius:22px;overflow:hidden"></kf-art><span
+          style={`font:700 19px/1 ${s.handFace};color:#5E7F4A`}>{t('websitePages.invite.kicker')}</span
+        >
+      </div>
+      <h1
+        data-show="ready full"
+        data-field="headline"
+        style={`margin:0;font:400 46px/1.04 ${s.serif}`}
+      >
+      </h1>
+      <p data-show="ready" style="margin:0;flex-direction:column;gap:6px;font:16.5px/1.55 -apple-system,system-ui;color:#4a3f37">
+        <span data-field="members"></span>
+        <span data-field="approval" hidden>{t('websitePages.invite.approval')}</span>
+      </p>
+      <p data-show="full" data-field="full" style="margin:0;font:16.5px/1.55 -apple-system,system-ui;color:#4a3f37">
+      </p>
+      <a
+        data-show="ready"
+        data-field="browser"
+        href={waitlist}
+        style="height:52px;border-radius:26px;background:#5E7F4A;color:#fff;align-items:center;justify-content:center;gap:8px;font:600 15.5px/1 -apple-system,system-ui;text-decoration:none;padding:0 22px"
+        >{t('websitePages.invite.browser')}</a
+      >
+      <div data-show="ready" style="gap:10px">
+        <a href={appLinks.appStore ?? waitlist} style={store}>{t('websitePages.invite.appStore')}</a><a
+          href={appLinks.googlePlay ?? waitlist}
+          style={store}>{t('websitePages.invite.googlePlay')}</a
+        >
+      </div>
+      <div data-show="ready full" style="font:13px/1.4 -apple-system,system-ui;color:#6b5f55">
+        {t('websitePages.invite.private')}
+      </div>
+
+      <div data-show="loading" role="status" style={s.hand}>{t('websitePages.invite.loading')}</div>
+
+      <div data-show="closed" style="flex-direction:column;gap:16px">
+        <h1 style={`margin:0;font:400 46px/1.04 ${s.serif}`}>{t('websitePages.invite.closedTitle')}</h1>
+        <p style={`${s.body};font-size:16.5px`}>{t('websitePages.invite.closedBody')}</p>
+        <a href={waitlist} style={`${s.button};background:#2a221d;color:#F5EEE2`}
+          >{t('websitePages.invite.closedCta')}</a
+        >
+      </div>
+
+      <div data-show="error" role="alert" style="flex-direction:column;gap:16px">
+        <p style={`${s.body};font-size:16.5px`}>{t('websitePages.invite.error')}</p>
+        <button
+          type="button"
+          data-field="retry"
+          style={`${s.button};background:#2a221d;color:#F5EEE2`}>{t('websitePages.invite.retry')}</button
+        >
+      </div>
+    </div>
+  </main>
+</Base>
+
+<script>
+  import { showInvite } from '../scripts/invite';
+
+  showInvite();
+</script>

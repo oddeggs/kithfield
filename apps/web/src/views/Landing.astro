@@ -1,0 +1,24 @@
+---
+import Closing from '../components/landing/Closing.astro';
+import Evening from '../components/landing/Evening.astro';
+import Guide from '../components/landing/Guide.astro';
+import '../components/landing/landing.css';
+import Base from '../layouts/Base.astro';
+import { copyFor, type Language } from '../lib/site';
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const t = copyFor(lang);
+---
+
+<Base lang={lang} path="/" title={t('website.metaTitle')}>
+  <Evening lang={lang} />
+  <Guide lang={lang} />
+  <Closing lang={lang} />
+</Base>
+
+<script>
+  import '../scripts/landing';
+</script>
