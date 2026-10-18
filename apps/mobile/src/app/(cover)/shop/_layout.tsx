@@ -1,7 +1,6 @@
 import { Stack } from 'expo-router';
 
 import { ShopProvider } from '../../../features/shop/data/shop-data';
-import { ToastHost } from '../../../ui/components/toast';
 import { useTheme } from '../../../ui/theme/theme-provider';
 
 /** A link straight to a shop screen still has Rocco's cart under it to go back to. */
@@ -14,16 +13,13 @@ export const unstable_settings = { anchor: 'index' };
 export default function ShopStack() {
   const { palette } = useTheme();
   return (
-    // A cover sits above the app's own toasts, so the shop shows its notices itself.
-    <ToastHost>
-      <ShopProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: palette.background },
-          }}
-        />
-      </ShopProvider>
-    </ToastHost>
+    <ShopProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: palette.background },
+        }}
+      />
+    </ShopProvider>
   );
 }

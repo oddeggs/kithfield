@@ -35,8 +35,9 @@ screens there without editing a shared file.
   native `Stack`. The root stack presents the folder full screen because its route name starts with
   `(cover)/`, so it needs no `SHEETS` entry; inside, screens push as cards. The layout sets
   `unstable_settings = { anchor: 'index' }`, so a link straight to a deeper screen still has the
-  feature's first screen under it, and mounts its own `ToastHost`, since the app's toasts sit under a
-  cover. It may also hold the feature's data provider, so its screens load once.
+  feature's first screen under it. It may also hold the feature's data provider, so its screens
+  load once. The app's toasts show over covers and sheets (a full-window layer), so a feature never
+  mounts a `ToastHost` of its own.
 - **Sheets with their own heights.** Native sheets take their presentation and detents when they
   are created, so a route never sets `presentation` or `sheet…` options on itself
   (`<Stack.Screen options>` in its file arrives after mount: detents are ignored, and a
