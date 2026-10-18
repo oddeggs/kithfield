@@ -13,6 +13,7 @@ import {
   Place,
   PlantId,
   Seq,
+  openEnum,
   text,
 } from '../primitives';
 
@@ -50,8 +51,11 @@ export type WavePayload = z.infer<typeof WavePayload>;
 export const KnockPayload = z.object({ to: PersonId });
 export type KnockPayload = z.infer<typeof KnockPayload>;
 
-/** The kinds of warmth a hug can carry. */
-export const Warmth = z.enum(['here', 'thinking', 'soup', 'glow']);
+/** The kinds of warmth a hug can carry that this app knows how to draw. */
+export const KNOWN_WARMTHS = ['here', 'thinking', 'soup', 'glow'] as const;
+
+/** A hug's warmth: an open string on the wire; see `KNOWN_WARMTHS`. */
+export const Warmth = openEnum();
 export type Warmth = z.infer<typeof Warmth>;
 
 /** A hug, or an umbrella brought to someone under a rain cloud (then `to` is required). */
@@ -205,7 +209,11 @@ export const GateGesture = z.discriminatedUnion('gesture', [
 ]);
 export type GateGesture = z.infer<typeof GateGesture>;
 
-/** A visitor's gesture, written by the farm with the visitor as actor, and how to draw them. */
+/**
+ * A visitor's gesture, written by the farm with the visitor as actor, and how to draw them.
+ * Deleting the visitor's account tombstones their `gate` and `traded` events on the farms they
+ * visited too, not only on their own farms.
+ */
 export const GatePayload = z.object({
   visitor: z.object({ name: DisplayName, critter: Critter }),
   gesture: GateGesture,

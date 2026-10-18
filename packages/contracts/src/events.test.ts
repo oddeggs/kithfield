@@ -9,7 +9,9 @@ import {
   parseEvent,
   type EventKind,
 } from './events';
-import { LIMITS } from './primitives';
+import { KNOWN_WARMTHS } from './payloads/care';
+import { KNOWN_WEATHER_SOURCES } from './payloads/farm';
+import { KNOWN_REACTIONS, LIMITS } from './primitives';
 import { at, badEventPayloads, bea, eventPayloads, fig, opId } from './samples.test-data';
 
 /** Kinds the farm writes by itself, with a null actor. */
@@ -52,8 +54,27 @@ describe('farm events', () => {
     }
   });
 
+  it('keeps display-only enums open and lists the known values', () => {
+    roundTrip(eventOf('reaction', { target: 14, reaction: 'clover' }));
+    roundTrip(eventOf('hug', { to: fig, warmth: 'blanket' }));
+    roundTrip(eventOf('weather', { day: '2026-10-18', weather: 'rain', source: 'met_office' }));
+    expect(KNOWN_REACTIONS).toHaveLength(11);
+    expect(KNOWN_REACTIONS).not.toContain('dewdrop');
+    expect(KNOWN_WARMTHS).toEqual(['here', 'thinking', 'soup', 'glow']);
+    expect(KNOWN_WEATHER_SOURCES).toEqual(['weatherkit']);
+    expect(valid(eventOf('weather', { day: '2026-10-18', weather: 'snow', source: 'x' }))).toBe(
+      false,
+    );
+  });
+
+  it('never tombstones farm settings', () => {
+    const settings = eventOf('settings_changed', { tombstone: 'author_deleted' });
+    expect(valid(settings)).toBe(false);
+  });
+
   it('accepts a tombstone in place of any content a person wrote', () => {
-    for (const kind of EVENT_KINDS.filter((k) => !FARM_ONLY.has(k))) {
+    const content = EVENT_KINDS.filter((k) => !FARM_ONLY.has(k) && k !== 'settings_changed');
+    for (const kind of content) {
       const event = eventOf(kind, { tombstone: 'removed', rule: 3 });
       roundTrip(event);
       expect(isTombstone(FarmEvent.parse(event).payload)).toBe(true);
@@ -151,21 +172,38 @@ describe('events this app may not know', () => {
     expect(EventEnvelope.safeParse({ ...later, seq: 0 }).success).toBe(false);
   });
 
-  it('sorts events into known and unknown', () => {
+  it('sorts events into known, unknown and invalid', () => {
     const known = parseEvent(eventOf('message', eventPayloads.message));
-    expect(known.known).toBe(true);
-    if (known.known) expect(known.event.kind).toBe('message');
+    expect(known.status).toBe('known');
+    if (known.status === 'known') expect(known.event.kind).toBe('message');
 
-    const newKind = parseEvent(eventOf('lantern_lit', {}));
-    expect(newKind).toEqual({ known: false, event: eventOf('lantern_lit', {}) });
+    const newKind = parseEvent(eventOf('lantern_lit', { colour: 'amber' }));
+    expect(newKind).toEqual({
+      status: 'unknown',
+      event: eventOf('lantern_lit', { colour: 'amber' }),
+    });
 
-    const newValue = parseEvent(eventOf('reaction', { target: 3, reaction: 'clover' }));
-    expect(newValue.known).toBe(false);
-    expect(newValue.event.seq).toBe(40);
+    const newReaction = parseEvent(eventOf('reaction', { target: 3, reaction: 'clover' }));
+    expect(newReaction.status).toBe('known');
+
+    const raw = eventOf('rsvp', { seed: 20, answer: 'perhaps' });
+    expect(parseEvent(raw)).toEqual({
+      status: 'invalid',
+      raw,
+      kind: 'rsvp',
+      seq: 40,
+      issues: expect.arrayContaining([['payload', 'answer']]) as unknown,
+    });
   });
 
-  it('throws on something that is not an event at all', () => {
-    expect(() => parseEvent({ kind: 'message' })).toThrow();
-    expect(() => parseEvent(null)).toThrow();
+  it('calls a broken envelope invalid, with paths and no content', () => {
+    const noSeq = { ...eventOf('message', eventPayloads.message), seq: 0 };
+    const parsed = parseEvent(noSeq);
+    expect(parsed.status).toBe('invalid');
+    if (parsed.status !== 'invalid') return;
+    expect(parsed).toMatchObject({ kind: 'message', seq: 0, issues: [['seq']] });
+    expect(JSON.stringify(parsed.issues)).not.toContain('saturday');
+    expect(parseEvent(null)).toMatchObject({ status: 'invalid', kind: null, seq: null });
+    expect(parseEvent({ ...eventOf('lantern_lit', {}), kind: 'Bad Kind' }).status).toBe('invalid');
   });
 });

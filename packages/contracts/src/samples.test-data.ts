@@ -96,8 +96,14 @@ export const eventPayloads: Record<EventKind, object> = {
   season_rolled: { season: 'winter', year: 2026 },
   harvested: { season: 'autumn', year: 2026, day: '2026-11-29' },
   rules_changed: { from: 1, to: 2 },
-  traded: { with: 'p_kit', otherFarm: 'f_fern_hollow', gave: 'lavender', got: 'plum' },
+  traded: {
+    with: 'p_kit',
+    otherFarm: 'f_fern_hollow',
+    gave: { plant: 'lavender', variant: 'rain_kissed' },
+    got: { plant: 'plum', variant: null },
+  },
   farm_created: {
+    farm,
     kind: 'farm',
     name: 'The Thursday Lot',
     land: 'meadow',
@@ -118,7 +124,7 @@ export const badEventPayloads: Record<EventKind, unknown[]> = {
   edit: [{ target: 0, text: 'x' }],
   unsend: [{ target: 3 }],
   reaction: [
-    { target: 3, reaction: 'thumbs_up' },
+    { target: 3, reaction: 'Thumbs Up!' },
     { target: 3, reaction: 'dewdrop' },
   ],
   sticker: [{ pack: 'mine', sticker: 'wave', with: [bea, pip, fig, 'a', 'b'] }],
@@ -130,7 +136,7 @@ export const badEventPayloads: Record<EventKind, unknown[]> = {
   firefly: [{ action: 'left' }, { action: 'opened' }],
   wave: [{ to: 'bad id!' }],
   knock: [{}],
-  hug: [{ umbrella: 'yes' }, { umbrella: true }, { to: fig, warmth: 'tea' }],
+  hug: [{ umbrella: 'yes' }, { umbrella: true }, { to: fig, warmth: 'Tea!' }],
   quiet_note: [{ text: '' }],
   slow_post: [
     { to: bea, text: 'hi', when: 'morning' },
@@ -169,11 +175,21 @@ export const badEventPayloads: Record<EventKind, unknown[]> = {
   season_rolled: [{ season: 'monsoon', year: 2026 }],
   harvested: [{ season: 'autumn', year: 2026 }],
   rules_changed: [{ from: 2, to: 2 }],
-  traded: [{ with: 'p_kit', otherFarm: 'f_fern_hollow', gave: null, got: 'Plum' }],
+  traded: [
+    { with: 'p_kit', otherFarm: 'f_fern_hollow', gave: null, got: null },
+    { with: 'p_kit', otherFarm: 'f_fern_hollow', gave: null, got: 'plum' },
+    {
+      with: 'p_kit',
+      otherFarm: 'f_fern_hollow',
+      gave: null,
+      got: { plant: 'Plum', variant: null },
+    },
+  ],
   farm_created: [
-    { kind: 'visit', name: 'Us', land: 'meadow', timeZone: 'UTC', hemisphere: 'north' },
-    { kind: 'farm', name: null, land: 'meadow', timeZone: 'UTC', hemisphere: 'north' },
-    { kind: 'farm', name: 'x', land: 'meadow', timeZone: 'UTC', hemisphere: 'up' },
+    { farm, kind: 'visit', name: 'Us', land: 'meadow', timeZone: 'UTC', hemisphere: 'north' },
+    { farm, kind: 'farm', name: null, land: 'meadow', timeZone: 'UTC', hemisphere: 'north' },
+    { farm, kind: 'farm', name: 'x', land: 'meadow', timeZone: 'UTC', hemisphere: 'up' },
+    { kind: 'farm', name: 'x', land: 'meadow', timeZone: 'UTC', hemisphere: 'north' },
   ],
   restored: [{ target: 0 }, {}],
 };

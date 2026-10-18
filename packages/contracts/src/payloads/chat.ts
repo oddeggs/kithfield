@@ -8,21 +8,9 @@ import {
   MediaRef,
   PersonId,
   Reaction,
-  RuleRef,
   Seq,
   text,
 } from '../primitives';
-
-/**
- * What an event's payload becomes after an unsend, a moderation removal or the author's account
- * deletion. The event keeps its seq and kind; its content is gone from every phone on next sync.
- */
-export const Tombstone = z.object({
-  tombstone: z.enum(['unsent', 'removed', 'author_deleted']),
-  /** The rule a moderation removal was made under. */
-  rule: RuleRef.optional(),
-});
-export type Tombstone = z.infer<typeof Tombstone>;
 
 const replyTo = Seq.optional();
 

@@ -26,7 +26,6 @@ import {
   PinPayload,
   ReactionPayload,
   StickerPayload,
-  Tombstone,
   UnsendPayload,
   VoicePayload,
 } from './payloads/chat';
@@ -49,6 +48,7 @@ import {
   TradedPayload,
   WeatherPayload,
 } from './payloads/farm';
+import { Tombstone } from './payloads/tombstone';
 import { EpochMs, OpId, PersonId, Seq } from './primitives';
 
 /** The version of the farm rules an event was applied under. */
@@ -64,38 +64,32 @@ const envelope = { seq: Seq, opId: OpId, at: EpochMs, rulesVersion: RulesVersion
 export const isTombstone = (payload: unknown): payload is Tombstone =>
   typeof payload === 'object' && payload !== null && 'tombstone' in payload;
 
+/** A payload that may later become a tombstone. */
+const tombstonable = <P extends z.ZodType>(payload: P) => z.union([Tombstone, payload]);
+
 /** An event a person caused; its payload may later become a tombstone. */
 const personEvent = <K extends string, P extends z.ZodType>(kind: K, payload: P) =>
-  z.object({
-    ...envelope,
-    actor: PersonId,
-    kind: z.literal(kind),
-    payload: z.union([Tombstone, payload]),
-  });
+  z.object({ ...envelope, actor: PersonId, kind: z.literal(kind), payload: tombstonable(payload) });
 
 /**
  * A person's event that the safety team or the farm may also write, then with a null actor.
  * `bySafety` says which payloads those are; the actor must be null exactly for them.
  */
-const sharedEvent = <K extends string, P extends z.ZodType>(
+const sharedEvent = <K extends string, S extends z.ZodType>(
   kind: K,
-  payload: P,
-  bySafety: (payload: z.infer<P>) => boolean,
+  payload: S,
+  bySafety: (payload: Record<string, unknown>) => boolean,
 ) =>
-  z
-    .object({
-      ...envelope,
-      actor: PersonId.nullable(),
-      kind: z.literal(kind),
-      payload: z.union([Tombstone, payload]),
-    })
-    .refine(
-      (e) => {
-        const { actor, payload: p } = e as unknown as { actor: string | null; payload: unknown };
-        return isTombstone(p) || (actor === null) === bySafety(p as z.infer<P>);
-      },
-      { message: 'Only the farm or the safety team writes with a null actor', path: ['actor'] },
-    );
+  z.object({ ...envelope, actor: PersonId.nullable(), kind: z.literal(kind), payload }).refine(
+    (e) => {
+      const { actor, payload: p } = e as unknown as {
+        actor: string | null;
+        payload: Record<string, unknown>;
+      };
+      return isTombstone(p) || (actor === null) === bySafety(p);
+    },
+    { message: 'Only the farm or the safety team writes with a null actor', path: ['actor'] },
+  );
 
 /** An event the farm writes by itself, never tombstoned. */
 const farmEvent = <K extends string, P extends z.ZodType>(kind: K, payload: P) =>
@@ -106,7 +100,7 @@ export const FarmEvent = z.discriminatedUnion('kind', [
   // Chat
   personEvent('message', MessagePayload),
   personEvent('edit', EditPayload),
-  sharedEvent('unsend', UnsendPayload, (p) => p.by === 'safety'),
+  sharedEvent('unsend', tombstonable(UnsendPayload), (p) => p['by'] === 'safety'),
   personEvent('reaction', ReactionPayload),
   personEvent('sticker', StickerPayload),
   personEvent('media', MediaPayload),
@@ -138,16 +132,17 @@ export const FarmEvent = z.discriminatedUnion('kind', [
   personEvent('farm_opened', FarmOpenedPayload),
   personEvent('hibernate', HibernatePayload),
   personEvent('status', StatusPayload),
-  sharedEvent('fire', FirePayload, (p) => p.state === 'out'),
+  sharedEvent('fire', tombstonable(FirePayload), (p) => p['state'] === 'out'),
   // Membership
   personEvent('joined', JoinedPayload),
   personEvent('left', LeftPayload),
-  sharedEvent('removed', RemovedPayload, (p) => p.by === 'safety'),
+  sharedEvent('removed', tombstonable(RemovedPayload), (p) => p['by'] === 'safety'),
   personEvent('critter_changed', CritterChangedPayload),
+  /** Farm settings are the farm's, not a person's content: never tombstoned. */
   sharedEvent(
     'settings_changed',
     SettingsChangedPayload,
-    (p) => p.setting === 'frozen' || p.setting === 'paused',
+    (p) => p['setting'] === 'frozen' || p['setting'] === 'paused',
   ),
   // Written by the farm
   farmEvent('farm_created', FarmCreatedPayload),
@@ -199,17 +194,75 @@ export const EventEnvelope = z.object({
 });
 export type EventEnvelope = z.infer<typeof EventEnvelope>;
 
-export type ParsedEvent =
-  | { readonly known: true; readonly event: FarmEvent }
-  | { readonly known: false; readonly event: EventEnvelope };
+/** Where a check failed, as a path into the event. Carries no content. */
+export type EventIssuePath = readonly (string | number)[];
 
 /**
- * Sorts an event into one this app knows, or an unknown one to store, step `lastSeq` past and skip
- * in the reducer. A known kind whose payload fails (say, a newer enum value) counts as unknown.
- * Throws a ZodError when the value isn't even an event envelope.
+ * How a received event sorts:
+ * - `known`: a kind this app knows, and it parses.
+ * - `unknown`: a kind this app doesn't know. Store the envelope, step `lastSeq` past it, skip it
+ *   in the reducer.
+ * - `invalid`: a known kind (or a broken envelope) that fails. Store it raw, step `lastSeq` past
+ *   it, report its kind, seq and issue paths (no content), then say `hello` again with
+ *   `lastSeq: 0` to take the farm's snapshot.
+ */
+export type ParsedEvent =
+  | { readonly status: 'known'; readonly event: FarmEvent }
+  | { readonly status: 'unknown'; readonly event: EventEnvelope }
+  | {
+      readonly status: 'invalid';
+      readonly raw: unknown;
+      readonly kind: string | null;
+      readonly seq: number | null;
+      readonly issues: readonly EventIssuePath[];
+    };
+
+const knownKinds = new Set<string>(EVENT_KINDS);
+
+/**
+ * The paths of a parse failure. Inside a payload that may be a tombstone, the tombstone branch's
+ * complaints are dropped, so the paths point at the real field (`['payload', 'answer']`).
+ */
+const pathsOf = (
+  issues: readonly z.core.$ZodIssue[],
+  base: readonly PropertyKey[],
+): EventIssuePath[] =>
+  issues.flatMap((issue) => {
+    const path = [...base, ...issue.path];
+    if (issue.code === 'invalid_union' && issue.errors.length > 0) {
+      const real = issue.errors.filter((branch) => !branch.some((i) => i.path[0] === 'tombstone'));
+      return (real.length > 0 ? real : issue.errors).flatMap((branch) => pathsOf(branch, path));
+    }
+    return [path.map((key) => (typeof key === 'symbol' ? String(key) : key))];
+  });
+
+const issuePaths = (error: z.ZodError): EventIssuePath[] => {
+  const seen = new Map<string, EventIssuePath>();
+  for (const path of pathsOf(error.issues, [])) seen.set(JSON.stringify(path), path);
+  return [...seen.values()];
+};
+
+const field = (value: unknown, key: string): unknown =>
+  typeof value === 'object' && value !== null ? (value as Record<string, unknown>)[key] : undefined;
+
+/**
+ * Sorts a received event. Phones use this; the farm object parses its own writes with the strict
+ * `FarmEvent.parse` only.
  */
 export const parseEvent = (value: unknown): ParsedEvent => {
+  const envelope = EventEnvelope.safeParse(value);
+  if (envelope.success && !knownKinds.has(envelope.data.kind)) {
+    return { status: 'unknown', event: envelope.data };
+  }
   const known = FarmEvent.safeParse(value);
-  if (known.success) return { known: true, event: known.data };
-  return { known: false, event: EventEnvelope.parse(value) };
+  if (known.success) return { status: 'known', event: known.data };
+  const kind = field(value, 'kind');
+  const seq = field(value, 'seq');
+  return {
+    status: 'invalid',
+    raw: value,
+    kind: typeof kind === 'string' ? kind : null,
+    seq: typeof seq === 'number' ? seq : null,
+    issues: issuePaths(envelope.success ? known.error : envelope.error),
+  };
 };

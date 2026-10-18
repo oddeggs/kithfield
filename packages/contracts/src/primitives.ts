@@ -161,10 +161,16 @@ export const Departure = z.enum(['left', 'removed', 'account_deleted']);
 export type Departure = z.infer<typeof Departure>;
 
 /**
- * The warm reactions, by their icon names. The tray's dewdrop is not a reaction: it is a `dewdrop`
- * event with a `target`, drawn in the reaction row.
+ * An open, display-only enum on the wire: any short lowercase name. A newer name an app doesn't
+ * know is drawn with a fallback, never rejected, so adding one needs no rules-version bump.
  */
-export const Reaction = z.enum([
+export const openEnum = () => z.string().regex(/^[a-z][a-z0-9_]{0,31}$/);
+
+/**
+ * The warm reactions this app knows how to draw, by icon name. The tray's dewdrop is not a
+ * reaction: it is a `dewdrop` event with a `target`, drawn in the reaction row.
+ */
+export const KNOWN_REACTIONS = [
   'sun',
   'heart',
   'sprout',
@@ -176,7 +182,12 @@ export const Reaction = z.enum([
   'lantern',
   'leaf',
   'moon',
-]);
+] as const;
+
+/** A reaction: an open string on the wire; see `KNOWN_REACTIONS`. Never `dewdrop`. */
+export const Reaction = openEnum().refine((r) => r !== 'dewdrop', {
+  message: 'A dewdrop on a message is a dewdrop event',
+});
 export type Reaction = z.infer<typeof Reaction>;
 
 /** An object key in R2: `farm/<farm id>/<uuid>`. */

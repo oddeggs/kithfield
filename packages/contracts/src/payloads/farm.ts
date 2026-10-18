@@ -16,11 +16,13 @@ import {
   MonthDay,
   PersonId,
   PlantId,
+  RareVariant,
   Role,
   Season,
   Seq,
   TimeZone,
   Weather,
+  openEnum,
   text,
 } from '../primitives';
 
@@ -32,7 +34,9 @@ export type FarmOpenedPayload = z.infer<typeof FarmOpenedPayload>;
 
 /**
  * Hibernate pauses every nudge on every farm and tucks the critter in. A person hibernates once,
- * over HTTP; the server writes this event on every farm they live on.
+ * over HTTP; the server writes this event on every farm they live on, only when it changes, with an
+ * op id it mints. Someone who joins a farm while hibernating gets `hibernate {on: true}` written
+ * right after their `joined`.
  */
 export const HibernatePayload = z.object({ on: z.boolean() });
 export type HibernatePayload = z.infer<typeof HibernatePayload>;
@@ -67,6 +71,8 @@ export type FirePayload = z.infer<typeof FirePayload>;
  */
 export const FarmCreatedPayload = z
   .object({
+    /** The farm's own id; the rare-variant hash needs it. */
+    farm: FarmId,
     kind: FarmKind,
     name: FarmName.nullable(),
     land: ArtId,
@@ -123,7 +129,10 @@ export type CritterChangedPayload = z.infer<typeof CritterChangedPayload>;
 const keeperSettings = [
   z.object({ setting: z.literal('name'), name: FarmName }),
   z.object({ setting: z.literal('land'), land: ArtId }),
-  /** The day boundaries and seasons; from device settings, never location. */
+  /**
+   * The day boundaries and seasons; from device settings, never location. A new hemisphere applies
+   * from the next `season_rolled`; a new time zone from the next local day.
+   */
   z.object({ setting: z.literal('calendar'), timeZone: TimeZone, hemisphere: Hemisphere }),
   /** The keeper's town, for weather; null stops the weather. */
   z.object({ setting: z.literal('place'), place: FarmPlace.nullable() }),
@@ -150,8 +159,14 @@ export type SettingsChangedPayload = z.infer<typeof SettingsChangedPayload>;
 
 /* Written by the farm */
 
-/** Where the weather came from; each source has its own attribution. Grows with new sources. */
-export const WeatherSource = z.enum(['weatherkit']);
+/** The weather sources this app knows the attribution for. */
+export const KNOWN_WEATHER_SOURCES = ['weatherkit'] as const;
+
+/**
+ * Where the weather came from: an open string on the wire, so a new source needs no rules-version
+ * bump. An app shows a generic attribution for a source it doesn't know.
+ */
+export const WeatherSource = openEnum();
 export type WeatherSource = z.infer<typeof WeatherSource>;
 
 export const WeatherPayload = z.object({
@@ -187,21 +202,29 @@ export const RulesChangedPayload = z
   .refine((p) => p.to > p.from, { message: 'Rules only move forward' });
 export type RulesChangedPayload = z.infer<typeof RulesChangedPayload>;
 
+/** A crop: a plant, rare or not. */
+export const Crop = z.object({ plant: PlantId, variant: RareVariant.nullable() });
+export type Crop = z.infer<typeof Crop>;
+
 /**
- * A swap made while visiting another farm: one bundle for one, once per visit. Written by the farm
- * on both farms, each with its own trader as actor; `with` is the person on the other farm.
+ * A swap made while visiting another farm: one bundle for one, once per visit, or a gift one way
+ * (`gave` or `got` null, never both). Written by the farm on both farms, each with its own trader
+ * as actor; `with` is the person on the other farm. Rare variants travel with the crop.
  */
-export const TradedPayload = z.object({
-  with: PersonId,
-  otherFarm: FarmId,
-  gave: PlantId.nullable(),
-  got: PlantId,
-});
+export const TradedPayload = z
+  .object({
+    with: PersonId,
+    otherFarm: FarmId,
+    gave: Crop.nullable(),
+    got: Crop.nullable(),
+  })
+  .refine((p) => p.gave !== null || p.got !== null, { message: 'A trade moves at least one crop' });
 export type TradedPayload = z.infer<typeof TradedPayload>;
 
 /**
  * An appeal undid a removal: the farm put the target's payload back in its log. Phones refetch
- * that event by paging (`after = target - 1`, `limit = 1`).
+ * that event by paging (`after = target - 1`, `limit = 1`), and the reducer applies the restore
+ * once the target is back. The snapshot is the truth.
  */
 export const RestoredPayload = z.object({ target: Seq });
 export type RestoredPayload = z.infer<typeof RestoredPayload>;
