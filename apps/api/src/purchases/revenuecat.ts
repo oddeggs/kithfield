@@ -123,6 +123,23 @@ const refundWrites = (
       db
         .prepare('UPDATE store_transactions SET refunded = 1 WHERE id = ? AND person_id = ?')
         .bind(transaction, person),
+      // Apple refunded a chip-in share: the only refund there is. A credit it became goes too.
+      db
+        .prepare(
+          `UPDATE pledges SET state = 'refunded', refund_owed = 1
+           WHERE transaction_id = ? AND person_id = ? AND state = 'paid'`,
+        )
+        .bind(transaction, person),
+      db
+        .prepare(
+          `DELETE FROM owned_items WHERE via = 'chip_in' AND from_id IS NULL AND EXISTS (
+             SELECT 1 FROM shop_credits c WHERE c.transaction_id = ?1 AND c.person_id = ?2
+               AND c.item = owned_items.item AND owned_items.person_id = c.person_id)`,
+        )
+        .bind(transaction, person),
+      db
+        .prepare('DELETE FROM shop_credits WHERE transaction_id = ? AND person_id = ?')
+        .bind(transaction, person),
     );
   }
   const item = itemOfProduct(product);

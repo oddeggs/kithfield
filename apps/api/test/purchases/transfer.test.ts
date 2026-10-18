@@ -50,7 +50,7 @@ describe('moving purchases between people', () => {
 
   it('moves everything when one person is merged into another', async () => {
     const { pip, fig } = await stocked();
-    await env.DB.batch(mergeWrites(env.DB, { from: pip.id, into: fig.id }));
+    await env.DB.batch(mergeWrites(env.DB, { from: pip.id, into: fig.id, now: Date.now() }));
     expect(await owned(pip.id)).toEqual([]);
     expect((await owned(fig.id)).map((r) => r.via).sort()).toEqual([
       'bought',

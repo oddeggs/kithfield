@@ -5,14 +5,6 @@ import type { ArtId, Season } from '@kithfield/contracts';
  * default the docs name, and listed in `docs/products.md` ("Decisions pending").
  */
 
-/**
- * When chip-in pledges are charged. `promise_until_covered` (the docs' default): a pledge is a
- * promise, nobody pays until the promises cover the gift or theme, then each pays their share.
- * `pay_upfront`: every pledge comes with its store transaction. In-app purchases can't be
- * refunded by the app, which is why promises are the default until App Review says otherwise.
- */
-export const CHIP_IN_PAYMENT: 'promise_until_covered' | 'pay_upfront' = 'promise_until_covered';
-
 /** Once promises cover a theme, how long everyone has to pay their share before it closes. */
 export const THEME_PAY_WINDOW_MS = 3 * 86_400_000;
 

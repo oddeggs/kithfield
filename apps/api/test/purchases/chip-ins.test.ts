@@ -66,7 +66,7 @@ describe('a farm theme chip-in', () => {
     ).toBe(409);
   });
 
-  it('closes uncovered: promises released, nothing charged', async () => {
+  it('stays open when its pay window passes: promises released, nothing charged', async () => {
     const { pip, fig } = await cast('pip', 'fig');
     const { farm } = await plantFarm(pip, [fig]);
     const { chipIn } = (
@@ -77,7 +77,10 @@ describe('a farm theme chip-in', () => {
       .bind(Date.now() - 1, chipIn)
       .run();
     const list = (await api(fig, 'GET', `/v1/farms/${farm}/chip-ins`)).body as ChipInList;
-    expect(list.chipIns.find((c) => c.chipIn === chipIn)).toBeUndefined();
+    expect(list.chipIns.find((c) => c.chipIn === chipIn)).toMatchObject({
+      state: 'open',
+      closesAt: null,
+    });
     const row = await env.DB.prepare('SELECT state FROM pledges WHERE chip_in_id = ?')
       .bind(chipIn)
       .first<{ state: string }>();

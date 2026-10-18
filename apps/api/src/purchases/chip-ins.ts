@@ -1,11 +1,9 @@
 import {
   type ChipIn,
-  ChipInFor,
   type ChipInPledgeRequest,
   type ChipInStartRequest,
   type FarmId,
   type PersonId,
-  type PledgeState,
 } from '@kithfield/contracts';
 import { addDays, isBirthday, localDay, startOfDay } from '@kithfield/farm';
 
@@ -13,9 +11,18 @@ import { eitherBlocked } from '../auth';
 import type { Bindings } from '../env';
 import { roleOf } from '../farm/d1';
 import { farmStub } from '../farm/http';
-import { opIdFrom } from '../farm/profile-fanout';
 import { catalogItem, chipInValue, THEME_VALUE, THEMES, WRAPS } from './catalog';
-import { CHIP_IN_PAYMENT, THEME_PAY_WINDOW_MS } from './config';
+import {
+  advance,
+  COUNTED,
+  creditShare,
+  type Pledge,
+  pledgesOf,
+  type Row,
+  rowOf,
+  sum,
+  whatOf,
+} from './chip-in-settle';
 import { farmOwnsTheme } from './gift-claims';
 import { owns, type Refusal } from './gifts';
 import { useTransaction } from './transactions';
@@ -23,30 +30,10 @@ import { useTransaction } from './transactions';
 /*
  * Chip-ins: friends together cover a wished-for gift on a member's birthday, or a farm theme.
  * Members see who chipped in and how full it is, never amounts; the friend a gift is for never
- * sees it. By default a pledge is a promise, paid once the promises cover it (`config.ts`).
+ * sees it. A pledge is a promise; nobody is charged until promises cover it, then each pays their
+ * own share (the app asks for the chip-in's state right before opening the store's sheet). How it
+ * moves on is in `chip-in-settle.ts`.
  */
-
-type Row = {
-  id: string;
-  farm_id: string;
-  by_id: string;
-  kind: 'gift' | 'theme';
-  what_json: string;
-  target: number;
-  state: ChipIn['state'];
-  closes_at: number | null;
-  created_at: number;
-  covered_at: number | null;
-  completed_at: number | null;
-};
-
-type Pledge = {
-  person_id: string;
-  tier: string;
-  value: number;
-  state: PledgeState;
-  at: number;
-};
 
 const refuse = (status: Refusal['status'], code: Refusal['code'], fields?: string[]): Refusal => ({
   status,
@@ -54,26 +41,16 @@ const refuse = (status: Refusal['status'], code: Refusal['code'], fields?: strin
   ...(fields === undefined ? {} : { fields }),
 });
 
-const rowOf = (db: D1Database, id: string) =>
-  db.prepare('SELECT * FROM chip_ins WHERE id = ?').bind(id).first<Row>();
-
-const pledgesOf = async (db: D1Database, id: string) =>
-  (
-    await db
-      .prepare(
-        'SELECT person_id, tier, value, state, at FROM pledges WHERE chip_in_id = ? ORDER BY at, person_id',
-      )
-      .bind(id)
-      .all<Pledge>()
-  ).results;
-
-const whatOf = (row: Row): ChipInFor => ChipInFor.parse(JSON.parse(row.what_json));
-
-const sum = (pledges: readonly Pledge[], states: readonly PledgeState[]) =>
-  pledges.filter((p) => states.includes(p.state)).reduce((n, p) => n + p.value, 0);
-
-const counted = (): readonly PledgeState[] =>
-  CHIP_IN_PAYMENT === 'promise_until_covered' ? ['promised', 'paid'] : ['paid'];
+/**
+ * How full a chip-in shows. Until two people have pledged it is rounded down to an eighth (never
+ * empty once someone has), so nobody can read the one pledger's amount off the bar.
+ */
+export const fillOf = (row: Pick<Row, 'target'>, pledges: readonly Pledge[]): number => {
+  const counted = pledges.filter((p) => COUNTED.includes(p.state));
+  const raw = Math.min(1, row.target === 0 ? 1 : sum(counted, COUNTED) / row.target);
+  if (counted.length >= 2 || raw === 0 || raw === 1) return raw;
+  return Math.max(1, Math.floor(raw * 8)) / 8;
+};
 
 /** A chip-in as `asker` sees it: who chipped in and how full, never how much. */
 export const viewOf = (row: Row, pledges: readonly Pledge[], asker: PersonId): ChipIn => {
@@ -85,7 +62,7 @@ export const viewOf = (row: Row, pledges: readonly Pledge[], asker: PersonId): C
     what: whatOf(row),
     state: row.state,
     closesAt: row.closes_at,
-    filled: Math.min(1, row.target === 0 ? 1 : sum(pledges, counted()) / row.target),
+    filled: fillOf(row, pledges),
     people: pledges.map((p) => p.person_id),
     mine: mine === undefined ? null : { tier: mine.tier, state: mine.state },
   };
@@ -98,137 +75,23 @@ const visibleTo = async (db: D1Database, row: Row, asker: PersonId) => {
   return !(what.for === 'gift' && what.to === asker);
 };
 
-const opIdFor = (row: Row, what: string) => opIdFrom(row.created_at, `chip-in:${row.id}:${what}`);
-
-/**
- * Covered and paid: the farm writes the gift on the starter's behalf, or switches the theme on.
- * Safe to repeat: the writes are once per op id and the rows are written once.
- */
-const complete = async (env: Bindings, row: Row, pledges: readonly Pledge[], now: number) => {
-  const db = env.DB;
-  const what = whatOf(row);
-  const stub = farmStub(env, row.farm_id);
-  if (what.for === 'gift') {
-    const gift = `chipin-${row.id}`;
-    await db.batch([
-      db
-        .prepare(
-          `INSERT OR IGNORE INTO gifts (id, from_id, to_id, farm_id, item, wrap, product, state,
-             chip_in_id, created_at, paid_at, given_at)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, 'given', ?7, ?8, ?8, ?8)`,
-        )
-        .bind(gift, row.by_id, what.to, row.farm_id, what.item, what.wrap, row.id, now),
-      db
-        .prepare(
-          `INSERT OR IGNORE INTO owned_items (person_id, item, via, from_id, at) VALUES (?, ?, 'chip_in', ?, ?)`,
-        )
-        .bind(what.to, what.item, row.by_id, now),
-    ]);
-    const others = pledges
-      .filter((p) => p.state === 'paid' && p.person_id !== row.by_id)
-      .map((p) => p.person_id);
-    const result = await stub.chipInGift(await opIdFor(row, 'gift'), row.by_id, {
-      action: 'given',
-      gift,
-      to: what.to,
-      item: what.item,
-      wrap: what.wrap,
-      ...(what.note === undefined ? {} : { note: what.note }),
-      chipIn: row.id,
-      ...(others.length > 0 ? { with: others } : {}),
-    });
-    if (result.result === 'rejected') {
-      console.error('chip-in gift refused by the farm', { reason: result.reason });
-    }
-  } else {
-    await db
-      .prepare(
-        'INSERT OR IGNORE INTO farm_themes (farm_id, theme, chip_in_id, at) VALUES (?, ?, ?, ?)',
-      )
-      .bind(row.farm_id, what.theme, row.id, now)
-      .run();
-    // A farm on rules older than farm-written themes refuses; the theme stays owned and a keeper
-    // can switch it on.
-    const result = await stub.chipInTheme(await opIdFor(row, 'theme'), what.theme);
-    if (result.result === 'rejected') {
-      console.warn('chip-in theme left for a keeper to switch on', { reason: result.reason });
-    }
-  }
-  await db.batch([
-    db
-      .prepare(
-        `UPDATE chip_ins SET completed_at = ?, state = 'covered', covered_at = coalesce(covered_at, ?)
-         WHERE id = ? AND completed_at IS NULL`,
-      )
-      .bind(now, now, row.id),
-    db
-      .prepare(`UPDATE pledges SET state = 'released' WHERE chip_in_id = ? AND state = 'promised'`)
-      .bind(row.id),
-  ]);
-};
-
-/**
- * Moves a chip-in on as far as its pledges and the clock take it: covered, completed, or closed.
- * Answers the row as it is afterwards.
- */
-const advance = async (env: Bindings, id: string, now: number): Promise<Row | null> => {
-  const db = env.DB;
-  let row = await rowOf(db, id);
-  if (row === null || row.state === 'closed' || row.completed_at !== null) return row;
-  const pledges = await pledgesOf(db, id);
-  const paid = sum(pledges, ['paid']);
-  if (paid >= row.target) {
-    await complete(env, row, pledges, now);
-    return rowOf(db, id);
-  }
-  if (row.closes_at !== null && row.closes_at <= now) {
-    // Closed uncovered: nothing promised is charged; anything paid is owed back.
-    await db.batch([
-      db
-        .prepare(`UPDATE chip_ins SET state = 'closed' WHERE id = ? AND state <> 'closed'`)
-        .bind(id),
-      db
-        .prepare(
-          `UPDATE pledges SET state = 'released' WHERE chip_in_id = ? AND state = 'promised'`,
-        )
-        .bind(id),
-      db
-        .prepare(
-          `UPDATE pledges SET state = 'refunded', refund_owed = 1 WHERE chip_in_id = ? AND state = 'paid'`,
-        )
-        .bind(id),
-    ]);
-    return rowOf(db, id);
-  }
-  if (row.state === 'open' && sum(pledges, counted()) >= row.target) {
-    const closesAt =
-      row.kind === 'theme' && row.closes_at === null ? now + THEME_PAY_WINDOW_MS : row.closes_at;
-    await db
-      .prepare(
-        `UPDATE chip_ins SET state = 'covered', covered_at = ?, closes_at = ? WHERE id = ? AND state = 'open'`,
-      )
-      .bind(now, closesAt, id)
-      .run();
-    row = await rowOf(db, id);
-  }
-  return row;
-};
-
 /** Every chip-in on a farm that is due to move on (closing, or finishing), moved on. */
 export const advanceFarm = async (env: Bindings, farm: FarmId, now: number) => {
   const { results } = await env.DB.prepare(
-    `SELECT id FROM chip_ins WHERE farm_id = ? AND state <> 'closed' AND completed_at IS NULL`,
+    `SELECT id FROM chip_ins WHERE farm_id = ? AND state <> 'closed'
+       AND (completed_at IS NULL OR delivered_at IS NULL)`,
   )
     .bind(farm)
     .all<{ id: string }>();
   for (const { id } of results) await advance(env, id, now);
 };
 
-/** The daily sweep: chip-ins past their close, everywhere. */
+/** The daily sweep: chip-ins past their close, and farm writes still owed, everywhere. */
 export const closeDueChipIns = async (env: Bindings, now: number) => {
   const { results } = await env.DB.prepare(
-    `SELECT id FROM chip_ins WHERE state <> 'closed' AND completed_at IS NULL
-       AND closes_at IS NOT NULL AND closes_at <= ? LIMIT 500`,
+    `SELECT id FROM chip_ins WHERE state <> 'closed'
+       AND ((completed_at IS NULL AND closes_at IS NOT NULL AND closes_at <= ?)
+         OR (completed_at IS NOT NULL AND delivered_at IS NULL)) LIMIT 500`,
   )
     .bind(now)
     .all<{ id: string }>();
@@ -322,7 +185,50 @@ export const farmChipIns = async (
   return out;
 };
 
-/** `POST /v1/chip-ins/:id/pledges`. */
+/** Records a valid payment toward a chip-in. False when this transaction was recorded already. */
+const recordPayment = async (
+  db: D1Database,
+  p: { chipIn: string; person: string; transaction: string; tier: string; value: number },
+  now: number,
+) =>
+  (
+    await db
+      .prepare(
+        `INSERT OR IGNORE INTO chip_in_payments (transaction_id, chip_in_id, person_id, tier, value, at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(p.transaction, p.chipIn, p.person, p.tier, p.value, now)
+      .run()
+  ).meta.changes > 0;
+
+/**
+ * Pays the person's share, if the chip-in can still use it: in one statement, so a chip-in that
+ * completes or closes meanwhile never takes a share it no longer needs. False when it can't.
+ */
+const payShare = async (
+  db: D1Database,
+  p: { chipIn: string; person: string; transaction: string; tier: string; value: number },
+  now: number,
+) =>
+  (
+    await db
+      .prepare(
+        `INSERT INTO pledges (chip_in_id, person_id, tier, value, state, transaction_id, at)
+         SELECT ?1, ?2, ?3, ?4, 'paid', ?5, ?6
+         WHERE EXISTS (SELECT 1 FROM chip_ins WHERE id = ?1 AND state <> 'closed' AND completed_at IS NULL)
+         ON CONFLICT (chip_in_id, person_id) DO UPDATE SET tier = excluded.tier,
+           value = excluded.value, state = 'paid', transaction_id = excluded.transaction_id
+         WHERE pledges.state IN ('promised', 'released')`,
+      )
+      .bind(p.chipIn, p.person, p.tier, p.value, p.transaction, now)
+      .run()
+  ).meta.changes > 0;
+
+/**
+ * `POST /v1/chip-ins/:id/pledges`. Without a transaction, a promise. With one, a payment, which is
+ * never dropped: once checked against the store it is recorded, and pays the person's share if the
+ * chip-in can still use it, else becomes their credit (`creditShare`).
+ */
 export const pledge = async (
   env: Bindings,
   person: PersonId,
@@ -335,24 +241,22 @@ export const pledge = async (
   if (before === null || !(await visibleTo(db, before, person))) return refuse(404, 'not_found');
   const value = chipInValue(req.tier);
   if (value === null) return refuse(400, 'bad_request', ['tier']);
-  if (CHIP_IN_PAYMENT === 'pay_upfront' && req.transaction === null) {
-    return refuse(400, 'bad_request', ['transaction']);
-  }
   const row = await advance(env, id, now);
-  if (row === null || row.state === 'closed') return refuse(409, 'conflict');
-  const mine = (await pledgesOf(db, id)).find((p) => p.person_id === person);
-  if (mine?.state === 'paid' || row.completed_at !== null) {
-    return viewOf(row, await pledgesOf(db, id), person);
-  }
+  if (row === null) return refuse(404, 'not_found');
+
   if (req.transaction === null) {
-    await db
-      .prepare(
-        `INSERT INTO pledges (chip_in_id, person_id, tier, value, state, at) VALUES (?, ?, ?, ?, 'promised', ?)
-         ON CONFLICT (chip_in_id, person_id) DO UPDATE SET tier = excluded.tier, value = excluded.value
-         WHERE pledges.state = 'promised'`,
-      )
-      .bind(id, person, req.tier, value, now)
-      .run();
+    if (row.state === 'closed') return refuse(409, 'conflict');
+    if (row.completed_at === null) {
+      await db
+        .prepare(
+          `INSERT INTO pledges (chip_in_id, person_id, tier, value, state, at) VALUES (?, ?, ?, ?, 'promised', ?)
+           ON CONFLICT (chip_in_id, person_id) DO UPDATE SET tier = excluded.tier,
+             value = excluded.value, state = 'promised'
+           WHERE pledges.state IN ('promised', 'released')`,
+        )
+        .bind(id, person, req.tier, value, now)
+        .run();
+    }
   } else {
     const check = await useTransaction(
       env,
@@ -362,20 +266,18 @@ export const pledge = async (
       `pledge:${id}:${person}`,
       now,
     );
+    // Already paying for something else: this isn't a payment toward this chip-in.
     if (check === 'used') return refuse(409, 'conflict', ['transaction']);
-    if (check === 'ok') {
-      await db
-        .prepare(
-          `INSERT INTO pledges (chip_in_id, person_id, tier, value, state, transaction_id, at)
-           VALUES (?, ?, ?, ?, 'paid', ?, ?)
-           ON CONFLICT (chip_in_id, person_id) DO UPDATE SET tier = excluded.tier,
-             value = excluded.value, state = 'paid', transaction_id = excluded.transaction_id
-           WHERE pledges.state = 'promised'`,
-        )
-        .bind(id, person, req.tier, value, req.transaction, now)
-        .run();
-    }
     // Not seen by the store yet: answered as it stands; the phone pledges again with it.
+    if (check === 'ok') {
+      const payment = { chipIn: id, person, transaction: req.transaction, tier: req.tier, value };
+      if (await recordPayment(db, payment, now)) {
+        if (!(await payShare(db, payment, now))) {
+          const latest = (await rowOf(db, id)) ?? row;
+          await creditShare(db, latest, { person, transaction: req.transaction, value }, now);
+        }
+      }
+    }
   }
   const after = (await advance(env, id, now)) ?? row;
   return viewOf(after, await pledgesOf(db, id), person);
