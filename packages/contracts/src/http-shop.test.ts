@@ -181,22 +181,25 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
   ],
   Entitlements: [
     [
-      { perks: true, patronage, farmPlus: null, owned: ['houseboat'] },
+      { perks: true, patronage, farmPlus: null, owned: ['houseboat'], wallName: 'Ada K.' },
       {
         perks: true,
         patronage: { ...patronage, tier: 'farm_plus', period: 'month' },
         farmPlus: { farm, covered: [bea, pip] },
         owned: [],
+        wallName: null,
       },
-      { perks: false, patronage: null, farmPlus: null, owned: [] },
+      { perks: false, patronage: null, farmPlus: null, owned: [], wallName: null },
     ],
     [
-      { perks: true, patronage, owned: [] },
+      { perks: true, patronage, owned: [], wallName: null },
+      { perks: true, patronage, farmPlus: null, owned: [] },
       {
         perks: true,
         patronage,
         farmPlus: { farm, covered: Array.from({ length: 9 }, (_, i) => `p_${i}`) },
         owned: [],
+        wallName: null,
       },
     ],
   ],
@@ -205,14 +208,27 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
     [{ products: ['kf.patron.monthly', 'kf.patron.yearly', 'kf.founding'], founding: true }],
     [{ products: [], founding: false }],
   ],
+  WallEntryId: [
+    ['w1', 'w123456789012345'],
+    ['w0', 'p_ada', 'w', 'w1234567890123456'],
+  ],
   FarmersWall: [
     [
-      { names: ['Ada K.', 'Bramble & co'], others: 4212, next: 'c_20' },
+      {
+        names: [
+          { entry: 'w1', name: 'Ada K.' },
+          { entry: 'w42', name: 'Bramble & co' },
+        ],
+        others: 4212,
+        next: 'c_20',
+      },
       { names: [], others: 0, next: null },
     ],
     [
-      { names: ['Ada'], others: -1, next: null },
-      { names: [''], others: 0, next: null },
+      { names: [{ entry: 'w1', name: 'Ada' }], others: -1, next: null },
+      { names: [{ entry: 'w1', name: '' }], others: 0, next: null },
+      { names: ['Ada K.'], others: 0, next: null },
+      { names: [{ entry: 'p_ada', name: 'Ada' }], others: 0, next: null },
     ],
   ],
   WallNameRequest: [

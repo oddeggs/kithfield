@@ -139,7 +139,7 @@ describe('patrons', () => {
     expect((await api(pip, 'PUT', '/v1/me/wall', { name: '  Pip  ' })).status).toBe(204);
     await tell(rcEvent(pip.id, 'EXPIRATION', 'kf.patron.monthly'));
     const wall = await api(fig, 'GET', '/v1/patrons/wall');
-    expect((wall.body as { names: string[] }).names).toContain('Pip');
+    expect((wall.body as { names: { name: string }[] }).names.map((n) => n.name)).toContain('Pip');
     expect((await api(pip, 'GET', '/v1/patrons/vote')).status).toBe(403);
   });
 });

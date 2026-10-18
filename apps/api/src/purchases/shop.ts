@@ -123,14 +123,17 @@ export const wallSortKey = (name: string) =>
 export const wallPage = async (db: D1Database, after: string | null): Promise<FarmersWall> => {
   const offset = after !== null && /^\d{1,9}$/.test(after) ? Number(after) : 0;
   const { results } = await db
-    .prepare('SELECT name FROM wall_names ORDER BY sort_key, person_id LIMIT ? OFFSET ?')
+    .prepare(
+      'SELECT rowid AS entry, name FROM wall_names ORDER BY sort_key, person_id LIMIT ? OFFSET ?',
+    )
     .bind(WALL_PAGE + 1, offset)
-    .all<{ name: string }>();
+    .all<{ entry: number; name: string }>();
   const page = results.slice(0, WALL_PAGE);
   const total =
     (await db.prepare('SELECT count(*) AS n FROM wall_names').first<{ n: number }>())?.n ?? 0;
   return {
-    names: page.map((r) => r.name),
+    // The row's own id: the safety desk finds whose name it is; the wall never says.
+    names: page.map((r) => ({ entry: `w${r.entry}`, name: r.name })),
     others: Math.max(0, total - page.length),
     next: results.length > WALL_PAGE ? String(offset + WALL_PAGE) : null,
   };

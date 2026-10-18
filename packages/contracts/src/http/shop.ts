@@ -137,6 +137,8 @@ export const Patronage = z.object({
 });
 export type Patronage = z.infer<typeof Patronage>;
 
+const WallName = text(32);
+
 /**
  * `GET /v1/me/entitlements`, and the answer to `POST /v1/purchases/sync` (no body), which the app
  * calls after a purchase or a restore so the server asks RevenueCat at once rather than waiting
@@ -149,6 +151,8 @@ export const Entitlements = z.object({
   /** The payer's Farm Plus: the farm it covers once chosen, and who it covers there. */
   farmPlus: z.object({ farm: FarmId.nullable(), covered: z.array(PersonId).max(8) }).nullable(),
   owned: z.array(ArtId).max(1000),
+  /** The name the person shows on the farmers' wall, or null while they show none. */
+  wallName: WallName.nullable(),
 });
 export type Entitlements = z.infer<typeof Entitlements>;
 
@@ -164,14 +168,17 @@ export const PatronOffer = z.object({
 });
 export type PatronOffer = z.infer<typeof PatronOffer>;
 
-const WallName = text(32);
+/** A name's entry on the wall: what a report of it names, never whose name it is. */
+export const WallEntryId = z.string().regex(/^w[1-9][0-9]{0,14}$/);
+export type WallEntryId = z.infer<typeof WallEntryId>;
 
 /**
  * `GET /v1/patrons/wall?after=`: the farmers' wall, names in order, a page at a time, and how many
- * other names there are. A name stays after patronage lapses.
+ * other names there are. A name stays after patronage lapses. Each name carries its entry's id, so
+ * it can be reported to the safety desk without the wall saying who put it up.
  */
 export const FarmersWall = z.object({
-  names: z.array(WallName).max(200),
+  names: z.array(z.object({ entry: WallEntryId, name: WallName })).max(200),
   others: z.int().min(0),
   /** Pass as `after` for the next page; null on the last. */
   next: z

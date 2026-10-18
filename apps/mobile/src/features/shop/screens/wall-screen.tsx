@@ -1,4 +1,4 @@
-import type { CritterVote } from '@kithfield/contracts';
+import type { CritterVote, FarmersWall } from '@kithfield/contracts';
 import { Canvas, Path, Skia } from '@shopify/react-native-skia';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, useWindowDimensions, View } from 'react-native';
@@ -33,7 +33,7 @@ export function WallScreen() {
   const mine = useMyWallName();
   const { width } = useWindowDimensions();
   const top = useDesignTop();
-  const [names, setNames] = useState<readonly string[]>([]);
+  const [names, setNames] = useState<FarmersWall['names']>([]);
   const [others, setOthers] = useState(0);
   const [next, setNext] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -95,14 +95,11 @@ export function WallScreen() {
       rememberWallName(shop.person, name);
       setOwn(name);
       setDraft('');
-      setNames((list) => {
-        const without = list.filter((n) => n !== own);
-        return name === null
-          ? without
-          : [...without, name].sort((a, b) =>
-              a.localeCompare(b, undefined, { sensitivity: 'base' }),
-            );
-      });
+      // The wall's first page again, with the name in its place and its entry.
+      const first = await api.wall();
+      setNames(first.names);
+      setOthers(first.others);
+      setNext(first.next);
     } catch {
       toast.show(t('shop.failed'));
     }
@@ -147,11 +144,11 @@ export function WallScreen() {
                   more();
               }}
             >
-              {names.map((name, i) => {
+              {names.map(({ entry, name }) => {
                 const mineHere = name === own;
                 return (
                   <View
-                    key={`${name}-${i}`}
+                    key={entry}
                     style={
                       mineHere
                         ? {

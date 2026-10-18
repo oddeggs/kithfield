@@ -18,6 +18,7 @@ const ents = (perks: boolean, p: Patronage | null): Entitlements => ({
   patronage: p,
   farmPlus: null,
   owned: [],
+  wallName: null,
 });
 
 describe('where patrons leads', () => {

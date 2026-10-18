@@ -196,7 +196,17 @@ export const entitlementsOf = async (
     };
   }
   if (perks) await grantParcel(db, person, now);
-  return { perks, patronage, farmPlus, owned: await ownedItems(db, person, keepAll || perks) };
+  const wall = await db
+    .prepare('SELECT name FROM wall_names WHERE person_id = ?')
+    .bind(person)
+    .first<{ name: string }>();
+  return {
+    perks,
+    patronage,
+    farmPlus,
+    owned: await ownedItems(db, person, keepAll || perks),
+    wallName: wall?.name ?? null,
+  };
 };
 
 /** Whether the person's perks are on now (own patronage, or covered by a friend's Farm Plus). */

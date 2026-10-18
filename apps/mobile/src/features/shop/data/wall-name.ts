@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useShop } from './shop-data';
 
 /*
- * The name the person shows on the farmers' wall. No endpoint reads it back, so the phone keeps
- * the one put up in this run; otherwise their own name counts when it is on the wall.
+ * The name the person shows on the farmers' wall: their entitlements say it, and the one put up
+ * or taken down in this run counts until the entitlements are read again.
  */
 
 let putUp: { person: string; name: string | null } | null = null;
@@ -40,10 +40,9 @@ export function useMyWallName(): MyWallName {
     };
   }, [shop.api]);
   const known = putUp?.person === shop.person ? putUp.name : undefined;
-  const candidate = known === undefined ? (shop.me?.name ?? null) : known;
-  const names = wall?.names ?? [];
-  const at = candidate === null ? -1 : names.indexOf(candidate);
-  const name = known !== undefined ? known : at >= 0 ? candidate : null;
+  const name = known === undefined ? (shop.entitlements?.wallName ?? null) : known;
+  const names = (wall?.names ?? []).map((n) => n.name);
+  const at = name === null ? -1 : names.indexOf(name);
   return {
     wall,
     name,
