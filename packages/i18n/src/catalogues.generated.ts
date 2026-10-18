@@ -9,6 +9,8 @@ import { deletionScheduledEn } from './deletion-scheduled.en';
 import { deletionScheduledVi } from './deletion-scheduled.vi';
 import { farmEn } from './farm.en';
 import { farmSameInBoth, farmVi } from './farm.vi';
+import { fireEn } from './fire.en';
+import { fireSameInBoth, fireVi } from './fire.vi';
 import { galleryEn } from './gallery.en';
 import { gallerySameInBoth, galleryVi } from './gallery.vi';
 import { gesturesEn } from './gestures.en';
@@ -54,6 +56,7 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'deletionCode', file: 'deletion-code', en: deletionCodeEn, vi: deletionCodeVi, sameInBoth: [] },
   { name: 'deletionScheduled', file: 'deletion-scheduled', en: deletionScheduledEn, vi: deletionScheduledVi, sameInBoth: [] },
   { name: 'farm', file: 'farm', en: farmEn, vi: farmVi, sameInBoth: farmSameInBoth },
+  { name: 'fire', file: 'fire', en: fireEn, vi: fireVi, sameInBoth: fireSameInBoth },
   { name: 'gallery', file: 'gallery', en: galleryEn, vi: galleryVi, sameInBoth: gallerySameInBoth },
   { name: 'gestures', file: 'gestures', en: gesturesEn, vi: gesturesVi, sameInBoth: gesturesSameInBoth },
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
@@ -81,6 +84,7 @@ export const en = {
   ...deletionCodeEn,
   ...deletionScheduledEn,
   ...farmEn,
+  ...fireEn,
   ...galleryEn,
   ...gesturesEn,
   ...glossaryEn,
@@ -108,6 +112,7 @@ export const vi = {
   ...deletionCodeVi,
   ...deletionScheduledVi,
   ...farmVi,
+  ...fireVi,
   ...galleryVi,
   ...gesturesVi,
   ...glossaryVi,

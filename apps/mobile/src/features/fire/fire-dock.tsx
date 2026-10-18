@@ -1,0 +1,367 @@
+import type { Critter } from '@kithfield/contracts';
+import { View } from 'react-native';
+
+import { ArtIcon, ArtStill } from '../../ui/art/art-view';
+import { sceneLook } from '../../ui/art/critter-look';
+import { useLocale } from '../../ui/locale/locale-provider';
+import { Press } from '../../ui/motion/press';
+import { Txt } from '../../ui/type/text';
+import { AskText, CritterStack, FireButton, FirePanel, GlassRound } from './fire-chrome';
+import { fireLook, fireSize } from './look';
+import type { DockState } from './room-model';
+
+/*
+ * The panel at the bottom of the fire room, for each moment: lighting the fire, pulling up a log,
+ * sitting by it (listening, muted or talking), heading home, and the fire settling.
+ */
+
+export function UnlitPanel({
+  onLight,
+  onNotTonight,
+  busy,
+}: {
+  readonly onLight: () => void;
+  readonly onNotTonight: () => void;
+  readonly busy: boolean;
+}) {
+  const { t } = useLocale();
+  return (
+    <FirePanel gap={12}>
+      <AskText
+        eyebrow={t('fire.unlit.eyebrow')}
+        title={t('fire.unlit.title')}
+        body={t('fire.unlit.body')}
+      />
+      <FireButton
+        label={t('fire.unlit.light')}
+        icon="lantern"
+        onPress={onLight}
+        disabled={busy}
+        testID="fire-light"
+      />
+      <FireButton
+        label={t('fire.unlit.notTonight')}
+        kind="secondary"
+        height={fireSize.smallButton}
+        onPress={onNotTonight}
+      />
+    </FirePanel>
+  );
+}
+
+export function JoinPanel({
+  you,
+  onJoin,
+  onListen,
+  busy,
+}: {
+  readonly you: string;
+  readonly onJoin: () => void;
+  readonly onListen: () => void;
+  readonly busy: boolean;
+}) {
+  const { t } = useLocale();
+  return (
+    <FirePanel gap={12}>
+      <AskText
+        eyebrow={t('fire.join.walking', { name: you })}
+        title={t('fire.join.title')}
+        body={t('fire.join.body')}
+      />
+      <FireButton
+        label={t('fire.join.in')}
+        icon="mic"
+        onPress={onJoin}
+        disabled={busy}
+        testID="fire-join"
+      />
+      <FireButton
+        label={t('fire.join.listen')}
+        icon="ear"
+        kind="secondary"
+        onPress={onListen}
+        disabled={busy}
+        testID="fire-listen"
+      />
+    </FirePanel>
+  );
+}
+
+export function LeavePanel({
+  you,
+  onWalk,
+  onStay,
+}: {
+  readonly you: string;
+  readonly onWalk: () => void;
+  readonly onStay: () => void;
+}) {
+  const { t } = useLocale();
+  return (
+    <FirePanel gap={12}>
+      <AskText title={t('fire.leave.title')} body={t('fire.leave.body', { name: you })} />
+      <FireButton label={t('fire.leave.walk')} onPress={onWalk} testID="fire-walk-home" />
+      <FireButton
+        label={t('fire.leave.stay')}
+        kind="secondary"
+        height={fireSize.smallButton}
+        onPress={onStay}
+      />
+    </FirePanel>
+  );
+}
+
+export function QuietPanel({ onBack }: { readonly onBack: () => void }) {
+  const { t } = useLocale();
+  return (
+    <FirePanel gap={12}>
+      <AskText
+        eyebrow={t('fire.quiet.eyebrow')}
+        title={t('fire.quiet.title')}
+        body={t('fire.quiet.body')}
+      />
+      <FireButton label={t('fire.quiet.back')} kind="secondary" onPress={onBack} />
+    </FirePanel>
+  );
+}
+
+export type GestureKind = 'wave' | 'dewdrop' | 'hug' | 'sticker';
+
+const GESTURES = [
+  { kind: 'wave', icon: 'wave', label: 'fire.gesture.wave' },
+  { kind: 'dewdrop', icon: 'dewdrop', label: 'fire.gesture.dewdrop' },
+  { kind: 'hug', icon: 'heart', label: 'fire.gesture.hug' },
+] as const;
+
+/** Wave, dewdrop, hug and a sticker: saying it without words. */
+function GestureRow({
+  critter,
+  to,
+  onGesture,
+}: {
+  readonly critter: Critter | null;
+  readonly to: string | null;
+  readonly onGesture: (kind: GestureKind) => void;
+}) {
+  const { t } = useLocale();
+  const tile = {
+    height: fireSize.tile,
+    borderRadius: 18,
+    backgroundColor: fireLook.tile,
+    alignItems: 'center',
+    justifyContent: 'center',
+  } as const;
+  const said = (label: string) =>
+    to === null ? label : `${label}, ${t('fire.gesture.to', { name: to })}`;
+  return (
+    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+      {GESTURES.map((g) => (
+        <Press
+          key={g.kind}
+          onPress={() => onGesture(g.kind)}
+          haptic="soft"
+          radius={18}
+          accessibilityRole="button"
+          accessibilityLabel={said(t(g.label))}
+          style={[tile, { flex: 1, minWidth: 0, gap: 3, paddingHorizontal: 4 }]}
+          testID={`fire-gesture-${g.kind}`}
+        >
+          <ArtIcon name={g.icon} size={22} color={fireLook.primaryInk} />
+          <Txt
+            variant="buttonSmall"
+            color={fireLook.text}
+            numberOfLines={1}
+            style={{ fontSize: 11.5, lineHeight: 13 }}
+          >
+            {t(g.label)}
+          </Txt>
+        </Press>
+      ))}
+      <Press
+        onPress={() => onGesture('sticker')}
+        haptic="soft"
+        radius={18}
+        accessibilityRole="button"
+        accessibilityLabel={said(t('fire.gesture.sticker'))}
+        style={[tile, { width: fireSize.tile }]}
+      >
+        {critter ? (
+          <ArtStill
+            scene="sticker"
+            width={40}
+            height={40}
+            attrs={{ ...sceneLook(critter), pose: 'love' }}
+          />
+        ) : null}
+      </Press>
+    </View>
+  );
+}
+
+export interface RoomDockProps {
+  readonly state: DockState;
+  /** Lanterns or a shared screen fill the room: the panel holds only its buttons. */
+  readonly compact: boolean;
+  readonly yourName: string;
+  readonly yourCritter: Critter | null;
+  readonly others: readonly { readonly id: string; readonly kind: string; readonly look: object }[];
+  /** Someone's weak connection to explain, by name. */
+  readonly weak: string | null;
+  readonly gestureTo: string | null;
+  readonly lantern: boolean;
+  readonly sharing: boolean;
+  readonly lookingAway: boolean;
+  readonly busy: boolean;
+  readonly onMic: () => void;
+  readonly onLantern: () => void;
+  readonly onHome: () => void;
+  readonly onGesture: (kind: GestureKind) => void;
+  readonly onStopSharing: () => void;
+  readonly onFlipBack: () => void;
+}
+
+/** The panel while you're by the fire. */
+export function RoomDock(p: RoomDockProps) {
+  const { t } = useLocale();
+  const status =
+    p.state === 'listening'
+      ? { title: t('fire.dock.listening'), line: t('fire.dock.listeningLine') }
+      : p.state === 'muted'
+        ? { title: t('fire.dock.muted'), line: t('fire.dock.mutedLine') }
+        : { title: t('fire.dock.talking'), line: t('fire.dock.talkingLine', { name: p.yourName }) };
+  const micLabel =
+    p.state === 'listening'
+      ? t('fire.dock.unmuteToTalk')
+      : p.state === 'muted'
+        ? t('fire.dock.unmute')
+        : t('fire.dock.mute');
+  const mic = (
+    <FireButton
+      label={micLabel}
+      icon={p.state === 'talking' ? 'muted' : 'mic'}
+      kind={p.state === 'talking' ? 'secondary' : 'primary'}
+      flex={p.state === 'listening' ? 1.4 : p.state === 'muted' ? 1.2 : 1}
+      onPress={p.onMic}
+      disabled={p.busy}
+      testID="fire-mic"
+    />
+  );
+  const lantern =
+    p.state === 'listening' ? null : (
+      <GlassRound
+        label={p.lantern ? t('fire.dock.putOutLantern') : t('fire.dock.lightLantern')}
+        onPress={p.onLantern}
+        testID="fire-lantern"
+      >
+        <ArtIcon name="lantern" size={26} color={fireLook.primaryInk} />
+      </GlassRound>
+    );
+  const home = (
+    <FireButton
+      label={t('fire.dock.headHome')}
+      kind="secondary"
+      flex={1}
+      onPress={p.onHome}
+      testID="fire-home"
+    />
+  );
+  let buttons;
+  if (p.sharing) {
+    buttons = (
+      <>
+        <FireButton
+          label={t('fire.dock.stopSharing')}
+          kind="stop"
+          flex={1}
+          onPress={p.onStopSharing}
+        />
+        {mic}
+      </>
+    );
+  } else if (p.lookingAway) {
+    buttons = (
+      <>
+        <FireButton
+          label={t('fire.dock.flipBack')}
+          icon="camera"
+          kind="secondary"
+          flex={1}
+          onPress={p.onFlipBack}
+        />
+        {mic}
+        {home}
+      </>
+    );
+  } else {
+    buttons = (
+      <>
+        {mic}
+        {lantern}
+        {home}
+      </>
+    );
+  }
+  return (
+    <FirePanel tight={p.weak !== null} gap={p.weak !== null ? 12 : 14}>
+      {p.compact ? null : p.weak !== null ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            borderRadius: 18,
+            backgroundColor: fireLook.note,
+          }}
+          accessible
+          accessibilityLiveRegion="polite"
+        >
+          <ArtIcon name="moon" size={22} color={fireLook.text} />
+          <Txt
+            variant="caption"
+            color={fireLook.sub}
+            multiline
+            style={{ flex: 1, fontSize: 13.5, lineHeight: 18.9 }}
+          >
+            <Txt variant="caption" color={fireLook.text} style={{ fontWeight: '600' }}>
+              {t('fire.weak.title', { name: p.weak })}
+            </Txt>{' '}
+            {t('fire.weak.body')}
+          </Txt>
+        </View>
+      ) : (
+        <View
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+        >
+          <View style={{ flex: 1, gap: 3 }} accessible accessibilityLiveRegion="polite">
+            <Txt variant="rowTitle" color={fireLook.sub} style={{ fontSize: 13, lineHeight: 15 }}>
+              {status.title}
+            </Txt>
+            <Txt
+              variant="handL"
+              color={fireLook.text}
+              multiline
+              style={{ fontSize: 19, lineHeight: 20.9 }}
+            >
+              {status.line}
+            </Txt>
+          </View>
+          <CritterStack people={p.others} />
+        </View>
+      )}
+      {!p.compact && p.weak === null && p.state === 'muted' ? (
+        <GestureRow critter={p.yourCritter} to={p.gestureTo} onGesture={p.onGesture} />
+      ) : null}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: p.state === 'listening' ? 12 : 10,
+        }}
+      >
+        {buttons}
+      </View>
+    </FirePanel>
+  );
+}
