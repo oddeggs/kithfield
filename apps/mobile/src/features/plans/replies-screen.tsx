@@ -21,11 +21,9 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { PlanHeader, useBottomButtonOffset, leave } from './chrome';
 import { personOn, type PlanPerson } from './people';
-import { usePlanLook } from './plan-look';
+import { organiserHat, usePlanLook } from './plan-look';
 import { useMe, usePlan, usePlanRejections, usePlanSend } from './use-plans';
 
-/** The organiser's hat: a straw hat with a red band, as the design draws it. */
-const HAT = { outfit: 'straw', ocolor: '#c9543e' } as const;
 /** How high the hat-wearer hops when the hat arrives, for one drawing on twos. */
 const HOP = 12;
 
@@ -73,7 +71,8 @@ function HatStage({ wearer, season }: { readonly wearer: PlanPerson; readonly se
           attrs={{
             kind: wearer.kind,
             season,
-            ...HAT,
+            outfit: organiserHat.outfit,
+            ocolor: organiserHat.band,
             ...(wearer.look.coat ? { coat: wearer.look.coat } : {}),
             ...(wearer.look.mark ? { mark: wearer.look.mark } : {}),
           }}

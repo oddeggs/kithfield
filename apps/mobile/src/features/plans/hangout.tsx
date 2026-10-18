@@ -1,5 +1,4 @@
 import type { FarmId, Seq } from '@kithfield/contracts';
-import { day } from '@kithfield/theme';
 import { StatusBar } from 'expo-status-bar';
 import { useRef, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
@@ -199,13 +198,13 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
           style={{
             height: 56,
             borderRadius: 28,
-            backgroundColor: day.honey,
+            backgroundColor: fireside.here,
             alignItems: 'center',
             justifyContent: 'center',
             opacity: imHere || !onTheDay ? 0.6 : 1,
           }}
         >
-          <Txt variant="button" color={day.ink}>
+          <Txt variant="button" color={fireside.hereText}>
             {imHere ? t('plans.hangout.youreHere') : t('plans.hangout.here')}
           </Txt>
         </Press>

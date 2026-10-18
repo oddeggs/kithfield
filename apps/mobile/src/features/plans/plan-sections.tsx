@@ -15,6 +15,7 @@ import { Txt } from '../../ui/type/text';
 import { formatDay, formatDays, fortnight, weekendChoices } from './dates';
 import { joinNames } from './draft';
 import type { PlanPerson } from './people';
+import { usePlanLook } from './plan-look';
 
 /* The three things a plan needs, as the plant sheet asks for them. */
 
@@ -29,6 +30,7 @@ export function ConditionCard({
   readonly children: ReactNode;
 }) {
   const { palette } = useTheme();
+  const look = usePlanLook();
   return (
     <View
       style={{
@@ -60,7 +62,7 @@ export function ConditionCard({
             justifyContent: 'center',
           }}
         >
-          {met ? <ArtIcon name="check" size={11} color="#ffffff" /> : null}
+          {met ? <ArtIcon name="check" size={11} color={look.check} /> : null}
         </View>
         <Txt variant="rowTitle" style={{ fontSize: 15, lineHeight: 15 }}>
           {title}
