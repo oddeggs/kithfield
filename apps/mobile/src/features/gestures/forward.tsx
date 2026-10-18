@@ -192,9 +192,12 @@ export function ForwardScreen() {
             justifyContent: 'center',
           }}
         >
-          <Txt variant="displayS" style={{ fontSize: 24, lineHeight: 24 }}>
-            ✕
-          </Txt>
+          <ArtIcon
+            name="plus"
+            size={22}
+            color={palette.text}
+            style={{ transform: [{ rotate: '45deg' }] }}
+          />
         </Press>
         <Txt
           variant="rowTitle"
@@ -210,11 +213,7 @@ export function ForwardScreen() {
           hitSlop={12}
           accessibilityLabel={t('gestures.forward.send')}
         >
-          <Txt
-            variant="rowTitle"
-            color={picked.length === 0 ? palette.placeholder : palette.go.bg}
-            style={{ lineHeight: 16 }}
-          >
+          <Txt variant="rowTitle" color={picked.length === 0 ? palette.placeholder : palette.go.bg}>
             {t('gestures.forward.send')}
           </Txt>
         </Press>
@@ -242,11 +241,7 @@ export function ForwardScreen() {
           >
             <Avatar kind={from?.kind ?? 'rabbit'} look={from?.look ?? {}} size={30} />
             <View style={{ flex: 1 }}>
-              <Txt
-                variant="bubbleName"
-                color={palette.muted}
-                style={{ fontSize: 12.5, lineHeight: 12.5 }}
-              >
+              <Txt variant="bubbleName" color={palette.muted}>
                 {t('gestures.forward.from', {
                   name: from?.name ?? t('gestures.aFriend'),
                   farm: g.state?.name ?? from?.name ?? '',

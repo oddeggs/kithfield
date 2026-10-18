@@ -26,6 +26,8 @@ const ART_H = 450;
 const SHEET_TOP = 420;
 /** The door row, when the screen wasn't told whose window: the sheet rises to make room. */
 const PICKER_H = 104;
+/** Where "knock knock" sits on the window scene: by the frame's upper right, as a share of it. */
+const KNOCK_AT = { left: '66.7%', top: '21.3%' } as const;
 /** The window's wobble: 3 swings of ±4° over 600 ms. */
 const SWING_DEG = 4;
 const SWING_MS = 600 / 6;
@@ -90,20 +92,18 @@ export function KnockScreen() {
       tone="night"
       title={to ? t('gestures.knock.window', { name }) : t('gestures.knock.pick')}
       overArt={
-        <Txt
-          variant="handS"
-          color="#f6eedb"
-          style={{
-            position: 'absolute',
-            left: 262,
-            top: 96,
-            fontSize: 18,
-            lineHeight: 18,
-            transform: [{ rotate: '8deg' }],
-          }}
-        >
-          {t('gestures.knock.sound')}
-        </Txt>
+        // Beside the window's upper right edge, wherever the window is drawn; it wraps rather than
+        // running off the screen when the text is large.
+        <View style={{ position: 'absolute', left: KNOCK_AT.left, top: KNOCK_AT.top, right: 8 }}>
+          <Txt
+            variant="handL"
+            multiline
+            color="#f6eedb"
+            style={{ transform: [{ rotate: '8deg' }], transformOrigin: 'left center' }}
+          >
+            {t('gestures.knock.sound')}
+          </Txt>
+        </View>
       }
     >
       {picking ? <DoorPicker friends={friends} picked={to} onPick={setPicked} /> : null}

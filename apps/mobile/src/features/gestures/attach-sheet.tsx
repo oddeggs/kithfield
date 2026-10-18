@@ -88,9 +88,7 @@ export function AttachScreen() {
                 }}
               >
                 <ArtIcon name={tile.icon} size={28} color={palette.text} />
-                <Txt variant="bubbleState" style={{ fontSize: 12.5, lineHeight: 12.5 }}>
-                  {tile.label}
-                </Txt>
+                <Txt variant="bubbleState">{tile.label}</Txt>
               </Press>
             ))}
           </View>

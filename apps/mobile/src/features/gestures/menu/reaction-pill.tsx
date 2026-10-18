@@ -38,7 +38,7 @@ export function MeaningLabel({ reaction }: { readonly reaction: TrayReaction }) 
         alignSelf: 'flex-start',
       }}
     >
-      <Txt variant="handS" color={palette.notice.fg} style={{ fontSize: 16, lineHeight: 16 }}>
+      <Txt variant="handS" color={palette.notice.fg}>
         {t('gestures.reaction.label', {
           name: t(`gestures.reactionName.${reaction}`),
           meaning: t(`gestures.meaning.${reaction}`),

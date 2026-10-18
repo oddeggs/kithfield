@@ -40,11 +40,7 @@ export function GlassBack({
         style={{ width: size, height: size }}
       >
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Txt
-            variant="displayM"
-            color={g.ink}
-            style={{ fontSize: 26, lineHeight: 26, marginTop: -3 }}
-          >
+          <Txt variant="displayM" color={g.ink} style={{ marginTop: -3 }}>
             ‹
           </Txt>
         </View>

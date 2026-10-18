@@ -101,14 +101,7 @@ export function HeavyWeatherScreen() {
             variant="handL"
             align="center"
             color={day.ink2}
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: 116,
-              fontSize: 19,
-              lineHeight: 19,
-            }}
+            style={{ position: 'absolute', left: 0, right: 0, top: 116 }}
           >
             {t('gestures.weather.says', { words: status, name })}
           </Txt>
