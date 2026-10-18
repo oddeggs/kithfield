@@ -16,7 +16,7 @@ import { memberOf } from './members';
 import { isUnsentPlan, seedOf } from './plans';
 import { EDIT_WINDOW_MS } from './rules';
 import { farmDay } from './seasons';
-import { isBirthday } from './time';
+import { isBirthday, isKnownTimeZone } from './time';
 
 /*
  * The farm's write-time validation. The farm object runs it before it appends a command, and a
@@ -39,13 +39,16 @@ export interface CommandContext {
 /** Any well-formed op id: the check reads the kind and payload only. */
 const ANY_OP = '00000000-0000-7000-8000-000000000000';
 
-/** What isn't content: the farm's records, settings, departures and unsends themselves. */
+/** What can't be unsent: the farm's records, settings, departures, unsends, statuses and critters. */
 const NOT_UNSENDABLE = new Set<string>([
   ...FARM_WRITTEN_KINDS,
   'settings_changed',
   'unsend',
   'left',
   'removed',
+  // A status is cleared with `words {text: null}`, a critter renamed by a new change.
+  'status',
+  'critter_changed',
 ]);
 
 const ok: CommandCheck = { ok: true };
@@ -227,6 +230,7 @@ const ruleFor = (
     }
     case 'settings_changed': {
       const p = cmd.payload;
+      if (p.setting === 'calendar' && !isKnownTimeZone(p.timeZone)) return 'invalid';
       if (state.kind === 'visit') {
         return p.setting === 'name' || p.setting === 'role' || p.setting === 'approval'
           ? 'invalid'

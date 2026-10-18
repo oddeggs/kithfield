@@ -1,11 +1,19 @@
 import { type Weather } from '@kithfield/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { DAY, MINUTE, T0, bea, fig, newFarm, pip, plantOf } from './farm.test-data';
+import { DAY, MINUTE, T0, bea, expectSnapshot, fig, newFarm, pip, plantOf } from './farm.test-data';
 import { hashUnit, rareRoll, signatureFor } from './hash';
 import { RARE_CHANCE, RARE_CHANCE_SHARED_RAIN } from './rules';
-import { farmChores, pendingSeason } from './seasons';
-import { harvestDay, localDay, seasonDays, seasonOf } from './time';
+import { farmChores, nextChoreAt, pendingSeason } from './seasons';
+import {
+  UnknownTimeZoneError,
+  harvestDay,
+  isKnownTimeZone,
+  localDay,
+  seasonDays,
+  seasonOf,
+  startOfDay,
+} from './time';
 import { farmView } from './view';
 
 /** Brings the farm's Dew plant (marigold in autumn) to bloom over five days. */
@@ -72,13 +80,72 @@ describe('Seasons, weather and chance', () => {
     const log = newFarm();
     const december = Date.UTC(2026, 11, 1, 9);
     expect(farmChores(log.state(), december).roll).toEqual({ season: 'winter', year: 2026 });
-    expect(farmView(log.state(), december).season).toEqual({ season: 'winter', year: 2026 });
+    // The view keeps the farm's own season, matching its plants, until the roll is written.
+    expect(farmView(log.state(), december)).toMatchObject({
+      season: { season: 'autumn', year: 2026 },
+      rollPending: true,
+    });
     expect(log.state().plants[0]?.plant).toBe('marigold');
     log.add('harvested', null, { season: 'autumn', year: 2026, day: '2026-12-01' });
     log.add('season_rolled', null, { season: 'winter', year: 2026 });
     expect(farmChores(log.state(), december)).toMatchObject({ harvest: null, roll: null });
     expect(log.state().plants[0]?.plant).toBe('snowdrop');
     expect(log.state().members.every((m) => !m.activeThisSeason)).toBe(true);
+    expect(farmView(log.state(), december)).toMatchObject({ rollPending: false });
+  });
+
+  it('keeps the snapshot valid when a big farm rolls its season and keeps tending that day', () => {
+    const people = Array.from({ length: 15 }, (_, i) => `p_m${i}`);
+    const log = newFarm({ members: people });
+    const kinds = ['dewdrop', 'message', 'sticker', 'voice', 'wave', 'seed_planted'] as const;
+    const payloads = {
+      dewdrop: {},
+      message: { text: 'hi' },
+      sticker: { pack: 'mine', sticker: 'wave' },
+      voice: {
+        audio: {
+          key: 'farm/f_thursday_lot/0192f1e2-3b4c-7d5e-8f60-123456789abc',
+          mime: 'audio/aac',
+          bytes: 9,
+        },
+        durationMs: 900,
+        waveform: [],
+      },
+      wave: {},
+      seed_planted: { title: 'Plan', days: [], place: null, yeses: 'couple', someday: false },
+    };
+    const tendAll = () => {
+      for (const person of people) for (const kind of kinds) log.add(kind, person, payloads[kind]);
+    };
+    tendAll();
+    expect(log.state().today.given).toHaveLength(15 * 7);
+    log.add('season_rolled', null, { season: 'winter', year: 2026 });
+    expect(log.state().today.given.map((g) => g.plant)).toEqual(Array(15).fill('lemon'));
+    tendAll();
+    expect(log.state().today.given).toHaveLength(15 * 7);
+    expect(plantOf(log.state(), 'lemon').dew).toBe(0);
+    expectSnapshot(log.state());
+  });
+
+  it('wakes the farm object at the next harvest day or season, in farm time', () => {
+    const log = newFarm();
+    expect(nextChoreAt(log.state(), T0)).toBe(Date.UTC(2026, 10, 29, 0));
+    log.add('harvested', null, { season: 'autumn', year: 2026, day: '2026-11-29' });
+    expect(nextChoreAt(log.state(), T0)).toBe(Date.UTC(2026, 11, 1, 0));
+    expect(nextChoreAt(log.state(), Date.UTC(2026, 11, 1, 3))).toBe(Date.UTC(2026, 11, 1, 3));
+    const hanoi = newFarm({ timeZone: 'Asia/Ho_Chi_Minh' }).state();
+    expect(nextChoreAt(hanoi, T0)).toBe(Date.UTC(2026, 10, 28, 17));
+    expect(startOfDay('2026-03-29', 'Europe/London')).toBe(Date.UTC(2026, 2, 29, 0));
+    expect(startOfDay('2026-07-01', 'Europe/London')).toBe(Date.UTC(2026, 5, 30, 23));
+  });
+
+  it('never guesses an unknown time zone: it says so instead', () => {
+    expect(() => localDay(T0, 'Mars/Olympus_Mons')).toThrow(UnknownTimeZoneError);
+    expect(isKnownTimeZone('Mars/Olympus_Mons')).toBe(false);
+    expect(isKnownTimeZone('Asia/Ho_Chi_Minh')).toBe(true);
+    const state = { ...newFarm().state(), timeZone: 'Mars/Olympus_Mons' };
+    expect(farmView(state, T0 + DAY)).toMatchObject({ timeZoneUnknown: true, today: '2026-10-19' });
+    expect(farmView(newFarm().state(), T0).timeZoneUnknown).toBe(false);
   });
 
   it('applies a new hemisphere from the next season_rolled', () => {
@@ -145,8 +212,10 @@ describe('Seasons, weather and chance', () => {
   });
 
   it('writes shared rain when three members open the farm within ten minutes, once a day', () => {
-    const log = newFarm().wait(DAY);
-    log.add('farm_opened', bea, {});
+    // Moving in doesn't count as opening the farm.
+    const log = newFarm();
+    expect(farmChores(log.state(), log.at).sharedRain).toBeNull();
+    log.wait(DAY).add('farm_opened', bea, {});
     log.wait(4 * MINUTE).add('farm_opened', pip, {});
     expect(farmChores(log.state(), log.at).sharedRain).toBeNull();
     log.wait(4 * MINUTE).add('farm_opened', fig, {});

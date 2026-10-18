@@ -183,4 +183,31 @@ describe('Tombstones', () => {
       { numRuns: 150 },
     );
   });
+
+  it('grows the same live and on replay across a removal and its restore', () => {
+    const log = newFarm();
+    const seed = log.add('seed_planted', bea, plan);
+    log.add('rsvp', pip, { seed: seed.seq, answer: 'in' });
+    // Live: the farm object applies each event as it writes it, finding targets in its log.
+    const [created, ...rest] = log.events;
+    if (created?.kind !== 'farm_created') throw new Error('no farm');
+    let live = reduce(createFarm(created), rest);
+    const removal = log.add('unsend', null, { target: seed.seq, by: 'safety' });
+    live = applyEvent(live, removal);
+    expect(live.seeds).toEqual([]);
+    // The appeal puts the payload back in the log, then writes `restored`.
+    const back = log.add('restored', null, { target: seed.seq });
+    const byLog = { event: (seq: number) => log.events.find((e) => e.seq === seq) };
+    live = applyEvent(live, back, byLog);
+    log.add('vote', fig, { seed: seed.seq, option: 0, on: true });
+    live = applyEvent(live, log.events[log.events.length - 1] ?? back, byLog);
+    expect(live.seeds.map((s) => [s.title, s.votes])).toEqual([
+      ['Picnic', [{ option: 0, people: [fig] }]],
+    ]);
+    expect(log.state()).toEqual(live);
+    // A phone that took a snapshot before the restore pages the target in through its lookup.
+    const before = reduce(createFarm(created), log.events.slice(1, back.seq - 1));
+    expect(reduce(before, log.events.slice(back.seq - 1), byLog)).toEqual(live);
+    expect(reduce(before, log.events.slice(back.seq - 1)).seeds).toEqual([]);
+  });
 });

@@ -207,44 +207,10 @@ const applyKind = (state: FarmState, event: FarmEvent, day: string): FarmState =
   }
 };
 
-/**
- * Applies one event. Pure and deterministic: the same state and event give the same result on
- * every device, and the input is never changed. Events written under rules newer than this
- * reducer are skipped, and so is everything once the farm has moved to such rules.
- */
-export const applyEvent = (state: FarmState, event: FarmEvent): FarmState => {
-  if (event.kind === 'rules_changed') return applyKind(state, event, state.today.day);
-  if (!canApplyRules(state) || event.rulesVersion > RULES_VERSION) return state;
-  if (event.kind === 'farm_created') return state;
-  const day = farmDay(state, event.at);
-  let next: FarmState = day === state.today.day ? state : { ...state, today: { day, given: [] } };
-  next = withoutDelivered(next, event.at);
-  const care = event.actor === null ? null : careOf(event);
-  if (care && event.actor !== null) {
-    next = applyTend(next, { person: event.actor, ...care, kind: event.kind, at: event.at, day });
-  }
-  return applyKind(next, event, day);
-};
-
-/** Applies a received event as `parseEvent` sorted it: unknown and invalid events are skipped. */
-export const applyParsed = (state: FarmState, parsed: ParsedEvent): FarmState =>
-  parsed.status === 'known' ? applyEvent(state, parsed.event) : state;
-
-/** Applies events in order. */
-export const reduce = (state: FarmState, events: Iterable<FarmEvent>): FarmState => {
-  let next = state;
-  for (const event of events) next = applyEvent(next, event);
-  return next;
-};
-
-/**
- * Builds a farm from its whole log, starting at `farm_created` (seq 1). Null if the log doesn't
- * start with one.
- */
-export const replay = (events: readonly FarmEvent[]): FarmState | null => {
-  const [first, ...rest] = events;
-  return first?.kind === 'farm_created' ? reduce(createFarm(first), rest) : null;
-};
+/** Finds an event in the farm's log by seq: what a `restored` needs to put its target back. */
+export interface EventLookup {
+  readonly event?: (seq: number) => FarmEvent | undefined;
+}
 
 /**
  * Once an appeal's `restored` is applied and the target is back (paged in with its payload), this
@@ -257,4 +223,68 @@ export const applyRestored = (state: FarmState, target: FarmEvent): FarmState =>
   const { seeds } = applySeedPlanted({ ...state, seeds: [] }, target);
   const merged = [...state.seeds, ...seeds].sort((a, b) => a.seq - b.seq).slice(-100);
   return { ...state, seeds: merged };
+};
+
+/**
+ * Applies one event. Pure and deterministic: the same state and event give the same result on
+ * every device, and the input is never changed. Events written under rules newer than this
+ * reducer are skipped, and so is everything once the farm has moved to such rules.
+ *
+ * A `restored` puts its target back through `lookup`. A phone must page the restored target in
+ * (with its payload back) before it applies the `restored` or anything after it; without the
+ * target the restore can't be applied and the farm would differ from the server's.
+ */
+export const applyEvent = (
+  state: FarmState,
+  event: FarmEvent,
+  lookup: EventLookup = {},
+): FarmState => {
+  if (event.kind === 'rules_changed') return applyKind(state, event, state.today.day);
+  if (!canApplyRules(state) || event.rulesVersion > RULES_VERSION) return state;
+  if (event.kind === 'farm_created') return state;
+  const day = farmDay(state, event.at);
+  let next: FarmState = day === state.today.day ? state : { ...state, today: { day, given: [] } };
+  next = withoutDelivered(next, event.at);
+  if (event.kind === 'restored') {
+    const target = lookup.event?.(event.payload.target);
+    return target ? applyRestored(next, target) : next;
+  }
+  const care = event.actor === null ? null : careOf(event);
+  if (care && event.actor !== null) {
+    next = applyTend(next, { person: event.actor, ...care, kind: event.kind, at: event.at, day });
+  }
+  return applyKind(next, event, day);
+};
+
+/** Applies a received event as `parseEvent` sorted it: unknown and invalid events are skipped. */
+export const applyParsed = (
+  state: FarmState,
+  parsed: ParsedEvent,
+  lookup: EventLookup = {},
+): FarmState => (parsed.status === 'known' ? applyEvent(state, parsed.event, lookup) : state);
+
+/**
+ * Applies events in order. A `restored` finds its target among the given events first, then
+ * through `lookup` (for a target before this batch, such as one inside a snapshot).
+ */
+export const reduce = (
+  state: FarmState,
+  events: Iterable<FarmEvent>,
+  lookup: EventLookup = {},
+): FarmState => {
+  const list = [...events];
+  const bySeq = new Map(list.map((e) => [e.seq, e]));
+  const find: EventLookup = { event: (seq) => bySeq.get(seq) ?? lookup.event?.(seq) };
+  let next = state;
+  for (const event of list) next = applyEvent(next, event, find);
+  return next;
+};
+
+/**
+ * Builds a farm from its whole log, starting at `farm_created` (seq 1). Null if the log doesn't
+ * start with one.
+ */
+export const replay = (events: readonly FarmEvent[]): FarmState | null => {
+  const [first, ...rest] = events;
+  return first?.kind === 'farm_created' ? reduce(createFarm(first), rest) : null;
 };

@@ -210,6 +210,15 @@ describe('members', () => {
     expect(log.state().former.map((f) => f.person)).toEqual([pip]);
   });
 
+  it('counts sleepiness from the earliest anyone lived here, departed members included', () => {
+    const log = newFarm({ members: [bea] });
+    log.wait(10 * DAY).add('left', bea, { how: 'left' });
+    log.wait(6 * DAY).add('joined', pip, { name: 'Pip', critter, via: 'invite' });
+    // A former member's departure is the earliest time the snapshot still knows of.
+    const marigold = farmView(log.state(), log.at + 2 * DAY).plants[0];
+    expect(marigold?.sleepy).toBe(true);
+  });
+
   it('records statuses, clouds and the battery, and lets the view expire them', () => {
     const log = newFarm();
     log.add('status', bea, { status: 'words', text: 'at the allotment' });

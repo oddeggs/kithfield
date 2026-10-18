@@ -1,6 +1,7 @@
 export * from './catalog';
 export * from './rules';
 export {
+  type EventLookup,
   type FarmCreatedEvent,
   applyEvent,
   applyParsed,
@@ -29,6 +30,23 @@ export {
   planConditions,
   yesesNeeded,
 } from './plans';
-export { type FarmChores, farmChores, farmDay, harvestDayOf, pendingSeason } from './seasons';
+export {
+  type FarmChores,
+  farmChores,
+  farmDay,
+  harvestDayOf,
+  nextChoreAt,
+  pendingSeason,
+} from './seasons';
 export { hashUnit, rareRoll, signatureFor } from './hash';
-export { harvestDay, isBirthday, localDay, sameSeason, seasonDays, seasonOf } from './time';
+export {
+  UnknownTimeZoneError,
+  harvestDay,
+  isBirthday,
+  isKnownTimeZone,
+  localDay,
+  sameSeason,
+  seasonDays,
+  seasonOf,
+  startOfDay,
+} from './time';

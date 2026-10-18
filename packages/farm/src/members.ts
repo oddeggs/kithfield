@@ -38,7 +38,8 @@ export const applyJoined = (state: FarmState, event: EventOf<'joined'>): FarmSta
     critter: payload.critter,
     role: payload.via === 'created' && state.kind === 'farm' ? 'keeper' : 'critter',
     joinedAt: at,
-    lastOpenedAt: at,
+    // Moving in isn't opening the farm: sleepiness counts from `joinedAt` until they do.
+    lastOpenedAt: null,
     lastTendedAt: null,
     hibernating: false,
     pausedUntil: null,

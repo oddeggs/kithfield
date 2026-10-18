@@ -17,6 +17,7 @@ import {
   pip,
   plantOf,
 } from './farm.test-data';
+import { thresholdsOf } from './growth';
 import { STAGE } from './rules';
 import { farmView } from './view';
 
@@ -181,7 +182,11 @@ describe('Changes from the design', () => {
   });
 
   it('thresholds scale with members active this season', () => {
-    expect(farmView(newFarm().state(), T0).thresholds.bloom).toBe(15);
+    const people = Array.from({ length: 12 }, (_, i) => `p_m${i}`);
+    const log = newFarm({ members: people });
+    expect(thresholdsOf(log.state()).bloom).toBe(15);
+    for (const person of people) log.add('dewdrop', person, {});
+    expect(thresholdsOf(log.state()).bloom).toBe(30);
   });
 
   it('3 dew per person per plant per day for every plant, replies and dewdrops alike', () => {
@@ -218,12 +223,14 @@ describe('Changes from the design', () => {
       log.wait(DAY);
     }
     expect(plantOf(log.state(), 'cosmos')).toMatchObject({ dew: 18, stage: STAGE.bloom });
-    expect(farmView(log.state(), log.at).k).toBe(1);
+    expect(thresholdsOf(log.state())).toEqual({ sprout: 3, bud: 8, bloom: 15 });
     log.add('harvested', null, { season: 'autumn', year: 2026, day: '2026-11-29' });
     expect(log.state().pot?.pressed).toEqual([
       { season: { season: 'autumn', year: 2026 }, plant: 'cosmos', pressedAt: log.at },
     ]);
     expect(log.state().fieldGuide).toEqual([]);
+    // The pot's bloom never goes in a basket; the empty basket only marks the harvest.
+    expect(log.state().basket).toEqual({ season: { season: 'autumn', year: 2026 }, crops: [] });
     log.add('season_rolled', null, { season: 'winter', year: 2026 });
     expect(log.state().pot).toMatchObject({ plant: 'paperwhite', stage: 0, dew: 0 });
     expect(log.state().pot?.pressed).toHaveLength(1);

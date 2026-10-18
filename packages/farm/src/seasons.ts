@@ -15,7 +15,16 @@ import {
 import { FAMILIES, PORCH_POT, plantFor } from './catalog';
 import { factsOf, freshPlant, withPage, withRareCheck } from './growth';
 import { SHARED_RAIN_PEOPLE, SHARED_RAIN_WINDOW_MS, STAGE } from './rules';
-import { harvestDay, laterDay, localDay, sameSeason, seasonDays, seasonOf } from './time';
+import {
+  addDays,
+  harvestDay,
+  laterDay,
+  localDay,
+  sameSeason,
+  seasonDays,
+  seasonOf,
+  startOfDay,
+} from './time';
 
 /* Seasons, harvest day, weather, shared rain and trades. */
 
@@ -34,11 +43,16 @@ export const freshPot = (season: SeasonRef) => ({
 export const applySeasonRolled = (state: FarmState, event: EventOf<'season_rolled'>): FarmState => {
   const season = { season: event.payload.season, year: event.payload.year };
   if (sameSeason(season, state.season)) return state;
+  const plants = state.kind === 'farm' ? freshPlants(season, state.signature) : [];
+  const pot = state.pot && { ...freshPot(season), pressed: state.pot.pressed };
+  // Today's cap carries over only for plants that stay, such as the signature crop.
+  const growing = new Set([...plants.map((p) => p.plant), ...(pot ? [pot.plant] : [])]);
   return {
     ...state,
     season,
-    plants: state.kind === 'farm' ? freshPlants(season, state.signature) : [],
-    pot: state.pot && { ...freshPot(season), pressed: state.pot.pressed },
+    plants,
+    pot,
+    today: { ...state.today, given: state.today.given.filter((g) => growing.has(g.plant)) },
     members: state.members.map((m) => ({ ...m, activeThisSeason: false })),
   };
 };
@@ -55,7 +69,8 @@ export const applyHarvested = (state: FarmState, event: EventOf<'harvested'>): F
   const harvest = (p: PlantState) => (p.stage >= STAGE.bloom ? { ...p, stage: STAGE.harvest } : p);
   const plants = state.plants.map(harvest);
   const pot = state.pot && { ...state.pot, ...harvest(state.pot) };
-  const grown = [...plants, ...(pot ? [pot] : [])].filter((p) => p.stage === STAGE.harvest);
+  // A visit's pot presses into its own scrapbook, never a basket; its empty basket marks the harvest.
+  const grown = plants.filter((p) => p.stage === STAGE.harvest);
   const kept = state.basket && sameSeason(state.basket.season, season) ? state.basket.crops : [];
   const crops = [
     ...kept,
@@ -167,4 +182,21 @@ export const farmChores = (state: FarmState, now: EpochMs): FarmChores => {
         ? { day: today, people }
         : null,
   };
+};
+
+/**
+ * When the farm object should next wake for a chore: now if one is due, else the start of harvest
+ * day or of the next season, in farm time. Shared rain comes from presence, never an alarm.
+ */
+export const nextChoreAt = (state: FarmState, now: EpochMs): EpochMs => {
+  const chores = farmChores(state, now);
+  if (chores.harvest || chores.roll) return now;
+  const today = farmDay(state, now);
+  const harvested = state.basket !== null && sameSeason(state.basket.season, state.season);
+  const next = addDays(seasonDays(state.season, namedUnder(state, today)).last, 1);
+  const times = [
+    ...(harvested ? [] : [startOfDay(harvestDayOf(state, today), state.timeZone)]),
+    startOfDay(next, state.timeZone),
+  ].filter((t) => t > now);
+  return times.length > 0 ? Math.min(...times) : now;
 };

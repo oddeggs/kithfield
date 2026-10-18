@@ -14,12 +14,11 @@ import {
 } from '@kithfield/contracts';
 
 import { FAMILIES, SLEEPY_AFTER_DAYS, plantFor } from './catalog';
-import { type Thresholds, kFor, activeCount, thresholdsOf } from './growth';
 import { type PlanConditions, isUnsentPlan, planConditions } from './plans';
 import { CLOUD_MS, CRITTER_SLEEPY_DAYS, DAY_MS, FARM_MISTY_DAYS, STATUS_MS } from './rules';
 import { canApplyRules } from './reducer';
 import { farmDay, harvestDayOf, pendingSeason } from './seasons';
-import { isBirthday } from './time';
+import { UnknownTimeZoneError, isBirthday, laterDay, localDay } from './time';
 
 /*
  * The farm as drawn at a moment: everything time-based (sleepy, misty, today's season, birthdays)
@@ -56,16 +55,23 @@ export interface PlanView {
 
 export interface FarmView {
   readonly today: LocalDate;
-  /** The season to draw: the calendar's, once it has moved on and `season_rolled` hasn't landed. */
+  /**
+   * The farm's season, as its plants are. It changes only when `season_rolled` is written; until
+   * then `rollPending` says the calendar has moved on.
+   */
   readonly season: SeasonRef;
+  readonly rollPending: boolean;
+  /**
+   * This device's time zone data doesn't know the farm's zone: `today` is counted in UTC from the
+   * farm's last known day. The app should update; days may be off by one meanwhile.
+   */
+  readonly timeZoneUnknown: boolean;
   readonly harvestDay: LocalDate;
   readonly isHarvestDay: boolean;
   /** No one has opened the farm for 14 days: mist, everyone dozing. */
   readonly misty: boolean;
   /** The farm runs rules newer than this app: draw it, but the app needs an update. */
   readonly rulesOutdated: boolean;
-  readonly k: number;
-  readonly thresholds: Thresholds;
   /** This season's six family plants, then the signature crop. Empty on a visit. */
   readonly plants: readonly PlantView[];
   readonly pot: PlantView | null;
@@ -80,15 +86,30 @@ export interface FarmView {
   readonly plans: readonly PlanView[];
 }
 
+const earliest = (times: readonly EpochMs[]): EpochMs | null =>
+  times.length > 0 ? Math.min(...times) : null;
+
 const latest = (times: readonly (EpochMs | null)[]): EpochMs | null =>
   times.reduce<EpochMs | null>((a, b) => (b === null ? a : a === null ? b : Math.max(a, b)), null);
 
+const todayOf = (state: FarmState, now: EpochMs) => {
+  try {
+    return { today: farmDay(state, now), timeZoneUnknown: false };
+  } catch (error) {
+    if (!(error instanceof UnknownTimeZoneError)) throw error;
+    return { today: laterDay(state.today.day, localDay(now, 'UTC')), timeZoneUnknown: true };
+  }
+};
+
 export const farmView = (state: FarmState, now: EpochMs): FarmView => {
-  const today = farmDay(state, now);
-  const season = pendingSeason(state, today) ?? state.season;
+  const { today, timeZoneUnknown } = todayOf(state, now);
+  const season = state.season;
   const harvestDay = harvestDayOf(state, today);
-  // Before anyone tends or opens anything, time is counted from the first member moving in.
-  const since = state.members[0]?.joinedAt ?? null;
+  // Before anyone tends or opens anything, time counts from the earliest anyone lived here.
+  const since = earliest([
+    ...state.members.map((m) => m.joinedAt),
+    ...state.former.map((f) => f.leftAt),
+  ]);
   const sleepyAfter = SLEEPY_AFTER_DAYS[season.season] * DAY_MS;
   const asleep = (last: EpochMs | null, after: number) => {
     const from = last ?? since;
@@ -141,11 +162,11 @@ export const farmView = (state: FarmState, now: EpochMs): FarmView => {
     today,
     season,
     harvestDay,
+    rollPending: pendingSeason(state, today) !== null,
+    timeZoneUnknown,
     isHarvestDay: today === harvestDay,
     misty: opened === null || now - opened > FARM_MISTY_DAYS * DAY_MS,
     rulesOutdated: !canApplyRules(state),
-    k: state.kind === 'visit' ? 1 : kFor(activeCount(state)),
-    thresholds: thresholdsOf(state),
     plants,
     pot,
     critters,

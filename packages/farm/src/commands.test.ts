@@ -82,6 +82,16 @@ describe('checkCommand', () => {
     expect(check(state, 'unsend', { target: 2 }, bea, T0, ctx)).toBe('not_allowed');
     expect(check(state, 'unsend', { target: post.seq }, bea, T0 + DAY - 1, ctx)).toBe(true);
     expect(check(state, 'unsend', { target: post.seq }, bea, T0 + DAY, ctx)).toBe('not_allowed');
+    const status = log.add('status', bea, { status: 'words', text: 'out' });
+    const renamed = log.add('critter_changed', bea, { name: 'Bee' });
+    const later = new Map(log.events.map((e) => [e.seq, e]));
+    const lookup: CommandContext = { event: (seq) => later.get(seq) };
+    expect(check(log.state(), 'unsend', { target: status.seq }, bea, T0, lookup)).toBe(
+      'not_allowed',
+    );
+    expect(check(log.state(), 'unsend', { target: renamed.seq }, bea, T0, lookup)).toBe(
+      'not_allowed',
+    );
     const gone: CommandContext = {
       event: () => ({ ...message, payload: { tombstone: 'unsent' } }),
     };
@@ -160,6 +170,13 @@ describe('checkCommand', () => {
     expect(check(state, 'removed', { person: pip, removeMedia: false })).toBe(true);
     expect(check(state, 'removed', { person: bea, removeMedia: false })).toBe('invalid');
     expect(check(state, 'removed', { person: kit, removeMedia: false })).toBe('not_found');
+  });
+
+  it('accepts only time zones the farm can tell days in', () => {
+    const { state } = setup();
+    const calendar = (timeZone: string) => ({ setting: 'calendar', timeZone, hemisphere: 'north' });
+    expect(check(state, 'settings_changed', calendar('Asia/Ho_Chi_Minh'))).toBe(true);
+    expect(check(state, 'settings_changed', calendar('Mars/Olympus_Mons'))).toBe('invalid');
   });
 
   it('lets both people on a visit change its look, but a visit has no name, roles or approval', () => {

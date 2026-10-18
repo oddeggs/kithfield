@@ -12,7 +12,21 @@ import { SEASONS, SEASON_START_MONTH } from './catalog';
 /*
  * Farm days and seasons. Days are calendar days in the farm's time zone, so caps and "today" are
  * the same for everyone; seasons are meteorological, by the farm's hemisphere.
+ *
+ * Needs `Intl.DateTimeFormat` with IANA time zones and `formatToParts`: Workers have it, and so
+ * does Hermes with Intl on iOS and Android. A zone the device's time zone data doesn't know is
+ * never guessed at: it throws `UnknownTimeZoneError`, and the caller takes the farm's snapshot.
  */
+
+/** The device's time zone data doesn't know the farm's zone, so it can't tell the farm's day. */
+export class UnknownTimeZoneError extends Error {
+  readonly timeZone: string;
+  constructor(timeZone: string) {
+    super(`Unknown time zone: ${timeZone}`);
+    this.name = 'UnknownTimeZoneError';
+    this.timeZone = timeZone;
+  }
+}
 
 const formats = new Map<string, Intl.DateTimeFormat>();
 
@@ -22,17 +36,30 @@ const formatFor = (timeZone: string): Intl.DateTimeFormat => {
     try {
       format = new Intl.DateTimeFormat('en-US', {
         timeZone,
+        hourCycle: 'h23',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
       });
     } catch {
-      // A zone this device's time zone data doesn't know falls back to UTC rather than failing.
-      format = formatFor('UTC');
+      throw new UnknownTimeZoneError(timeZone);
     }
     formats.set(timeZone, format);
   }
   return format;
+};
+
+/** Whether this device can tell days in a time zone. */
+export const isKnownTimeZone = (timeZone: string): boolean => {
+  try {
+    formatFor(timeZone);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 const pad = (n: number, width = 2) => String(n).padStart(width, '0');
@@ -40,12 +67,40 @@ const pad = (n: number, width = 2) => String(n).padStart(width, '0');
 const toDay = (year: number, month: number, day: number): LocalDate =>
   `${pad(year, 4)}-${pad(month)}-${pad(day)}`;
 
-/** The calendar day of an instant in a time zone, `YYYY-MM-DD`. */
-export const localDay = (at: EpochMs, timeZone: TimeZone): LocalDate => {
+/** The wall-clock fields of an instant in a time zone. */
+const wallClock = (at: EpochMs, timeZone: TimeZone) => {
   const parts = formatFor(timeZone).formatToParts(new Date(at));
   const part = (type: Intl.DateTimeFormatPartTypes) =>
     Number(parts.find((p) => p.type === type)?.value ?? '0');
-  return toDay(part('year'), part('month'), part('day'));
+  return {
+    year: part('year'),
+    month: part('month'),
+    day: part('day'),
+    hour: part('hour'),
+    minute: part('minute'),
+    second: part('second'),
+  };
+};
+
+/** The calendar day of an instant in a time zone, `YYYY-MM-DD`. Throws `UnknownTimeZoneError`. */
+export const localDay = (at: EpochMs, timeZone: TimeZone): LocalDate => {
+  const w = wallClock(at, timeZone);
+  return toDay(w.year, w.month, w.day);
+};
+
+/** The instant a farm day starts (local midnight, or the first instant after it in a DST gap). */
+export const startOfDay = (day: LocalDate, timeZone: TimeZone): EpochMs => {
+  const { year, month, day: date } = dayParts(day);
+  const midnight = Date.UTC(year, month - 1, date);
+  let at = midnight;
+  for (let i = 0; i < 3; i++) {
+    const w = wallClock(at, timeZone);
+    const shown = Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute, w.second);
+    at = at - (shown - midnight);
+  }
+  // Step forward past a gap so the instant falls on the day itself.
+  while (localDay(at, timeZone) < day) at += 15 * 60_000;
+  return at;
 };
 
 export interface DayParts {
