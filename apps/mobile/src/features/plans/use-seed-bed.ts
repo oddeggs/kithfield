@@ -3,7 +3,8 @@ import { farmView } from '@kithfield/farm';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { useCottage, useDataClient, type DataClient } from '../../data';
+import { useCottage, useDataClient } from '../../data';
+import { bringUpToDate } from './bed-sync';
 import { bedKindOf, planDay, sortBed, stageOf, stillGrowing, type BedEntry } from './plan-status';
 import { useNow } from './use-plans';
 
@@ -16,30 +17,20 @@ export interface BedFarm {
   readonly name: string | null;
 }
 
-/** Pages a farm's log in over HTTP, at most this many pages a visit to the seed bed. */
-const CATCH_UP_PAGES = 10;
-const PAGE = 200;
+const fromChats = (chats: ReturnType<typeof useCottage>['chats']): BedFarm[] =>
+  chats.map((c) => ({ farm: c.farm, kind: c.farmKind, name: c.name ?? c.with?.name ?? null }));
 
 /**
- * Brings a farm the phone isn't holding open up to date over HTTP, so the seed bed shows every
- * farm's plans without opening each farm's socket. Pages apply exactly as socket batches do.
+ * The farms and visits this person lives on: null until known. Asked of the server each time the
+ * seed bed comes into view and when the chat list gains or loses a farm; offline, the farms the
+ * phone holds from the chat list stand in.
  */
-async function catchUp(client: DataClient, farm: FarmId): Promise<void> {
-  const replica = await client.replica(farm);
-  for (let page = 0; page < CATCH_UP_PAGES; page += 1) {
-    const { lastSeq } = replica.getState();
-    const { events, more } = await client.api.events(farm, { after: lastSeq, limit: PAGE });
-    if (events.length === 0) return;
-    await replica.applyPage(events);
-    if (!more || replica.getState().lastSeq === lastSeq) return;
-  }
-}
-
-/** The farms and visits this person lives on: null until the first answer. */
 export function useBedFarms(): readonly BedFarm[] | null {
   const client = useDataClient();
   const { chats } = useCottage();
   const [farms, setFarms] = useState<readonly BedFarm[] | null>(null);
+  const held = useRef(chats);
+  held.current = chats;
   const chatKey = chats
     .map((c) => c.farm)
     .sort()
@@ -52,16 +43,20 @@ export function useBedFarms(): readonly BedFarm[] | null {
         setFarms(
           list.farms.map((f) => ({ farm: f.farm, kind: f.kind, name: f.name ?? f.with?.name ?? null })),
         ),
-      // Offline: keep showing what the phone holds.
-      () => live && setFarms((prev) => prev ?? []),
+      () => live && setFarms((prev) => prev ?? fromChats(held.current)),
     );
     return () => {
       live = false;
     };
   }, [client]);
+  // On coming into view (the first time included), then only when the chat list's farms change.
   useFocusEffect(loadFarms);
-  useEffect(loadFarms, [loadFarms, chatKey]);
-
+  const firstKey = useRef(chatKey);
+  useEffect(() => {
+    if (chatKey === firstKey.current) return;
+    firstKey.current = chatKey;
+    return loadFarms();
+  }, [chatKey, loadFarms]);
   return farms;
 }
 
@@ -80,7 +75,6 @@ export function useSeedBed(): {
   const now = useNow();
   const farms = useBedFarms();
   const [states, setStates] = useState<ReadonlyMap<FarmId, FarmState>>(new Map());
-  const caught = useRef(new Set<FarmId>());
 
   const farmKey = (farms ?? []).map((f) => f.farm).join(',');
   useEffect(() => {
@@ -98,10 +92,6 @@ export function useSeedBed(): {
         };
         read();
         offs.push(replica.subscribe(read));
-        if (!caught.current.has(farm)) {
-          caught.current.add(farm);
-          catchUp(client, farm).catch(() => caught.current.delete(farm));
-        }
       });
     }
     return () => {
@@ -110,6 +100,18 @@ export function useSeedBed(): {
     };
     // `farmKey` stands for the list of farms.
   }, [client, farmKey]);
+
+  // Each time the seed bed comes into view, the farms are brought up to date.
+  useFocusEffect(
+    useCallback(() => {
+      let wanted = true;
+      const list = farmKey === '' ? [] : farmKey.split(',');
+      void bringUpToDate(client, list, { stillWanted: () => wanted });
+      return () => {
+        wanted = false;
+      };
+    }, [client, farmKey]),
+  );
 
   const entries = useMemo(() => {
     const list: BedEntry[] = [];
