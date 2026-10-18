@@ -46,6 +46,7 @@ export const surfacesEn = {
   /* The fire (10-08, 10-09) */
   'surfaces.native.fire.title': 'By the fire',
   'surfaces.native.fire.talking': '{name} is talking',
+  'surfaces.native.fire.youTalking': 'you’re talking',
   'surfaces.native.fire.quiet': 'All quiet',
   'surfaces.native.fire.youreMuted': 'you’re muted',
   'surfaces.native.fire.mute': 'Mute',

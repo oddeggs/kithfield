@@ -10,6 +10,8 @@ enum GroupFiles {
   static let images = "surfaces/images/"
   /// One `ShareDraft` per file, left by the share extension for the app to send.
   static let shareOutbox = "surfaces/share-outbox/"
+  /// `{ "person": id }`: whom the surfaces were written for, so they say "you" for them.
+  static let person = "surfaces/person.json"
   /// The sticker files the Messages extension offers.
   static let stickers = "surfaces/stickers/"
 

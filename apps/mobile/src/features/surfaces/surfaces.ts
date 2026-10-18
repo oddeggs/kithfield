@@ -12,6 +12,7 @@ import { z } from 'zod';
 import type { DataClient } from '../../data';
 import type { ArtStore } from '../../ui/art/art-store';
 import { surfaces } from '../../../modules/surfaces';
+import { PERSON_FILE } from './clear';
 import type { GroupStore } from './group-store';
 import { imageJobs, type ExtraCritter } from './image-plan';
 import type { SurfaceTarget } from './links';
@@ -41,8 +42,6 @@ export interface SurfacesDeps {
   readonly group: GroupStore;
   readonly me: PersonId;
   readonly lang: () => Lang;
-  /** The person's own name in lists ("you"), in their language. */
-  readonly you: () => string;
   readonly scheme: string;
   readonly shares: ShareSender;
   readonly open: (target: SurfaceTarget) => void;
@@ -104,6 +103,8 @@ export function createSurfaces(deps: SurfacesDeps) {
     });
     await writeImages(deps.art, deps.group, imageJobs(data, at, mine(list)), () => stopped);
     if (stopped) return;
+    // Who "you" is, for the extensions: they say "you" for this person wherever an id is theirs.
+    await deps.group.write(PERSON_FILE, JSON.stringify({ person: deps.me }));
     await deps.group.write(APP_GROUP_PATHS.data, JSON.stringify(data));
     lastWrite = at;
     try {
@@ -117,7 +118,7 @@ export function createSurfaces(deps: SurfacesDeps) {
   /** Starts, moves along and ends the plan-day activities. */
   async function planDays(farms: readonly PlanDayInput[]): Promise<void> {
     if (surfaces === null) return;
-    const wanted = planDayActivities(farms, deps.me, now(), deps.you(), deps.scheme);
+    const wanted = planDayActivities(farms, deps.me, now(), deps.scheme);
     const running = (await surfaces.listActivities()).filter((a) => a.kind === 'plan_day');
     const changes = planDayChanges(wanted, running);
     for (const w of changes.start) {

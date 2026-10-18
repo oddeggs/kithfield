@@ -26,6 +26,15 @@ struct SurfaceData: Decodable {
     return try? JSONDecoder().decode(SurfaceData.self, from: data)
   }
 
+  /// The person the surfaces were written for: the one they call "you".
+  static func me() -> String? {
+    struct Person: Decodable { let person: String }
+    guard let url = GroupFiles.url(GroupFiles.person), let data = try? Data(contentsOf: url) else {
+      return nil
+    }
+    return (try? JSONDecoder().decode(Person.self, from: data))?.person
+  }
+
   /// A PNG the app rendered into `surfaces/images/`, by its `SurfaceImage` name.
   static func image(_ name: String) -> UIImage? {
     guard let url = GroupFiles.url(GroupFiles.images + name) else { return nil }

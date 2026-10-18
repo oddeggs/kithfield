@@ -10,6 +10,7 @@ import { useSession } from '../../ui/session/session';
 import { useUpload } from '../media';
 import { followActivityTokens } from './activity-tokens';
 import { registerBackgroundTask, takeWoken } from './background';
+import { clearSurfacesForSignOut, writtenForSomeoneElse } from './clear';
 import { groupRoot, nativeGroupStore } from './group-store';
 import { ACTION_TITLES, categories } from './notification-actions';
 import { openTarget } from './open';
@@ -91,8 +92,6 @@ function Running({ me }: { readonly me: string }) {
   const { chats } = useCottage();
   const lang = useRef(language);
   lang.current = language;
-  const you = useRef(t('surfaces.native.you'));
-  you.current = t('surfaces.native.you');
   const surfacesRef = useRef<Surfaces | null>(null);
 
   useEffect(() => {
@@ -107,7 +106,6 @@ function Running({ me }: { readonly me: string }) {
       group: nativeGroupStore(root),
       me,
       lang: () => lang.current,
-      you: () => you.current,
       scheme: appScheme(),
       shares,
       open: openTarget,
@@ -123,7 +121,12 @@ function Running({ me }: { readonly me: string }) {
       }
     });
     registerBackgroundTask().catch(report);
-    void surfaces.refresh({ force: true }).then(() => surfaces.shares());
+    // Another person on this phone: nothing of the last one stays on the surfaces.
+    const group = nativeGroupStore(root);
+    void writtenForSomeoneElse(group, me)
+      .then((theirs) => (theirs ? clearSurfacesForSignOut() : undefined))
+      .then(() => surfaces.refresh({ force: true }))
+      .then(() => surfaces.shares());
 
     const answered = new Set<string>();
     const respond = (response: Notifications.NotificationResponse) => {

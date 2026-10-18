@@ -47,16 +47,20 @@ private func decode<T: Decodable>(_ json: String) -> T? {
 private struct Context {
   let copy: SurfaceCopy
   let data: SurfaceData?
+  /// The person this phone belongs to: everyone goes by their own name but them, who is "you".
+  let me: String?
 
   static func load() -> Context {
     let data = SurfaceData.read()
-    return Context(copy: SurfaceCopy(lang: data?.lang), data: data)
+    return Context(copy: SurfaceCopy(lang: data?.lang), data: data, me: SurfaceData.me())
   }
 
   func season(_ farm: String) -> String { data?.farm(farm)?.season.season ?? "autumn" }
 
-  /// The person's own name as the app wrote it into a state ("you").
-  var you: String { copy.text("you") }
+  /// How a person is named here: "you" for the phone's own person.
+  func name(_ person: SurfacePerson) -> String? {
+    person.person == me ? copy.text("you") : person.name
+  }
 }
 
 /// A person's critter, framed as the avatar frames it.
@@ -220,8 +224,8 @@ private struct PlanDayLockScreen: View {
 
   private var summary: String {
     let copy = context.copy
-    let there = state.here.compactMap(\.name)
-    let walking = state.onTheWay.compactMap(\.name)
+    let there = state.here.compactMap(context.name)
+    let walking = state.onTheWay.compactMap(context.name)
     var parts: [String] = []
     parts.append(there.isEmpty ? copy.text("plan.nobodyYet") : copy.people("plan.there", there))
     if !walking.isEmpty { parts.append(copy.people("plan.walking", walking)) }
@@ -253,6 +257,7 @@ private func talkingLine(_ state: FireState, _ context: Context) -> String {
   guard let id = state.talking, let talker = state.people.first(where: { $0.person == id }),
     let name = talker.name
   else { return copy.text("fire.quiet") }
+  if id == context.me { return copy.text("fire.youTalking") }
   return copy.text("fire.talking", ["name": name])
 }
 
@@ -388,7 +393,7 @@ struct SurfaceActivityWidget: Widget {
   {
     let copy = context.copy
     let season = context.season(attributes.farm)
-    let me = state.people.first { $0.name == context.you }
+    let me = state.people.first { $0.person == context.me }
     let youTalking = me != nil && state.talking == me?.person
     let subtitle = [attributes.farmName, talkingLine(state, context)].compactMap { $0 }
       .joined(separator: " · ")

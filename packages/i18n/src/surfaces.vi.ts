@@ -27,6 +27,7 @@ export const surfacesVi: ViCatalogue<typeof surfacesEn> = {
 
   'surfaces.native.fire.title': 'Bên lửa',
   'surfaces.native.fire.talking': '{name} đang nói',
+  'surfaces.native.fire.youTalking': 'bạn đang nói',
   'surfaces.native.fire.quiet': 'Yên ắng',
   'surfaces.native.fire.youreMuted': 'bạn đang tắt mic',
   'surfaces.native.fire.mute': 'Tắt mic',

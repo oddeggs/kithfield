@@ -6,7 +6,7 @@ import type {
   SeedState,
   SurfacePerson,
 } from '@kithfield/contracts';
-import { localDay, planDay, startOfDay } from '@kithfield/farm';
+import { localDay, planDay } from '@kithfield/farm';
 
 import { surfaceLink } from './links';
 import { imageNames } from './names';
@@ -21,16 +21,50 @@ import { imageNames } from './names';
 const HOUR = 60 * 60_000;
 /** The activity runs this long either side of the plan's start. */
 export const PLAN_DAY_MARGIN = 2 * HOUR;
-/** A plan without a start time runs through the day. */
-const ALL_DAY = { from: 9 * 60, to: 21 * 60 } as const;
+/** The longest iOS keeps a Live Activity. */
+export const PLAN_DAY_LONGEST = 8 * HOUR;
+/** A plan without a start time is followed from 9 in the morning. */
+const ALL_DAY_FROM = '09:00';
+
+/** The wall clock in a zone at an instant: its date and minutes after midnight. */
+function wallClock(at: number, timeZone: string): { date: string; minutes: number } {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(at));
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+  return {
+    date: `${part('year')}-${part('month')}-${part('day')}`,
+    minutes: Number(part('hour')) * 60 + Number(part('minute')),
+  };
+}
+
+/**
+ * Epoch ms of a wall-clock time on a date in a zone, the later one when a clock change repeats
+ * it: the server's `zonedTime` (`apps/api/src/surfaces/live-activity.ts`), so both start and end
+ * an activity at the same moment.
+ */
+export function zonedTime(date: string, time: string, timeZone: string): number {
+  const [y, m, d] = date.split('-').map(Number);
+  const [hh, mm] = time.split(':').map(Number);
+  const wanted = Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1, hh ?? 0, mm ?? 0);
+  let at = wanted;
+  for (let pass = 0; pass < 2; pass += 1) {
+    const clock = wallClock(at, timeZone);
+    const [ly, lm, ld] = clock.date.split('-').map(Number);
+    const local = Date.UTC(ly ?? 1970, (lm ?? 1) - 1, ld ?? 1) + clock.minutes * 60_000;
+    at += wanted - local;
+  }
+  return at;
+}
 
 /** The activity's key: the same as the server's. */
 export const planDayKey = (farm: FarmId, seed: number) => `${farm}:${seed}`;
-
-const minutesOf = (time: string) => {
-  const [h, m] = time.split(':');
-  return Number(h) * 60 + Number(m);
-};
 
 /** When a plan's activity shows, in epoch ms; null for a plan without a day. */
 export function planDayWindow(
@@ -39,17 +73,14 @@ export function planDayWindow(
 ): { start: number; from: number; to: number } | null {
   const day = planDay(seed);
   if (day === null) return null;
-  const midnight = startOfDay(day, timeZone);
   const time = seed.days.find((d) => d.date === day)?.from;
   if (time === undefined) {
-    return {
-      start: midnight + ALL_DAY.from * 60_000,
-      from: midnight + ALL_DAY.from * 60_000,
-      to: midnight + ALL_DAY.to * 60_000,
-    };
+    const start = zonedTime(day, ALL_DAY_FROM, timeZone);
+    return { start, from: start, to: start + PLAN_DAY_LONGEST };
   }
-  const start = midnight + minutesOf(time) * 60_000;
-  return { start, from: start - PLAN_DAY_MARGIN, to: start + PLAN_DAY_MARGIN };
+  const start = zonedTime(day, time, timeZone);
+  const from = start - PLAN_DAY_MARGIN;
+  return { start, from, to: Math.min(start + PLAN_DAY_MARGIN, from + PLAN_DAY_LONGEST) };
 }
 
 /** Those going: everyone who said they're in, and the planter unless they answered otherwise. */
@@ -71,12 +102,14 @@ export interface WantedActivity {
   readonly state: PlanDayActivity['state'];
 }
 
-/** The plan-day activities this phone should show at `now`. `you` is the person's own name. */
+/**
+ * The plan-day activities this phone should show at `now`. Everyone goes by their own id and name,
+ * as the server sends them; the activity says "you" for the person it finds in `surfaces/person.json`.
+ */
 export function planDayActivities(
   farms: readonly PlanDayInput[],
   me: PersonId,
   now: number,
-  you: string,
   scheme: string,
 ): WantedActivity[] {
   const wanted: WantedActivity[] = [];
@@ -84,7 +117,7 @@ export function planDayActivities(
     const names = new Map(state.members.map((m) => [m.person, m.name]));
     const who = (id: PersonId): SurfacePerson => ({
       person: id,
-      name: id === me ? you : (names.get(id) ?? null),
+      name: names.get(id) ?? null,
       image: imageNames.critter(id),
     });
     for (const seed of state.seeds) {

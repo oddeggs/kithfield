@@ -31,7 +31,24 @@ describe('the plan’s day activity', () => {
     });
   });
 
-  it('shows for someone going: who is there and who is on the way, with "you"', () => {
+  it('runs a whole-day plan from 9 for 8 hours, the most iOS keeps an activity', () => {
+    const seed = { ...withPlan([]).state.seeds[0]!, days: [{ date: '2026-10-24' }] };
+    expect(planDayWindow(seed, 'Europe/London')).toEqual({
+      start: Date.UTC(2026, 9, 24, 8, 0),
+      from: Date.UTC(2026, 9, 24, 8, 0),
+      to: Date.UTC(2026, 9, 24, 16, 0),
+    });
+  });
+
+  it('reads the start in the farm’s zone on a clock-change day, as the server does', () => {
+    // 01:30 comes twice in London on 25 October 2026; the server takes the later one (GMT).
+    const seed = { ...withPlan([]).state.seeds[0]!, days: [{ date: '2026-10-25', from: '01:30' }] };
+    expect(planDayWindow(seed, 'Europe/London')?.start).toBe(Date.UTC(2026, 9, 25, 1, 30));
+    const spring = { ...seed, days: [{ date: '2026-03-29', from: '12:00' }] };
+    expect(planDayWindow(spring, 'Europe/London')?.start).toBe(Date.UTC(2026, 2, 29, 11, 0));
+  });
+
+  it('shows for someone going: who is there and who is on the way, by their own names', () => {
     const farm = withPlan(
       [
         { person: bea, answer: 'in' },
@@ -39,13 +56,7 @@ describe('the plan’s day activity', () => {
       ],
       [fig],
     );
-    const [activity, ...rest] = planDayActivities(
-      [farm],
-      bea,
-      START - HOUR,
-      'you',
-      'kithfield-dev',
-    );
+    const [activity, ...rest] = planDayActivities([farm], bea, START - HOUR, 'kithfield-dev');
     expect(rest).toEqual([]);
     expect(activity?.key).toBe(`${base.farm}:20`);
     expect(activity?.attributes).toMatchObject({ title: 'Picnic by the river', from: '16:00' });
@@ -53,22 +64,22 @@ describe('the plan’s day activity', () => {
     // The planter is going unless they answered.
     expect(activity?.state.onTheWay.map((p) => [p.person, p.name])).toEqual([
       [pip, 'pip'],
-      [bea, 'you'],
+      [bea, 'bea'],
     ]);
   });
 
   it('stays away for someone not going, and outside the window', () => {
     const farm = withPlan([{ person: bea, answer: 'out' }]);
-    expect(planDayActivities([farm], bea, START, 'you', 'kithfield')).toEqual([]);
+    expect(planDayActivities([farm], bea, START, 'kithfield')).toEqual([]);
     const going = withPlan([{ person: bea, answer: 'in' }]);
-    expect(planDayActivities([going], bea, START - 3 * HOUR, 'you', 'kithfield')).toEqual([]);
-    expect(planDayActivities([going], bea, START + 3 * HOUR, 'you', 'kithfield')).toEqual([]);
+    expect(planDayActivities([going], bea, START - 3 * HOUR, 'kithfield')).toEqual([]);
+    expect(planDayActivities([going], bea, START + 3 * HOUR, 'kithfield')).toEqual([]);
     expect(nextPlanDayChange([going], START - 3 * HOUR)).toBe(START - 2 * HOUR);
   });
 
   it('starts what is missing, moves what changed and ends what is over', () => {
     const farm = withPlan([{ person: bea, answer: 'in' }]);
-    const [wanted] = planDayActivities([farm], bea, START, 'you', 'kithfield');
+    const [wanted] = planDayActivities([farm], bea, START, 'kithfield');
     expect(planDayChanges([wanted!], []).start).toEqual([wanted]);
     const same = { id: 'a', key: wanted!.key, stateJson: JSON.stringify(wanted!.state) };
     expect(planDayChanges([wanted!], [same])).toEqual({ start: [], update: [], end: [] });
