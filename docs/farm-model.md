@@ -42,7 +42,7 @@ Decided 18 Oct 2026. Builds on `design/15 Farm and Field Guide.dc.html` (15-08, 
 - `gate`: a visitor from another farm waved, or left a firefly or a gift at the gate. Visitors never read the chat.
 - `card_signed`: a member's birthday card, signed on their birthday.
 
-The farm writes some kinds on a person's behalf, with that person as actor and an op id it mints: `joined`, `farm_opened`, `hibernate`, `gate` and `traded`, which phones never send, and `critter_changed` and `status`, which phones send too. After a safety removal of a `critter_changed` or a `status`, the farm writes a follow-up of the same kind on the person's behalf that restores their previous critter, name and birthday, or their previous status. Phones never send the farm's own kinds (`ON_BEHALF_KINDS` and `FARM_WRITTEN_KINDS` in the contracts).
+The farm writes some kinds on a person's behalf, with that person as actor and an op id it mints: `joined`, `farm_opened`, `hibernate`, `gate` and `traded`, which phones never send, and `critter_changed`, `status` and `seed_changed`, which phones send too. After a safety removal of a `critter_changed`, a `status` or a `seed_changed`, the farm writes a follow-up of the same kind on the person's behalf that restores the previous values: their critter, name and birthday, their status, or the plan's title, days and place (a `seed_changed` follow-up is for the planter's plan, with the editor of the removed edit as actor). Phones never send the farm's own kinds (`ON_BEHALF_KINDS` and `FARM_WRITTEN_KINDS` in the contracts).
 
 `hibernate` is written on every farm the person lives on, and only when it changes. Someone who joins a farm while hibernating gets `hibernate {on: true}` right after their `joined`.
 
