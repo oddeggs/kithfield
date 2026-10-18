@@ -107,6 +107,29 @@ describe('the gates a person may visit', () => {
     expect((await gatesOf(fig)).map((g) => g.farm)).not.toContain(porch);
   });
 
+  it('are at most fifty', async () => {
+    const { kit, fig } = await cast('kit', 'fig');
+    await plantFarm(kit, [fig], { name: 'Home' });
+    for (let i = 0; i < 52; i++) await plantFarm(fig, [], { name: `Plot ${i}` });
+    const gates = await gatesOf(kit);
+    expect(gates).toHaveLength(50);
+    expect(new Set(gates.map((g) => g.farm)).size).toBe(50);
+  });
+
+  it('are asked for at most thirty times a minute per person', async () => {
+    const { kit, mo } = await cast('kit', 'mo');
+    const statuses: number[] = [];
+    for (let i = 0; i < 31; i++) statuses.push((await api(kit, 'GET', '/v1/gates')).status);
+    expect(statuses.slice(0, 30).every((s) => s === 200)).toBe(true);
+    expect(statuses[30]).toBe(429);
+    expect(await api(kit, 'GET', '/v1/gates')).toEqual({
+      status: 429,
+      body: { error: { code: 'rate_limited' } },
+    });
+    // Someone else still may.
+    expect((await api(mo, 'GET', '/v1/gates')).status).toBe(200);
+  });
+
   it('are for signed-in people only', async () => {
     expect((await api(null, 'GET', '/v1/gates')).status).toBe(401);
   });

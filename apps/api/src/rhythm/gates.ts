@@ -11,7 +11,9 @@ import { farmStub } from '../farm/http';
  */
 
 /** At most this many gates in a list. */
-export const GATES_MAX = 200;
+export const GATES_MAX = 50;
+/** At most this many farms are asked for their gate in one list (some may not answer). */
+const ASKED_MAX = 200;
 /** Farms asked for their gate at once. */
 const BATCH = 20;
 /** A bound on the rows read from D1, far above any real circle of friends. */
@@ -68,15 +70,18 @@ const gateOf = async (env: Bindings, farm: string, person: PersonId): Promise<Fa
   }
 };
 
-/** `GET /v1/gates[?person=]`: the farms this person may visit, or those of one friend. */
+/**
+ * `GET /v1/gates[?person=]`: the farms this person may visit, or those of one friend; at most
+ * `GATES_MAX`, the first to answer in farm order, then sorted by name.
+ */
 export const gateList = async (
   env: Bindings,
   person: PersonId,
   friend: PersonId | null,
 ): Promise<GateList> => {
-  const farms = [...(await candidates(env.DB, person, friend))].slice(0, GATES_MAX);
+  const farms = [...(await candidates(env.DB, person, friend))].slice(0, ASKED_MAX);
   const gates: GateList['gates'] = [];
-  for (let i = 0; i < farms.length; i += BATCH) {
+  for (let i = 0; i < farms.length && gates.length < GATES_MAX; i += BATCH) {
     const batch = farms.slice(i, i + BATCH);
     const answers = await Promise.all(batch.map(([farm]) => gateOf(env, farm, person)));
     answers.forEach((gate, j) => {
@@ -92,6 +97,7 @@ export const gateList = async (
       });
     });
   }
+  gates.splice(GATES_MAX);
   gates.sort((a, b) => a.name.localeCompare(b.name) || a.farm.localeCompare(b.farm));
   return { gates };
 };

@@ -78,6 +78,8 @@ export type Bindings = Secrets & {
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Gestures at another farm's gate, per visitor. */
   readonly GATE_LIMIT: RateLimit;
+  /** At most 30 lists of the gates a person may visit, a minute per person. */
+  readonly GATES_LIMIT: RateLimit;
   /** At most 60 upload URLs (and forwarding copies) a minute per person. */
   readonly MEDIA_LIMIT: RateLimit;
   /** At most 5 waitlist sign-ups a minute per client address. */

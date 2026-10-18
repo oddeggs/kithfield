@@ -71,6 +71,12 @@
           "namespace_id": "1401",
           "simple": { "limit": 10, "period": 60 },
         },
+        // Asking for the list of gates to visit, per person.
+        {
+          "name": "GATES_LIMIT",
+          "namespace_id": "1259",
+          "simple": { "limit": 30, "period": 60 },
+        },
         // Upload URLs and forwarding copies, per person.
         {
           "name": "MEDIA_LIMIT",
@@ -180,6 +186,12 @@
           "name": "GATE_LIMIT",
           "namespace_id": "1402",
           "simple": { "limit": 10, "period": 60 },
+        },
+        // Asking for the list of gates to visit, per person.
+        {
+          "name": "GATES_LIMIT",
+          "namespace_id": "1260",
+          "simple": { "limit": 30, "period": 60 },
         },
         // Upload URLs and forwarding copies, per person.
         {

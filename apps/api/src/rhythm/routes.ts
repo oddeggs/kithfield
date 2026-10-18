@@ -44,6 +44,8 @@ export const rhythmRoutes = (): Hono<SessionEnv> => {
 
   /** The farms this person may visit (friends of friends), or those of one friend. */
   app.get('/gates', signedIn, async (c) => {
+    const { success } = await c.env.GATES_LIMIT.limit({ key: c.get('person') });
+    if (!success) return fail(c, 429, 'rate_limited');
     const raw = c.req.query('person');
     const friend = raw === undefined ? null : PersonId.safeParse(raw);
     if (friend !== null && !friend.success) return fail(c, 400, 'bad_request', ['person']);
