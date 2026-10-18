@@ -89,7 +89,15 @@ export const moderationVi: ViCatalogue<typeof moderationEn> = {
   'moderation.preview.reporters': { other: '{count} thành viên báo cáo' },
   'moderation.preview.sourceLink': 'Gắn cờ theo độ tin cậy của liên kết',
   'moderation.preview.sourceHash': 'Gắn cờ do trùng mã băm',
-  'moderation.preview.hint': 'Nội dung bị báo cáo vẫn đóng cho đến khi bạn mở báo cáo.',
+  'moderation.preview.hint': 'Các tin nhắn xung quanh vẫn đóng cho đến khi bạn mở báo cáo.',
+  'moderation.preview.from': '{what} của {name}',
+  'moderation.preview.fromTo': '{what} của {name}, nhắm vào {to}',
+  'moderation.preview.note': 'Ghi chú của người báo cáo',
+  'moderation.preview.noNote': 'không có',
+  'moderation.preview.quoted': '“{text}”',
+  'moderation.preview.signals': 'Tín hiệu',
+  'moderation.preview.firstReport': 'báo cáo đầu tiên',
+  'moderation.preview.earlier': { other: '{count} báo cáo trước đó' },
   'moderation.preview.claimed': 'Người xử lý',
   'moderation.preview.received': 'Nhận lúc',
   'moderation.preview.openReport': 'Mở báo cáo',
@@ -192,6 +200,7 @@ export const moderationVi: ViCatalogue<typeof moderationEn> = {
   'moderation.action.claimed': 'Đã nhận',
   'moderation.action.appeal_kept': 'Kháng nghị: giữ quyết định',
   'moderation.action.appeal_undone': 'Kháng nghị: huỷ quyết định',
+  'moderation.action.appeal_restore_failed': 'Kháng nghị: không còn gì để khôi phục',
   'moderation.action.upload_blocked': 'Ảnh bị chặn trước khi gửi',
 
   'moderation.second.title': 'Xem lại việc mời ra khỏi Kithfield',
@@ -199,6 +208,9 @@ export const moderationVi: ViCatalogue<typeof moderationEn> = {
     'Một người kiểm duyệt khác muốn mời một người ra khỏi Kithfield. Chưa có gì thay đổi cho đến khi một người phụ trách không đưa ra đề nghị này đồng ý.',
   'moderation.second.agree': 'Đồng ý và mời ra',
   'moderation.second.report': 'Mở báo cáo',
+  'moderation.second.waiting': 'Đang chờ người kiểm duyệt thứ hai',
+  'moderation.second.asked': '{name} đề xuất · {when}',
+  'moderation.second.look': 'Xem xét',
 
   'moderation.member.meta': {
     other: '{species} · thành viên từ {since} · ở {count} nông trại',
@@ -305,4 +317,5 @@ export const moderationSameInBoth = [
   'moderation.queue.searchPlaceholder',
   'moderation.audit.none',
   'moderation.audit.percent',
+  'moderation.preview.quoted',
 ] as const satisfies readonly (keyof typeof moderationEn)[];

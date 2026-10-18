@@ -5,6 +5,7 @@ import {
   Id,
   MemberRecord,
   ModeratorSelf,
+  PendingActionPage,
   QueuePage as QueuePageBody,
   type QueueRow,
   ReportCategory,
@@ -41,19 +42,6 @@ async function isSenior(c: Ctx): Promise<boolean> {
   return me.ok && me.data.role === 'senior';
 }
 
-/** Names and critters for the people on a page, from their safety records. */
-async function peopleOf(c: Ctx, ids: Iterable<string>): Promise<Map<string, Person>> {
-  const unique = [...new Set(ids)].slice(0, 30);
-  const records = await Promise.all(
-    unique.map(async (id) => [id, await read(c, `/members/${id}`, MemberRecord)] as const),
-  );
-  const people = new Map<string, Person>();
-  for (const [id, record] of records) {
-    if (record.ok) people.set(id, { name: record.data.name, species: record.data.species });
-  }
-  return people;
-}
-
 async function queue(c: Ctx) {
   const { zone, now } = base(c);
   const categoryParam = ReportCategory.safeParse(c.req.query('category'));
@@ -73,7 +61,10 @@ async function queue(c: Ctx) {
   const rows: QueueRow[] = urgent ? shown.data.rows.filter((r) => r.urgent) : shown.data.rows;
   const byCategory: Partial<Record<ReportCategory, number>> = {};
   for (const row of all.data.rows) byCategory[row.category] = (byCategory[row.category] ?? 0) + 1;
-  const me = await read(c, '/me', ModeratorSelf);
+  const [me, pending] = await Promise.all([
+    read(c, '/me', ModeratorSelf),
+    read(c, '/actions?status=awaiting_second', PendingActionPage),
+  ]);
   const mine = me.ok ? me.data.moderator : null;
   const next =
     all.data.rows.find((r) => r.claimedBy === null || r.claimedBy === mine)?.report ?? null;
@@ -93,6 +84,7 @@ async function queue(c: Ctx) {
       next={next}
       more={shown.data.cursor === null ? null : `/queue?${params.toString()}`}
       names={new Map()}
+      pending={pending.ok ? pending.data.rows : []}
       flash={c.req.query('done') === '1' ? tr('moderation.decide.done') : null}
       zone={zone}
       now={now}
@@ -105,9 +97,9 @@ async function report(c: Ctx) {
   if (id === null) return c.redirect('/queue');
   const detail = await read(c, `/reports/${id}`, ReportDetail);
   if (!detail.ok) return failure(c, detail);
-  const ids = detail.data.context.flatMap((e) => (e.actor === null ? [] : [e.actor]));
-  const aimed = detail.data.signals.aimedAt;
-  const people = await peopleOf(c, [...ids, ...(aimed === null ? [] : [aimed])]);
+  const people = new Map<string, Person>(
+    detail.data.people.map((p) => [p.person, { name: p.name, species: p.species }]),
+  );
   const title = tr('moderation.report.theReport');
   const senior = await isSenior(c);
   return page(
@@ -154,12 +146,13 @@ async function appeals(c: Ctx) {
     else if (read1.status === 403) detail = 'yours';
     else if (read1.status !== 404) return failure(c, read1);
   }
-  const people = await peopleOf(
-    c,
-    rows.slice(0, 20).map((r) => r.person),
-  );
+  // Only the open appeal's person is looked up; the list draws everyone else with the desk's
+  // default critter, so a page of appeals is never a page of record reads.
   const species = new Map<string, string>();
-  for (const [id, person] of people) if (person.species !== null) species.set(id, person.species);
+  if (detail !== null && detail !== 'yours') {
+    const record = await read(c, `/members/${detail.person}`, MemberRecord);
+    if (record.ok && record.data.species !== null) species.set(detail.person, record.data.species);
+  }
   return page(
     c,
     'appeals',

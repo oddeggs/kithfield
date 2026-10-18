@@ -92,7 +92,18 @@ export const moderationEn = {
   },
   'moderation.preview.sourceLink': 'Flagged by link reputation',
   'moderation.preview.sourceHash': 'Flagged by a hash match',
-  'moderation.preview.hint': 'The reported item stays closed until you open the report.',
+  'moderation.preview.hint': 'The messages around it stay closed until you open the report.',
+  'moderation.preview.from': '{what} from {name}',
+  'moderation.preview.fromTo': '{what} from {name}, aimed at {to}',
+  'moderation.preview.note': 'Reporter’s note',
+  'moderation.preview.noNote': 'none',
+  'moderation.preview.quoted': '“{text}”',
+  'moderation.preview.signals': 'Signals',
+  'moderation.preview.firstReport': 'first report',
+  'moderation.preview.earlier': {
+    one: '{count} earlier report',
+    other: '{count} earlier reports',
+  },
   'moderation.preview.claimed': 'With',
   'moderation.preview.received': 'Received',
   'moderation.preview.openReport': 'Open report',
@@ -199,6 +210,7 @@ export const moderationEn = {
   'moderation.action.claimed': 'Claimed',
   'moderation.action.appeal_kept': 'Appeal: decision kept',
   'moderation.action.appeal_undone': 'Appeal: decision undone',
+  'moderation.action.appeal_restore_failed': 'Appeal: nothing left to put back',
   'moderation.action.upload_blocked': 'Photo blocked before sending',
 
   'moderation.second.title': 'A second look at a removal from Kithfield',
@@ -206,6 +218,9 @@ export const moderationEn = {
     'Another moderator asked to remove someone from Kithfield. Nothing changes until a senior moderator who didn’t ask agrees.',
   'moderation.second.agree': 'Agree and remove',
   'moderation.second.report': 'Open the report',
+  'moderation.second.waiting': 'Waiting for a second moderator',
+  'moderation.second.asked': 'Asked by {name} · {when}',
+  'moderation.second.look': 'Take a look',
 
   'moderation.member.meta': {
     one: '{species} · member since {since} · on {count} farm',

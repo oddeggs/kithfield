@@ -1,6 +1,6 @@
 import type { MemberRecord, RuleRef } from '@kithfield/contracts';
 
-import { actionLabel, ruleLabel, speciesLabel, tr } from '../copy';
+import { actionLabel, categoryLabel, ruleLabel, speciesLabel, tr } from '../copy';
 import { formatAt } from '../time';
 import { RulePicker } from './decide';
 import { Head } from './shell';
@@ -37,7 +37,10 @@ function HistoryRow(props: { entry: Entry; index: number; view: MemberView }) {
       title = tr('moderation.member.joined');
       break;
     case 'reported':
-      title = tr('moderation.member.reportedRow');
+      title =
+        entry.category === null
+          ? tr('moderation.member.reportedRow')
+          : `${tr('moderation.member.reportedRow')} · ${categoryLabel(entry.category)}`;
       break;
     case 'appealed':
       title = tr('moderation.member.appealed');
@@ -51,6 +54,9 @@ function HistoryRow(props: { entry: Entry; index: number; view: MemberView }) {
       break;
     }
   }
+  const farm =
+    entry.farm === null ? undefined : view.record.farms.find((f) => f.farm === entry.farm);
+  if (farm?.name != null) sub.push(farm.name);
   return (
     <div class="hist" style={`--i:${props.index}`}>
       <span class={`hdot ${dotFor(entry)}`} />

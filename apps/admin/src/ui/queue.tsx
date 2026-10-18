@@ -1,6 +1,6 @@
-import type { QueueRow, ReportCategory } from '@kithfield/contracts';
+import type { PendingAction, QueueRow, ReportCategory } from '@kithfield/contracts';
 
-import { categoryLabel, chipLabel, dueText, tr, whatLabel } from '../copy';
+import { actionLabel, categoryLabel, chipLabel, dueText, tr, whatLabel } from '../copy';
 import { formatAt } from '../time';
 import { Head } from './shell';
 
@@ -16,6 +16,8 @@ export interface QueueView {
   readonly next: string | null;
   readonly more: string | null;
   readonly names: ReadonlyMap<string, string>;
+  /** Removals from Kithfield waiting for a second moderator. */
+  readonly pending: readonly PendingAction[];
   readonly flash: string | null;
   readonly zone: string;
   readonly now: number;
@@ -41,6 +43,16 @@ function withLabel(row: QueueRow, names: ReadonlyMap<string, string>) {
   return row.source === 'member'
     ? tr('moderation.queue.unassigned')
     : tr('moderation.queue.autoFlag');
+}
+
+/** What was reported, from whom and aimed at whom: `Message from Bram, aimed at June`. */
+function whatLine(row: QueueRow): string {
+  const what = whatLabel(row.kind);
+  const { reportedName: name, aimedAtName: to } = row.preview;
+  if (name === null) return what;
+  return to === null
+    ? tr('moderation.preview.from', { what, name })
+    : tr('moderation.preview.fromTo', { what, name, to });
 }
 
 function Preview(props: { row: QueueRow; view: QueueView; hidden: boolean }) {
@@ -70,11 +82,29 @@ function Preview(props: { row: QueueRow; view: QueueView; hidden: boolean }) {
       </div>
       <div class="pv-cat">{categoryLabel(row.category)}</div>
       <div class="pv-what">
-        {whatLabel(row.kind)} · {farmOf(row)}
+        {whatLine(row)} · {farmOf(row)}
       </div>
-      <div class="pv-box">{source}</div>
-      <div class="pv-hint">{tr('moderation.preview.hint')}</div>
+      <div class="pv-box">{row.preview.excerpt ?? source}</div>
+      <div class="pv-hint">
+        {row.preview.excerpt === null ? tr('moderation.preview.hint') : source}
+      </div>
       <div class="kv">
+        <div>
+          <span>{tr('moderation.preview.note')}</span>
+          <span>
+            {row.preview.note === null
+              ? tr('moderation.preview.noNote')
+              : tr('moderation.preview.quoted', { text: row.preview.note })}
+          </span>
+        </div>
+        <div>
+          <span>{tr('moderation.preview.signals')}</span>
+          <span>
+            {row.preview.earlierReports === 0
+              ? tr('moderation.preview.firstReport')
+              : tr('moderation.preview.earlier', { count: row.preview.earlierReports })}
+          </span>
+        </div>
         <div>
           <span>{tr('moderation.preview.received')}</span>
           <span>{formatAt(row.receivedAt, 'day', view.zone, view.now)}</span>
@@ -89,6 +119,34 @@ function Preview(props: { row: QueueRow; view: QueueView; hidden: boolean }) {
         {tr('moderation.preview.openReport')}
       </a>
       <div class="note center">{tr('moderation.preview.foot')}</div>
+    </div>
+  );
+}
+
+/** Removals from Kithfield a second, senior moderator still has to agree to. */
+function Pending(props: { view: QueueView }) {
+  const { view } = props;
+  return (
+    <div class="card pad pending">
+      <span class="eyebrow">{tr('moderation.second.waiting')}</span>
+      {view.pending.map((row) => (
+        <div class="prow">
+          <div>
+            <div class="strong">
+              {actionLabel(row.decision)} · {row.name ?? tr('moderation.report.someone')}
+            </div>
+            <div class="note">
+              {tr('moderation.second.asked', {
+                name: row.askedByName,
+                when: formatAt(row.askedAt, 'inline', view.zone, view.now),
+              })}
+            </div>
+          </div>
+          <a class="btn" href={`/actions/${row.action}?report=${row.report}`}>
+            {tr('moderation.second.look')}
+          </a>
+        </div>
+      ))}
     </div>
   );
 }
@@ -133,6 +191,7 @@ export function QueuePage(view: QueueView) {
         </div>
       </Head>
       {view.flash === null ? null : <div class="flash">{view.flash}</div>}
+      {view.pending.length === 0 ? null : <Pending view={view} />}
       <div class="chips">
         <Chip
           href="/queue"
