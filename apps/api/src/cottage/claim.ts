@@ -1,14 +1,14 @@
 import { type Lang, PushJob } from '@kithfield/contracts';
 
-import { categoryOf } from '../push/catalogue';
+import { categoryOf, knockAllows } from '../push/catalogue';
 import { holdUntil, KNOCK_LIFETIME_MS } from '../push/policy';
-import { farmTitle, isMuted, knowsFarm } from './chats';
+import { farmTitle, isMuted, knockForOf, knowsFarm } from './chats';
 import { pushTargets, type PushTarget } from './devices';
 import { considerJob, holdJob, type Intake, ledger, QUEUE_RETRY_MS, tryEnqueue } from './intake';
 import { quietOf, readProfile } from './profile';
 
 /** Why a push that was already decided on is not sent after all. */
-export type LateSkip = 'muted' | 'hibernating' | 'left' | 'expired';
+export type LateSkip = 'muted' | 'knock_off' | 'hibernating' | 'left' | 'expired';
 
 /** What the push consumer needs to send a job now, or why it shouldn't. */
 export type Claim =
@@ -24,7 +24,7 @@ export type Claim =
 
 /**
  * The checks a decided push still has to pass: the person may have hibernated, muted or left the
- * farm since, or a knock may have gone stale. Quiet hours are checked by the caller.
+ * farm since, turned that kind of push off there, or a knock may have gone stale. Quiet hours are checked by the caller.
  */
 function lateSkip(intake: Intake, job: PushJob): LateSkip | null {
   const { sql, now } = intake;
@@ -32,6 +32,7 @@ function lateSkip(intake: Intake, job: PushJob): LateSkip | null {
   if (readProfile(sql).hibernating) return 'hibernating';
   if (category !== 'reminder' && job.farm !== null && !knowsFarm(sql, job.farm)) return 'left';
   if (category !== 'reminder' && isMuted(sql, job.farm, now)) return 'muted';
+  if (!knockAllows(knockForOf(sql, job.farm), job, category)) return 'knock_off';
   if (category === 'knock' && now - job.at > KNOCK_LIFETIME_MS) return 'expired';
   return null;
 }

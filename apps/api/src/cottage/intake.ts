@@ -11,12 +11,13 @@ import {
   NUDGE_LAST_COPY,
   REMEMBER_COPY,
   tag,
+  knockAllows,
 } from '../push/catalogue';
 import { type LedgerRow, writeLedger } from '../push/ledger';
 import { displayNameOf } from '../push/names';
 import { DAY_MS, type Decision, decide, localClock } from '../push/policy';
 import { enqueuePush } from '../push/queue';
-import { isMuted, peerName } from './chats';
+import { isMuted, knockForOf, peerName } from './chats';
 import { quietOf, readProfile, updateProfile, zoneOf } from './profile';
 
 /** What the cottage's push decisions run against. */
@@ -29,7 +30,8 @@ export interface Intake {
 
 /** Turns a delivered event into a push for this person, if it makes one, and decides on it. */
 export async function considerDelivery(intake: Intake, delivery: CottageDelivery): Promise<void> {
-  const candidate = candidateFor(delivery, intake.person);
+  const everyMessage = knockForOf(intake.sql, delivery.farm).messages;
+  const candidate = candidateFor(delivery, intake.person, everyMessage);
   if (candidate === null) return;
   const params: Record<string, string> = {};
   if (candidate.named && delivery.actor !== null) {
@@ -140,6 +142,7 @@ export async function considerJob(
     category,
     at: now,
     muted: isMuted(sql, job.farm, now),
+    knockAllowed: knockAllows(knockForOf(sql, job.farm), job, category),
     hibernating: profile.hibernating,
     connected,
     quiet: quietOf(profile),

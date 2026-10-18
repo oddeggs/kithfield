@@ -15,7 +15,7 @@ import {
   text,
 } from '../primitives';
 
-/* The person: `GET /v1/me`, their settings, hibernating, contacts and remember-me seeds. */
+/* The person: `GET /v1/me`, their profile and settings, hibernating, contacts and remember-me seeds. */
 
 export const SignInMethod = z.enum(['apple', 'google', 'email', 'phone']);
 export type SignInMethod = z.infer<typeof SignInMethod>;
@@ -71,6 +71,19 @@ export const Me = z.object({
   purgeAt: EpochMs.nullable(),
 });
 export type Me = z.infer<typeof Me>;
+
+/**
+ * `PATCH /v1/me/profile`: the person's name, critter and birthday (day and month, opt-in; null
+ * clears it), any of them. Answers with `Me`. The server stores them on the person, then writes a
+ * `critter_changed` on their behalf (one of `ON_BEHALF_KINDS`) on every farm they live on, carrying
+ * exactly the keys that changed, under the same names and types: `name`, `critter`, `birthday`.
+ * Nothing is written when nothing changed.
+ */
+export const MeProfileUpdate = z
+  .object({ name: DisplayName, critter: Critter, birthday: MonthDay.nullable() })
+  .partial()
+  .refine((p) => Object.keys(p).length > 0, { message: 'Change at least one thing' });
+export type MeProfileUpdate = z.infer<typeof MeProfileUpdate>;
 
 /** `PUT /v1/me/hibernate`: the server writes `hibernate` on every farm the person lives on. */
 export const HibernateRequest = z.object({ on: z.boolean() });
