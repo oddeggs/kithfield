@@ -12,6 +12,12 @@ import type { ArtId, Season } from '@kithfield/contracts';
  */
 export const PATRON_KEEP_ALL = true;
 
+/**
+ * How long past its period a subscription in billing grace keeps its perks when no news of its
+ * end arrives (the App Store retries a failed renewal for up to 16 days).
+ */
+export const GRACE_SLACK_MS = 16 * 86_400_000;
+
 /** Once promises cover a theme, how long everyone has to pay their share before it closes. */
 export const THEME_PAY_WINDOW_MS = 3 * 86_400_000;
 

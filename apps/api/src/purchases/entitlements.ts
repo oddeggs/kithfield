@@ -8,7 +8,7 @@ import {
   type Store,
 } from '@kithfield/contracts';
 
-import { FARM_PLUS_COVERS, PARCELS, PATRON_KEEP_ALL } from './config';
+import { FARM_PLUS_COVERS, GRACE_SLACK_MS, PARCELS, PATRON_KEEP_ALL } from './config';
 import { patronProduct } from './products';
 
 /*
@@ -34,7 +34,8 @@ const RENEWAL_SLACK_MS = 86_400_000;
  * whose time is over still counts as lapsed.
  */
 export const stateNow = (row: SubRow, now: number): SubState => {
-  if (row.until === null || row.state === 'lapsed' || row.state === 'grace') return row.state;
+  if (row.until === null || row.state === 'lapsed') return row.state;
+  if (row.state === 'grace') return row.until + GRACE_SLACK_MS <= now ? 'lapsed' : 'grace';
   if (row.state === 'ending' && row.until <= now) return 'lapsed';
   if (row.state === 'active' && row.until + RENEWAL_SLACK_MS <= now) return 'lapsed';
   return row.state;
