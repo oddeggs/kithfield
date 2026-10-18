@@ -27,6 +27,12 @@ export const secretNames = [
   'R2_SECRET_ACCESS_KEY',
   // WeatherKit's `.p8` key (PKCS#8 PEM; newlines may be written as `\n`), for the farm's weather.
   'WEATHERKIT_KEY',
+  // RevenueCat's secret REST key, so `POST /v1/purchases/sync` can ask what a person bought.
+  'REVENUECAT_SECRET_KEY',
+  // The exact `Authorization` header value RevenueCat sends with each webhook.
+  'REVENUECAT_WEBHOOK_AUTH',
+  // Signs Stripe's webhooks (`Stripe-Signature`), for the printed scrapbook's payments.
+  'STRIPE_WEBHOOK_SECRET',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -99,6 +105,8 @@ export type Bindings = Secrets & {
   readonly AI_LIMIT: RateLimit;
   /** Asking for AI captions: at most 120 a minute per farm. */
   readonly AI_FARM_LIMIT: RateLimit;
+  /** The shop's writes, per person: purchase syncs, gifts, chip-ins and wall names. */
+  readonly SHOP_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;

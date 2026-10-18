@@ -9,6 +9,7 @@ export * from './motion';
 export * from './plans';
 export * from './rhythm';
 export * from './settings';
+export * from './shop';
 export * from './space';
 export * from './transitions';
 export * from './type';

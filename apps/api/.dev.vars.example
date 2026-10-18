@@ -26,3 +26,10 @@ R2_SECRET_ACCESS_KEY=
 # WeatherKit's `.p8` key for the farm's weather (PKCS#8 PEM, one line with newlines written as \n).
 # Empty: no weather is fetched and farms write none.
 WEATHERKIT_KEY=
+# RevenueCat's secret REST key (project settings › API keys), for `POST /v1/purchases/sync`. Empty
+# locally: sync then answers from D1 alone.
+REVENUECAT_SECRET_KEY=
+# The Authorization header value RevenueCat sends with its webhook (set the same in RevenueCat).
+REVENUECAT_WEBHOOK_AUTH=
+# Stripe's webhook signing secret (whsec_…), for the printed scrapbook. Empty until it is set up.
+STRIPE_WEBHOOK_SECRET=

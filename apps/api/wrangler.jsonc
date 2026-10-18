@@ -124,6 +124,12 @@
           "namespace_id": "1257",
           "simple": { "limit": 120, "period": 60 },
         },
+        // The shop's writes (purchase syncs, gifts, chip-ins, wall names), per person.
+        {
+          "name": "SHOP_LIMIT",
+          "namespace_id": "1261",
+          "simple": { "limit": 10, "period": 60 },
+        },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
       "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@kithfield.com"] }],
@@ -255,6 +261,12 @@
           "name": "AI_FARM_LIMIT",
           "namespace_id": "1258",
           "simple": { "limit": 120, "period": 60 },
+        },
+        // The shop's writes (purchase syncs, gifts, chip-ins, wall names), per person.
+        {
+          "name": "SHOP_LIMIT",
+          "namespace_id": "1262",
+          "simple": { "limit": 10, "period": 60 },
         },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.

@@ -13,6 +13,7 @@ import {
   type RejectReason,
   type SocketErrorCode,
   type FarmEvent,
+  type GiftPayload,
   PING,
   PONG,
   type RuleRef,
@@ -26,6 +27,7 @@ import type { Bindings } from '../env';
 import { type RecapFacts, recapOf } from '../rhythm/recap-facts';
 import { scrapbookOf, type WireScrapbook } from '../rhythm/scrapbook';
 import * as actions from './actions';
+import { chipInGift, chipInTheme } from './chip-in-writes';
 import { runAlarm } from './alarms';
 import { exportOf, type FarmExport } from './export';
 import { fireOutAfterMs } from './farm';
@@ -119,6 +121,20 @@ export class FarmDO extends DurableObject<Bindings> {
     changed: CritterChangedPayload,
   ): Promise<CommandResult> {
     return actions.profileChanged(this.host, person, opId, changed);
+  }
+
+  /** Friends' chip-in covered a gift: written on behalf of whoever started it, once per op id. */
+  chipInGift(
+    opId: OpId,
+    starter: PersonId,
+    payload: Extract<GiftPayload, { action: 'given' }>,
+  ): Promise<CommandResult> {
+    return chipInGift(this.host, opId, starter, payload);
+  }
+
+  /** Friends' chip-in covered a farm theme: it switches on, with no actor, once per op id. */
+  chipInTheme(opId: OpId, theme: string): Promise<CommandResult> {
+    return chipInTheme(this.host, opId, theme);
   }
 
   /** An anonymous person was merged into a returning one: see `actions.mergePerson`. */

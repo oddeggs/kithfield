@@ -2,6 +2,7 @@ import type { FarmCommand, PersonId, RejectReason } from '@kithfield/contracts';
 
 import { eitherBlocked } from '../auth';
 import type { Bindings } from '../env';
+import { claimGift, claimOf, farmOwnsTheme } from '../purchases/gift-claims';
 
 /*
  * Checks on a phone's write that need more than the farm's own log: whom a gesture is addressed
@@ -50,9 +51,30 @@ export const refusalOf = async (
 ): Promise<RejectReason | null> => {
   const media = mediaRefusal(farm, cmd);
   if (media !== null) return media;
+  // A farm theme is shown only once the farm owns it (friends' chip-in covered it).
+  if (
+    cmd.kind === 'settings_changed' &&
+    cmd.payload.setting === 'theme' &&
+    cmd.payload.theme !== null &&
+    !(await farmOwnsTheme(env.DB, farm, cmd.payload.theme))
+  ) {
+    return 'not_allowed';
+  }
+  // A gift friends chipped in for is written by the farm alone; a phone can't send one.
+  if (
+    cmd.kind === 'gift' &&
+    cmd.payload.action === 'given' &&
+    (cmd.payload.chipIn !== undefined || cmd.payload.with !== undefined)
+  ) {
+    return 'not_allowed';
+  }
   const to = (cmd.payload as { to?: unknown }).to;
   if (!ADDRESSED.has(cmd.kind) || typeof to !== 'string') return null;
   const recipient = personOf(to);
-  if (recipient === actor) return null;
-  return (await eitherBlocked(env.DB, actor, recipient)) ? 'unavailable' : null;
+  if (recipient !== actor && (await eitherBlocked(env.DB, actor, recipient))) return 'unavailable';
+  // A gift id is taken only from its giver, paid and not given yet: claimed now, released by the
+  // caller if the farm refuses the write after all.
+  const claim = claimOf(cmd, actor);
+  if (claim !== null && !(await claimGift(env.DB, claim, Date.now()))) return 'not_found';
+  return null;
 };

@@ -28,6 +28,9 @@ export default defineConfig(async () => {
               'sam@example.com': 'moderator',
             }),
             MEDIA_SIGNING_KEY: `${randomUUID()}${randomUUID()}`,
+            // The purchases webhooks' secrets, fixed so the tests can sign as the senders do.
+            REVENUECAT_WEBHOOK_AUTH: 'Bearer rc-test-webhook-auth',
+            STRIPE_WEBHOOK_SECRET: 'whsec_test_secret',
           },
         },
       }),

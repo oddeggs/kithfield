@@ -8,6 +8,7 @@ import { cottageRoutes } from './cottage/routes';
 import type { AppEnv } from './env';
 import { farmApi } from './farm/routes';
 import { mediaRoutes } from './media';
+import { purchasesRoutes } from './purchases';
 import { rhythmRoutes } from './rhythm/routes';
 import { waitlistRoutes } from './web/waitlist';
 
@@ -31,6 +32,7 @@ export function createApp(): Hono<AppEnv> {
   app.route('/v1', mediaRoutes());
   app.route('/v1', rhythmRoutes());
   app.route('/v1', voiceCaptionRoutes());
+  app.route('/v1', purchasesRoutes());
 
   app.notFound((c) => c.json({ error: { code: 'not_found' } }, 404));
 
