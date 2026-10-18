@@ -114,7 +114,8 @@ const toRow = (raw: AppealRaw): AppealRow => ({
   sentAt: raw.sent_at,
   status: raw.status as AppealStatus,
   reviewer: raw.reviewer_id,
-  text: raw.text,
+  // A deleted account's words are blanked; the row stays for the record.
+  text: raw.text.trim() === '' ? '—' : raw.text,
 });
 
 const PAGE = 100;
