@@ -264,7 +264,7 @@ export function TypingLine({ people }: { readonly people: readonly PersonId[] })
           attrs={{ kind: room.people.get(p)?.critter?.species ?? 'rabbit' }}
         />
       ))}
-      <Txt variant="handS" color={colours.hand} style={{ fontSize: 16 }}>
+      <Txt variant="handS" color={colours.hand} style={{ fontSize: 16, lineHeight: 22 }}>
         {text}
       </Txt>
     </View>

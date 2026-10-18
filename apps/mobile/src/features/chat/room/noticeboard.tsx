@@ -207,7 +207,7 @@ function PinCard({
           boxShadow: colours.corkCardShadow,
         }}
       >
-        <View style={{ position: 'absolute', top: -8, left: '50%', marginLeft: -11 }}>
+        <View style={{ position: 'absolute', top: -8, left: 0, right: 0, alignItems: 'center' }}>
           <ArtIcon name="pin" size={22} color={colours.pinInk} />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

@@ -266,10 +266,9 @@ export function ChatRow(props: ChatRowProps) {
                 {line}
               </Txt>
             </View>
-            {/* The time sits level with the name, the honey dot under it. */}
-            <View
-              style={{ alignSelf: 'flex-start', alignItems: 'flex-end', gap: 6, paddingTop: 2 }}
-            >
+            {/* The time and the honey dot under it, centred together: with a dot the time sits
+                level with the name, without one it sits mid-row. */}
+            <View style={{ alignItems: 'flex-end', gap: 6 }}>
               <Txt variant="caption" color={palette.secondary} style={{ fontSize: 13 }}>
                 {listTime(row.at, now, language)}
               </Txt>

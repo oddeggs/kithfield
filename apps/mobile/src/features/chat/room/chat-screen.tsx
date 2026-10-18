@@ -49,8 +49,8 @@ import { sprouted, useMentionRows, useOutLine } from './room-people';
 const PIN_BAR = 46;
 /** The composer sits 32 points above the bottom edge (over the home indicator), as drawn. */
 const COMPOSER_BOTTOM = 32;
-/** With the keyboard up, the composer keeps 8 points above it. */
-const COMPOSER_LIFT = COMPOSER_BOTTOM - 8;
+/** With the keyboard up, the composer keeps 14 points above it, as drawn. */
+const COMPOSER_LIFT = COMPOSER_BOTTOM - 14;
 
 export interface ChatScreenProps {
   readonly farm: string;

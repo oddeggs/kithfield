@@ -233,7 +233,7 @@ export function MediaScreen({ farm }: { readonly farm: string }) {
         <ScrollView
           contentContainerStyle={{
             paddingHorizontal: 12,
-            paddingTop: 18,
+            paddingTop: 16,
             paddingBottom: insets.bottom + 24,
             gap: 10,
           }}
@@ -249,9 +249,11 @@ export function MediaScreen({ farm }: { readonly farm: string }) {
               <Txt
                 variant="displayS"
                 accessibilityRole="header"
+                // Drawn 20 on 20 like the design, in a taller line so the capitals aren't clipped.
                 style={{
                   fontSize: 20,
-
+                  lineHeight: 26,
+                  marginVertical: -3,
                   paddingHorizontal: 4,
                   paddingTop: g === 0 ? 0 : 6,
                 }}

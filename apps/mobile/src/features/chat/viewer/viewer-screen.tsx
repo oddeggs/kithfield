@@ -257,10 +257,10 @@ export function ViewerScreen({
         </Circle>
         {current ? (
           <View style={{ alignItems: 'center' }} accessible accessibilityRole="header">
-            <Txt variant="rowTitle" color={INK} style={{ fontSize: 15 }}>
+            <Txt variant="rowTitle" color={INK} style={{ fontSize: 15, lineHeight: 18 }}>
               {nameOf(current.actor)}
             </Txt>
-            <Txt variant="caption" color={SUB} style={{ fontSize: 12.5 }}>
+            <Txt variant="caption" color={SUB} style={{ fontSize: 12.5, lineHeight: 15 }}>
               {t('chat.viewer.position', {
                 when: weekdayTime(current.at, language, state?.timeZone ?? null),
                 index: at + 1,
