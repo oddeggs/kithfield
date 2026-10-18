@@ -8,6 +8,7 @@ import { ActionSheetIOS, View } from 'react-native';
 
 import { useCottage, useDataClient, useFarm, useFarmView } from '../../data';
 import { ArtIcon, ArtLoop } from '../../ui/art/art-view';
+import { sceneLook } from '../../ui/art/critter-look';
 import { Button } from '../../ui/components/button';
 import { ListGroup, ListRow } from '../../ui/components/list-row';
 import { useToast } from '../../ui/components/toast';
@@ -167,13 +168,9 @@ export function CritterCard({
             width={104}
             height={110}
             attrs={{
-              kind: c.species,
+              ...sceneLook(c),
               season: view?.season.season ?? 'spring',
-              coat: c.coat,
-              mark: c.mark ?? undefined,
-              outfit: c.outfit ?? undefined,
-              ocolor: c.outfitColor ?? undefined,
-              state: critter?.sleepy ? 'sleep' : undefined,
+              ...(critter?.sleepy ? { state: 'sleep' } : {}),
             }}
           />
         </View>

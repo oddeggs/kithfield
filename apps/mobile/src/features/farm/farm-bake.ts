@@ -1,8 +1,9 @@
-import { critterLayers, type ArtCanvas, type CritterLook } from '@kithfield/art';
+import { critterLayers, type ArtCanvas } from '@kithfield/art';
 import type { Critter } from '@kithfield/contracts';
 import type { SkImage } from '@shopify/react-native-skia';
 
 import type { ArtStore } from '../../ui/art/art-store';
+import { castOf, lookOf } from '../../ui/art/critter-look';
 
 /*
  * The farm drawn once, to be moved on the UI thread: the scene's still without its critters and
@@ -167,31 +168,7 @@ export interface CritterPoses {
   readonly blink: Pose | null;
 }
 
-/** The art's look for a critter as the contracts carry it: coat, marking, outfit, accessory. */
-export const lookOf = (critter: Critter): CritterLook => ({
-  coat: critter.coat,
-  ...(critter.mark ? { mark: critter.mark } : {}),
-  ...(critter.outfit
-    ? {
-        outfit: {
-          name: critter.outfit,
-          ...(critter.outfitColor ? { color: critter.outfitColor } : {}),
-        },
-      }
-    : {}),
-  ...(critter.accessory ? { accessory: { name: critter.accessory } } : {}),
-});
-
-/** A critter as the cast string the art's group scenes take: `kind/coat/mark/outfit/colour/z`. */
-export const castOf = (critter: Critter, asleep = false): string =>
-  [
-    critter.species,
-    critter.coat,
-    critter.mark ?? '',
-    critter.outfit ?? '',
-    critter.outfitColor ?? '',
-    asleep ? 'z' : '',
-  ].join('/');
+export { castOf, lookOf };
 
 const poses = new WeakMap<ArtStore, Map<string, Pose>>();
 

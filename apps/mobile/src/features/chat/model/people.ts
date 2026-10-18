@@ -1,4 +1,3 @@
-import type { CritterLook } from '@kithfield/art';
 import type { Critter, FarmState, MemberState, PersonId } from '@kithfield/contracts';
 
 /** A person as the chat draws them: a name (null for a deleted account) and their critter. */
@@ -10,34 +9,7 @@ export interface Person {
   readonly member: boolean;
 }
 
-/** The art's look for a critter as the contracts carry it: coat, marking, outfit, accessory. */
-export function lookOf(critter: Critter): CritterLook {
-  return {
-    coat: critter.coat,
-    ...(critter.mark ? { mark: critter.mark } : {}),
-    ...(critter.outfit
-      ? {
-          outfit: {
-            name: critter.outfit,
-            ...(critter.outfitColor ? { color: critter.outfitColor } : {}),
-          },
-        }
-      : {}),
-    ...(critter.accessory ? { accessory: { name: critter.accessory } } : {}),
-  };
-}
-
-/** The `kind/coat/mark/outfit/colour/z` form the art's `cast` attribute takes, for one critter. */
-export function castOf(critter: Critter, sleeping = false): string {
-  return [
-    critter.species,
-    critter.coat,
-    critter.mark ?? '',
-    critter.outfit ?? '',
-    critter.outfitColor ?? '',
-    sleeping ? 'z' : '',
-  ].join('/');
-}
+export { castOf, lookOf } from '../../../ui/art/critter-look';
 
 /** The person a merged-away id now is. */
 export function keptId(state: FarmState | null, person: PersonId): PersonId {

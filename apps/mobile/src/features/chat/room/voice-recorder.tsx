@@ -13,6 +13,7 @@ import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanima
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { ArtIcon, ArtLoop } from '../../../ui/art/art-view';
+import { sceneLook } from '../../../ui/art/critter-look';
 import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { haptics } from '../../../ui/motion/haptics';
@@ -282,13 +283,7 @@ export function RecorderPanel({
             scene="stage"
             width={58}
             height={58}
-            attrs={{
-              kind: me?.species ?? 'rabbit',
-              season,
-              ...(me?.coat ? { coat: me.coat } : {}),
-              ...(me?.outfit ? { outfit: me.outfit } : {}),
-              ...(me?.outfitColor ? { ocolor: me.outfitColor } : {}),
-            }}
+            attrs={{ ...(me ? sceneLook(me) : { kind: 'rabbit' }), season }}
           />
         </View>
         <View style={{ flex: 1, gap: 4 }}>

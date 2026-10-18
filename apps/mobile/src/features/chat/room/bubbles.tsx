@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { ArtIcon, ArtStill } from '../../../ui/art/art-view';
+import { sceneLook } from '../../../ui/art/critter-look';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
@@ -440,11 +441,8 @@ function StickerBubble({
       height={100}
       t={1.2}
       attrs={{
-        kind: critter?.species ?? 'rabbit',
+        ...(critter ? sceneLook(critter) : { kind: 'rabbit' }),
         pose: sticker.sticker,
-        ...(critter?.coat ? { coat: critter.coat } : {}),
-        ...(critter?.outfit ? { outfit: critter.outfit } : {}),
-        ...(critter?.outfitColor ? { ocolor: critter.outfitColor } : {}),
         ...(cast ? { cast } : {}),
       }}
     />

@@ -1,6 +1,8 @@
 import type { CritterLook } from '@kithfield/art';
-import type { Critter, FarmState, MemberState } from '@kithfield/contracts';
+import type { FarmState, MemberState } from '@kithfield/contracts';
 import { CLOUD_MS } from '@kithfield/farm';
+
+import { lookOf } from '../../../ui/art/critter-look';
 
 /** Someone drawn on a gesture screen: their name (null for a nameless member) and critter. */
 export interface Friend {
@@ -11,10 +13,7 @@ export interface Friend {
   readonly member: MemberState | null;
 }
 
-export const lookOf = (critter: Critter): CritterLook => ({
-  coat: critter.coat,
-  ...(critter.mark ? { mark: critter.mark } : {}),
-});
+export { lookOf };
 
 /** A person as the farm knows them: a member, someone who has gone, or a merged-away id. */
 export function friendOf(state: FarmState | null, person: string | null): Friend | null {

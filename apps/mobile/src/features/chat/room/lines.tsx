@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { ArtIcon, ArtLoop } from '../../../ui/art/art-view';
 import { Avatar } from '../../../ui/art/avatar';
+import { sceneLook } from '../../../ui/art/critter-look';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
@@ -238,7 +239,7 @@ export function TypingLine({ people }: { readonly people: readonly PersonId[] })
             scene="writing"
             width={96}
             height={46}
-            attrs={{ kind: critter?.species ?? 'rabbit' }}
+            attrs={critter ? sceneLook(critter) : { kind: 'rabbit' }}
             style={{ marginLeft: 2 }}
           />
           <Txt variant="handS" color={colours.hand} style={{ paddingLeft: 4 }}>

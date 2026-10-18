@@ -1,6 +1,4 @@
-import type { CritterLook } from '@kithfield/art';
 import type {
-  Critter,
   FarmNotifications,
   Hemisphere,
   LocalTime,
@@ -12,40 +10,7 @@ import type { Language } from '@kithfield/i18n';
 
 /* Pure helpers behind the settings screens: what to draw and say, never how. */
 
-/** The art's look for a critter as the contracts carry it. */
-export const lookOf = (critter: Critter): CritterLook => ({
-  coat: critter.coat,
-  ...(critter.mark ? { mark: critter.mark } : {}),
-  ...(critter.outfit
-    ? {
-        outfit: {
-          name: critter.outfit,
-          ...(critter.outfitColor ? { color: critter.outfitColor } : {}),
-        },
-      }
-    : {}),
-  ...(critter.accessory ? { accessory: { name: critter.accessory } } : {}),
-});
-
-/** A critter as a scene's attributes (`stage`, `burrow`): kind, coat, mark and outfit. */
-export const sceneAttrsOf = (critter: Critter): Record<string, string> => ({
-  kind: critter.species,
-  coat: critter.coat,
-  ...(critter.mark ? { mark: critter.mark } : {}),
-  ...(critter.outfit ? { outfit: critter.outfit } : {}),
-  ...(critter.outfitColor ? { ocolor: critter.outfitColor } : {}),
-});
-
-/** A critter in a scene's `cast` attribute: `kind/coat/mark/outfit/ocolor/state`. */
-export const castOf = (critter: Critter, state = ''): string =>
-  [
-    critter.species,
-    critter.coat,
-    critter.mark ?? '',
-    critter.outfit ?? '',
-    critter.outfitColor ?? '',
-    state,
-  ].join('/');
+export { castOf, lookOf, sceneLook as sceneAttrsOf } from '../../ui/art/critter-look';
 
 /** Time zones south of the equator, by their area or exact name; the rest count as north. */
 const SOUTH = [

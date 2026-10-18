@@ -1,4 +1,3 @@
-import type { CritterLook } from '@kithfield/art';
 import type { Critter, Species } from '@kithfield/contracts';
 
 export {
@@ -10,6 +9,7 @@ export {
   type CritterKind,
   type Shape,
 } from './critter-kinds';
+import { lookOf, sceneLook } from '../../ui/art/critter-look';
 import { CRITTERS, DEFAULT_COAT, type CritterKind, type Shape } from './critter-kinds';
 
 /** The markings, `none` first (Make them yours, Markings). */
@@ -29,15 +29,6 @@ export const ACCESSORIES = [
   'satchel',
 ] as const;
 export type Accessory = (typeof ACCESSORIES)[number];
-
-const ACCESSORY_COLOUR: Partial<Record<Accessory, string>> = {
-  beanie: '#6f8faa',
-  straw: '#c9543e',
-  scarf: '#5e7f4a',
-  bow: '#d4704e',
-  flower: '#f0b3b6',
-  party: '#e8b44e',
-};
 
 /** What the person has picked so far. */
 export interface CritterChoice {
@@ -83,32 +74,11 @@ export function critterOf(choice: CritterChoice): Critter {
   };
 }
 
-/** A worn item for the art, in its colour. */
-function wearable(name: string, color: string | null | undefined) {
-  return color ? { name, color } : { name };
-}
-
-/** How the art draws a critter the API describes: each slot as its own cached layer. */
-export function lookOf(critter: Critter): CritterLook {
-  const accessoryColour = ACCESSORY_COLOUR[critter.accessory as Accessory];
-  return {
-    ...(critter.coat === DEFAULT_COAT ? {} : { coat: critter.coat }),
-    ...(critter.mark ? { mark: critter.mark } : {}),
-    ...(critter.outfit ? { outfit: wearable(critter.outfit, critter.outfitColor) } : {}),
-    ...(critter.accessory ? { accessory: wearable(critter.accessory, accessoryColour) } : {}),
-  };
-}
+export { lookOf };
 
 /** The scene attributes (`stage`, `avatar`) that draw a choice, as the design's renderer reads them. */
 export function lookAttrs(choice: CritterChoice): Record<string, string> {
-  const colour = ACCESSORY_COLOUR[choice.accessory];
-  return {
-    kind: choice.species,
-    ...(choice.coat === DEFAULT_COAT ? {} : { coat: choice.coat }),
-    ...(choice.mark === 'none' ? {} : { mark: choice.mark }),
-    ...(choice.accessory === 'none' ? {} : { outfit: choice.accessory }),
-    ...(colour ? { ocolor: colour } : {}),
-  };
+  return sceneLook(critterOf(choice));
 }
 
 /** A farmmate the picked critter is measured against: the inviter has a name, others don't. */

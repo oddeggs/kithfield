@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFarm, useSend } from '../../data';
 import { ArtStill } from '../../ui/art/art-view';
 import { Avatar } from '../../ui/art/avatar';
+import { sceneLook } from '../../ui/art/critter-look';
 import { Button } from '../../ui/components/button';
 import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
@@ -52,14 +53,17 @@ export function LeaveFarm({ farm }: { readonly farm: FarmId }) {
     await valley.left(farm);
     backToFarm();
   };
-  const species = state?.members.find((m) => m.person === me)?.critter.species ?? 'rabbit';
+  const mine = state?.members.find((m) => m.person === me)?.critter ?? null;
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SceneArt
         scene="leftcot"
         width={width}
         height={360 * k}
-        attrs={{ kind: species, season: state?.season.season ?? 'spring' }}
+        attrs={{
+          ...(mine ? sceneLook(mine) : { kind: 'rabbit' }),
+          season: state?.season.season ?? 'spring',
+        }}
       />
       <View
         style={{
@@ -190,7 +194,7 @@ export function SleepingCottage({
         scene="leftcot"
         width={width}
         height={470 * k}
-        attrs={{ kind: former.critter.species, season: state.season.season }}
+        attrs={{ ...sceneLook(former.critter), season: state.season.season }}
       />
       <GlyphButton
         glyph="‹"

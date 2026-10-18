@@ -12,6 +12,7 @@ import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
+import { sceneLook } from '../../ui/art/critter-look';
 import { castOf } from './farm-bake';
 import { listOf } from './farm-copy';
 import { withAlpha } from './over-art';
@@ -122,16 +123,12 @@ export function MoveIn({ farm, person }: { readonly farm: FarmId; readonly perso
   const others = neighbours.filter((m) => m.person !== me).map((m) => m.name ?? t('farm.someone'));
   const c = newcomer.critter;
   const attrs = {
-    kind: c.species,
+    ...sceneLook(c),
     season: state.season.season,
     cast: neighbours
       .slice(0, 4)
       .map((m) => castOf(m.critter))
       .join(','),
-    coat: c.coat,
-    mark: c.mark ?? undefined,
-    outfit: c.outfit ?? undefined,
-    ocolor: c.outfitColor ?? undefined,
   };
   const height = 540 * k;
   const close = () => router.back();

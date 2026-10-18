@@ -1,6 +1,8 @@
 import type { CritterLook } from '@kithfield/art';
-import type { Critter, FarmState, PersonId } from '@kithfield/contracts';
+import type { FarmState, PersonId } from '@kithfield/contracts';
 import type { Translate } from '@kithfield/i18n';
+
+import { lookOf } from '../../ui/art/critter-look';
 
 /** A friend as plans draw them: a name to say and a critter to show. */
 export interface PlanPerson {
@@ -11,15 +13,7 @@ export interface PlanPerson {
   readonly you: boolean;
 }
 
-/** The art's look for a critter as the contracts carry it, layer by layer. */
-export const lookOf = (critter: Critter): CritterLook => ({
-  coat: critter.coat,
-  ...(critter.mark ? { mark: critter.mark } : {}),
-  ...(critter.outfit
-    ? { outfit: { name: critter.outfit, ...(critter.outfitColor ? { color: critter.outfitColor } : {}) } }
-    : {}),
-  ...(critter.accessory ? { accessory: { name: critter.accessory } } : {}),
-});
+export { lookOf };
 
 const FALLBACK_KIND = 'rabbit';
 

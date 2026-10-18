@@ -57,7 +57,7 @@ export function CrittersScreen({ farm }: { readonly farm: FarmId }) {
         height={236 * k}
         attrs={{
           season: view.season.season,
-          cast: members.map((m) => castOf(m.critter, sleepy.has(m.person))).join(','),
+          cast: members.map((m) => castOf(m.critter, sleepy.has(m.person) ? 'z' : '')).join(','),
         }}
       />
       <GlyphButton
