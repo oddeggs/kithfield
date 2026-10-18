@@ -34,6 +34,17 @@ const job = {
 };
 
 describeSchemas('cottage contracts', cottage, {
+  CottageFarm: [
+    [
+      { farm, farmKind: 'farm', name: 'The Thursday Lot', with: null },
+      { farm: 'f_visit', farmKind: 'visit', name: null, with: otis },
+    ],
+    [
+      { farm, farmKind: 'farm', name: 'The Thursday Lot', with: otis },
+      { farm: 'f_visit', farmKind: 'visit', name: null, with: null },
+      { farm, farmKind: 'farm', name: 'The Thursday Lot' },
+    ],
+  ],
   CottageNotice: [
     [notice, { ...notice, kind: 'lantern_lit', actor: null, preview: 'Bea: hi', forYou: false }],
     [

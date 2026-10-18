@@ -70,6 +70,22 @@ export const ChatListItem = CottageNotice.extend({
 });
 export type ChatListItem = z.infer<typeof ChatListItem>;
 
+/**
+ * The farm object's call to each member's cottage when the farm's row changes: on `joined`, a
+ * rename, or a visit peer's change. `leaveFarm(farm)` drops the row on `left` or `removed`.
+ */
+export const CottageFarm = z
+  .object({
+    farm: FarmId,
+    farmKind: FarmKind,
+    name: FarmName.nullable(),
+    with: VisitPeer.nullable(),
+  })
+  .refine((r) => peerMatches(r.farmKind === 'visit', r.name, r.with), {
+    message: 'A visit has a peer and no name; a farm the opposite',
+  });
+export type CottageFarm = z.infer<typeof CottageFarm>;
+
 /** A key into the notification catalogue, such as `push.knock`. */
 export const CopyKey = z.string().regex(/^[a-z][a-zA-Z0-9_.]{0,63}$/);
 

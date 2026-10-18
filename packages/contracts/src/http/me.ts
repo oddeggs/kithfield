@@ -20,12 +20,19 @@ import {
 export const SignInMethod = z.enum(['apple', 'google', 'email', 'phone']);
 export type SignInMethod = z.infer<typeof SignInMethod>;
 
-/** Pushes wait until the end of quiet hours, in the person's own time zone. */
-export const QuietHours = z.object({ from: LocalTime, to: LocalTime, timeZone: TimeZone });
+/** Pushes wait until the end of quiet hours, in the person's own time zone (`timeZone`). */
+export const QuietHours = z.object({ from: LocalTime, to: LocalTime });
 export type QuietHours = z.infer<typeof QuietHours>;
 
+/**
+ * The person's settings. The app sends `timeZone` (from device settings) and `quietHours` on first
+ * launch and whenever the zone changes. Whatever quiet hours say, the house floor holds: no push
+ * between 10pm and 8am in the person's time zone.
+ */
 export const MeSettings = z.object({
   lang: Lang,
+  /** The person's own time zone, for quiet hours, the house floor and slow posts. */
+  timeZone: TimeZone,
   quietHours: QuietHours.nullable(),
   /** Friends who have the person's number can find them; opt-in. */
   discoverableByPhone: z.boolean(),

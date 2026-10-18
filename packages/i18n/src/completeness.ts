@@ -16,7 +16,7 @@ function paramNames(entry: Entry): string[] {
 /** A placeholder whose name has a space or punctuation, which `t` would never fill. */
 function oddPlaceholders(entry: Entry | undefined): string[] {
   if (entry === undefined) return [];
-  return texts(entry).flatMap((text) => text.match(/\{[^}]*\W[^}]*\}/g) ?? []);
+  return texts(entry).flatMap((text) => text.match(/\{[^}]*[^\w}][^}]*\}/g) ?? []);
 }
 
 function sameTexts(a: Entry, b: Entry): boolean {
