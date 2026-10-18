@@ -38,6 +38,10 @@ import { webhookRoutes } from './webhooks';
 
 const WISHLIST_MAX = 30;
 
+/** The shop's writes, per person (`SHOP_LIMIT`): false once over, and the route answers 429. */
+const withinShopLimit = async (c: Ctx) =>
+  (await c.env.SHOP_LIMIT.limit({ key: c.get('person') })).success;
+
 const refused = (c: Ctx, r: Refusal) => fail(c, r.status, r.code, r.fields);
 const isRefusal = (x: object): x is Refusal => 'status' in x && 'code' in x;
 
@@ -79,6 +83,7 @@ const shopRoutes = (app: Hono<SessionEnv>) => {
   /** After a purchase or a restore: asks RevenueCat at once rather than waiting for its webhook. */
   app.post('/purchases/sync', signedIn, async (c) => {
     const person = c.get('person');
+    if (!(await withinShopLimit(c))) return fail(c, 429, 'rate_limited');
     const now = Date.now();
     await syncFromRevenueCat(c.env, person, now);
     return c.json(await entitlementsOf(c.env.DB, person, now));
@@ -112,6 +117,7 @@ const patronRoutes = (app: Hono<SessionEnv>) => {
   /** The name a patron shows on the wall; it stays after patronage lapses. */
   app.put('/me/wall', signedIn, async (c) => {
     const person = c.get('person');
+    if (!(await withinShopLimit(c))) return fail(c, 429, 'rate_limited');
     const req = await body(c, WallNameRequest);
     if (req instanceof Response) return req;
     if (!(await everPatron(c.env.DB, person))) return fail(c, 403, 'forbidden');
@@ -234,6 +240,7 @@ const wishlistRoutes = (app: Hono<SessionEnv>) => {
 
 const giftRoutes = (app: Hono<SessionEnv>) => {
   app.post('/gifts', signedIn, async (c) => {
+    if (!(await withinShopLimit(c))) return fail(c, 429, 'rate_limited');
     const req = await body(c, GiftStartRequest);
     if (req instanceof Response) return req;
     const out = await startGift(c.env, c.get('person'), req, Date.now());
@@ -258,6 +265,7 @@ const giftRoutes = (app: Hono<SessionEnv>) => {
   app.post('/farms/:id/chip-ins', signedIn, async (c) => {
     const m = await member(c);
     if (m instanceof Response) return m;
+    if (!(await withinShopLimit(c))) return fail(c, 429, 'rate_limited');
     const req = await body(c, ChipInStartRequest);
     if (req instanceof Response) return req;
     const out = await startChipIn(c.env, m.person, m.farm, req, Date.now());

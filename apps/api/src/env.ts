@@ -85,6 +85,8 @@ export type Bindings = Secrets & {
   readonly DESKTOP_LINK_LIMIT: RateLimit;
   /** Reports and appeals from the app, per person. */
   readonly REPORT_LIMIT: RateLimit;
+  /** The shop's writes, per person: purchase syncs, gifts, chip-ins and wall names. */
+  readonly SHOP_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;
