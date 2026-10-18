@@ -216,7 +216,6 @@ export const farmEn = {
   'farm.card.firefly': 'Firefly',
   'farm.card.knock': 'Knock',
   'farm.card.gift': 'Gift',
-  'farm.card.giftSoon': 'Gifts open with the little shop, soon.',
   'farm.card.photos': 'Photos',
   'farm.card.since': 'On the farm since {month}',
   'farm.card.lampOn': 'Lamp on, glad of a hello',

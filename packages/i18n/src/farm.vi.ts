@@ -206,7 +206,6 @@ export const farmVi: ViCatalogue<typeof farmEn> = {
   'farm.card.firefly': 'Đom đóm',
   'farm.card.knock': 'Gõ cửa',
   'farm.card.gift': 'Quà',
-  'farm.card.giftSoon': 'Quà tặng sẽ mở cùng cửa hàng nhỏ, sắp rồi.',
   'farm.card.photos': 'Ảnh',
   'farm.card.since': 'Ở nông trại từ {month}',
   'farm.card.lampOn': 'Đèn đang sáng, vui khi được chào',

@@ -195,6 +195,7 @@ export const rhythmEn = {
   /* The scrapbook */
   'rhythm.scrapbook.title': 'Scrapbook',
   'rhythm.scrapbook.body': 'Every time you gathered, pressed and kept.',
+  'rhythm.scrapbook.print': 'Print our year',
   'rhythm.scrapbook.row': 'Every hangout, pressed and kept',
   'rhythm.scrapbook.page': '{title}, {date}',
   'rhythm.scrapbook.pageHint': 'Opens the page',

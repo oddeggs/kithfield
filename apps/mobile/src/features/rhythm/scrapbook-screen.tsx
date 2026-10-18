@@ -14,6 +14,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics } from '../../ui/motion/haptics';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { Glass } from '../../ui/components/glass';
 import { Txt } from '../../ui/type/text';
 import { typeAt } from '../farm/type-at';
 import { useNow } from '../farm/use-now';
@@ -290,8 +291,31 @@ export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
         }}
         scrollEventThrottle={200}
       >
-        <View style={{ paddingHorizontal: 20 }}>
+        <View
+          style={{
+            paddingHorizontal: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
           <BackButton onPress={() => router.back()} />
+          {/* The year's pages, printed and bound (09-08). */}
+          <Press
+            onPress={() => router.push({ pathname: '/shop/book', params: { farm } })}
+            radius={22}
+            accessibilityRole="button"
+            accessibilityLabel={t('rhythm.scrapbook.print')}
+          >
+            <Glass
+              radius={22}
+              fill={palette.glassButton.fill}
+              border={palette.glassButton.border}
+              style={{ height: 44, paddingHorizontal: 16, justifyContent: 'center' }}
+            >
+              <Txt variant="buttonSmall">{t('rhythm.scrapbook.print')}</Txt>
+            </Glass>
+          </Press>
         </View>
         <View style={{ paddingHorizontal: 22, marginTop: 8 }}>
           <Txt variant="displayL" multiline accessibilityRole="header">

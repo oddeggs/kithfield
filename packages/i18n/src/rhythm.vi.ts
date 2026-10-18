@@ -181,6 +181,7 @@ export const rhythmVi: ViCatalogue<typeof rhythmEn> = {
 
   'rhythm.scrapbook.title': 'Sổ lưu niệm',
   'rhythm.scrapbook.body': 'Mỗi lần tụ họp, được ép lại và giữ gìn.',
+  'rhythm.scrapbook.print': 'In cuốn sổ năm nay',
   'rhythm.scrapbook.row': 'Mỗi buổi tụ họp, được ép lại và giữ gìn',
   'rhythm.scrapbook.page': '{title}, {date}',
   'rhythm.scrapbook.pageHint': 'Mở trang này',

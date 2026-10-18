@@ -1,11 +1,13 @@
-import type { Me } from '@kithfield/contracts';
-import { useFocusEffect } from 'expo-router';
+import type { Entitlements, Me } from '@kithfield/contracts';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useDataClient } from '../../../data';
 import { ArtIcon, ArtStill } from '../../../ui/art/art-view';
+import { ListGroup, ListRow } from '../../../ui/components/list-row';
 import { useToast } from '../../../ui/components/toast';
 import { Toggle } from '../../../ui/components/toggle';
 import { useLocale } from '../../../ui/locale/locale-provider';
@@ -16,6 +18,8 @@ import { useYouCritter } from '../../../ui/tab-bar/tab-activity';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { useSafetyNoteArrival } from '../../safety/notes-screen';
+import { shopApi } from '../../shop/api';
+import { patronRoute } from '../../shop/patron-route';
 import { useSettingsApi } from '../api/use-api';
 import { lookOf, sceneAttrsOf, seasonHere } from '../format';
 import { useKitColors } from '../kit/colors';
@@ -45,13 +49,16 @@ export function YouScreen() {
   const { width } = useWindowDimensions();
   const me = useRemote(() => api.me());
   const farms = useRemote(() => api.farms());
+  const { api: client } = useDataClient();
+  const entitlements = useRemote<Entitlements>(() => shopApi(client).entitlements());
   useSafetyNoteArrival();
   useFocusEffect(
     useCallback(() => {
       me.reload();
       farms.reload();
+      entitlements.reload();
       // Read again on each return to the tab.
-    }, [me.reload, farms.reload]),
+    }, [me.reload, farms.reload, entitlements.reload]),
   );
 
   const person = me.data;
@@ -194,7 +201,24 @@ export function YouScreen() {
                 : t('settings.you.noFarm', { species })}
             </KText>
           </View>
-          {/* The wardrobe's button waits for the wardrobe: no screen holds it yet. */}
+          {/* The wardrobe: everything your critter has, to wear. */}
+          <Press
+            onPress={() => router.push('/shop/collection')}
+            radius={17}
+            accessibilityRole="button"
+            accessibilityLabel={t('settings.you.wardrobe')}
+            style={{
+              height: 34,
+              paddingHorizontal: 14,
+              borderRadius: 17,
+              justifyContent: 'center',
+              backgroundColor: palette.fillSoft,
+            }}
+          >
+            <KText kind="rowTitle" style={{ fontSize: 14, lineHeight: 16 }}>
+              {t('settings.you.wardrobe')}
+            </KText>
+          </Press>
         </View>
 
         <View style={{ marginTop: 21, marginHorizontal: 16, gap: 10 }}>
@@ -239,6 +263,24 @@ export function YouScreen() {
               disabled={hibernating === null}
             />
           </View>
+          <ListGroup>
+            <ListRow
+              icon="hat"
+              title={t('settings.you.shop')}
+              subtitle={t('settings.you.shopBody')}
+              onPress={() => router.push('/shop')}
+            />
+            <ListRow
+              icon="sparkle"
+              title={t('settings.you.patrons')}
+              subtitle={
+                entitlements.data?.perks === true
+                  ? t('settings.you.patronsYours')
+                  : t('settings.you.patronsBody')
+              }
+              onPress={() => router.push(patronRoute(entitlements.data ?? null))}
+            />
+          </ListGroup>
         </View>
       </ScrollView>
     </View>

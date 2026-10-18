@@ -4,7 +4,7 @@ import { radii } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { getCalendars, getLocales } from 'expo-localization';
 import { useState } from 'react';
-import { ActionSheetIOS, View } from 'react-native';
+import { ActionSheetIOS, View, useWindowDimensions } from 'react-native';
 
 import { useCottage, useDataClient, useFarm, useFarmView } from '../../data';
 import { ArtIcon, ArtLoop } from '../../ui/art/art-view';
@@ -16,6 +16,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
+import { WishlistShelf } from '../shop/wishlist-shelf';
 import { deviceTimeZone, hemisphereOf } from './calendar';
 import { say } from './farm-copy';
 import { farmRoutes } from './routes';
@@ -86,6 +87,7 @@ export function CritterCard({
   const { t, language, fontLocale } = useLocale();
   const { palette } = useTheme();
   const toast = useToast();
+  const { width } = useWindowDimensions();
   const now = useNow();
   const state = useFarm(farm)?.state ?? null;
   const view = useFarmView<FarmView>(farm, now);
@@ -212,7 +214,7 @@ export function CritterCard({
         <ActionTile
           icon="rosette"
           label={t('farm.card.gift')}
-          onPress={() => toast.show(t('farm.card.giftSoon'), 'rosette')}
+          onPress={() => router.push({ pathname: '/shop/gift', params: { farm, to: person } })}
         />
         <ActionTile
           icon="photo"
@@ -220,6 +222,8 @@ export function CritterCard({
           onPress={() => router.navigate(farmRoutes.media(farm))}
         />
       </View>
+      {/* What they'd love: each wish leads to leaving it on their step. */}
+      <WishlistShelf farm={farm} person={person} own={false} width={width - 36} />
       <ListGroup>
         <ListRow
           icon="bell"

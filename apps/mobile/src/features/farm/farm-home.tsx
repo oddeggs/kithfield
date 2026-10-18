@@ -185,11 +185,15 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
                 onCredits: () => router.push(farmRoutes.critters(farm)),
                 onPlan: (p) => router.push(farmRoutes.plan(farm, p.seed.seq)),
                 onFirefly: (to) => router.push(farmRoutes.tray(farm, to)),
-                // Opening what waits on the step: a firefly wakes your critter.
-                onDoorstep: (d) =>
-                  void (d.kind === 'gift' && d.gift
-                    ? send('gift', { action: 'opened', gift: d.gift })
-                    : send('firefly', { action: 'opened', target: d.seq })),
+                // Opening what waits on the step: a gift opens on the step (the shop's 09-05);
+                // a firefly wakes your critter.
+                onDoorstep: (d) => {
+                  if (d.kind === 'gift' && d.gift) {
+                    router.push({ pathname: '/shop/step', params: { farm, gift: d.gift } });
+                    return;
+                  }
+                  void send('firefly', { action: 'opened', target: d.seq });
+                },
                 onRose: (person) => router.push(rhythmRoutes.birthday(farm, person)),
               }}
             />

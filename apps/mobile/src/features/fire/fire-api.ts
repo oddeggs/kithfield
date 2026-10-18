@@ -23,8 +23,8 @@ export interface FireApi {
   readonly token: (mode: FireMode) => Promise<FireTokenResponse>;
   /** One piece of your voice for captions; answers whether anyone still has captions on. */
   readonly sendPiece: (wav: Uint8Array, chunk: number, startedAt: number) => Promise<boolean>;
-  /** Whether your patron perks (captions among them) are on. */
-  readonly perks: () => Promise<boolean>;
+  /** Your patron perks (captions among them) and patronage; null before the shop is open. */
+  readonly entitlements: () => Promise<Entitlements | null>;
   /** Whether you said yes to captions. */
   readonly captionsAllowed: () => Promise<boolean>;
 }
@@ -52,12 +52,12 @@ export function useFireApi(farm: FarmId): FireApi {
         const parsed = FireCaptionChunkResponse.safeParse(await response.json());
         return parsed.success ? parsed.data.listening : false;
       },
-      perks: async () => {
+      entitlements: async () => {
         try {
-          return (await api.request(Entitlements, 'GET', '/v1/me/entitlements')).perks;
+          return await api.request(Entitlements, 'GET', '/v1/me/entitlements');
         } catch (error) {
           // Before the shop is open nobody has perks.
-          if (error instanceof ApiError && error.status === 404) return false;
+          if (error instanceof ApiError && error.status === 404) return null;
           throw error;
         }
       },

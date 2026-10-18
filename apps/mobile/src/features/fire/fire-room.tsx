@@ -1,4 +1,4 @@
-import { type FarmId, type LanguageTag, OWN_PACK } from '@kithfield/contracts';
+import { type Entitlements, type FarmId, type LanguageTag, OWN_PACK } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -13,6 +13,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics } from '../../ui/motion/haptics';
 import { useSession } from '../../ui/session/session';
 import { useGestureSend } from '../gestures/send';
+import { patronRoute } from '../shop/patron-route';
 import { askFor, openSettings } from '../surfaces';
 import { CAPTION_LANGS, CaptionsCard, CaptionsSheet } from './captions';
 import { CircleOverlay, FLOAT_MS, type CirclePerson, type Float } from './circle-overlay';
@@ -78,15 +79,16 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
   const headerTop = useHeaderTop();
 
   const [captionsOk, setCaptionsOk] = useState(false);
-  const [perks, setPerks] = useState(false);
+  const [entitlements, setEntitlements] = useState<Entitlements | null>(null);
+  const perks = entitlements?.perks === true;
   useEffect(() => {
     let live = true;
     api.captionsAllowed().then(
       (ok) => live && setCaptionsOk(ok),
       () => undefined,
     );
-    api.perks().then(
-      (ok) => live && setPerks(ok),
+    api.entitlements().then(
+      (e) => live && setEntitlements(e),
       () => undefined,
     );
     return () => {
@@ -507,7 +509,10 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
         onOn={(on) => void turnCaptions(on)}
         onLang={() => void nextLang()}
         onOriginal={setOriginal}
-        onPlus={() => toast.show(t('fire.captions.turnOn'))}
+        onPlus={() => {
+          setSheet(false);
+          router.push(patronRoute(entitlements));
+        }}
         onClose={() => setSheet(false)}
       />
     </View>
