@@ -28,8 +28,7 @@
         {
           "binding": "DB",
           "database_name": "kithfield-dev",
-          // Placeholder until the database is created on the Cloudflare account; local runs ignore it.
-          "database_id": "00000000-0000-0000-0000-000000000000",
+          "database_id": "465f2675-0691-48eb-b09d-4a890a82b349",
           "migrations_dir": "migrations",
         },
       ],
@@ -68,8 +67,7 @@
         {
           "binding": "DB",
           "database_name": "kithfield",
-          // Placeholder until the database is created on the Cloudflare account; local runs ignore it.
-          "database_id": "00000000-0000-0000-0000-000000000000",
+          "database_id": "5f18722b-a3a0-4e7b-8a17-bbf8f4f22a81",
           "migrations_dir": "migrations",
         },
       ],
