@@ -14,6 +14,13 @@ export {
 export { type CommandCheck, type CommandContext, checkCommand } from './commands';
 export { type CritterView, type FarmView, type PlanView, type PlantView, farmView } from './view';
 export {
+  type RestorationView,
+  keepsRestoration,
+  restorationNight,
+  restorationView,
+  startRestoration,
+} from './restoration';
+export {
   type Care,
   CARE,
   type Thresholds,

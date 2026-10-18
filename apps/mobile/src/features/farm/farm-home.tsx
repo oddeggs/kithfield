@@ -17,6 +17,9 @@ import { useSession } from '../../ui/session/session';
 import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
 import { useYouCritter } from '../../ui/tab-bar/tab-activity';
 import { useSunPlace, useTheme } from '../../ui/theme/theme-provider';
+// The farm's rhythm (birthdays, shared rain, weather, the project, the harvest letter).
+import { RhythmSheetRows, RhythmWeatherChip, useRhythmMoments } from '../rhythm/farm-entries';
+import { rhythmRoutes } from '../rhythm/routes';
 import { lookOf } from './farm-bake';
 import { seasonLabel } from './farm-copy';
 import { FarmHeader } from './farm-header';
@@ -112,6 +115,7 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
   useSunPlace(state?.place ? { lat: state.place.lat, lng: state.place.lng } : null);
   useYouCritter(self ? { kind: self.critter.species, look: lookOf(self.critter) } : null);
   useMoments(farm, me);
+  useRhythmMoments(farm, view, me);
   // Turned away by the farm (a removal the phone never saw, or a farm that is gone).
   const link = useFarmLink(farm);
   const { lost } = useValley();
@@ -154,6 +158,9 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
         />
       ) : null}
       {state && view ? (
+        <RhythmWeatherChip farm={farm} state={state} view={view} top={insets.top + 53} />
+      ) : null}
+      {state && view ? (
         <Sheet
           detents={[screen - (height - OVERLAP), screen - insets.top - 60]}
           index={sheet}
@@ -176,9 +183,10 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
                   void (d.kind === 'gift' && d.gift
                     ? send('gift', { action: 'opened', gift: d.gift })
                     : send('firefly', { action: 'opened', target: d.seq })),
-                onRose: () => router.navigate(farmRoutes.chat(farm)),
+                onRose: (person) => router.push(rhythmRoutes.birthday(farm, person)),
               }}
             />
+            <RhythmSheetRows farm={farm} state={state} view={view} />
           </SheetScrollView>
         </Sheet>
       ) : null}

@@ -25,6 +25,8 @@ export const secretNames = [
   'R2_ACCOUNT_ID',
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
+  // WeatherKit's `.p8` key (PKCS#8 PEM; newlines may be written as `\n`), for the farm's weather.
+  'WEATHERKIT_KEY',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -48,6 +50,18 @@ export type Bindings = Secrets & {
   readonly ACCESS_TEAM_DOMAIN: string;
   /** The Access application audience (`aud`) for this environment's safety desk. */
   readonly ACCESS_AUD: string;
+  /**
+   * WeatherKit's REST API: the Apple team, the WeatherKit key's id and the Services ID tokens are
+   * issued for (`sub`). Public ids; the key itself is the `WEATHERKIT_KEY` secret.
+   */
+  readonly WEATHERKIT_TEAM_ID: string;
+  readonly WEATHERKIT_KEY_ID: string;
+  readonly WEATHERKIT_SERVICE_ID: string;
+  /**
+   * The newest farm rules version this environment moves farms to (a whole number; prd holds farms
+   * at the rules every phone in the store can read). Unset, the server's own `RULES_VERSION`.
+   */
+  readonly RULES_TARGET?: string;
   /** One farm object per farm or visit. */
   readonly FARM: DurableObjectNamespace<FarmDO>;
   /** One cottage object per person. */
@@ -69,6 +83,8 @@ export type Bindings = Secrets & {
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Gestures at another farm's gate, per visitor. */
   readonly GATE_LIMIT: RateLimit;
+  /** At most 30 lists of the gates a person may visit, a minute per person. */
+  readonly GATES_LIMIT: RateLimit;
   /** At most 60 upload URLs (and forwarding copies) a minute per person. */
   readonly MEDIA_LIMIT: RateLimit;
   /** At most 5 waitlist sign-ups a minute per client address. */

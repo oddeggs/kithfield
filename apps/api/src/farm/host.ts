@@ -18,6 +18,7 @@ import { Farm, type Written } from './farm';
 import { departed, handOff } from './handoff';
 import { mirrorMembership } from './mirror';
 import type { FarmPorts } from './ports';
+import { targetedPorts } from './wiring';
 import { attachmentOf, connected, envelope, joined, refuse, send } from './sockets';
 import { FarmStore } from './store';
 import { tombstoneEvent, tombstoneMediaOf } from './tombstones';
@@ -48,13 +49,17 @@ export class FarmHost {
   private flushing: Promise<void> | null = null;
   private flushAgain = false;
 
+  /** The ports, with the rules' version held to the environment's `RULES_TARGET`. */
+  readonly ports: () => FarmPorts;
+
   constructor(
     readonly ctx: DurableObjectState,
     readonly env: Bindings,
-    readonly ports: () => FarmPorts,
+    ports: () => FarmPorts,
   ) {
+    this.ports = targetedPorts(ports, env.RULES_TARGET);
     const store = new FarmStore(ctx.storage.sql);
-    this.farm = new Farm(store, ports, (fn) => ctx.storage.transactionSync(fn));
+    this.farm = new Farm(store, this.ports, (fn) => ctx.storage.transactionSync(fn));
   }
 
   get store(): FarmStore {

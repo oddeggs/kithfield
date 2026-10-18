@@ -176,7 +176,7 @@ describe('the cottages', () => {
 });
 
 describe('the alarm', () => {
-  it('runs each timer on its own: weather that fails is asked again a minute later', async () => {
+  it('runs each timer on its own: weather that fails is asked again about a minute later', async () => {
     const { pip } = await cast('pip');
     const { stub } = await plantFarm(pip);
     const place = {
@@ -192,7 +192,10 @@ describe('the alarm', () => {
     const log = (await pageOf(stub, { after: 2 })).events.map((e) => FarmEvent.parse(e).kind);
     expect(log).toContain('fire');
     const timers = await hostOf(stub, (h) => h.store.dueTimers(Number.MAX_SAFE_INTEGER));
-    expect(timers.find((t) => t.key === 'weather:2054-10-19')?.due).toBe(ports.clock.at + 60_000);
+    const retry = timers.find((t) => t.key === 'weather:2054-10-19:1')?.due ?? 0;
+    // A minute, moved by up to a fifth either way.
+    expect(retry - ports.clock.at).toBeGreaterThanOrEqual(48_000);
+    expect(retry - ports.clock.at).toBeLessThanOrEqual(72_000);
   });
 });
 

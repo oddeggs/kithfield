@@ -12,7 +12,7 @@ import {
 } from '@kithfield/contracts';
 
 import { factsOf } from './growth';
-import { HANGOUT_PEOPLE, PLAN_DAY_RULES_VERSION } from './rules';
+import { HANGOUT_PEOPLE, PLAN_DAY_RULES_VERSION, PLAN_FACTS_RULES_VERSION } from './rules';
 
 /* Plan seeds: planting, changes, votes on days, RSVPs and check-ins at the hangout. */
 
@@ -21,7 +21,7 @@ import { HANGOUT_PEOPLE, PLAN_DAY_RULES_VERSION } from './rules';
  * gone and it is never drawn, but the votes, RSVPs and check-ins on it stay, so a device catching
  * up grows the farm exactly as one that saw it live.
  */
-export const asUnsent = (seed: SeedState): SeedState => ({
+export const asUnsent = ({ placed: _placed, ...seed }: SeedState): SeedState => ({
   ...seed,
   unsent: true,
   title: null,
@@ -34,6 +34,9 @@ export const asUnsent = (seed: SeedState): SeedState => ({
 });
 
 const MAX_SEEDS = 100;
+
+const isYeses = (value: unknown): value is SeedState['yeses'] =>
+  value === 'couple' || value === 'most' || value === 'everyone';
 
 export interface PlanConditions {
   readonly day: boolean;
@@ -101,12 +104,16 @@ export const planConditions = (
   day:
     seed.days.length === 1 ||
     (seed.settleOn !== null && (today === undefined || today >= seed.settleOn)),
-  place: seed.place !== null,
+  // A plan rebuilt from its tombstoned planting knows only that it had a place.
+  place: seed.place !== null || seed.placed === true,
   yeses: seed.rsvps.filter((r) => r.answer === 'in').length >= yesesNeeded(seed.yeses, members),
 });
 
+/** A plan with no content that can still sprout: rebuilt from its planting's tombstone. */
+const contentless = (seed: SeedState): boolean => seed.unsent && seed.placed !== undefined;
+
 const withSprout = (state: FarmState, seed: SeedState, clock: PlanClock): SeedState => {
-  if (seed.sproutedAt !== null || seed.someday || seed.unsent) return seed;
+  if (seed.sproutedAt !== null || seed.someday || (seed.unsent && !contentless(seed))) return seed;
   const today = planDayRules(clock) ? clock.day : undefined;
   const c = planConditions(seed, state.members.length, today);
   return c.day && c.place && c.yeses ? { ...seed, sproutedAt: clock.at } : seed;
@@ -169,8 +176,24 @@ export const applySeedPlanted = (
     checkins: [],
     sproutedAt: null,
   };
+  const facts = factsOf(event);
+  const dates = facts['days'];
+  // From the plan-facts rules, a tombstoned planting still sprouts from what its tombstone kept.
+  const rebuilt =
+    isTombstone(payload) &&
+    event.rulesVersion >= PLAN_FACTS_RULES_VERSION &&
+    Array.isArray(dates) &&
+    typeof facts['placed'] === 'boolean'
+      ? {
+          ...unsent,
+          days: dates.filter((d): d is string => typeof d === 'string').map((date) => ({ date })),
+          yeses: isYeses(facts['yeses']) ? facts['yeses'] : unsent.yeses,
+          someday: facts['someday'] === true,
+          placed: facts['placed'],
+        }
+      : unsent;
   const seed: SeedState = isTombstone(payload)
-    ? unsent
+    ? rebuilt
     : {
         ...unsent,
         unsent: false,
@@ -197,7 +220,23 @@ export const applySeedChanged = (
   const clock = clockOf(event, day);
   return updateSeed(state, facts['seed'], clock, (seed) => {
     const hat = typeof facts['hat'] === 'string' ? { hat: facts['hat'] } : {};
-    if (isTombstone(p) || seed.unsent) return { ...seed, ...hat };
+    if (isTombstone(p)) return { ...seed, ...hat };
+    if (seed.unsent) {
+      if (!contentless(seed)) return { ...seed, ...hat };
+      // A plan without content takes an edit's sprouting facts, never its words or place.
+      const dayFixed = planDayRules(clock) && seed.sproutedAt !== null;
+      return {
+        ...seed,
+        ...hat,
+        ...(p.days !== undefined && !dayFixed
+          ? { days: p.days.map((d) => ({ date: d.date })) }
+          : {}),
+        ...(p.place !== undefined ? { placed: p.place !== null } : {}),
+        ...(p.yeses !== undefined ? { yeses: p.yeses } : {}),
+        ...(p.someday !== undefined ? { someday: p.someday } : {}),
+        ...(p.settleOn !== undefined && !dayFixed ? { settleOn: p.settleOn } : {}),
+      };
+    }
     // A sprouted plan keeps its day.
     const dayFixed = planDayRules(clock) && seed.sproutedAt !== null;
     return {
@@ -277,7 +316,7 @@ export const applyCheckin = (
 
 /** An unsent or removed plan keeps its votes and answers, without its content. */
 export const withUnsentSeed = (state: FarmState, seq: unknown): FarmState =>
-  state.seeds.some((s) => s.seq === seq && !s.unsent)
+  state.seeds.some((s) => s.seq === seq && (!s.unsent || contentless(s)))
     ? { ...state, seeds: state.seeds.map((s) => (s.seq === seq ? asUnsent(s) : s)) }
     : state;
 

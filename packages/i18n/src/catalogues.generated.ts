@@ -9,6 +9,8 @@ import { deletionScheduledEn } from './deletion-scheduled.en';
 import { deletionScheduledVi } from './deletion-scheduled.vi';
 import { farmEn } from './farm.en';
 import { farmSameInBoth, farmVi } from './farm.vi';
+import { fieldGuideEn } from './field-guide.en';
+import { fieldGuideSameInBoth, fieldGuideVi } from './field-guide.vi';
 import { galleryEn } from './gallery.en';
 import { gallerySameInBoth, galleryVi } from './gallery.vi';
 import { gesturesEn } from './gestures.en';
@@ -29,6 +31,8 @@ import { plansEn } from './plans.en';
 import { plansSameInBoth, plansVi } from './plans.vi';
 import { pushEn } from './push.en';
 import { pushSameInBoth, pushVi } from './push.vi';
+import { rhythmEn } from './rhythm.en';
+import { rhythmSameInBoth, rhythmVi } from './rhythm.vi';
 import { safetyEn } from './safety.en';
 import { safetySameInBoth, safetyVi } from './safety.vi';
 import { settingsEn } from './settings.en';
@@ -54,6 +58,7 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'deletionCode', file: 'deletion-code', en: deletionCodeEn, vi: deletionCodeVi, sameInBoth: [] },
   { name: 'deletionScheduled', file: 'deletion-scheduled', en: deletionScheduledEn, vi: deletionScheduledVi, sameInBoth: [] },
   { name: 'farm', file: 'farm', en: farmEn, vi: farmVi, sameInBoth: farmSameInBoth },
+  { name: 'fieldGuide', file: 'field-guide', en: fieldGuideEn, vi: fieldGuideVi, sameInBoth: fieldGuideSameInBoth },
   { name: 'gallery', file: 'gallery', en: galleryEn, vi: galleryVi, sameInBoth: gallerySameInBoth },
   { name: 'gestures', file: 'gestures', en: gesturesEn, vi: gesturesVi, sameInBoth: gesturesSameInBoth },
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
@@ -64,6 +69,7 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'onboardingCritters', file: 'onboarding-critters', en: onboardingCrittersEn, vi: onboardingCrittersVi, sameInBoth: [] },
   { name: 'plans', file: 'plans', en: plansEn, vi: plansVi, sameInBoth: plansSameInBoth },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
+  { name: 'rhythm', file: 'rhythm', en: rhythmEn, vi: rhythmVi, sameInBoth: rhythmSameInBoth },
   { name: 'safety', file: 'safety', en: safetyEn, vi: safetyVi, sameInBoth: safetySameInBoth },
   { name: 'settings', file: 'settings', en: settingsEn, vi: settingsVi, sameInBoth: settingsSameInBoth },
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
@@ -81,6 +87,7 @@ export const en = {
   ...deletionCodeEn,
   ...deletionScheduledEn,
   ...farmEn,
+  ...fieldGuideEn,
   ...galleryEn,
   ...gesturesEn,
   ...glossaryEn,
@@ -91,6 +98,7 @@ export const en = {
   ...onboardingCrittersEn,
   ...plansEn,
   ...pushEn,
+  ...rhythmEn,
   ...safetyEn,
   ...settingsEn,
   ...shellEn,
@@ -108,6 +116,7 @@ export const vi = {
   ...deletionCodeVi,
   ...deletionScheduledVi,
   ...farmVi,
+  ...fieldGuideVi,
   ...galleryVi,
   ...gesturesVi,
   ...glossaryVi,
@@ -118,6 +127,7 @@ export const vi = {
   ...onboardingCrittersVi,
   ...plansVi,
   ...pushVi,
+  ...rhythmVi,
   ...safetyVi,
   ...settingsVi,
   ...shellVi,

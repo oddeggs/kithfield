@@ -23,6 +23,8 @@ import type { FarmView } from '@kithfield/farm';
 import { DurableObject } from 'cloudflare:workers';
 
 import type { Bindings } from '../env';
+import { type RecapFacts, recapOf } from '../rhythm/recap-facts';
+import { scrapbookOf, type WireScrapbook } from '../rhythm/scrapbook';
 import * as actions from './actions';
 import { runAlarm } from './alarms';
 import { exportOf, type FarmExport } from './export';
@@ -162,6 +164,19 @@ export class FarmDO extends DurableObject<Bindings> {
   /** Search, for members only; null for anyone else. */
   search(person: PersonId, q: string): SearchResults | null {
     return this.livesHere(person) ? searchEvents(this.host.store, q) : null;
+  }
+
+  /** The scrapbook's pressed pages, for members only; null for anyone else. */
+  scrapbook(person: PersonId, before: number | null): WireScrapbook | null {
+    return this.livesHere(person) ? scrapbookOf(this.host.store, before) : null;
+  }
+
+  /** A week's recap facts, for members only; `bad_week` for a week that isn't a Sunday come. */
+  recapFacts(person: PersonId, week: string | null): RecapFacts | 'bad_week' | null {
+    const state = this.host.farm.state;
+    if (state === null || !this.livesHere(person)) return null;
+    const today = this.host.ports().rules.farmDay(state, this.host.now());
+    return recapOf(this.host.store, state, today, week);
   }
 
   /** What the person wrote and shared here, for their keepsakes export. */
