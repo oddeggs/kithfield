@@ -5,6 +5,10 @@ import { galleryEn } from './gallery.en';
 import { gallerySameInBoth, galleryVi } from './gallery.vi';
 import { glossaryEn } from './glossary.en';
 import { glossarySameInBoth, glossaryVi } from './glossary.vi';
+import { onboardingEn } from './onboarding.en';
+import { onboardingSameInBoth, onboardingVi } from './onboarding.vi';
+import { onboardingCrittersEn } from './onboarding-critters.en';
+import { onboardingCrittersVi } from './onboarding-critters.vi';
 import { pushEn } from './push.en';
 import { pushSameInBoth, pushVi } from './push.vi';
 import { shellEn } from './shell.en';
@@ -26,6 +30,8 @@ import { websitePagesSameInBoth, websitePagesVi } from './website-pages.vi';
 export const features: readonly FeatureCatalogues[] = [
   { name: 'gallery', file: 'gallery', en: galleryEn, vi: galleryVi, sameInBoth: gallerySameInBoth },
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
+  { name: 'onboarding', file: 'onboarding', en: onboardingEn, vi: onboardingVi, sameInBoth: onboardingSameInBoth },
+  { name: 'onboardingCritters', file: 'onboarding-critters', en: onboardingCrittersEn, vi: onboardingCrittersVi, sameInBoth: [] },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
@@ -40,6 +46,8 @@ export const features: readonly FeatureCatalogues[] = [
 export const en = {
   ...galleryEn,
   ...glossaryEn,
+  ...onboardingEn,
+  ...onboardingCrittersEn,
   ...pushEn,
   ...shellEn,
   ...signInCodeEn,
@@ -54,6 +62,8 @@ export const en = {
 export const vi = {
   ...galleryVi,
   ...glossaryVi,
+  ...onboardingVi,
+  ...onboardingCrittersVi,
   ...pushVi,
   ...shellVi,
   ...signInCodeVi,
