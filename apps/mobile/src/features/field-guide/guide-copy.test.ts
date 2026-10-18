@@ -75,3 +75,24 @@ describe('a sentence around a bold phrase', () => {
     expect(parts.after.startsWith(' appears after shared rain')).toBe(true);
   });
 });
+
+describe('hand-lettered lines', () => {
+  // Gaegu sets a curly apostrophe with a wide gap after it ("Lot’ s"); system copy keeps its curly ones.
+  it('take a straight apostrophe', () => {
+    const lines = [
+      en('fieldGuide.whose', { farm: 'The Thursday Lot' }),
+      en('fieldGuide.found', { count: 2, total: 6 }),
+      en('fieldGuide.stillToCome'),
+      en('fieldGuide.status.found'),
+      en('fieldGuide.status.growing', { stage: 'bud' }),
+      en('fieldGuide.status.resting'),
+      en('fieldGuide.status.notYet'),
+      en('fieldGuide.page.foundIn', { month: 'May' }),
+      en('fieldGuide.rare.eyebrow'),
+      en('fieldGuide.harvest.eyebrow', { season: 'autumn' }),
+      en('fieldGuide.pot.eyebrow'),
+    ];
+    expect(lines.filter((line) => line.includes('’'))).toEqual([]);
+    expect(lines[0]).toBe("The Thursday Lot's");
+  });
+});

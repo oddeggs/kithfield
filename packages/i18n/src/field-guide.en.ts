@@ -8,7 +8,8 @@ import type { EnCatalogue } from './catalogue-types';
  */
 export const fieldGuideEn = {
   'fieldGuide.title': 'Field guide',
-  'fieldGuide.whose': '{farm}’s',
+  // Hand-lettered: Gaegu sets a curly apostrophe with a gap after it, so this one is straight.
+  'fieldGuide.whose': "{farm}'s",
   'fieldGuide.back': 'Back',
   'fieldGuide.close': 'Close',
   'fieldGuide.loading': 'Opening the field guide…',
