@@ -19,6 +19,10 @@ export const shellVi: ViCatalogue<typeof shellEn> = {
   'shell.notFound.title': 'Lối này không dẫn đến đâu cả',
   'shell.notFound.body': 'Trang bạn tìm không có trên nông trại này.',
   'shell.notFound.action': 'Về nông trại',
+  'shell.startFailed.title': 'Con đường bị nước cuốn mất một lúc',
+  'shell.startFailed.body':
+    'Bọn mình chưa tới được nông trại. Bạn kiểm tra kết nối rồi thử lại nhé.',
+  'shell.startFailed.action': 'Thử lại',
 };
 
 /** The brand name. */

@@ -31,7 +31,11 @@ screens there without editing a shared file.
   the person's critter on the You tab with `useYouCritter(...)` (`ui/tab-bar/tab-activity`).
 - **Night.** A farm screen hands its town to `useSunPlace(place)` (`ui/theme/theme-provider`) so the
   app turns to night after the farm's sunset, not only in dark appearance.
-- **Data.** The data layer's session and `<DataProvider>` go in the `DataSlot` in `_layout.tsx`.
+- **Data.** `DataSlot` (`ui/session/data-slot`) starts the data layer once (`startData`) under
+  the theme and the art, keeps the splash up while it starts, then puts `<DataProvider>` and the
+  session around the screens. A fresh install becomes an anonymous person and counts as signed in;
+  a session the server ended counts as signed out. A first launch that can't reach the server
+  shows the error shell with "Try again". Screens read and write with the hooks from `data/`.
 
 Build screens from `ui/components` and `ui/art`; copy comes from your feature's catalogue in
 `@kithfield/i18n`.

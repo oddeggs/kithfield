@@ -11,7 +11,8 @@ import { ToastHost } from '../ui/components/toast';
 import { LocaleProvider } from '../ui/locale/locale-provider';
 import { ReduceMotionProvider } from '../ui/motion/reduce-motion';
 import { presentationFor } from '../ui/navigation/presentation';
-import { SessionProvider, signedOut, useSession } from '../ui/session/session';
+import { DataSlot } from '../ui/session/data-slot';
+import { useSession } from '../ui/session/session';
 import { TabActivityProvider } from '../ui/tab-bar/tab-activity';
 import { ThemeProvider, useTheme } from '../ui/theme/theme-provider';
 
@@ -52,17 +53,6 @@ function Screens() {
   );
 }
 
-/**
- * The session and the farm's data reach every screen from here. At integration the data layer's
- * providers go in this slot: its session client (as the `session` below) and `<DataProvider>`.
- * `startData(rules)` is async, so the slot reports `loading` until the client has resolved, and the
- * splash stays up until then. It sits inside the theme and the art, so loading and error states
- * can draw, and outside the screens.
- */
-function DataSlot({ children }: { readonly children: ReactNode }) {
-  return <SessionProvider session={signedOut}>{children}</SessionProvider>;
-}
-
 /** Hides the splash once the session is known and the first frame has laid out. */
 function SplashGate({ children }: { readonly children: ReactNode }) {
   const { status } = useSession();
@@ -90,6 +80,7 @@ export default function RootLayout() {
               <ArtProvider store={art}>
                 <TabActivityProvider>
                   <ToastHost>
+                    {/* The data layer and its session; the splash stays up while it starts. */}
                     <DataSlot>
                       <SplashGate>
                         <Screens />

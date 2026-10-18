@@ -30,4 +30,8 @@ export const shellEn = {
   'shell.notFound.title': 'This path doesn’t lead anywhere',
   'shell.notFound.body': 'The page you were after isn’t on this farm.',
   'shell.notFound.action': 'Back to the farm',
+  /** A first launch that couldn't reach the server, so there is nothing on the phone yet (12-05). */
+  'shell.startFailed.title': 'The path washed out for a moment',
+  'shell.startFailed.body': 'We couldn’t reach the farm. Check your connection, then try again.',
+  'shell.startFailed.action': 'Try again',
 } as const satisfies EnCatalogue;
