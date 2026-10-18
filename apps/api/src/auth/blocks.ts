@@ -7,7 +7,8 @@ import { errorResponse, requireSession, type SessionEnv } from './session';
 /*
  * Blocking (`PUT`/`DELETE /v1/blocks/:person`, `GET /v1/blocks`). A block works both ways: between
  * two people where either blocked the other, no visit opens, no gate gesture or trade passes, the
- * gate doesn't show one to the other, and the blocker's cottage pushes nothing the other did.
+ * gate doesn't show one to the other, no addressed gesture passes inside a shared farm, and
+ * neither one's cottage pushes the other's news.
  */
 
 /** Whether either person has blocked the other. */
@@ -19,19 +20,6 @@ export async function eitherBlocked(db: D1Database, a: string, b: string): Promi
        LIMIT 1`,
     )
     .bind(a, b)
-    .first();
-  return row !== null;
-}
-
-/** Whether `blocker` has blocked `blocked`: their cottage then pushes nothing `blocked` did. */
-export async function hasBlocked(
-  db: D1Database,
-  blocker: string,
-  blocked: string,
-): Promise<boolean> {
-  const row = await db
-    .prepare('SELECT 1 FROM blocks WHERE blocker_id = ? AND blocked_id = ? LIMIT 1')
-    .bind(blocker, blocked)
     .first();
   return row !== null;
 }

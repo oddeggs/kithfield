@@ -103,13 +103,15 @@ describe('a blocked person’s news in the blocker’s cottage', () => {
     expect((await ledgerOf(pip.id)).map((r) => r['seq'])).toEqual([3]);
   });
 
-  it('only counts the blocker’s own blocks: being blocked doesn’t quiet one’s own cottage', async () => {
+  it('works both ways: someone who blocked the person pushes them nothing either', async () => {
     const queue = recordPushQueue();
     const { pip, fig } = await cast('pip', 'fig');
     await api(fig, 'PUT', `/v1/blocks/${pip.id}`);
     const farm = `farm-blocks-${crypto.randomUUID().slice(0, 8)}`;
-    await (await cottageWithFarm(pip.id, farm)).deliver(delivery(farm, fig.id, 2));
-    expect(queue.jobs()).toEqual([expect.objectContaining({ person: pip.id, seq: 2 })]);
+    const cottage = await cottageWithFarm(pip.id, farm);
+    await cottage.deliver(delivery(farm, fig.id, 2));
+    expect(queue.jobs()).toEqual([]);
+    expect(await cottage.waiting()).toEqual([]);
   });
 });
 

@@ -1,6 +1,6 @@
 import type { CottageDelivery } from '@kithfield/contracts';
 
-import { hasBlocked } from '../auth';
+import { eitherBlocked } from '../auth';
 import * as chats from './chats';
 import { farmFromDirectory } from './directory';
 import { considerDelivery, type Intake } from './intake';
@@ -17,7 +17,7 @@ export async function receiveDelivery(intake: Intake, delivery: CottageDelivery)
     const info = await farmFromDirectory(intake.env.DB, delivery.farm, person);
     if (info !== null) chats.upsertFarm(sql, info);
   }
-  // The chat row still follows the farm; nothing from someone the person blocked waits for them.
+  // The chat row still follows the farm; nothing waits from someone either of them blocked.
   const taken = (await fromBlocked(intake, delivery)) ? { ...delivery, forYou: false } : delivery;
   if (!chats.applyDelivery(sql, taken, person, now)) return false;
   if (delivery.actor === person && delivery.kind === 'farm_opened') {
@@ -29,15 +29,15 @@ export async function receiveDelivery(intake: Intake, delivery: CottageDelivery)
 const blockedChecks = new WeakMap<Intake, Promise<boolean>>();
 
 /**
- * Whether the delivery's actor is someone the person blocked: then it neither waits in Quick Tend
- * nor pushes. Asked of D1 once per delivery, and only about someone else's event.
+ * Whether the person and the delivery's actor blocked each other, either way: then it neither
+ * waits in Quick Tend nor pushes. Asked of D1 once per delivery, and only about someone else's event.
  */
 function fromBlocked(intake: Intake, delivery: CottageDelivery): Promise<boolean> {
   const { actor } = delivery;
   if (actor === null || actor === intake.person) return Promise.resolve(false);
   let check = blockedChecks.get(intake);
   if (check === undefined) {
-    check = hasBlocked(intake.env.DB, intake.person, actor);
+    check = eitherBlocked(intake.env.DB, intake.person, actor);
     blockedChecks.set(intake, check);
   }
   return check;

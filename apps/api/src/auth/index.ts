@@ -4,7 +4,7 @@ import { checkRtToken, type RtTokenScope } from './rt-token';
 export { authRoutes } from './routes';
 export { requireSession, errorResponse, type SessionEnv } from './session';
 export { ACCOUNT_BAN_SCOPE, banPerson, isBanned, type Ban } from './bans';
-export { eitherBlocked, hasBlocked } from './blocks';
+export { eitherBlocked } from './blocks';
 export { registerAiForgetStep, type AiForgetStep, type ConsentForgetJob } from './consents';
 export { registerSocketCloser, startDeletion, type SocketCloser } from './account-deletion';
 export {
