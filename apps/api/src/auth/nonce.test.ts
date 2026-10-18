@@ -20,6 +20,16 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/** When the reservation of an identity token ends (ISO), or null when it has none. */
+async function tokenReservation(idToken: string): Promise<string | null> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(idToken));
+  const hash = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+  const row = await env.DB.prepare('SELECT expires_at FROM verifications WHERE identifier = ?')
+    .bind(`id-token:${hash}`)
+    .first<{ expires_at: string }>();
+  return row?.expires_at ?? null;
+}
+
 function freshSubject(): string {
   return `sub-${crypto.randomUUID()}`;
 }
@@ -53,9 +63,30 @@ describe('sign-in nonces and replay', () => {
   it('refuses the same identity token a second time', async () => {
     const identity = await idp.sheet('apple', freshSubject());
     await readSignIn(await signInWithIdToken('apple', identity));
-    const replay = await signInWithIdToken('apple', identity);
+    // Even with a fresh nonce, the token itself is spent.
+    const replay = await signInWithIdToken('apple', {
+      idToken: identity.idToken,
+      nonce: await issueNonce(),
+    });
     expect(replay.status).toBe(401);
     expect(await replay.json()).toMatchObject({ code: 'token_reused' });
+  });
+
+  it('spends the nonce before reserving the token, so a bad nonce reserves nothing', async () => {
+    const madeUp = crypto.randomUUID();
+    const idToken = await idp.googleToken(freshSubject(), { nonce: madeUp });
+    const response = await signInWithIdToken('google', { idToken, nonce: madeUp });
+    expect(response.status).toBe(401);
+    expect(await response.json()).toMatchObject({ code: 'nonce_invalid' });
+    expect(await tokenReservation(idToken)).toBeNull();
+  });
+
+  it('reserves a token for at most 65 minutes, whatever its expiry claims', async () => {
+    const identity = await idp.sheet('google', freshSubject(), { exp: 99_999_999_999 });
+    await readSignIn(await signInWithIdToken('google', identity));
+    const reservation = await tokenReservation(identity.idToken);
+    expect(reservation).not.toBeNull();
+    expect(Date.parse(reservation ?? '')).toBeLessThanOrEqual(Date.now() + 65 * 60_000);
   });
 
   it('refuses an expired nonce', async () => {

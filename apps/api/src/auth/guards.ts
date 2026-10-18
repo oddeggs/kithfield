@@ -12,6 +12,9 @@ export const SOCIAL_SIGN_IN_PATH = '/sign-in/social';
 export const SEND_CODE_PATH = '/email-otp/send-verification-otp';
 export const CODE_SIGN_IN_PATH = '/sign-in/email-otp';
 
+/** The longest an identity token is reserved against replay: its hour of life, and a margin. */
+const MAX_TOKEN_RESERVATION_MS = 65 * 60_000;
+
 interface BeforeContext {
   readonly path: string;
   readonly body?: unknown;
@@ -70,12 +73,17 @@ async function checkSocialSignIn(db: D1Database, body: SocialBody, now: number):
   if (typeof nonce !== 'string' || nonce === '') {
     throw refuse('UNAUTHORIZED', 'nonce_invalid', 'A sign-in nonce is needed');
   }
-  const exp = typeof claims['exp'] === 'number' ? claims['exp'] * 1000 : now;
-  if (!(await reserveIdToken(db, { idToken: token, expiresAt: exp, now }))) {
-    throw refuse('UNAUTHORIZED', 'token_reused', 'This identity token was already used');
-  }
+  // The nonce first, so a request without a live one leaves nothing behind.
   if (!(await consumeSignInNonce(db, nonce, now))) {
     throw refuse('UNAUTHORIZED', 'nonce_invalid', 'This sign-in nonce is unknown, used or expired');
+  }
+  // Apple's and Google's tokens live an hour; a claimed expiry beyond that never holds a row longer.
+  const exp = Math.min(
+    typeof claims['exp'] === 'number' ? claims['exp'] * 1000 : now,
+    now + MAX_TOKEN_RESERVATION_MS,
+  );
+  if (!(await reserveIdToken(db, { idToken: token, expiresAt: exp, now }))) {
+    throw refuse('UNAUTHORIZED', 'token_reused', 'This identity token was already used');
   }
 }
 
