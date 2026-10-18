@@ -12,6 +12,7 @@
   "dependencies": {
     "@expo/log-box": "catalog:",
     "@expo/metro-runtime": "catalog:",
+    "@kithfield/theme": "workspace:*",
     "@react-native/metro-config": "catalog:",
     "@shopify/react-native-skia": "catalog:",
     "expo": "catalog:",

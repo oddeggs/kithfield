@@ -1,6 +1,10 @@
-import { describe, expect, it } from '@jest/globals';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 
-import { EAS_PROJECT_ID, buildConfig, resolveVariant } from '../app.config';
+import { describe, expect, it } from '@jest/globals';
+import { fontFaces } from '@kithfield/theme';
+
+import { EAS_PROJECT_ID, FONTS, buildConfig, resolveVariant } from '../app.config';
 
 const unset = { apiBase: undefined };
 
@@ -40,5 +44,17 @@ describe('app variants', () => {
     expect(local.extra?.['apiBase']).toBe('http://127.0.0.1:8787/api');
     const empty = buildConfig({}, 'dev', { ...unset, apiBase: '' });
     expect(empty.extra?.['apiBase']).toBe('https://dev.kithfield.com/api');
+  });
+
+  it('embeds every theme font natively in both variants', () => {
+    const projectRoot = resolve(__dirname, '..');
+    expect(FONTS).toEqual(fontFaces.map((f) => `../../packages/theme/fonts/${f.file}`));
+    for (const font of FONTS) expect(existsSync(resolve(projectRoot, font))).toBe(true);
+    for (const variant of ['dev', 'prd'] as const) {
+      expect(buildConfig({}, variant, unset).plugins).toContainEqual([
+        'expo-font',
+        { fonts: FONTS },
+      ]);
+    }
   });
 });

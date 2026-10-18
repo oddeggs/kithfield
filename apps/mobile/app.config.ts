@@ -17,6 +17,15 @@ export interface VariantConfig {
 export const EAS_PROJECT_ID = 'cb527a7c-d45c-4e14-98ca-5ecc3c3affaa';
 const IOS_DEPLOYMENT_TARGET = '17.0';
 
+/** The theme's embedded fonts, by PostScript name; each is also its file name. */
+export const FONTS = [
+  'YoungSerif-Regular',
+  'Gaegu-Bold',
+  'PatrickHand-Regular',
+  'Lora-Regular',
+  'Lora-SemiBold',
+].map((name) => `../../packages/theme/fonts/${name}.ttf`);
+
 /** Bundle ids are placeholders until the Apple developer team registers them. */
 export const VARIANTS: Record<AppVariant, VariantConfig> = {
   dev: {
@@ -85,7 +94,7 @@ export function buildConfig(
       // The phone's cache of each farm's log and the outbox, encrypted at rest.
       ['expo-sqlite', { useSQLCipher: true }],
       // Fonts are embedded natively so the first frame already has them.
-      'expo-font',
+      ['expo-font', { fonts: FONTS }],
     ],
     experiments: {
       typedRoutes: true,
