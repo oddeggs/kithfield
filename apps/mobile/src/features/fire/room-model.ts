@@ -1,6 +1,7 @@
-import type { Critter, FarmState } from '@kithfield/contracts';
+import { type Critter, type FarmState, type FireActivity, LIMITS } from '@kithfield/contracts';
 import type { Translate } from '@kithfield/i18n';
 
+import { imageNames } from '../surfaces/names';
 import { DRAWN_SEATS } from './seats';
 
 /*
@@ -205,4 +206,22 @@ export function speakerToAnnounce(
   if (last === null) return speaking;
   if (speaking === last.id) return null;
   return now - last.at >= ANNOUNCE_EVERY_MS ? speaking : null;
+}
+
+/** The fire's Live Activity state for who is in the room now (`10 On the System`). */
+export function fireActivityState(
+  people: readonly FirePerson[],
+  nameOf: (id: string) => string | null,
+): FireActivity['state'] {
+  const you = people.find((p) => p.you) ?? null;
+  return {
+    people: people.slice(0, LIMITS.fireVoices).map((p) => ({
+      person: p.id,
+      name: nameOf(p.id),
+      image: imageNames.critter(p.id),
+    })),
+    talking: people.find((p) => p.speaking && p.mic)?.id ?? null,
+    muted: you?.mic !== true,
+    listening: you?.mode === 'listen',
+  };
 }

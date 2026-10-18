@@ -1,4 +1,5 @@
 import { type FarmId, type LanguageTag, OWN_PACK } from '@kithfield/contracts';
+import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
@@ -12,6 +13,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics } from '../../ui/motion/haptics';
 import { useSession } from '../../ui/session/session';
 import { useGestureSend } from '../gestures/send';
+import { askFor, openSettings } from '../surfaces';
 import { CAPTION_LANGS, CaptionsCard, CaptionsSheet } from './captions';
 import { CircleOverlay, FLOAT_MS, type CirclePerson, type Float } from './circle-overlay';
 import { useFireApi } from './fire-api';
@@ -44,6 +46,7 @@ import {
 import { DRAWN_SEATS } from './seats';
 import { useCast } from './use-cast';
 import { memberOf, useFireCircle, useFireRoom } from './use-fire-room';
+import { useFireSurfaces } from './use-fire-surfaces';
 
 /*
  * The fire room: light the fire, pull up a log (listening or joined in, muted either way), sit
@@ -118,6 +121,18 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
     [me, state, t],
   );
   const yourName = memberOf(state, me ?? '')?.name ?? '';
+  // The mic and camera are asked for the first time they're needed; said no, the room says so.
+  const [denied, setDenied] = useState<{ mic: boolean; camera: boolean }>({
+    mic: false,
+    camera: false,
+  });
+  const micAllowed = async () => {
+    const friend = circle.find((id) => id !== me);
+    const name = friend === undefined ? null : (memberOf(state, friend)?.name ?? null);
+    const ok = (await askFor('mic', name)) === 'allowed';
+    if (!ok) setDenied((d) => ({ ...d, mic: true }));
+    return ok;
+  };
   const yourCritter = memberOf(state, me ?? '')?.critter ?? null;
 
   // Who is drawn: the room's people once you sit, the farm's word on who is by the fire before.
@@ -229,7 +244,9 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
     haptics.soft();
     setPhase('joining');
   };
-  const sit = async (mode: FireMode) => {
+  const sit = async (asked: FireMode) => {
+    // Join in asks for the mic first; said no, you sit and listen.
+    const mode = asked === 'join' && !(await micAllowed()) ? 'listen' : asked;
     setBusy(true);
     const ok = await session.sit(mode);
     setBusy(false);
@@ -239,6 +256,7 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
     setPhase('room');
   };
   const mic = async () => {
+    if (dock !== 'talking' && !(await micAllowed())) return;
     setBusy(true);
     try {
       if (dock === 'listening') await session.joinIn();
@@ -250,8 +268,13 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
     }
   };
   const lantern = async () => {
+    const on = !(you?.lantern ?? false);
+    if (on && (await askFor('camera', yourName === '' ? null : yourName)) !== 'allowed') {
+      setDenied((d) => ({ ...d, camera: true }));
+      return;
+    }
     try {
-      await session.setLantern(!(you?.lantern ?? false));
+      await session.setLantern(on);
     } catch {
       toast.show(t('fire.error.camera'));
     }
@@ -270,6 +293,17 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
     await session.leave();
     setTimeout(() => (last ? setPhase('quiet') : leaveRoom()), WALK_HOME_MS);
   };
+
+  // The fire's Live Activity while you sit, and where the sound goes.
+  useFireSurfaces({
+    farm,
+    farmName: state?.name ?? null,
+    sitting,
+    people: roomPeople,
+    nameOf: (id) => memberOf(state, id)?.name ?? null,
+    onMic: (on) => void session.setMic(on).catch(() => undefined),
+    onLeave: () => void walkHome(),
+  });
 
   /* Drawing */
 
@@ -433,6 +467,8 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
           onJoin={() => void sit('join')}
           onListen={() => void sit('listen')}
           busy={busy}
+          micOff={denied.mic}
+          onSettings={openSettings}
         />
       ) : phase === 'room' ? (
         <RoomDock
@@ -453,6 +489,9 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
           onGesture={(k) => void onGesture(k)}
           onStopSharing={() => undefined}
           onFlipBack={() => void session.setLook(false)}
+          onSound={() => router.push('/surfaces-sound')}
+          denied={denied.mic ? 'mic' : denied.camera ? 'camera' : null}
+          onSettings={openSettings}
         />
       ) : phase === 'leaving' || phase === 'walking' ? (
         <LeavePanel you={yourName} onWalk={() => void walkHome()} onStay={() => setPhase('room')} />

@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { farmRoutes } from '../farm/routes';
 import { useValley } from '../farm/valley-store';
+import { openFire } from '../fire/fire-glow';
 import { targetOf } from './links';
 
 /**
@@ -43,6 +44,8 @@ export function SurfaceOpen() {
       await valley.choose(target.farm);
       router.replace(farmRoutes.home());
       if (target.to === 'critter') router.push(farmRoutes.critter(target.farm, target.person));
+      // The fire's widget and Live Activity open the fire room over the farm.
+      if (target.to === 'fire') openFire(target.farm);
     };
     void go();
   }, [ready, key]);

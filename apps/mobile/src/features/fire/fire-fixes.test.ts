@@ -4,6 +4,7 @@ import { FireTokenResponse, type FarmState } from '@kithfield/contracts';
 import {
   captionsWanted,
   critterFor,
+  fireActivityState,
   PLACEHOLDER_CRITTER,
   phaseAfter,
   speakerToAnnounce,
@@ -66,5 +67,40 @@ describe('who is talking, for VoiceOver', () => {
     expect(speakerToAnnounce({ id: 'bea', at: 0 }, 'mo', 1000)).toBeNull();
     expect(speakerToAnnounce({ id: 'bea', at: 0 }, 'mo', 6000)).toBe('mo');
     expect(speakerToAnnounce({ id: 'bea', at: 0 }, null, 6000)).toBeNull();
+  });
+});
+
+describe('the fire’s Live Activity', () => {
+  const person = (id: string, more: object = {}) => ({
+    id,
+    you: false,
+    mode: 'join' as const,
+    mic: false,
+    speaking: false,
+    weak: false,
+    lantern: false,
+    sharing: false,
+    captionsOk: false,
+    joinedAt: 0,
+    ...more,
+  });
+  it('shows who is there, who is talking, and whether you are muted or only listening', () => {
+    const names: Record<string, string> = { p_bea: 'Bea' };
+    const state = fireActivityState(
+      [
+        person('p_pip', { you: true, mode: 'listen' }),
+        person('p_bea', { mic: true, speaking: true }),
+        person('p_otis', { speaking: true }),
+      ],
+      (id) => names[id] ?? null,
+    );
+    expect(state.people.map((p) => [p.person, p.name])).toEqual([
+      ['p_pip', null],
+      ['p_bea', 'Bea'],
+      ['p_otis', null],
+    ]);
+    expect(state.people[1]?.image).toMatch(/^critter-.+\.png$/);
+    // Otis's mic is closed, so only Bea is talking.
+    expect(state).toMatchObject({ talking: 'p_bea', muted: true, listening: true });
   });
 });

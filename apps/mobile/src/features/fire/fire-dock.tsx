@@ -15,6 +15,39 @@ import type { DockState } from './room-model';
  * sitting by it (listening, muted or talking), heading home, and the fire settling.
  */
 
+/** "Your mic is off for Kithfield. Settings": the quiet way back once the mic or camera is off. */
+export function DeniedNote({
+  device,
+  onSettings,
+}: {
+  readonly device: 'mic' | 'camera';
+  readonly onSettings: () => void;
+}) {
+  const { t } = useLocale();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+      <FireTxt variant="caption" color={fireLook.sub} style={{ fontSize: 13, lineHeight: 17 }}>
+        {t(device === 'mic' ? 'surfaces.ask.denied' : 'surfaces.ask.cameraDenied')}
+      </FireTxt>
+      <Press
+        onPress={onSettings}
+        darken={false}
+        accessibilityRole="link"
+        accessibilityLabel={t('surfaces.ask.settings')}
+        hitSlop={12}
+      >
+        <FireTxt
+          variant="caption"
+          color={fireLook.text}
+          style={{ fontSize: 13, lineHeight: 17, fontWeight: '600' }}
+        >
+          {t('surfaces.ask.settings')}
+        </FireTxt>
+      </Press>
+    </View>
+  );
+}
+
 export function UnlitPanel({
   onLight,
   onNotTonight,
@@ -54,11 +87,16 @@ export function JoinPanel({
   onJoin,
   onListen,
   busy,
+  micOff = false,
+  onSettings,
 }: {
   readonly you: string;
   readonly onJoin: () => void;
   readonly onListen: () => void;
   readonly busy: boolean;
+  /** The mic is off for Kithfield: Join in becomes Just listen, with a quiet Settings link. */
+  readonly micOff?: boolean;
+  readonly onSettings?: () => void;
 }) {
   const { t } = useLocale();
   return (
@@ -68,21 +106,36 @@ export function JoinPanel({
         title={t('fire.join.title')}
         body={t('fire.join.body')}
       />
-      <FireButton
-        label={t('fire.join.in')}
-        icon="mic"
-        onPress={onJoin}
-        disabled={busy}
-        testID="fire-join"
-      />
-      <FireButton
-        label={t('fire.join.listen')}
-        icon="ear"
-        kind="secondary"
-        onPress={onListen}
-        disabled={busy}
-        testID="fire-listen"
-      />
+      {micOff ? (
+        <>
+          <FireButton
+            label={t('surfaces.ask.justListen')}
+            icon="ear"
+            onPress={onListen}
+            disabled={busy}
+            testID="fire-listen"
+          />
+          {onSettings ? <DeniedNote device="mic" onSettings={onSettings} /> : null}
+        </>
+      ) : (
+        <>
+          <FireButton
+            label={t('fire.join.in')}
+            icon="mic"
+            onPress={onJoin}
+            disabled={busy}
+            testID="fire-join"
+          />
+          <FireButton
+            label={t('fire.join.listen')}
+            icon="ear"
+            kind="secondary"
+            onPress={onListen}
+            disabled={busy}
+            testID="fire-listen"
+          />
+        </>
+      )}
     </FirePanel>
   );
 }
@@ -218,6 +271,11 @@ export interface RoomDockProps {
   readonly onGesture: (kind: GestureKind) => void;
   readonly onStopSharing: () => void;
   readonly onFlipBack: () => void;
+  /** Opens where the fire sounds (the route sheet). */
+  readonly onSound: () => void;
+  /** The mic or camera is off for Kithfield: a quiet Settings link under the buttons. */
+  readonly denied: 'mic' | 'camera' | null;
+  readonly onSettings: () => void;
 }
 
 /** The panel while you're by the fire. */
@@ -256,6 +314,11 @@ export function RoomDock(p: RoomDockProps) {
         <ArtIcon name="lantern" size={26} color={fireLook.primaryInk} />
       </GlassRound>
     );
+  const sound = (
+    <GlassRound label={t('surfaces.route.title')} onPress={p.onSound} testID="fire-sound">
+      <ArtIcon name="ear" size={24} color={fireLook.text} />
+    </GlassRound>
+  );
   const home = (
     <FireButton
       label={t('fire.dock.headHome')}
@@ -297,6 +360,7 @@ export function RoomDock(p: RoomDockProps) {
       <>
         {mic}
         {lantern}
+        {sound}
         {home}
       </>
     );
@@ -366,6 +430,7 @@ export function RoomDock(p: RoomDockProps) {
       >
         {buttons}
       </View>
+      {p.denied ? <DeniedNote device={p.denied} onSettings={p.onSettings} /> : null}
     </FirePanel>
   );
 }
