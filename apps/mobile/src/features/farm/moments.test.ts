@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { DAY, farmLog } from './farm-log.test-data';
-import { momentFor } from './moments';
+import { momentFor, visitBefore } from './moments';
 
 describe('the moments a farm shows as it opens', () => {
   it('celebrates your own fresh move-in on a farm this phone has never opened', () => {
@@ -59,5 +59,34 @@ describe('the moments a farm shows as it opens', () => {
     expect(
       momentFor(state, 'p_june', opened + 6 * DAY, { welcomed: null, joinsSeen: 0 }).kind,
     ).not.toBe('welcome');
+  });
+
+  it('on a fresh install, welcomes back from the visit before this one, not this one', () => {
+    const log = farmLog([
+      ['p_june', 'rabbit'],
+      ['p_bea', 'sheep'],
+    ]);
+    // The first snapshot already carries this visit's `farm_opened`.
+    log.wait(30 * DAY).add('farm_opened', 'p_june', {});
+    const state = log.state();
+    const now = log.at + 60_000;
+    const earlier = now - 9 * DAY;
+    expect(
+      momentFor(state, 'p_june', now, { welcomed: null, joinsSeen: 0, lastVisit: earlier }),
+    ).toEqual({
+      kind: 'welcome',
+      since: earlier,
+    });
+    // Nothing known before this visit: no welcome rather than a wrong one.
+    expect(
+      momentFor(state, 'p_june', now, { welcomed: null, joinsSeen: 0, lastVisit: null }).kind,
+    ).not.toBe('welcome');
+  });
+
+  it('finds the visit before this one in the farm’s log', () => {
+    const opened = (actor: string, at: number) => ({ kind: 'farm_opened', actor, at });
+    const events = [opened('p_june', 1000), opened('p_bea', 3000), opened('p_june', 9000)];
+    expect(visitBefore(events, 'p_june', 5000)).toBe(1000);
+    expect(visitBefore(events, 'p_june', 500)).toBeNull();
   });
 });

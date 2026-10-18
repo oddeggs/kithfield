@@ -21,6 +21,26 @@ export interface MomentFlags {
   readonly welcomed: number | null;
   /** The latest move-in already seen (a `joinedAt`), or null on a farm never opened here. */
   readonly joinsSeen: number | null;
+  /**
+   * When the person was last here before this visit, when the farm's own `lastOpenedAt` is this
+   * visit already (a fresh install's first snapshot carries it): null when it can't be known.
+   */
+  readonly lastVisit?: number | null;
+}
+
+/** The person's latest `farm_opened` in the log before `before`, if the phone holds one. */
+export function visitBefore(
+  events: readonly { readonly kind: string; readonly actor: string | null; readonly at: number }[],
+  me: PersonId,
+  before: number,
+): number | null {
+  let latest: number | null = null;
+  for (const e of events) {
+    if (e.kind === 'farm_opened' && e.actor === me && e.at < before) {
+      latest = latest === null ? e.at : Math.max(latest, e.at);
+    }
+  }
+  return latest;
 }
 
 /**
@@ -31,12 +51,9 @@ export function momentFor(state: FarmState, me: PersonId, now: number, flags: Mo
   const self = state.members.find((m) => m.person === me);
   const latestJoin = state.members.reduce((a, m) => Math.max(a, m.joinedAt), 0);
   if (!self) return { kind: 'none', upTo: null };
-  if (
-    self.lastOpenedAt !== null &&
-    now - self.lastOpenedAt >= WELCOME_AFTER_MS &&
-    flags.welcomed !== self.lastOpenedAt
-  ) {
-    return { kind: 'welcome', since: self.lastOpenedAt };
+  const last = flags.lastVisit === undefined ? self.lastOpenedAt : flags.lastVisit;
+  if (last !== null && now - last >= WELCOME_AFTER_MS && flags.welcomed !== last) {
+    return { kind: 'welcome', since: last };
   }
   if (flags.joinsSeen === null) {
     return now - self.joinedAt < OWN_MOVE_IN_MS

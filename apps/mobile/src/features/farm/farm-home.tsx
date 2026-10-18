@@ -22,7 +22,7 @@ import { seasonLabel } from './farm-copy';
 import { FarmHeader } from './farm-header';
 import { FarmScene } from './farm-scene';
 import { FarmSheetContent } from './farm-sheet';
-import { momentFor } from './moments';
+import { momentFor, visitBefore } from './moments';
 import { removalNote } from './removal-note';
 import { farmRoutes } from './routes';
 import { sceneHeight } from './scene-layout';
@@ -37,26 +37,41 @@ const OVERLAP = 40;
  * moves in while it is open. Each shows once (see `moments.ts`).
  */
 function useMoments(farm: FarmId, me: string | null) {
-  const state = useFarm(farm)?.state ?? null;
+  const client = useDataClient();
+  const held = useFarm(farm);
+  const state = held?.state ?? null;
   const flags = useFarmFlags(farm);
   const latestJoin = state?.members.reduce((a, m) => Math.max(a, m.joinedAt), 0) ?? null;
   const handled = useRef<number | null>(null);
-  const stateRef = useRef(state);
-  stateRef.current = state;
+  const openedAt = useRef(Date.now());
+  const heldRef = useRef(held);
+  heldRef.current = held;
   useEffect(() => {
-    const current = stateRef.current;
-    if (!current || !me || latestJoin === null || handled.current === latestJoin) return;
+    const current = heldRef.current;
+    if (!current?.state || !me || latestJoin === null || handled.current === latestJoin) return;
+    const first = handled.current === null;
     handled.current = latestJoin;
+    const farmState = current.state;
     let live = true;
     void (async () => {
       const [welcomed, joins] = await Promise.all([
         flags.read('welcomed'),
         flags.read('joinsSeen'),
       ]);
+      // A farm first read from the server (a fresh install) already counts this visit as the
+      // last one: the visit before it is looked up in the log instead.
+      const self = farmState.members.find((m) => m.person === me);
+      const thisVisit = openedAt.current - 60_000;
+      let lastVisit: number | null | undefined;
+      if (first && self?.lastOpenedAt != null && self.lastOpenedAt >= thisVisit) {
+        await client.pageHistory(farm, current.lastSeq + 1, 200).catch(() => false);
+        lastVisit = visitBefore(await client.events(farm, { limit: 200 }), me, thisVisit);
+      }
       if (!live) return;
-      const moment = momentFor(current, me, Date.now(), {
+      const moment = momentFor(farmState, me, Date.now(), {
         welcomed: welcomed === null ? null : Number(welcomed),
         joinsSeen: joins === null ? null : Number(joins),
+        ...(lastVisit === undefined ? {} : { lastVisit }),
       });
       if (moment.kind === 'welcome') {
         await flags.write('welcomed', String(moment.since));
@@ -69,7 +84,7 @@ function useMoments(farm: FarmId, me: string | null) {
     return () => {
       live = false;
     };
-  }, [farm, me, latestJoin, flags]);
+  }, [client, farm, me, latestJoin, flags]);
 }
 
 function FarmFor({ farm }: { readonly farm: FarmId }) {
