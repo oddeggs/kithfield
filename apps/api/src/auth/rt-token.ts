@@ -17,6 +17,8 @@ export interface RtTokenClaims {
   readonly person: string;
   readonly farm: string | null;
   readonly expiresAt: number;
+  /** The session it was minted under; its socket closes when that session is ended. */
+  readonly session: string | null;
 }
 
 /** Whose socket a token is checked for: a farm's, or one person's cottage. */
@@ -68,11 +70,13 @@ function fromBase64Url(text: string): Uint8Array<ArrayBuffer> | null {
 
 export async function signRtToken(
   secret: string,
-  input: { person: string; farm: string | null; now: number },
+  input: { person: string; farm: string | null; now: number; session?: string | null },
 ): Promise<{ token: string; expiresAt: number }> {
   const expiresAt = input.now + RT_TOKEN_LIFETIME_MS;
   const payload = toBase64Url(
-    encoder.encode(JSON.stringify({ p: input.person, f: input.farm, e: expiresAt })),
+    encoder.encode(
+      JSON.stringify({ p: input.person, f: input.farm, e: expiresAt, s: input.session ?? null }),
+    ),
   );
   const signed = `${VERSION}.${payload}`;
   const signature = await crypto.subtle.sign(
@@ -91,11 +95,21 @@ function readClaims(json: string): RtTokenClaims | null {
     return null;
   }
   if (typeof value !== 'object' || value === null) return null;
-  const { p, f, e } = value as Record<string, unknown>;
+  const { p, f, e, s } = value as Record<string, unknown>;
   if (typeof p !== 'string' || (f !== null && typeof f !== 'string') || typeof e !== 'number') {
     return null;
   }
-  return { person: p, farm: f, expiresAt: e };
+  return { person: p, farm: f, expiresAt: e, session: typeof s === 'string' ? s : null };
+}
+
+/**
+ * The session a socket token was minted under, read without checking it: only for a token
+ * `checkRtToken` already accepted.
+ */
+export function rtTokenSession(token: unknown): string | null {
+  if (typeof token !== 'string' || token.length > 512) return null;
+  const payload = fromBase64Url(token.split('.')[1] ?? '');
+  return payload === null ? null : (readClaims(decoder.decode(payload))?.session ?? null);
 }
 
 /**

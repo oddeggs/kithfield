@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from '@jest/globals';
 
+import type { HeldElsewhere } from './data-client';
 import { FarmTestServer } from './test/farm-test-server';
 import { kithfieldRules } from './farm-rules';
 import { FAST, TestPhone, until } from './test/test-phone';
@@ -14,8 +15,8 @@ function setup(tuning = FAST) {
   const server = new FarmTestServer(kithfieldRules);
   server.createFarm(FARM, BEA, 'The Lot');
   server.join(FARM, PIP);
-  const start = async (person: string) => {
-    const phone = await TestPhone.start(server, person, tuning);
+  const start = async (person: string, heldElsewhere?: HeldElsewhere) => {
+    const phone = await TestPhone.start(server, person, tuning, heldElsewhere);
     phones.push(phone);
     return phone;
   };
@@ -221,5 +222,71 @@ describe('signing out', () => {
     expect((await pip.client.store.farm(FARM)).lastSeq).toBe(0);
     expect(pip.reports).toContainEqual({ type: 'unsent_at_sign_out', count: 1 });
     expect(head(server)).toBeGreaterThan(0);
+  });
+
+  it('counts what waits outside the tables, and clears it with them', async () => {
+    const { start } = setup();
+    let uploading = 2;
+    const pip = await start(PIP, {
+      pendingCount: () => Promise.resolve(uploading),
+      clear: () => {
+        uploading = 0;
+        return Promise.resolve();
+      },
+    });
+
+    expect(await pip.client.signOut({ force: false })).toEqual({ unsent: 2, signedOut: false });
+    expect(uploading).toBe(2);
+    expect(await pip.client.signOut({ force: true })).toEqual({ unsent: 2, signedOut: true });
+    expect(uploading).toBe(0);
+  });
+});
+
+describe('a write made again with its op id', () => {
+  const OP = '01900000-0000-7000-8000-00000000beef';
+
+  it('is queued and sent once, waiting, after landing and after a relaunch', async () => {
+    const { server, start } = setup();
+    const pip = await start(PIP);
+    server.online = false;
+    const first = await pip.client.send(FARM, 'wave', { to: BEA }, OP);
+    const again = await pip.client.send(FARM, 'wave', { to: BEA }, OP);
+    expect(first).toEqual({ status: 'queued', opId: OP });
+    expect(again).toEqual({ status: 'queued', opId: OP });
+    expect(await pip.client.store.outbox(FARM)).toHaveLength(1);
+    expect((await pip.state(FARM)).pending).toHaveLength(1);
+
+    await pip.restart();
+    expect(await pip.client.send(FARM, 'wave', { to: BEA }, OP)).toEqual(first);
+    expect(await pip.client.store.outbox(FARM)).toHaveLength(1);
+
+    server.online = true;
+    await pip.client.start();
+    await until(async () => (await pip.state(FARM)).pending.length === 0);
+    pip.client.hold(FARM);
+    await until(live(pip));
+    await until(async () => (await pip.client.store.seenOps(FARM, [OP])).has(OP));
+
+    expect(await pip.client.send(FARM, 'wave', { to: BEA }, OP)).toEqual(first);
+    expect(await pip.client.store.outbox(FARM)).toEqual([]);
+    await pause(30);
+    expect(server.farmOf(FARM).log.filter((e) => e['opId'] === OP)).toHaveLength(1);
+  });
+
+  it('answers the refusal again for a write the farm refused', async () => {
+    const { server, start } = setup();
+    const pip = await start(PIP);
+    server.online = false;
+    await pip.client.send(FARM, 'wave', { to: BEA }, OP);
+    server.farmOf(FARM).members.delete(PIP);
+    server.online = true;
+    await pip.client.start();
+    await until(() => pip.client.rejections().length === 1);
+
+    expect(await pip.client.send(FARM, 'wave', { to: BEA }, OP)).toEqual({
+      status: 'refused',
+      reason: 'not_member',
+    });
+    expect(await pip.client.store.outbox(FARM)).toEqual([]);
   });
 });

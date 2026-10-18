@@ -1,5 +1,4 @@
 import type { Critter } from '@kithfield/contracts';
-import type { CritterLook } from '@kithfield/art';
 import { useCallback, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 
@@ -37,11 +36,7 @@ export function Note({ text }: { readonly text: string | null }) {
   ) : null;
 }
 
-/** The art's look for a critter as the contracts carry it. */
-export const lookOf = (critter: Critter): CritterLook => ({
-  coat: critter.coat,
-  ...(critter.mark ? { mark: critter.mark } : {}),
-});
+export { lookOf } from '../../ui/art/critter-look';
 
 /** A critter for the lab: a species with the default coat and nothing else on. */
 export const plainCritter = (species: Critter['species']): Critter => ({

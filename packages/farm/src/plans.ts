@@ -3,6 +3,7 @@ import {
   type EventOf,
   type FarmEvent,
   type FarmState,
+  type LocalDate,
   type PersonId,
   type SeedState,
   type Seq,
@@ -11,7 +12,7 @@ import {
 } from '@kithfield/contracts';
 
 import { factsOf } from './growth';
-import { HANGOUT_PEOPLE } from './rules';
+import { HANGOUT_PEOPLE, PLAN_DAY_RULES_VERSION } from './rules';
 
 /* Plan seeds: planting, changes, votes on days, RSVPs and check-ins at the hangout. */
 
@@ -52,37 +53,105 @@ export const yesesNeeded = (yeses: SeedState['yeses'], members: number): number 
   }
 };
 
-/** A plan grows a stage per condition met: a day, a place and enough yeses. */
-export const planConditions = (seed: SeedState, members: number): PlanConditions => ({
-  day: seed.settleOn !== null || seed.days.length === 1,
+/**
+ * When a plan event happens, as the plan rules read it: its time, the farm day it counts on, and
+ * the rules version it was written under (the plan-day rules start at `PLAN_DAY_RULES_VERSION`).
+ */
+export interface PlanClock {
+  readonly at: EpochMs;
+  readonly day: LocalDate;
+  readonly rulesVersion: number;
+}
+
+const planDayRules = (clock: PlanClock): boolean => clock.rulesVersion >= PLAN_DAY_RULES_VERSION;
+
+/** The day options the most people lean on, by index, earliest first. None before any vote. */
+export const leadingOptions = (seed: SeedState): number[] => {
+  const counts = seed.days.map(
+    (_, i) => seed.votes.find((v) => v.option === i)?.people.length ?? 0,
+  );
+  const most = Math.max(0, ...counts);
+  if (most === 0) return [];
+  return counts.flatMap((count, i) => (count === most ? [i] : []));
+};
+
+/**
+ * The plan's day, once it has one: its only day option, or, once a settling day is set, the option
+ * the most people lean on (the earliest of a tie; the first option if nobody leaned). Null while
+ * friends are still picking. Votes and day changes stop once the plan sprouts, so a sprouted
+ * plan's day stays put.
+ */
+export const planDay = (seed: SeedState): LocalDate | null => {
+  if (seed.days.length === 1) return seed.days[0]?.date ?? null;
+  if (seed.settleOn === null) return null;
+  return seed.days[leadingOptions(seed)[0] ?? 0]?.date ?? null;
+};
+
+/**
+ * A plan grows a stage per condition met: a day, a place and enough yeses. The day is met by a
+ * single day option, or by a settling day once `today` (the farm's day) has reached it. Without
+ * `today`, a settling day counts as soon as it is set, as the rules before the plan-day rules had
+ * it.
+ */
+export const planConditions = (
+  seed: SeedState,
+  members: number,
+  today?: LocalDate,
+): PlanConditions => ({
+  day:
+    seed.days.length === 1 ||
+    (seed.settleOn !== null && (today === undefined || today >= seed.settleOn)),
   place: seed.place !== null,
   yeses: seed.rsvps.filter((r) => r.answer === 'in').length >= yesesNeeded(seed.yeses, members),
 });
 
-const withSprout = (state: FarmState, seed: SeedState, at: EpochMs): SeedState => {
+const withSprout = (state: FarmState, seed: SeedState, clock: PlanClock): SeedState => {
   if (seed.sproutedAt !== null || seed.someday || seed.unsent) return seed;
-  const c = planConditions(seed, state.members.length);
-  return c.day && c.place && c.yeses ? { ...seed, sproutedAt: at } : seed;
+  const today = planDayRules(clock) ? clock.day : undefined;
+  const c = planConditions(seed, state.members.length, today);
+  return c.day && c.place && c.yeses ? { ...seed, sproutedAt: clock.at } : seed;
 };
 
 const updateSeed = (
   state: FarmState,
   seq: unknown,
-  at: EpochMs,
+  clock: PlanClock,
   change: (seed: SeedState) => SeedState,
 ): FarmState => {
   if (!state.seeds.some((s) => s.seq === seq)) return state;
   return {
     ...state,
-    seeds: state.seeds.map((s) => (s.seq === seq ? withSprout(state, change(s), at) : s)),
+    seeds: state.seeds.map((s) => (s.seq === seq ? withSprout(state, change(s), clock) : s)),
   };
 };
+
+/**
+ * The farm has reached a new day: plans whose settling day has come sprout now if everything else
+ * is there, without waiting for someone to touch them.
+ */
+export const sproutSettled = (state: FarmState, clock: PlanClock): FarmState => {
+  if (!planDayRules(clock)) return state;
+  const due = (s: SeedState) =>
+    s.sproutedAt === null && s.settleOn !== null && s.settleOn <= clock.day;
+  if (!state.seeds.some(due)) return state;
+  return { ...state, seeds: state.seeds.map((s) => (due(s) ? withSprout(state, s, clock) : s)) };
+};
+
+const clockOf = (event: FarmEvent, day: LocalDate): PlanClock => ({
+  at: event.at,
+  day,
+  rulesVersion: event.rulesVersion,
+});
 
 export const seedOf = (state: FarmState, seq: Seq): SeedState | undefined =>
   state.seeds.find((s) => s.seq === seq);
 
-export const applySeedPlanted = (state: FarmState, event: EventOf<'seed_planted'>): FarmState => {
-  const { seq, actor, at, payload } = event;
+export const applySeedPlanted = (
+  state: FarmState,
+  event: EventOf<'seed_planted'>,
+  day: LocalDate,
+): FarmState => {
+  const { seq, actor, payload } = event;
   // A planting that arrives tombstoned is an unsent plan from the start.
   const unsent: SeedState = {
     seq,
@@ -111,35 +180,48 @@ export const applySeedPlanted = (state: FarmState, event: EventOf<'seed_planted'
         yeses: payload.yeses,
         someday: payload.someday,
       };
-  const seeds = [...state.seeds.filter((s) => s.seq !== seq), withSprout(state, seed, at)];
+  const seeds = [
+    ...state.seeds.filter((s) => s.seq !== seq),
+    withSprout(state, seed, clockOf(event, day)),
+  ];
   return { ...state, seeds: seeds.slice(-MAX_SEEDS) };
 };
 
-export const applySeedChanged = (state: FarmState, event: EventOf<'seed_changed'>): FarmState => {
+export const applySeedChanged = (
+  state: FarmState,
+  event: EventOf<'seed_changed'>,
+  day: LocalDate,
+): FarmState => {
   const p = event.payload;
   const facts = factsOf(event);
-  return updateSeed(state, facts['seed'], event.at, (seed) => {
+  const clock = clockOf(event, day);
+  return updateSeed(state, facts['seed'], clock, (seed) => {
     const hat = typeof facts['hat'] === 'string' ? { hat: facts['hat'] } : {};
     if (isTombstone(p) || seed.unsent) return { ...seed, ...hat };
+    // A sprouted plan keeps its day.
+    const dayFixed = planDayRules(clock) && seed.sproutedAt !== null;
     return {
       ...seed,
       ...hat,
       ...(p.title !== undefined ? { title: p.title } : {}),
-      ...(p.days !== undefined ? { days: p.days } : {}),
+      ...(p.days !== undefined && !dayFixed ? { days: p.days } : {}),
       ...(p.place !== undefined ? { place: p.place } : {}),
       ...(p.yeses !== undefined ? { yeses: p.yeses } : {}),
       ...(p.someday !== undefined ? { someday: p.someday } : {}),
-      ...(p.settleOn !== undefined ? { settleOn: p.settleOn } : {}),
+      ...(p.settleOn !== undefined && !dayFixed ? { settleOn: p.settleOn } : {}),
     };
   });
 };
 
-export const applyVote = (state: FarmState, event: EventOf<'vote'>): FarmState => {
+export const applyVote = (state: FarmState, event: EventOf<'vote'>, day: LocalDate): FarmState => {
   const facts = factsOf(event);
   const { actor } = event;
   const option = facts['option'];
   if (typeof option !== 'number') return state;
-  return updateSeed(state, facts['seed'], event.at, (seed) => {
+  const clock = clockOf(event, day);
+  return updateSeed(state, facts['seed'], clock, (seed) => {
+    // Leaning on a day would move a sprouted plan's day.
+    if (planDayRules(clock) && seed.sproutedAt !== null) return seed;
     const others = seed.votes.filter((v) => v.option !== option);
     const people = (seed.votes.find((v) => v.option === option)?.people ?? []).filter(
       (p) => p !== actor,
@@ -151,32 +233,44 @@ export const applyVote = (state: FarmState, event: EventOf<'vote'>): FarmState =
   });
 };
 
-export const applyRsvp = (state: FarmState, event: EventOf<'rsvp'>): FarmState => {
+export const applyRsvp = (state: FarmState, event: EventOf<'rsvp'>, day: LocalDate): FarmState => {
   const facts = factsOf(event);
   const answer = facts['answer'];
   if (answer !== 'in' && answer !== 'maybe' && answer !== 'out') return state;
-  return updateSeed(state, facts['seed'], event.at, (seed) => {
+  return updateSeed(state, facts['seed'], clockOf(event, day), (seed) => {
     const rsvps = seed.rsvps.filter((r) => r.person !== event.actor);
     if (rsvps.length >= LIMITS.members) return seed;
     return { ...seed, rsvps: [...rsvps, { person: event.actor, answer }] };
   });
 };
 
+/** Whether a check-in on `day` counts: the plan has sprouted and `day` is its day. */
+export const isHangoutDay = (seed: SeedState, day: LocalDate): boolean =>
+  seed.sproutedAt !== null && planDay(seed) === day;
+
 /**
  * Someone is at the hangout. Returns who the hangout now grows: once two people are there,
- * everyone there; after that, each new arrival.
+ * everyone there; after that, each new arrival. A check-in on any other day than a sprouted
+ * plan's own grows nothing.
  */
 export const applyCheckin = (
   state: FarmState,
   event: EventOf<'checkin'>,
+  day: LocalDate,
 ): { state: FarmState; hangout: readonly PersonId[] } => {
   const seq = factsOf(event)['seed'];
   const seed = state.seeds.find((s) => s.seq === seq);
-  if (!seed || seed.checkins.includes(event.actor) || seed.checkins.length >= LIMITS.members) {
+  const clock = clockOf(event, day);
+  if (
+    !seed ||
+    (planDayRules(clock) && !isHangoutDay(seed, day)) ||
+    seed.checkins.includes(event.actor) ||
+    seed.checkins.length >= LIMITS.members
+  ) {
     return { state, hangout: [] };
   }
   const checkins = [...seed.checkins, event.actor];
-  const next = updateSeed(state, seq, event.at, (s) => ({ ...s, checkins }));
+  const next = updateSeed(state, seq, clock, (s) => ({ ...s, checkins }));
   if (checkins.length < HANGOUT_PEOPLE) return { state: next, hangout: [] };
   return { state: next, hangout: checkins.length === HANGOUT_PEOPLE ? checkins : [event.actor] };
 };
@@ -197,7 +291,11 @@ export const applyRestored = (state: FarmState, target: FarmEvent): FarmState =>
   if (target.kind !== 'seed_planted' || isTombstone(target.payload)) return state;
   const current = seedOf(state, target.seq);
   if (current && !current.unsent) return state;
-  const { seeds } = applySeedPlanted({ ...state, seeds: [] }, target);
+  const { seeds } = applySeedPlanted(
+    { ...state, seeds: [] },
+    target,
+    target.day ?? state.today.day,
+  );
   const back = seeds.map((s) =>
     current
       ? {

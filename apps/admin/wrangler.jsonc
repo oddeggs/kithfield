@@ -1,20 +1,27 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // The moderation console. Cloudflare Access guards its host; that policy lives in the Zero Trust
-  // dashboard, not here. Two environments: `--env dev` and `--env prd`.
+  // The safety desk. Cloudflare Access guards its host (that policy lives in the Zero Trust
+  // dashboard); the API checks the Access token on every call, so this Worker only renders pages
+  // and passes the token along. Two environments: `--env dev` and `--env prd`.
   "name": "kithfield-admin",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
+  // The art renderer and the serif face, copied from the workspace before every dev and deploy.
+  "build": { "command": "node scripts/copy-assets.mjs" },
+  "assets": { "directory": "./.wrangler/assets" },
   "env": {
     "dev": {
       "name": "kithfield-admin-dev",
       "vars": { "ENVIRONMENT": "dev" },
       "routes": [{ "pattern": "admin-dev.kithfield.com/*", "zone_name": "kithfield.com" }],
+      // The admin API lives in the API Worker; pages and `/admin/v1/*` reach it through this binding.
+      "services": [{ "binding": "API", "service": "kithfield-api-dev" }],
     },
     "prd": {
       "name": "kithfield-admin",
       "vars": { "ENVIRONMENT": "prd" },
       "routes": [{ "pattern": "admin.kithfield.com/*", "zone_name": "kithfield.com" }],
+      "services": [{ "binding": "API", "service": "kithfield-api" }],
     },
   },
 }

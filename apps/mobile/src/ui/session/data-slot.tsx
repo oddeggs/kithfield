@@ -7,13 +7,18 @@ import {
   startData,
   useDataStatus,
   type DataRuntime,
+  type HeldElsewhere,
   type SessionPerson,
   type SyncReport,
 } from '../../data';
+import { blocksPort, connectBlocks, sharedBlocks } from '../../data/blocks';
 import { ArtStill } from '../art/art-view';
 import { ErrorState } from '../components/state-shell';
 import { useLocale } from '../locale/locale-provider';
+import { AccountProvider, useOnboarded, useRuntimeAccount } from './account';
+import { PushRegistration, pushDeps } from './push-registration';
 import { SessionProvider, signedOut, type Session } from './session';
+import { SignOutScope } from './sign-out';
 
 type Runtime = DataRuntime<unknown>;
 
@@ -30,7 +35,10 @@ type Phase =
   | { readonly kind: 'ready'; readonly runtime: Runtime }
   | { readonly kind: 'failed' };
 
-/** The session as the shell reads it: signed in while the data layer has a person it can use. */
+/**
+ * The session as the shell reads it: signed in while the data layer has a person it can use, and
+ * onboarded once that person is through the way in.
+ */
 function SessionBridge({
   runtime,
   children,
@@ -44,14 +52,33 @@ function SessionBridge({
     const off = runtime.session.onPersonChanged((_from, to) => setPerson(to));
     return () => void off();
   }, [runtime]);
-  const session = useMemo<Session>(
-    () =>
-      sessionEnded || person === null
-        ? signedOut
-        : { status: 'signedIn', person: { id: person.person } },
-    [sessionEnded, person],
+  const id = sessionEnded || person === null ? null : person.person;
+  // The phone's one block list, read for each person through the data layer's requests.
+  useEffect(() => {
+    if (id === null) {
+      sharedBlocks()?.clear();
+      return;
+    }
+    const blocks = connectBlocks(blocksPort(runtime.client.api));
+    blocks.clear();
+    blocks.refresh().catch(() => undefined);
+  }, [runtime, id]);
+  const { onboarded, recheck } = useOnboarded(runtime, id);
+  // A person the server removed (the age check) is dropped here too, so nothing acts as them.
+  const dropped = useCallback(() => setPerson(null), []);
+  const account = useRuntimeAccount(runtime, id, recheck, dropped);
+  const push = useMemo(() => pushDeps(runtime), [runtime]);
+  const session = useMemo<Session>(() => {
+    if (id === null) return signedOut;
+    if (onboarded === null) return { status: 'loading', person: { id }, onboarded: false };
+    return { status: 'signedIn', person: { id }, onboarded };
+  }, [id, onboarded]);
+  return (
+    <AccountProvider account={account}>
+      <PushRegistration person={onboarded ? id : null} deps={push} />
+      <SessionProvider session={session}>{children}</SessionProvider>
+    </AccountProvider>
   );
-  return <SessionProvider session={session}>{children}</SessionProvider>;
 }
 
 /** A first launch that couldn't reach the server: there is nothing to open yet, so offer a retry. */
@@ -75,14 +102,27 @@ function StartFailed({ onRetry }: { readonly onRetry: () => void }) {
  * session in the shell's `SessionProvider`. Nothing below renders while it starts, so the splash
  * stays up; a returning install starts from what the phone holds even offline.
  */
-export function DataSlot({ children }: { readonly children: ReactNode }) {
+export function DataSlot({
+  heldElsewhere,
+  children,
+}: {
+  /** What the person keeps outside the data layer (the media queue): signing out clears it. */
+  readonly heldElsewhere?: HeldElsewhere;
+  readonly children: ReactNode;
+}) {
   const [phase, setPhase] = useState<Phase>({ kind: 'starting' });
   // One start per attempt, even when an effect runs twice in development.
   const started = useRef<Promise<Runtime> | null>(null);
+  // Read when the data layer starts; a later change doesn't restart it.
+  const held = useRef(heldElsewhere);
 
   useEffect(() => {
     if (phase.kind !== 'starting') return;
-    started.current ??= startData<unknown>(kithfieldRules, report);
+    started.current ??= startData<unknown>(
+      kithfieldRules,
+      report,
+      held.current ? { heldElsewhere: held.current } : {},
+    );
     let live = true;
     started.current.then(
       (runtime) => live && setPhase({ kind: 'ready', runtime }),
@@ -98,6 +138,11 @@ export function DataSlot({ children }: { readonly children: ReactNode }) {
     setPhase({ kind: 'starting' });
   }, []);
 
+  const runtime = phase.kind === 'ready' ? phase.runtime : null;
+  const endSession = useCallback(async () => {
+    await runtime?.session.signOut();
+  }, [runtime]);
+
   if (phase.kind === 'starting') return null;
   if (phase.kind === 'failed') {
     return (
@@ -106,10 +151,19 @@ export function DataSlot({ children }: { readonly children: ReactNode }) {
       </SessionProvider>
     );
   }
-  const { runtime } = phase;
   return (
-    <DataProvider client={runtime.client} rules={kithfieldRules} network={runtime.network}>
-      <SessionBridge runtime={runtime}>{children}</SessionBridge>
+    <DataProvider
+      client={phase.runtime.client}
+      rules={kithfieldRules}
+      network={phase.runtime.network}
+    >
+      <SignOutScope
+        endSession={endSession}
+        restart={retry}
+        {...(heldElsewhere ? { clearHeld: heldElsewhere.clear } : {})}
+      >
+        <SessionBridge runtime={phase.runtime}>{children}</SessionBridge>
+      </SignOutScope>
     </DataProvider>
   );
 }

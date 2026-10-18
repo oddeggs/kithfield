@@ -7,8 +7,11 @@ import type { AppEnv } from '../env';
 import { isBanned } from './bans';
 import { AuthNotConfigured, authFor } from './instance';
 
-/** Routes behind `requireSession` read the signed-in person's id as `c.var.person`. */
-export type SessionEnv = AppEnv & { Variables: { person: string } };
+/**
+ * Routes behind `requireSession` read the signed-in person's id as `c.var.person`, and the
+ * session's own id as `c.var.session`.
+ */
+export type SessionEnv = AppEnv & { Variables: { person: string; session: string } };
 
 /** A non-2xx answer in the contracts' `ErrorBody` shape. */
 export function errorResponse(
@@ -38,5 +41,6 @@ export const requireSession = createMiddleware<SessionEnv>(async (c, next) => {
     return errorResponse(c, 403, 'banned');
   }
   c.set('person', session.user.id);
+  c.set('session', session.session.id);
   await next();
 });

@@ -1,5 +1,5 @@
 import { fontFor } from '@kithfield/theme';
-import { Children, useMemo, type ReactNode } from 'react';
+import { Children, createContext, useContext, useMemo, type ReactNode } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,7 +10,9 @@ import {
 
 import { useLocale } from '../locale/locale-provider';
 import { useTheme } from '../theme/theme-provider';
-import { glyphShift, typeStyleOf, type TypeVariant } from './styles';
+import { fontSizeMultiplier } from './dynamic-type';
+import { leading } from './leading';
+import { typeStyleOf, type TypeVariant } from './styles';
 
 export interface TxtProps extends TextProps {
   /** A step of the type ramp, or a component's own text style. Defaults to body. */
@@ -26,6 +28,9 @@ export interface TxtProps extends TextProps {
   readonly align?: TextStyle['textAlign'];
   readonly children?: ReactNode;
 }
+
+/** True inside a Txt: nested text is drawn on its parent's lines. */
+const InsideTxt = createContext(false);
 
 /** Hand-face text must be precomposed: Patrick Hand has no combining marks (see `fontFor`). */
 const nfc = (children: ReactNode): ReactNode =>
@@ -50,6 +55,7 @@ export function Txt({
   const { palette } = useTheme();
   const s = typeStyleOf(variant);
   const { fontScale } = useWindowDimensions();
+  const nested = useContext(InsideTxt);
   const font = useMemo<TextStyle>(
     () => ({
       // Vietnamese stacks marks above capitals and tall letters: even one line needs the taller
@@ -60,33 +66,31 @@ export function Txt({
     }),
     [s, fontLocale, multiline, medium, mono],
   );
-  // The shift follows whatever size and line height the caller's style ends with, and grows
-  // with the text when Dynamic Type scales it; any transform of the caller's is kept.
+  // The room iOS needs follows whatever size and line height the caller's style ends with, and
+  // grows with the text when Dynamic Type scales it. Text nested in a Txt is laid out by its
+  // parent's lines, so only the outermost one takes it.
   // Expo's web typings widen text styles past what `flatten` takes; the native shape is the same.
-  const own = (StyleSheet.flatten(style as never) ?? {}) as TextStyle;
-  const size = own.fontSize ?? font.fontSize ?? 0;
-  const line = own.lineHeight ?? font.lineHeight ?? size;
-  const family = own.fontFamily ?? font.fontFamily ?? 'system';
-  const scale =
-    rest.allowFontScaling === false
-      ? 1
-      : Math.min(fontScale, rest.maxFontSizeMultiplier ?? Infinity);
-  const shift = glyphShift(family, size, line, scale);
-  const kept: readonly object[] = Array.isArray(own.transform) ? (own.transform as object[]) : [];
-  const transform = shift > 0 ? ([...kept, { translateY: shift }] as TextStyle['transform']) : null;
+  const own = StyleSheet.flatten([
+    font,
+    { color: color ?? palette.text },
+    align ? { textAlign: align } : null,
+    style,
+  ] as never) as TextStyle;
+  const scale = fontSizeMultiplier({
+    fontScale,
+    ramp: rest.dynamicTypeRamp ?? s.ramp,
+    allowFontScaling: rest.allowFontScaling,
+    maxFontSizeMultiplier: rest.maxFontSizeMultiplier,
+  });
+  // Only text held to one line takes the taller line (for baseline rows); text that may wrap,
+  // even when not marked multiline (Dynamic Type wraps labels too), keeps its lines apart.
+  const oneLine = rest.numberOfLines === 1;
+  const final = nested ? own : leading(own, oneLine, scale);
   return (
-    <Text
-      {...(s.ramp === null ? {} : { dynamicTypeRamp: s.ramp })}
-      {...rest}
-      style={[
-        font,
-        { color: color ?? palette.text },
-        align ? { textAlign: align } : null,
-        style,
-        transform ? { transform } : null,
-      ]}
-    >
-      {s.face === 'system' ? children : nfc(children)}
+    <Text {...(s.ramp === null ? {} : { dynamicTypeRamp: s.ramp })} {...rest} style={final}>
+      <InsideTxt.Provider value>
+        {s.face === 'system' ? children : nfc(children)}
+      </InsideTxt.Provider>
     </Text>
   );
 }

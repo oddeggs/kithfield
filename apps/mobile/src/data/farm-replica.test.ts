@@ -103,7 +103,7 @@ describe('applying events', () => {
   it('stops before an event under newer farm rules', async () => {
     const r = await replica();
     await r.handle({ type: 'events', events: opening, more: false });
-    const newer = { ...event(3, BEA, 'wave', {}), rulesVersion: 3 };
+    const newer = { ...event(3, BEA, 'wave', {}), rulesVersion: kithfieldRules.RULES_VERSION + 1 };
     expect(await r.handle({ type: 'event', event: newer })).toEqual({ rulesOutdated: true });
     expect(r.getState().lastSeq).toBe(2);
   });

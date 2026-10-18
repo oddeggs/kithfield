@@ -178,7 +178,7 @@ describe('history', () => {
 describe('socket errors', () => {
   it('stops and keeps its outbox when the farm needs newer rules', async () => {
     const { server, start } = setup();
-    server.farmOf(FARM).rulesVersion = 3;
+    server.farmOf(FARM).rulesVersion = kithfieldRules.RULES_VERSION + 1;
     const pip = await start(PIP);
     await pip.client.send(FARM, 'wave', { to: BEA });
     pip.client.hold(FARM);

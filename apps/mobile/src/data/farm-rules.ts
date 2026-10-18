@@ -42,7 +42,11 @@ export interface FarmRules<View = unknown> {
     cmd: FarmCommand,
     actor: PersonId,
     now: number,
-    context?: { event?: (seq: number) => FarmEvent | EventEnvelope | undefined },
+    context?: {
+      event?: (seq: number) => FarmEvent | EventEnvelope | undefined;
+      /** Friends the actor has already knocked for today, farm time. */
+      knockedToday?: readonly PersonId[];
+    },
   ): CommandCheck;
   /** What the farm looks like at `now`: sleepy, misty and the rest are computed, never stored. */
   farmView(state: FarmState, now: number): View;

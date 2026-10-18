@@ -5,6 +5,7 @@ import {
   type ParsedEvent,
 } from '@kithfield/contracts';
 
+import { withAliases } from './aliases';
 import {
   applyCardSigned,
   applyDoorstep,
@@ -30,6 +31,7 @@ import {
   applySeedChanged,
   applySeedPlanted,
   applyVote,
+  sproutSettled,
 } from './plans';
 import { HANGOUT_DEW, RULES_VERSION } from './rules';
 import {
@@ -87,6 +89,7 @@ export const createFarm = (created: FarmCreatedEvent): FarmState => {
     basket: null,
     seeds: [],
     pins: [],
+    aliases: {},
     doorstep: [],
     fireLitAt: null,
   };
@@ -141,15 +144,15 @@ const applyKind = (state: FarmState, event: FarmEvent, day: string): FarmState =
     case 'gate':
       return applyDoorstep(state, event);
     case 'seed_planted':
-      return applySeedPlanted(state, event);
+      return applySeedPlanted(state, event, day);
     case 'seed_changed':
-      return applySeedChanged(state, event);
+      return applySeedChanged(state, event, day);
     case 'vote':
-      return applyVote(state, event);
+      return applyVote(state, event, day);
     case 'rsvp':
-      return applyRsvp(state, event);
+      return applyRsvp(state, event, day);
     case 'checkin': {
-      const { state: next, hangout } = applyCheckin(state, event);
+      const { state: next, hangout } = applyCheckin(state, event, day);
       return hangout.reduce(
         (s, person) =>
           applyTend(s, {
@@ -214,7 +217,8 @@ export interface EventLookup {
 /**
  * Applies one event. Pure and deterministic: the same state and event give the same result on
  * every device, and the input is never changed. Events written under rules newer than this
- * reducer are skipped, and so is everything once the farm has moved to such rules.
+ * reducer are skipped, and so is everything once the farm has moved to such rules. Actors and the
+ * people a payload names are read through the farm's `aliases` first.
  *
  * A `restored` puts its target back through `lookup`. A phone must page the restored target in
  * (with its payload back) before it applies the `restored` or anything after it; without the
@@ -222,18 +226,26 @@ export interface EventLookup {
  */
 export const applyEvent = (
   state: FarmState,
-  event: FarmEvent,
+  written: FarmEvent,
   lookup: EventLookup = {},
 ): FarmState => {
-  if (event.kind === 'rules_changed') return applyKind(state, event, state.today.day);
-  if (!canApplyRules(state) || event.rulesVersion > RULES_VERSION) return state;
-  if (event.kind === 'farm_created') return state;
+  if (written.kind === 'rules_changed') return applyKind(state, written, state.today.day);
+  if (!canApplyRules(state) || written.rulesVersion > RULES_VERSION) return state;
+  if (written.kind === 'farm_created') return state;
+  // Someone merged into another person acts as the person they became.
+  const event = withAliases(state, written);
   const day = eventDay(state, event);
-  let next: FarmState = day === state.today.day ? state : { ...state, today: { day, given: [] } };
+  let next: FarmState =
+    day === state.today.day
+      ? state
+      : sproutSettled(
+          { ...state, today: { day, given: [] } },
+          { at: event.at, day, rulesVersion: event.rulesVersion },
+        );
   next = withoutDelivered(next, event.at);
   if (event.kind === 'restored') {
     const target = lookup.event?.(event.payload.target);
-    return target ? applyRestored(next, target) : next;
+    return target ? applyRestored(next, withAliases(next, target)) : next;
   }
   const care = event.actor === null ? null : careOf(event);
   if (care && event.actor !== null) {

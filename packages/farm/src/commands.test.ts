@@ -135,13 +135,30 @@ describe('checkCommand', () => {
     expect(check(state, 'rsvp', { seed: 99, answer: 'in' })).toBe('not_found');
     expect(check(state, 'vote', { seed: seed.seq, option: 0, on: true })).toBe(true);
     expect(check(state, 'vote', { seed: seed.seq, option: 1, on: true })).toBe('invalid');
-    expect(check(state, 'checkin', { seed: seed.seq }, pip)).toBe(true);
-    expect(check(state, 'checkin', { seed: seed.seq }, pip, T0 + DAY)).toBe('invalid');
     expect(check(state, 'seed_changed', { seed: seed.seq, hat: fig }, pip)).toBe('not_allowed');
     expect(check(state, 'seed_changed', { seed: seed.seq, hat: fig }, bea)).toBe(true);
     expect(check(state, 'seed_changed', { seed: seed.seq, place: { name: 'Park' } }, pip)).toBe(
       true,
     );
+  });
+
+  it("checks in only on a sprouted plan's own day, and keeps a sprouted plan's day", () => {
+    const { log, seed } = setup();
+    expect(check(log.state(), 'checkin', { seed: seed.seq }, pip)).toBe('invalid');
+    log.add('seed_changed', bea, { seed: seed.seq, place: { name: 'Park' } });
+    log.add('rsvp', bea, { seed: seed.seq, answer: 'in' });
+    log.add('rsvp', pip, { seed: seed.seq, answer: 'in' });
+    const state = log.state();
+    expect(state.seeds.find((s) => s.seq === seed.seq)?.sproutedAt).not.toBeNull();
+    expect(check(state, 'checkin', { seed: seed.seq }, pip)).toBe(true);
+    expect(check(state, 'checkin', { seed: seed.seq }, pip, T0 + DAY)).toBe('invalid');
+    expect(check(state, 'vote', { seed: seed.seq, option: 0, on: true })).toBe('invalid');
+    const days = { seed: seed.seq, days: [{ date: '2026-10-25' }] };
+    expect(check(state, 'seed_changed', days)).toBe('invalid');
+    expect(check(state, 'seed_changed', { seed: seed.seq, settleOn: '2026-10-20' })).toBe(
+      'invalid',
+    );
+    expect(check(state, 'seed_changed', { seed: seed.seq, title: 'Picnic!' })).toBe(true);
   });
 
   it('sits by the fire only while it is lit, once a session', () => {

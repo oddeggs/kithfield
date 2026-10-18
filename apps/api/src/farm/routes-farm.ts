@@ -12,11 +12,10 @@ import {
 } from '@kithfield/contracts';
 import { Hono } from 'hono';
 
-import type { SessionEnv } from '../auth';
+import { eitherBlocked, type SessionEnv } from '../auth';
 import { ACTION_KEY_HEADER } from '../cottage/action-key';
 import type { Bindings } from '../env';
 import { profileOf } from './adapters/identity';
-import { blocks } from './blocks';
 import { knowsSomeoneOn, noteVisitor, roleOf } from './d1';
 import {
   body,
@@ -116,7 +115,7 @@ export const farmRoutes = (): Hono<SessionEnv> => {
     // Someone who blocked the visitor isn't shown to them.
     const shown = await Promise.all(
       gate.critters.map(async (c2) =>
-        (await blocks.isBlocked(c.env, person, c2.person)) ? [] : [c2],
+        (await eitherBlocked(c.env.DB, person, c2.person)) ? [] : [c2],
       ),
     );
     return c.json({ ...gate, critters: shown.flat() });
@@ -129,7 +128,7 @@ export const farmRoutes = (): Hono<SessionEnv> => {
     const req = await body(c, GateRequest);
     if (req instanceof Response) return req;
     const to = 'to' in req.gesture ? req.gesture.to : null;
-    if (to !== null && (await blocks.isBlocked(c.env, person, to))) {
+    if (to !== null && (await eitherBlocked(c.env.DB, person, to))) {
       return c.json({
         result: 'rejected',
         opId: req.opId,
@@ -164,7 +163,7 @@ export const farmRoutes = (): Hono<SessionEnv> => {
       reason,
     });
     if ((await roleOf(c.env.DB, visited, req.with)) === null) return c.json(rejected('not_found'));
-    if (await blocks.isBlocked(c.env, person, req.with)) return c.json(rejected('unavailable'));
+    if (await eitherBlocked(c.env.DB, person, req.with)) return c.json(rejected('unavailable'));
     const theirs = farmStub(c.env, visited);
     const ours = farmStub(c.env, req.from);
     const take = await theirs.basketCrop(req.take);

@@ -1,10 +1,12 @@
 import { sizes } from '@kithfield/theme';
 import type { BottomTabBarProps } from 'expo-router/tabs';
-import { View } from 'react-native';
+import { useEffect } from 'react';
+import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { haptics } from '../motion/haptics';
+import { fadeTo } from '../motion/motion';
 import { useTabDots, useYou } from './tab-activity';
-import { tabs, type TabName } from './tabs';
+import { tabBarHidden, tabs, type TabName } from './tabs';
 import { TabBarView } from './tab-bar-view';
 
 const isTab = (name: string): name is TabName => (tabs as readonly string[]).includes(name);
@@ -18,15 +20,23 @@ const SIDE = 16;
 export function TabBar({ state, emitter, navigateToTab, insets }: BottomTabBarProps) {
   const dots = useTabDots();
   const you = useYou();
+  const hidden = tabBarHidden(state);
+  const shown = useSharedValue(hidden ? 0 : 1);
+  useEffect(() => {
+    shown.set(fadeTo(hidden ? 0 : 1));
+  }, [hidden, shown]);
+  const fade = useAnimatedStyle(() => ({ opacity: shown.get() }));
   const focused = state.routes[state.index];
   const active = focused && isTab(focused.name) ? focused.name : 'farm';
   const keyOf = (tab: TabName) => state.routes.find((r) => r.name === tab)?.key;
   const bottom =
     insets.bottom > 0 ? insets.bottom - LIFT_UNDER_INDICATOR : BOTTOM_WITHOUT_INDICATOR;
   return (
-    <View
-      pointerEvents="box-none"
-      style={{ position: 'absolute', left: SIDE, right: SIDE, bottom }}
+    <Animated.View
+      pointerEvents={hidden ? 'none' : 'box-none'}
+      accessibilityElementsHidden={hidden}
+      importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}
+      style={[{ position: 'absolute', left: SIDE, right: SIDE, bottom }, fade]}
     >
       <TabBarView
         active={active}
@@ -46,7 +56,7 @@ export function TabBar({ state, emitter, navigateToTab, insets }: BottomTabBarPr
           if (key !== undefined) emitter.emit({ type: 'tabLongPress', target: key });
         }}
       />
-    </View>
+    </Animated.View>
   );
 }
 

@@ -14,8 +14,9 @@ import {
   pip,
   plantOf,
 } from './farm.test-data';
-import { applyRestored } from './plans';
+import { applyRestored, planDay } from './plans';
 import { applyEvent, applyParsed, replay } from './reducer';
+import { PLAN_DAY_RULES_VERSION, RULES_VERSION } from './rules';
 import { farmView } from './view';
 
 const plan = {
@@ -122,6 +123,105 @@ describe('plans', () => {
     ]);
     expectSnapshot(restored);
     expect(applyRestored(restored, seed)).toBe(restored);
+  });
+
+  /** A plan with a place and two yeses: all it needs is its day. */
+  const readyPlan = (log: ReturnType<typeof newFarm>, days: readonly string[]) => {
+    const seed = log.add('seed_planted', bea, {
+      ...plan,
+      days: days.map((date) => ({ date })),
+      place: { name: 'Willow bend' },
+    });
+    log.add('rsvp', bea, { seed: seed.seq, answer: 'in' });
+    log.add('rsvp', pip, { seed: seed.seq, answer: 'in' });
+    return seed;
+  };
+
+  it('sprouts on its settling day, not before, even if nobody touches it that day', () => {
+    const log = newFarm();
+    const seed = readyPlan(log, ['2026-10-21', '2026-10-22']);
+    log.add('vote', fig, { seed: seed.seq, option: 1, on: true });
+    log.add('seed_changed', bea, { seed: seed.seq, settleOn: '2026-10-19' });
+    expect(log.state().seeds[0]?.sproutedAt).toBeNull();
+    expect(farmView(log.state(), log.at).plans[0]?.conditions.day).toBe(false);
+    // The next day, the first event the farm sees is someone else's.
+    log.wait(DAY).add('dewdrop', fig, {});
+    const sprouted = log.state().seeds[0];
+    expect(sprouted?.sproutedAt).toBe(log.at);
+    expect(sprouted && planDay(sprouted)).toBe('2026-10-22');
+  });
+
+  it('sprouts at once when its settling day is today', () => {
+    const log = newFarm();
+    const seed = readyPlan(log, ['2026-10-21', '2026-10-22']);
+    log.add('seed_changed', bea, { seed: seed.seq, settleOn: '2026-10-18' });
+    const sprouted = log.state().seeds[0];
+    expect(sprouted?.sproutedAt).toBe(log.at);
+    // Nobody leaned on a day: the first one.
+    expect(sprouted && planDay(sprouted)).toBe('2026-10-21');
+  });
+
+  it('keeps a sprouted plan on its day: later votes, days and settling days change nothing', () => {
+    const log = newFarm();
+    const seed = readyPlan(log, ['2026-10-21', '2026-10-22']);
+    log.add('vote', fig, { seed: seed.seq, option: 1, on: true });
+    log.add('seed_changed', bea, { seed: seed.seq, settleOn: '2026-10-18' });
+    const sprouted = log.state().seeds[0];
+    log.add('vote', bea, { seed: seed.seq, option: 0, on: true });
+    log.add('vote', pip, { seed: seed.seq, option: 0, on: true });
+    log.add('seed_changed', bea, {
+      seed: seed.seq,
+      days: [{ date: '2026-10-30' }],
+      settleOn: null,
+      title: 'Picnic by the river',
+    });
+    const after = log.state().seeds[0];
+    expect(after).toMatchObject({
+      title: 'Picnic by the river',
+      days: sprouted?.days,
+      settleOn: '2026-10-18',
+      votes: sprouted?.votes,
+    });
+    expect(after && planDay(after)).toBe('2026-10-22');
+  });
+
+  it("counts a check-in only on a sprouted plan's own day", () => {
+    const log = newFarm();
+    const seed = readyPlan(log, ['2026-10-19']);
+    expect(log.state().seeds[0]?.sproutedAt).not.toBeNull();
+    log.add('checkin', pip, { seed: seed.seq });
+    expect(log.state().seeds[0]?.checkins).toEqual([]);
+    log.wait(DAY).add('checkin', pip, { seed: seed.seq });
+    log.add('checkin', fig, { seed: seed.seq });
+    expect(log.state().seeds[0]?.checkins).toEqual([pip, fig]);
+    log.wait(DAY).add('checkin', bea, { seed: seed.seq });
+    expect(log.state().seeds[0]?.checkins).toEqual([pip, fig]);
+  });
+
+  it('counts nothing for a plan that has not sprouted, even on one of its days', () => {
+    const log = newFarm();
+    const seed = log.add('seed_planted', bea, { ...plan, days: [{ date: '2026-10-18' }] });
+    log.add('checkin', pip, { seed: seed.seq });
+    log.add('checkin', fig, { seed: seed.seq });
+    expect(log.state().seeds[0]?.checkins).toEqual([]);
+  });
+
+  it('reads plans written under earlier rules as those rules had them', () => {
+    const log = newFarm();
+    const seed = log.add('seed_planted', bea, {
+      ...plan,
+      days: [{ date: '2026-10-21' }, { date: '2026-10-22' }],
+      place: { name: 'Willow bend' },
+    });
+    log.add('rsvp', bea, { seed: seed.seq, answer: 'in' });
+    log.add('rsvp', pip, { seed: seed.seq, answer: 'in' });
+    log.add('seed_changed', bea, { seed: seed.seq, settleOn: '2026-10-25' });
+    log.add('checkin', fig, { seed: seed.seq });
+    const earlier = replay(
+      log.events.map((e) => ({ ...e, rulesVersion: PLAN_DAY_RULES_VERSION - 1 })),
+    );
+    expect(earlier?.seeds[0]).toMatchObject({ sproutedAt: log.at, checkins: [fig] });
+    expect(log.state().seeds[0]).toMatchObject({ sproutedAt: null, checkins: [] });
   });
 });
 
@@ -254,12 +354,12 @@ describe('Snapshots, versions and the porch pot: rules versions', () => {
     const log = newFarm();
     log.add('dewdrop', bea, {});
     const before = log.state();
-    const newer = { ...log.add('dewdrop', pip, {}), rulesVersion: 3 };
+    const newer = { ...log.add('dewdrop', pip, {}), rulesVersion: RULES_VERSION + 1 };
     expect(applyEvent(before, newer)).toBe(before);
-    log.add('rules_changed', null, { from: 2, to: 3 });
+    log.add('rules_changed', null, { from: RULES_VERSION, to: RULES_VERSION + 1 });
     log.add('dewdrop', fig, {});
     const after = log.state();
-    expect(after.rulesVersion).toBe(3);
+    expect(after.rulesVersion).toBe(RULES_VERSION + 1);
     expect(plantOf(after, 'marigold').dew).toBe(2);
     expect(farmView(after, log.at).rulesOutdated).toBe(true);
   });

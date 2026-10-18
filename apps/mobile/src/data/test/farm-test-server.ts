@@ -132,6 +132,14 @@ export class FarmTestServer {
     return { token, expiresAt };
   }
 
+  /** The person was signed out from another device, as their farm or cottage socket hears it. */
+  endSession(person: string, socket: 'farm' | 'cottage'): void {
+    for (const s of [...this.sessions]) {
+      const isFarm = s.farm !== null;
+      if (s.person === person && isFarm === (socket === 'farm')) this.fail(s, 'session_ended');
+    }
+  }
+
   /** Every open socket drops, as when the network goes away. */
   dropAll(): void {
     const open = [...this.sessions];

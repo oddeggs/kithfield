@@ -68,9 +68,9 @@ const opts = (o: LoopOptions, frames: number) => ({
 
 /**
  * A whole scene as a loop (its background is drawn once and shared by every frame). For small
- * scenes only (a widget, a sticker, an icon): a full-screen scene is drawn as a cached background
- * with `fireLoop` and the critter layers over it. Refuses a loop that would take more than a
- * quarter of the sprite cache.
+ * scenes only (a widget, a sticker, an icon): a full-size scene loops in layers instead, a still
+ * and only the parts that move (`bakeSceneLayers`). Refuses, with a `RangeError`, a loop that
+ * would take more than a quarter of the sprite cache.
  */
 export function sceneLoop(art: Art, req: SceneRequest, options: LoopOptions = {}): FrameLoop {
   const { frames, fps, start } = opts(options, 12);
@@ -79,7 +79,7 @@ export function sceneLoop(art: Art, req: SceneRequest, options: LoopOptions = {}
   if (bytes > art.cache.cap / 4) {
     throw new RangeError(
       `${req.scene}: a ${frames}-frame loop needs ${bytes} bytes, over a quarter of the ` +
-        `${art.cache.cap}-byte cache; draw a background once and loop only what moves`,
+        `${art.cache.cap}-byte cache; loop it in layers (bakeSceneLayers)`,
     );
   }
   const key = `loop:scene:${JSON.stringify(req)}:${frames}:${fps}:${start}`;

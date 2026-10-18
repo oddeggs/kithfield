@@ -16,7 +16,8 @@ function storeWith(capBytes: number) {
     compose: () => null,
     encode: (i) => `data:${(i as unknown as { id: number }).id}`,
   };
-  return { store: new ArtStore(art, 2, compositor), draw, cache };
+  const warn = jest.fn((_message: string) => undefined);
+  return { store: new ArtStore(art, 2, compositor, warn), draw, cache, warn };
 }
 
 const icon = (name: string): SceneRequest => ({
@@ -60,6 +61,28 @@ describe('the art store', () => {
     cache.flush();
     expect(store.stillUri(icon('farm'))).toBe('data:2');
     expect(draw).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('loops', () => {
+  it('loops a small scene on twos', () => {
+    const { store, draw } = storeWith(1_000_000);
+    const loop = store.loop(icon('farm'));
+    expect(loop?.frames).toHaveLength(12);
+    expect(draw).toHaveBeenCalledTimes(12);
+  });
+
+  it('holds a scene too big to loop whole still, and says so once', () => {
+    const { store, draw, warn } = storeWith(1_000_000);
+    const gate = { scene: 'gate', width: 393, height: 610 };
+    expect(store.loop(gate)).toBeNull();
+    expect(store.loop(gate)).toBeNull();
+    expect(draw).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toContain('gate');
+    // Another scene too big is told about too.
+    expect(store.loop({ ...gate, attrs: { season: 'winter' } })).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(2);
   });
 });
 

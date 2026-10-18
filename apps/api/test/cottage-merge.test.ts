@@ -180,6 +180,31 @@ describe('merging two people’s cottages', () => {
     });
   });
 
+  it('moves the kinds of push resting and the pushes sent, so a rest follows the person', async () => {
+    recordPushQueue();
+    const from = freshPerson('anon');
+    const into = freshPerson('kept');
+    const anon = await cottageWithFarm(from, 'farm-a');
+    await anon.registerDevice('anon-phone', phone(`ExponentPushToken[${from}]`));
+    for (let seq = 2; seq <= 5; seq++) {
+      const job = {
+        person: from,
+        farm: 'farm-a',
+        kind: 'message',
+        seq,
+        collapseKey: `mention.m.${seq}`,
+        copy: { key: 'push.mention', params: { preview: 'hi' } },
+        forYou: true,
+        at: cottageClock.now(),
+      };
+      if (seq < 5) await anon.claim(job);
+      else expect(await anon.push(job)).toBe('skip');
+    }
+    await handlePersonMerged(env, { kind: 'person_merged', from, into, at: 0 });
+    const resting = await cottageOf(env, into).restingOn('farm-a');
+    expect(resting.map((r) => r.type)).toEqual(['mentions']);
+  });
+
   it('does nothing when a person is merged into themselves', async () => {
     const person = freshPerson();
     const cottage = await cottageWithFarm(person, 'farm-a');

@@ -14,6 +14,7 @@ export * from './http/farms';
 export * from './http/account';
 export * from './http/me';
 export * from './http/media';
+export * from './http/web';
 export * from './http/safety';
 export * from './http/admin';
 export * from './http/errors';

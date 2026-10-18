@@ -33,10 +33,15 @@ const skiaCompositor: Compositor = {
 
 const ArtContext = createContext<ArtStore | null>(null);
 
+/** In development builds, art held still for being too big says so once in the log. */
+const devWarn = (message: string) => {
+  if (__DEV__) console.warn(message);
+};
+
 /** Makes the renderer once, on the fonts the system already has embedded. */
 export function createArtStore(onError?: (message: string, error: unknown) => void): ArtStore {
   const art = new Art({ skia: Skia, faces: systemFaces(Skia), ...(onError ? { onError } : {}) });
-  return new ArtStore(art, PixelRatio.get(), skiaCompositor);
+  return new ArtStore(art, PixelRatio.get(), skiaCompositor, devWarn);
 }
 
 /** Provides the art, and flushes its caches on every memory warning. */
@@ -81,7 +86,8 @@ export function useAvatarUri(req: AvatarRequest): string | null {
   return useMemo(() => store.avatarUri(req), [store, key]);
 }
 
-const whenIdle = (fn: () => void): (() => void) => {
+/** Runs `fn` once the JS thread is idle; answers how to cancel it. */
+export const whenIdle = (fn: () => void): (() => void) => {
   if (typeof requestIdleCallback === 'function') {
     const id = requestIdleCallback(fn);
     return () => cancelIdleCallback(id);
@@ -92,7 +98,8 @@ const whenIdle = (fn: () => void): (() => void) => {
 
 /**
  * A loop of `req`, baked when the JS thread is idle so it never holds up a screen's first frame,
- * or null while the art is held still.
+ * or null while the art is held still: under Reduce Motion, and for a scene too big to loop whole
+ * (told once in development; loop those with `LayeredScene`).
  */
 export function useArtLoop(req: SceneRequest, still: boolean): FrameLoop | null {
   const store = useArt();

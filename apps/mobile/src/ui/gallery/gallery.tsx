@@ -14,6 +14,7 @@ import { SheetSample } from './sheet-sample';
 import { CardsSection, IconsSection } from './sections-cards';
 import { ButtonsSection, ControlsSection } from './sections-controls';
 import { SheetsSection, ShellsSection } from './sections-sheets';
+import { TypeSection } from './sections-type';
 
 const sectionNames = [
   'buttons',
@@ -24,6 +25,7 @@ const sectionNames = [
   'cards',
   'icons',
   'shells',
+  'type',
 ] as const;
 type SectionName = (typeof sectionNames)[number];
 
@@ -45,6 +47,7 @@ function Sections({
       {show('cards') ? <CardsSection /> : null}
       {show('icons') ? <IconsSection /> : null}
       {show('shells') ? <ShellsSection /> : null}
+      {show('type') ? <TypeSection /> : null}
     </>
   );
 }

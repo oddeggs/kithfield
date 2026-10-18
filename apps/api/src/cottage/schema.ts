@@ -67,6 +67,27 @@ export const COTTAGE_SCHEMA = [
     nudge_at INTEGER NOT NULL,
     created_at INTEGER NOT NULL
   )`,
+  // Pushes handed to the consumer to send, by the id in their data, for the per-type rest after
+  // unopened ones. `farm` is '' for a push that belongs to no farm. Kept 60 days.
+  `CREATE TABLE IF NOT EXISTS sent_pushes (
+    id TEXT PRIMARY KEY,
+    farm TEXT NOT NULL,
+    type TEXT NOT NULL,
+    at INTEGER NOT NULL,
+    opened INTEGER NOT NULL DEFAULT 0
+  )`,
+  `CREATE INDEX IF NOT EXISTS sent_pushes_by_type ON sent_pushes (farm, type, at)`,
+  // A kind of push resting on a farm after unopened ones, until `until`; only pushes sent
+  // after `since` count towards the next rest.
+  `CREATE TABLE IF NOT EXISTS resting (
+    farm TEXT NOT NULL,
+    type TEXT NOT NULL,
+    until INTEGER,
+    since INTEGER NOT NULL,
+    PRIMARY KEY (farm, type)
+  )`,
+  // Set once the person's account is purged: a late delivery or farm row is never taken in again.
+  `CREATE TABLE IF NOT EXISTS purged (id INTEGER PRIMARY KEY CHECK (id = 1))`,
 ] as const;
 
 /** Columns added after a table first shipped, each added once. */
@@ -74,10 +95,14 @@ const ADDED_COLUMNS = [
   // What may push the person from this farm (`FarmNotifications.knockFor`), as JSON; null is the
   // defaults.
   ['farms', 'knock_for', 'TEXT'],
+  // The waiting item's short line, for Quick Tend's cards.
+  ['doorstep', 'preview', 'TEXT'],
 ] as const;
 
-export function applySchema(sql: SqlStorage): void {
+/** Makes the tables; `purged` also marks the cottage as its person's purged one. */
+export function applySchema(sql: SqlStorage, purged = false): void {
   for (const statement of COTTAGE_SCHEMA) sql.exec(statement);
+  if (purged) sql.exec('INSERT OR IGNORE INTO purged (id) VALUES (1)');
   for (const [table, column, type] of ADDED_COLUMNS) {
     const has = sql
       .exec<{ name: string }>(`SELECT name FROM pragma_table_info('${table}')`)
@@ -85,4 +110,9 @@ export function applySchema(sql: SqlStorage): void {
       .some((row) => row.name === column);
     if (!has) sql.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
   }
+}
+
+/** Whether the cottage's person was purged: then it takes in nothing more. */
+export function isPurged(sql: SqlStorage): boolean {
+  return sql.exec('SELECT 1 FROM purged').toArray().length > 0;
 }

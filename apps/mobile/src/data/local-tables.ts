@@ -39,6 +39,15 @@ export interface StoredRejection {
   readonly at: number;
 }
 
+const rejectionOf = (r: Row): StoredRejection => ({
+  opId: String(r['op_id']),
+  farm: String(r['farm']),
+  kind: String(r['kind']),
+  payload: parse(r['payload']),
+  reason: String(r['reason']) as RejectReason,
+  at: Number(r['at']),
+});
+
 type Run = (source: string, params: SqlValue[]) => Promise<unknown>;
 type All = (source: string, params: SqlValue[]) => Promise<Row[]>;
 
@@ -109,14 +118,13 @@ export function localTables(run: Run, all: All) {
 
     async rejections(): Promise<StoredRejection[]> {
       const rows = await all('SELECT * FROM rejections ORDER BY at', []);
-      return rows.map((r) => ({
-        opId: String(r['op_id']),
-        farm: String(r['farm']),
-        kind: String(r['kind']),
-        payload: parse(r['payload']),
-        reason: String(r['reason']) as RejectReason,
-        at: Number(r['at']),
-      }));
+      return rows.map(rejectionOf);
+    },
+
+    /** The refusal of one write, until the UI has dismissed it. */
+    async rejection(opId: string): Promise<StoredRejection | null> {
+      const [row] = await all('SELECT * FROM rejections WHERE op_id = ?', [opId]);
+      return row ? rejectionOf(row) : null;
     },
 
     dismissRejection(opId: string) {

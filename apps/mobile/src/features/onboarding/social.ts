@@ -1,0 +1,97 @@
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as AuthSession from 'expo-auth-session';
+import Constants from 'expo-constants';
+
+/** Someone closed the sheet: not a failure, nothing to say. */
+export class SheetCancelled extends Error {
+  constructor() {
+    super('The sign-in sheet was closed');
+    this.name = 'SheetCancelled';
+  }
+}
+
+/** What a sheet answers: the identity token, and a first name to suggest when it gave one. */
+export interface SheetAnswer {
+  readonly token: string;
+  readonly givenName: string | null;
+}
+
+/**
+ * Sign in with Apple, with the SHA-256 of the server's nonce (`hashedNonce`): Apple puts it in the
+ * identity token, and the server checks it against the raw nonce. Apple gives the name only the
+ * first time someone signs in to the app.
+ */
+export async function appleSheet(hashedNonce: string): Promise<SheetAnswer> {
+  try {
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+      nonce: hashedNonce,
+    });
+    if (!credential.identityToken) throw new Error('Apple gave no identity token');
+    return { token: credential.identityToken, givenName: credential.fullName?.givenName ?? null };
+  } catch (error) {
+    if ((error as { code?: string }).code === 'ERR_REQUEST_CANCELED') throw new SheetCancelled();
+    throw error;
+  }
+}
+
+const google = {
+  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+  tokenEndpoint: 'https://oauth2.googleapis.com/token',
+} as const;
+
+/** Google sends its sheet back to the client id's reversed form, a scheme the app claims. */
+export function googleRedirect(clientId: string): string {
+  const id = clientId.replace(/\.apps\.googleusercontent\.com$/, '');
+  return `com.googleusercontent.apps.${id}:/oauthredirect`;
+}
+
+/** The first name in an ID token's claims, if it has one. */
+export function givenNameIn(idToken: string): string | null {
+  const payload = idToken.split('.')[1];
+  if (!payload) return null;
+  try {
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    const bytes = Uint8Array.from(json, (c) => c.charCodeAt(0));
+    const claims = JSON.parse(new TextDecoder().decode(bytes)) as { given_name?: unknown };
+    return typeof claims.given_name === 'string' ? claims.given_name : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Sign in with Google: the authorization code flow with PKCE in the system's OAuth sheet, with the
+ * server's raw nonce, which Google puts in the ID token the code is exchanged for.
+ */
+export async function googleSheet(nonce: string): Promise<SheetAnswer> {
+  const clientId = (Constants.expoConfig?.extra as { googleIosClientId: string }).googleIosClientId;
+  const redirectUri = googleRedirect(clientId);
+  const request = new AuthSession.AuthRequest({
+    clientId,
+    redirectUri,
+    responseType: AuthSession.ResponseType.Code,
+    scopes: ['openid', 'profile', 'email'],
+    usePKCE: true,
+    extraParams: { nonce },
+  });
+  const result = await request.promptAsync(google);
+  if (result.type === 'cancel' || result.type === 'dismiss') throw new SheetCancelled();
+  if (result.type !== 'success' || !result.params['code']) {
+    throw new Error(`Google answered ${result.type}`);
+  }
+  const tokens = await AuthSession.exchangeCodeAsync(
+    {
+      clientId,
+      redirectUri,
+      code: result.params['code'],
+      extraParams: request.codeVerifier ? { code_verifier: request.codeVerifier } : {},
+    },
+    google,
+  );
+  if (!tokens.idToken) throw new Error('Google gave no ID token');
+  return { token: tokens.idToken, givenName: givenNameIn(tokens.idToken) };
+}

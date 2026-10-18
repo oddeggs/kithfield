@@ -1,11 +1,16 @@
 import {
+  ChatRowUpdate,
+  type DeviceList,
   type ErrorBody,
   type ErrorCode,
   HibernateRequest,
   Id,
   MeSettingsUpdate,
+  PushOpenedRequest,
   RegisterDeviceRequest,
   RememberRequest,
+  FarmId,
+  type QuickTendList,
 } from '@kithfield/contracts';
 import { type Context, Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
@@ -13,6 +18,7 @@ import type { z } from 'zod';
 
 import { newActionKey, storeActionKey } from './action-key';
 import { cottageAdapters, type SessionRouteEnv } from './adapters';
+import { linkSession, listDevices, signOutDevice } from './device-sessions';
 import { cottageOf } from './stub';
 
 type RouteEnv = SessionRouteEnv;
@@ -40,7 +46,7 @@ const signedIn = createMiddleware<RouteEnv>((c, next) => cottageAdapters().requi
 
 /**
  * The person's cottage over HTTP: devices and their action keys, settings, hibernating,
- * remember-me seeds, and the cottage socket.
+ * remember-me seeds, Quick Tend, chat pins, opened pushes, and the cottage socket.
  */
 export function cottageRoutes(): Hono<RouteEnv> {
   const app = new Hono<RouteEnv>();
@@ -68,6 +74,16 @@ export function cottageRoutes(): Hono<RouteEnv> {
     }
     const person = c.get('person');
     await cottageOf(c.env, person).registerDevice(device.data, body.value);
+    const city = (c.req.raw.cf as { city?: unknown } | undefined)?.city;
+    await linkSession(c.env.DB, {
+      session: c.get('session'),
+      person,
+      device: device.data,
+      name: body.value.name,
+      platform: body.value.platform,
+      city: typeof city === 'string' ? city : null,
+      at: Date.now(),
+    });
     const actionKey = newActionKey();
     const displaced = await storeActionKey(
       c.env.DB,
@@ -84,6 +100,26 @@ export function cottageRoutes(): Hono<RouteEnv> {
       ),
     ]);
     return c.json({ actionKey });
+  });
+
+  // Where the person is signed in: one row per device, the one asking marked `current`.
+  app.get('/v1/devices', signedIn, async (c) =>
+    c.json(
+      (await listDevices(
+        c.env.DB,
+        c.get('person'),
+        c.get('session'),
+        Date.now(),
+      )) satisfies DeviceList,
+    ),
+  );
+
+  // Signs one device out from another: its session ends and its sockets hear `session_ended`.
+  app.delete('/v1/devices/:deviceId', signedIn, async (c) => {
+    const device = Id.safeParse(c.req.param('deviceId'));
+    if (!device.success) return fail(c, 404, 'not_found');
+    const ended = await signOutDevice(c.env, c.get('person'), device.data);
+    return ended ? c.body(null, 204) : fail(c, 404, 'not_found');
   });
 
   // The app sends `timeZone` and `quietHours` on first launch and whenever the phone's zone changes.
@@ -120,6 +156,29 @@ export function cottageRoutes(): Hono<RouteEnv> {
     if (!id.success) return fail(c, 404, 'not_found');
     const removed = await cottageOf(c.env, c.get('person')).removeSeed(id.data);
     return removed ? c.body(null, 204) : fail(c, 404, 'not_found');
+  });
+
+  // Waiting across the person's farms and visits, newest first.
+  app.get('/v1/quick-tend', signedIn, async (c) =>
+    c.json((await cottageOf(c.env, c.get('person')).quickTend()) satisfies QuickTendList),
+  );
+
+  // Pins a farm or visit to the top of the chat list, or unpins it.
+  app.patch('/v1/chats/:farm', signedIn, async (c) => {
+    const farm = FarmId.safeParse(c.req.param('farm'));
+    if (!farm.success) return fail(c, 404, 'not_found');
+    const body = await bodyOf(c, ChatRowUpdate);
+    if (!body.ok) return body.response;
+    const pinned = await cottageOf(c.env, c.get('person')).pinFarm(farm.data, body.value.pinned);
+    return pinned ? c.body(null, 204) : fail(c, 404, 'not_found');
+  });
+
+  // An opened push; the same answer for an id the cottage doesn't know.
+  app.post('/v1/push/opened', signedIn, async (c) => {
+    const body = await bodyOf(c, PushOpenedRequest);
+    if (!body.ok) return body.response;
+    await cottageOf(c.env, c.get('person')).pushOpened(body.value.id);
+    return c.body(null, 204);
   });
 
   return app;

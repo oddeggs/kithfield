@@ -63,35 +63,6 @@ export const componentType = {
   chevron: style('system', 400, 22, 22, 'body'),
 } as const satisfies Record<string, ComponentType>;
 
-/**
- * Each face's ascent plus descent, as a fraction of its size (hhea, or OS/2 typo where the font
- * asks for it; SF Pro's from the system). Chrome centres the glyphs of a line set tighter than
- * this inside the line; iOS sits them at its bottom, so `Txt` moves them down by half the gap.
- */
-export const glyphHeight: Readonly<Record<string, number>> = {
-  system: 1.193,
-  'YoungSerif-Regular': 1.412,
-  'Gaegu-Bold': 1.0,
-  'PatrickHand-Regular': 1.354,
-  'Lora-Regular': 1.28,
-  'Lora-SemiBold': 1.28,
-  Menlo: 1.164,
-};
-
-/**
- * How far down to move a line's glyphs so they sit as Chrome sets them: half of what the face's
- * glyphs overflow the line, scaled with the text when Dynamic Type enlarges it.
- */
-export function glyphShift(
-  family: string,
-  fontSize: number,
-  lineHeight: number,
-  scale = 1,
-): number {
-  const overflow = (glyphHeight[family] ?? 1.2) * fontSize - lineHeight;
-  return overflow > 0 ? (overflow / 2) * scale : 0;
-}
-
 export type ComponentTypeKey = keyof typeof componentType;
 export type TypeVariant = keyof typeof type | ComponentTypeKey;
 

@@ -83,13 +83,24 @@ export const SearchResults = z.object({
 });
 export type SearchResults = z.infer<typeof SearchResults>;
 
-/** `POST /v1/farms/:id/invites` answers with the farm's invite link; a new one retires the old. */
+/**
+ * `POST /v1/farms/:id/invites` answers with the farm's invite link; a new one retires the old.
+ * Keepers and helpers only.
+ */
 export const Invite = z.object({
   code: z.string().regex(/^[A-Za-z0-9-]{4,64}$/),
   url: HttpUrl,
   expiresAt: EpochMs.nullable(),
 });
 export type Invite = z.infer<typeof Invite>;
+
+/**
+ * `GET /v1/farms/:id/invite`: the farm's current link for the invite screen, or null when there is
+ * none (taken back or expired). Keepers and helpers only, so the server keeps the code readable to
+ * them, not only its hash.
+ */
+export const CurrentInvite = z.object({ invite: Invite.nullable() });
+export type CurrentInvite = z.infer<typeof CurrentInvite>;
 
 /** The farm's calendar, from the creator's device settings, never their location. */
 const calendar = { timeZone: TimeZone, hemisphere: Hemisphere };
@@ -135,9 +146,16 @@ export const CreateInviteRequest = z.object({
 });
 export type CreateInviteRequest = z.infer<typeof CreateInviteRequest>;
 
-/** `GET /v1/invites/:code`: what the invite page and the app show before joining. */
+/**
+ * `GET /v1/invites/:code` (public, no session): what the invite page and the app show before
+ * joining. 200 with this, also when the farm is full (`full`); 404 `invite_invalid` for a link
+ * that is unknown, taken back, expired or used up, or a farm that is gone. Joining answers 404
+ * `invite_invalid` the same way and 409 `farm_full`. `from` is who made the link, null once they
+ * have left or deleted their account.
+ */
 export const InvitePreview = z.object({
   name: FarmName,
+  from: z.object({ name: DisplayName, critter: Critter }).nullable(),
   land: ArtId,
   critters: z.array(Critter).max(LIMITS.members),
   full: z.boolean(),
@@ -167,7 +185,7 @@ export type WaitingList = z.infer<typeof WaitingList>;
 export const ApprovalRequest = z.object({ approve: z.boolean() });
 export type ApprovalRequest = z.infer<typeof ApprovalRequest>;
 
-/** `PUT /v1/farms/:id/notifications`: mute and what knocks for you. Nobody sees it. */
+/** `PUT /v1/farms/:id/notifications`: mute and what knocks for you. Nobody sees it. 204. */
 export const FarmNotifications = z.object({
   /** Muted until this time; null is not muted, `always` until turned back on. */
   mutedUntil: z.union([EpochMs, z.literal('always')]).nullable(),
@@ -179,6 +197,27 @@ export const FarmNotifications = z.object({
   }),
 });
 export type FarmNotifications = z.infer<typeof FarmNotifications>;
+
+/** The kinds of push a farm may send one person, as the notification settings name them. */
+export const NotificationType = z.enum([
+  'plans',
+  'doorstep',
+  'mentions',
+  'messages',
+  'birthdays',
+  'nudges',
+]);
+export type NotificationType = z.infer<typeof NotificationType>;
+
+/**
+ * `GET /v1/farms/:id/notifications`: the settings, plus the kinds resting after three pushes of a
+ * kind went unopened, and until when. `DELETE /v1/farms/:id/notifications/resting/:type` turns one
+ * back on (204).
+ */
+export const FarmNotificationsView = FarmNotifications.extend({
+  resting: z.array(z.object({ type: NotificationType, until: EpochMs })).max(6),
+});
+export type FarmNotificationsView = z.infer<typeof FarmNotificationsView>;
 
 /** `POST /v1/farms/:id/fire-token`: a LiveKit token for the fire room. Listening never opens the mic. */
 export const FireTokenRequest = z.object({ mode: z.enum(['join', 'listen']) });

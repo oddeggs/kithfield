@@ -13,6 +13,8 @@ export const ErrorCode = z.enum([
   'banned',
   'farm_full',
   'invite_invalid',
+  /** A wrong, expired or used one-time code. */
+  'code_invalid',
   'unavailable',
   'server_error',
 ]);

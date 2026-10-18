@@ -1,3 +1,4 @@
+export { aliasOf, withAliases } from './aliases';
 export * from './catalog';
 export * from './rules';
 export {
@@ -22,7 +23,15 @@ export {
   stageFromDew,
   thresholdsFor,
 } from './growth';
-export { type PlanConditions, planConditions, yesesNeeded } from './plans';
+export {
+  type PlanClock,
+  type PlanConditions,
+  isHangoutDay,
+  leadingOptions,
+  planConditions,
+  planDay,
+  yesesNeeded,
+} from './plans';
 export {
   type FarmChores,
   farmChores,

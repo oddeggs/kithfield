@@ -63,6 +63,18 @@ export const QueueRow = z.object({
   reporters: z.int().min(0).max(LIMITS.members),
   source: z.enum(['member', 'link_reputation', 'hash_match']),
   claimedBy: Id.nullable(),
+  /**
+   * What the moderator reads before opening the report: a quote of the reported item and the
+   * first reporter's note (both null once the evidence is cleared), who was reported and who it
+   * was aimed at, and how many earlier reports name the same person.
+   */
+  preview: z.object({
+    excerpt: text(300).nullable(),
+    note: text(500).nullable(),
+    reportedName: DisplayName.nullable(),
+    aimedAtName: DisplayName.nullable(),
+    earlierReports: z.int().min(0),
+  }),
 });
 export type QueueRow = z.infer<typeof QueueRow>;
 
@@ -89,6 +101,14 @@ export const ReportDetail = z.object({
   notes: z.array(text(500)).max(LIMITS.members),
   /** The reported event and those around it, copied when the report was made. */
   context: z.array(EventEnvelope).max(LIMITS.reportContext),
+  /** Everyone the context names, and the reported person, with how to draw them. */
+  people: z
+    .array(
+      z.object({ person: PersonId, name: DisplayName.nullable(), species: Species.nullable() }),
+    )
+    .max(LIMITS.reportContext + LIMITS.members),
+  /** Who filed the report, oldest filing first. */
+  reporters: z.array(PersonId).max(LIMITS.members),
   signals: z.object({
     earlierReports: z.int().min(0),
     accountAgeDays: z.int().min(0),
@@ -148,6 +168,28 @@ export type ActionResponse = z.infer<typeof ActionResponse>;
 
 /** `POST /admin/v1/actions/:id/approve` (the second moderator) takes no body. */
 
+/** A removal from Kithfield waiting for a second, senior moderator to agree. */
+export const PendingAction = z.object({
+  action: Id,
+  report: Id,
+  decision: ModerationAction,
+  person: PersonId,
+  name: DisplayName.nullable(),
+  askedBy: Id,
+  askedByName: text(64),
+  askedAt: EpochMs,
+  rule: RuleRef.nullable(),
+  note: text(1000),
+});
+export type PendingAction = z.infer<typeof PendingAction>;
+
+/** `GET /admin/v1/actions?status=awaiting_second&cursor=`: oldest first. */
+export const PendingActionPage = z.object({
+  rows: z.array(PendingAction).max(200),
+  cursor: z.string().max(256).nullable(),
+});
+export type PendingActionPage = z.infer<typeof PendingActionPage>;
+
 export const AppealStatus = z.enum(['open', 'kept', 'undone']);
 export type AppealStatus = z.infer<typeof AppealStatus>;
 
@@ -156,6 +198,8 @@ export const AppealRow = z.object({
   appeal: Id,
   person: PersonId,
   name: DisplayName.nullable(),
+  /** Their critter's species, to draw them; null for a deleted account. */
+  species: Species.nullable(),
   action: Id,
   decision: ModerationAction,
   category: ReportCategory,
@@ -166,6 +210,27 @@ export const AppealRow = z.object({
   text: text(1000),
 });
 export type AppealRow = z.infer<typeof AppealRow>;
+
+/** `GET /admin/v1/appeals?status=&cursor=`: open ones first, then newest. */
+export const AppealPage = z.object({
+  rows: z.array(AppealRow).max(200),
+  cursor: z.string().max(256).nullable(),
+});
+export type AppealPage = z.infer<typeof AppealPage>;
+
+/**
+ * `GET /admin/v1/appeals/:id`: the appeal with the first decision and what was removed. A reviewer
+ * who touched the report gets 403 `forbidden`.
+ */
+export const AppealDetail = AppealRow.extend({
+  decidedBy: Id,
+  decidedByName: text(64),
+  decidedAt: EpochMs,
+  rule: RuleRef.nullable(),
+  /** The removed item, as copied into the report. Blurred until asked for. */
+  excerpt: text(300).nullable(),
+});
+export type AppealDetail = z.infer<typeof AppealDetail>;
 
 /**
  * `POST /admin/v1/appeals/:id/decision`: only by someone who didn't touch the report. Undoing a
@@ -195,6 +260,9 @@ export const MemberRecord = z.object({
         action: ModerationAction.nullable(),
         rule: RuleRef.nullable(),
         by: Id.nullable(),
+        /** The report's category and farm, for entries about a report. */
+        category: ReportCategory.nullable(),
+        farm: FarmId.nullable(),
       }),
     )
     .max(500),
@@ -204,17 +272,57 @@ export const MemberRecord = z.object({
 });
 export type MemberRecord = z.infer<typeof MemberRecord>;
 
+/** `GET /admin/v1/me`: who is on shift, for the console's header. */
+export const ModeratorSelf = z.object({
+  moderator: Id,
+  name: text(64),
+  role: ModeratorRole,
+  shiftEndsAt: EpochMs.nullable(),
+});
+export type ModeratorSelf = z.infer<typeof ModeratorSelf>;
+
 /** One append-only audit log row. `by` is null for the system (hash matches). */
 export const AuditEntry = z.object({
   id: Id,
   at: EpochMs,
   by: Id.nullable(),
+  byName: text(64).nullable(),
   what: z.union([
     ModerationAction,
-    z.enum(['opened_context', 'claimed', 'appeal_kept', 'appeal_undone', 'upload_blocked']),
+    z.enum([
+      'opened_context',
+      'claimed',
+      'appeal_kept',
+      'appeal_undone',
+      'appeal_restore_failed',
+      'upload_blocked',
+    ]),
   ]),
   item: Id,
   rule: RuleRef.nullable(),
   reason: text(1000).nullable(),
 });
 export type AuditEntry = z.infer<typeof AuditEntry>;
+
+/** `GET /admin/v1/audit?before=&cursor=`: newest first. `GET /admin/v1/audit.csv?quarter=` exports. */
+export const AuditPage = z.object({
+  entries: z.array(AuditEntry).max(200),
+  cursor: z.string().max(256).nullable(),
+});
+export type AuditPage = z.infer<typeof AuditPage>;
+
+/** Targets met out of reports due, over a window. Never per moderator. */
+const withinTarget = z
+  .object({ met: z.int().min(0), due: z.int().min(0) })
+  .refine((t) => t.met <= t.due, { message: 'Met out of due' });
+
+/** `GET /admin/v1/response-times?days=30`: how the desk is doing, for the audit page. */
+export const ResponseTimes = z.object({
+  days: z.int().min(1).max(366),
+  medianFirstActionMs: z.int().min(0).nullable(),
+  urgentWithinHour: withinTarget,
+  standardWithinDay: withinTarget,
+  appealsWithinWeek: withinTarget,
+  appealsOverturned: z.int().min(0),
+});
+export type ResponseTimes = z.infer<typeof ResponseTimes>;

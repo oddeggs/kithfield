@@ -38,6 +38,8 @@ export type SyncReport =
   | { readonly type: 'store_reset'; readonly reason: 'key_missing' | 'not_a_database' }
   /** Writes still waiting when the person signed out. */
   | { readonly type: 'unsent_at_sign_out'; readonly count: number }
+  /** Writes still waiting when the session was ended from elsewhere and the phone wiped. */
+  | { readonly type: 'unsent_at_session_end'; readonly count: number }
   /** Background work that failed; `where` names it, `error` is the error's name only. */
   | { readonly type: 'failed'; readonly where: string; readonly error: string };
 

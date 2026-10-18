@@ -113,48 +113,6 @@ export const endMembership = async (db: D1Database, farm: FarmId, person: Person
     .run();
 };
 
-/* Invites: only a hash of the code is kept. A new invite retires the farm's old ones. */
-
-export type InviteRow = { farm_id: FarmId; expires_at: number | null; uses_left: number | null };
-
-export const replaceInvite = async (
-  db: D1Database,
-  invite: { hash: string; farm: FarmId; by: PersonId; expiresAt: number | null },
-) => {
-  await db.batch([
-    db.prepare('DELETE FROM invites WHERE farm_id = ?').bind(invite.farm),
-    db
-      .prepare(
-        'INSERT INTO invites (code_hash, farm_id, created_by, expires_at, uses_left) VALUES (?, ?, ?, ?, NULL)',
-      )
-      .bind(invite.hash, invite.farm, invite.by, invite.expiresAt),
-  ]);
-};
-
-/** A working invite by its code's hash: not expired, uses left. */
-export const liveInvite = async (
-  db: D1Database,
-  hash: string,
-  now: number,
-): Promise<InviteRow | null> => {
-  const row = await db
-    .prepare('SELECT farm_id, expires_at, uses_left FROM invites WHERE code_hash = ?')
-    .bind(hash)
-    .first<InviteRow>();
-  if (row === null) return null;
-  if (row.expires_at !== null && row.expires_at <= now) return null;
-  return row.uses_left !== null && row.uses_left <= 0 ? null : row;
-};
-
-export const useInvite = async (db: D1Database, hash: string) => {
-  await db
-    .prepare(
-      'UPDATE invites SET uses_left = uses_left - 1 WHERE code_hash = ? AND uses_left IS NOT NULL',
-    )
-    .bind(hash)
-    .run();
-};
-
 /* The waiting list, for farms where a keeper lets people in. */
 
 export const addWaiting = async (

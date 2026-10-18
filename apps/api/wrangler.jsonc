@@ -16,7 +16,9 @@
     "dev": {
       "name": "kithfield-api-dev",
       "routes": [{ "pattern": "dev.kithfield.com/api/*", "zone_name": "kithfield.com" }],
-      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses).
+      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses),
+      // expired keepsakes exports, the safety desk's retention, the media sweep, and the purge of
+      // accounts whose 30 days are over.
       "triggers": { "crons": ["17 3 * * *"] },
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
       // Sign-in identity token audiences (public ids, not secrets).
@@ -27,6 +29,14 @@
         "APPLE_BUNDLE_ID": "com.kithfield.app.dev",
         "GOOGLE_IOS_CLIENT_ID": "564934268570-n2lmcq3r3vc060p5hsankdnisfnalk0v.apps.googleusercontent.com",
         "GOOGLE_WEB_CLIENT_ID": "564934268570-hst5dob3msctegnpgskivamd25gh6jbc.apps.googleusercontent.com",
+        // The safety desk sits behind Cloudflare Access: its JWTs are checked against the team's
+        // certs and this environment's application audience. Who moderates, with their role, is
+        // the `MODERATORS` secret.
+        "ACCESS_TEAM_DOMAIN": "https://winstonb.cloudflareaccess.com",
+        "ACCESS_AUD": "ab5c609924c99032dd023f45612a3a72153821ee9e74f4d98c4a83c0415dc41a",
+        // Signed reads come from the media Worker on its own host (apps/media-worker).
+        "MEDIA_ORIGIN": "https://media-dev.kithfield.com",
+        "MEDIA_BUCKET_NAME": "kithfield-media-dev",
       },
       "durable_objects": {
         "bindings": [
@@ -56,11 +66,35 @@
           "namespace_id": "1401",
           "simple": { "limit": 10, "period": 60 },
         },
+        // Upload URLs and forwarding copies, per person.
+        {
+          "name": "MEDIA_LIMIT",
+          "namespace_id": "1253",
+          "simple": { "limit": 60, "period": 60 },
+        },
         // Per-address limit on waitlist sign-ups from the website (keyed on cf-connecting-ip).
         {
           "name": "WAITLIST_LIMIT",
           "namespace_id": "1201",
           "simple": { "limit": 5, "period": 60 },
+        },
+        // Per-address limit on account deletion requests and code tries from the website.
+        {
+          "name": "DELETION_REQUEST_LIMIT",
+          "namespace_id": "1103",
+          "simple": { "limit": 5, "period": 60 },
+        },
+        // Desktop sign-in by QR: codes asked per address, and codes looked up or answered per person.
+        {
+          "name": "DESKTOP_LINK_LIMIT",
+          "namespace_id": "1105",
+          "simple": { "limit": 10, "period": 60 },
+        },
+        // Reports and appeals from the app, per person.
+        {
+          "name": "REPORT_LIMIT",
+          "namespace_id": "1251",
+          "simple": { "limit": 10, "period": 60 },
         },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
@@ -87,7 +121,9 @@
     "prd": {
       "name": "kithfield-api",
       "routes": [{ "pattern": "kithfield.com/api/*", "zone_name": "kithfield.com" }],
-      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses).
+      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses),
+      // expired keepsakes exports, the safety desk's retention, the media sweep, and the purge of
+      // accounts whose 30 days are over.
       "triggers": { "crons": ["17 3 * * *"] },
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
       // Sign-in identity token audiences (public ids, not secrets).
@@ -98,6 +134,14 @@
         "APPLE_BUNDLE_ID": "com.kithfield.app",
         "GOOGLE_IOS_CLIENT_ID": "564934268570-jr7d94ci3jtb88sm4uqio1pjoatb3l31.apps.googleusercontent.com",
         "GOOGLE_WEB_CLIENT_ID": "564934268570-hst5dob3msctegnpgskivamd25gh6jbc.apps.googleusercontent.com",
+        // The safety desk sits behind Cloudflare Access: its JWTs are checked against the team's
+        // certs and this environment's application audience. Who moderates, with their role, is
+        // the `MODERATORS` secret.
+        "ACCESS_TEAM_DOMAIN": "https://winstonb.cloudflareaccess.com",
+        "ACCESS_AUD": "e450f5c68897b3633d6cb8704171d85e3e17f6e82d4461dc519ab4a970ff81e6",
+        // Signed reads come from the media Worker on its own host (apps/media-worker).
+        "MEDIA_ORIGIN": "https://media.kithfield.com",
+        "MEDIA_BUCKET_NAME": "kithfield-media",
       },
       "durable_objects": {
         "bindings": [
@@ -127,11 +171,35 @@
           "namespace_id": "1402",
           "simple": { "limit": 10, "period": 60 },
         },
+        // Upload URLs and forwarding copies, per person.
+        {
+          "name": "MEDIA_LIMIT",
+          "namespace_id": "1254",
+          "simple": { "limit": 60, "period": 60 },
+        },
         // Per-address limit on waitlist sign-ups from the website (keyed on cf-connecting-ip).
         {
           "name": "WAITLIST_LIMIT",
           "namespace_id": "1202",
           "simple": { "limit": 5, "period": 60 },
+        },
+        // Per-address limit on account deletion requests and code tries from the website.
+        {
+          "name": "DELETION_REQUEST_LIMIT",
+          "namespace_id": "1104",
+          "simple": { "limit": 5, "period": 60 },
+        },
+        // Desktop sign-in by QR: codes asked per address, and codes looked up or answered per person.
+        {
+          "name": "DESKTOP_LINK_LIMIT",
+          "namespace_id": "1106",
+          "simple": { "limit": 10, "period": 60 },
+        },
+        // Reports and appeals from the app, per person.
+        {
+          "name": "REPORT_LIMIT",
+          "namespace_id": "1252",
+          "simple": { "limit": 10, "period": 60 },
         },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.

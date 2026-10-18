@@ -73,9 +73,28 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
     [{ devices: [device, { ...device, city: null, current: false }] }],
     [{ devices: [{ ...device, platform: 'tv' }] }],
   ],
+  DesktopLinkRequest: [
+    [{ name: "June's MacBook Air", platform: 'macos' }],
+    [
+      { name: '', platform: 'macos' },
+      { name: 'PC', platform: 'tv' },
+    ],
+  ],
   DesktopLinkResponse: [
-    [{ code: 'abcdefghijklmnop', expiresAt: at }],
-    [{ code: 'short', expiresAt: at }],
+    [{ code: 'abcdefghijklmnop', secret: 's'.repeat(43), expiresAt: at }],
+    [
+      { code: 'short', secret: 's'.repeat(43), expiresAt: at },
+      { code: 'abcdefghijklmnop', expiresAt: at },
+    ],
+  ],
+  DesktopLinkSessionRequest: [[{ secret: 's'.repeat(43) }], [{ secret: 'short' }]],
+  DesktopLinkSession: [
+    [
+      { status: 'waiting', expiresAt: at },
+      { status: 'declined' },
+      { status: 'approved', token: 't'.repeat(32), person: pip },
+    ],
+    [{ status: 'approved', person: pip }, { status: 'expired' }],
   ],
   DesktopLinkPreview: [
     [{ name: "June's MacBook Air", platform: 'macos', city: 'London' }],
@@ -93,12 +112,66 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
     [{ consents: [{ feature: 'recap' }] }],
   ],
   DeleteAccountResponse: [[{ purgeAt: at }], [{}]],
-  DeletionRequest: [[{ email: 'june@example.com', lang: 'vi' }], [{ email: 'june', lang: 'en' }]],
-  WaitlistRequest: [
-    [{ email: 'june@example.com', lang: 'en' }],
-    [{ email: 'june@example.com', lang: 'fr' }],
+  BlockList: [
+    [
+      { blocked: [{ person: pip, name: 'Pip', critter, at }] },
+      { blocked: [{ person: 'p_gone', name: null, critter: null, at }] },
+      { blocked: [] },
+    ],
+    [{ blocked: [pip] }, { blocked: [{ person: 'bad id!', name: null, critter: null, at }] }],
   ],
-  BlockList: [[{ blocked: [pip] }], [{ blocked: ['bad id!'] }]],
+  ExportStatus: [
+    [
+      { state: 'preparing', url: null, requestedAt: at, expiresAt: null },
+      {
+        state: 'ready',
+        url: 'https://media.kithfield.com/export/x',
+        requestedAt: at,
+        expiresAt: at + 7 * 86_400_000,
+      },
+    ],
+    [{ state: 'zipping', url: null, requestedAt: at, expiresAt: null }, { state: 'ready' }],
+  ],
+  PushOpenedRequest: [[{ id: 'pu_8f2c' }], [{ id: '' }, { id: 'a/b' }, {}]],
+  ChatRowUpdate: [
+    [{ pinned: true }, { pinned: false }],
+    [{}, { pinned: 'yes' }],
+  ],
+  QuickTendWhy: [['question', 'birthday'], ['streak']],
+  QuickTendList: [
+    [
+      {
+        items: [
+          {
+            farm,
+            farmKind: 'farm',
+            name: 'The Thursday Lot',
+            with: null,
+            seq: 41,
+            kind: 'message',
+            actor: bea,
+            at,
+            preview: 'Bea: who is coming saturday?',
+            why: 'question',
+          },
+          {
+            farm: 'f_visit',
+            farmKind: 'visit',
+            name: null,
+            with: { person: pip, name: 'Pip', critter },
+            seq: 9,
+            kind: 'firefly',
+            actor: pip,
+            at,
+            preview: null,
+            why: 'doorstep',
+          },
+        ],
+      },
+      { items: [] },
+    ],
+    [{ items: [{ farm, seq: 41, why: 'question' }] }],
+  ],
   RegisterDeviceResponse: [[{ actionKey: 'k'.repeat(43) }], [{ actionKey: 'short' }]],
   SignInMethod: [['apple', 'phone'], ['anonymous']],
   QuietHours: [[settings.quietHours], [{ from: '24:00', to: '07:00' }, { from: '22:00' }]],
@@ -128,6 +201,7 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         signIn: ['apple'],
         ageOk: true,
         termsVersion: '2026-10-01',
+        currentTermsVersion: '2026-10-18',
         hibernating: false,
         settings,
         purgeAt: null,
@@ -140,6 +214,7 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         signIn: [],
         ageOk: false,
         termsVersion: null,
+        currentTermsVersion: '2026-10-18',
         hibernating: false,
         settings,
         purgeAt: at,
@@ -182,5 +257,26 @@ describe('a profile change on every farm', () => {
     expect(Object.keys(me.MeProfileUpdate.shape).sort()).toEqual(
       Object.keys(CritterChangedPayload.shape).sort(),
     );
+  });
+});
+
+describe('the Terms in force', () => {
+  it('always tells the app which Terms version to accept', () => {
+    const base = {
+      person: pip,
+      name: 'Pip',
+      critter,
+      birthday: null,
+      signIn: ['email'],
+      ageOk: true,
+      termsVersion: '2026-10-01',
+      currentTermsVersion: '2026-10-18',
+      hibernating: false,
+      settings,
+      purgeAt: null,
+    };
+    expect(me.Me.safeParse(base).success).toBe(true);
+    expect(me.Me.safeParse({ ...base, currentTermsVersion: undefined }).success).toBe(false);
+    expect(me.Me.safeParse({ ...base, currentTermsVersion: 'latest' }).success).toBe(false);
   });
 });

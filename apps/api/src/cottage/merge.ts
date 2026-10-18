@@ -18,6 +18,9 @@ export interface CottageExport {
   readonly devices: Row[];
   readonly seeds: Row[];
   readonly held: Row[];
+  /** Pushes sent lately and kinds resting, for the rest after unopened pushes. */
+  readonly sentPushes?: Row[];
+  readonly resting?: Row[];
   /** The person's settings, only if they ever set any. */
   readonly settings: MeSettings | null;
   /** Whether the app sent their time zone. */
@@ -35,6 +38,8 @@ export function exportCottage(sql: SqlStorage): CottageExport {
     devices: all(sql, 'devices'),
     seeds: all(sql, 'seeds'),
     held: all(sql, 'held'),
+    sentPushes: all(sql, 'sent_pushes'),
+    resting: all(sql, 'resting'),
     settings: stored ? readProfile(sql).settings : null,
     zoneKnown: stored && readProfile(sql).zoneKnown,
   };
@@ -103,6 +108,8 @@ export function mergeInto(sql: SqlStorage, data: CottageExport, person: string):
   insertMissing(sql, 'doorstep', data.doorstep);
   insertMissing(sql, 'delivered', data.delivered);
   insertMissing(sql, 'seeds', data.seeds);
+  insertMissing(sql, 'sent_pushes', data.sentPushes ?? []);
+  insertMissing(sql, 'resting', data.resting ?? []);
 
   for (const row of data.devices) {
     sql.exec(
