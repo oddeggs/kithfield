@@ -174,12 +174,7 @@ const subscriptionState = (event: RevenueCatEvent): SubState | null => {
   }
 };
 
-/** Moves everything one person holds to another, as RevenueCat's `TRANSFER` does. */
-export const transferWrites = (
-  db: D1Database,
-  from: string,
-  into: string,
-): D1PreparedStatement[] => [
+const moveSubscriptions = (db: D1Database, from: string, into: string) => [
   db
     .prepare(
       `INSERT OR IGNORE INTO subscriptions (person_id, product, state, since, until, store, event_at, updated_at)
@@ -187,6 +182,38 @@ export const transferWrites = (
     )
     .bind(into, from),
   db.prepare('DELETE FROM subscriptions WHERE person_id = ?').bind(from),
+  db.prepare('UPDATE store_transactions SET person_id = ? WHERE person_id = ?').bind(into, from),
+];
+
+/** The ways of owning something the store sold, and so move with a RevenueCat `TRANSFER`. */
+const SOLD = `('bought', 'founding')`;
+
+/**
+ * RevenueCat's `TRANSFER`: what the store sold moves (subscriptions, transactions, items bought
+ * and Founding Farmer); gifts, chip-ins, patron keeps and parcels stay with the person.
+ */
+export const storeTransferWrites = (
+  db: D1Database,
+  from: string,
+  into: string,
+): D1PreparedStatement[] => [
+  ...moveSubscriptions(db, from, into),
+  db
+    .prepare(
+      `INSERT OR IGNORE INTO owned_items (person_id, item, via, from_id, at)
+       SELECT ?, item, via, from_id, at FROM owned_items WHERE person_id = ? AND via IN ${SOLD}`,
+    )
+    .bind(into, from),
+  db.prepare(`DELETE FROM owned_items WHERE person_id = ? AND via IN ${SOLD}`).bind(from),
+];
+
+/** A person merged into another: everything they hold moves. */
+export const transferWrites = (
+  db: D1Database,
+  from: string,
+  into: string,
+): D1PreparedStatement[] => [
+  ...moveSubscriptions(db, from, into),
   db
     .prepare(
       `INSERT OR IGNORE INTO owned_items (person_id, item, via, from_id, at)
@@ -194,7 +221,6 @@ export const transferWrites = (
     )
     .bind(into, from),
   db.prepare('DELETE FROM owned_items WHERE person_id = ?').bind(from),
-  db.prepare('UPDATE store_transactions SET person_id = ? WHERE person_id = ?').bind(into, from),
 ];
 
 const personExists = async (db: D1Database, person: string) =>
@@ -215,7 +241,7 @@ const writesFor = async (
     if (into === undefined || !(await personExists(db, into))) return null;
     return (event.transferred_from ?? [])
       .filter((from) => from !== into)
-      .flatMap((from) => transferWrites(db, from, into));
+      .flatMap((from) => storeTransferWrites(db, from, into));
   }
   if (!(await personExists(db, person))) return null;
   const product =

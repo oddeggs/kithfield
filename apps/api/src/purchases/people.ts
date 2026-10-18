@@ -41,7 +41,8 @@ const moves = [
   ),
 ];
 
-registerMergeStep('shop', (db, m) => [
+/** Everything the shop keeps for `from`, moved to `into`. */
+export const mergeWrites = (db: D1Database, m: PersonMerge): D1PreparedStatement[] => [
   ...transferWrites(db, m.from, m.into),
   ...moves.flatMap((move) => move(db, m)),
   db.prepare('UPDATE gifts SET from_id = ? WHERE from_id = ?').bind(m.into, m.from),
@@ -52,4 +53,6 @@ registerMergeStep('shop', (db, m) => [
     .prepare('UPDATE OR IGNORE book_shares SET person_id = ? WHERE person_id = ?')
     .bind(m.into, m.from),
   db.prepare('UPDATE book_orders SET by_id = ? WHERE by_id = ?').bind(m.into, m.from),
-]);
+];
+
+registerMergeStep('shop', mergeWrites);
