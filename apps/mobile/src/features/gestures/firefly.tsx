@@ -1,6 +1,6 @@
 import { LIMITS } from '@kithfield/contracts';
 import { useLocalSearchParams } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Keyboard, View, useWindowDimensions } from 'react-native';
 
 import { ArtIcon } from '../../ui/art/art-view';
@@ -9,17 +9,19 @@ import { Button } from '../../ui/components/button';
 import { TextField } from '../../ui/components/text-field';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { timing, useTravel } from '../../ui/travel';
 import { Txt } from '../../ui/type/text';
 import { defaultFriend, friendsOf } from './model/people';
 import { useGestureSend } from './send';
 import { DoorPicker, type DoorPickerHandle } from './ui/door-picker';
-import { Flight, type Point } from './ui/flight';
 import { leave } from './ui/presentation';
 import { SceneScreen } from './ui/scene-screen';
 import { one, useGestureFarm } from './use-gesture-farm';
 
 const ART_H = 430;
 const SHEET_TOP = 392;
+/** The firefly as it leaves the button and as it waits on the step. */
+const FIREFLY = 36;
 
 /**
  * Leave a firefly on a doorstep: pick a door, add a few words if you like, and it drifts
@@ -36,9 +38,9 @@ export function FireflyScreen() {
     defaultFriend(g.state, g.me, one(params.to)),
   );
   const [words, setWords] = useState('');
-  const [door, setDoor] = useState<Point | null>(null);
   const { width, height } = useWindowDimensions();
   const [flying, setFlying] = useState(false);
+  const travel = useTravel();
   const doors = useRef<DoorPickerHandle>(null);
   const chosen = picked ?? defaultFriend(g.state, g.me, one(params.to));
   const friend = g.friend(chosen);
@@ -57,10 +59,25 @@ export function FireflyScreen() {
     await keyboardGone();
     const rect = await doors.current?.measurePicked();
     if (!rect) return leave();
-    setDoor({ x: rect.x + rect.width / 2, y: rect.y + rect.height * 0.8 });
     setFlying(true);
+    // It rises from the button and drifts to the door it was left at, in the overlay over this
+    // screen, and the screen closes as it settles.
+    const spot = (x: number, y: number) => ({
+      x: x - FIREFLY / 2,
+      y: y - FIREFLY / 2,
+      width: FIREFLY,
+      height: FIREFLY,
+    });
+    travel.fly({
+      from: spot(width / 2, height - 62),
+      to: spot(rect.x + rect.width / 2, rect.y + rect.height * 0.8),
+      sprite: { scene: 'icon', attrs: { name: 'firefly' }, width: 56, height: 56 },
+      arc: 120,
+      grow: 0.2,
+      durationMs: timing('firefly', 'flight'),
+      onLanded: () => leave(),
+    });
   };
-  const landed = useCallback(() => leave(), []);
 
   return (
     <SceneScreen
@@ -83,12 +100,6 @@ export function FireflyScreen() {
           disabled={!chosen || flying}
           onPress={() => void go()}
         />
-      }
-      overlay={
-        flying && door ? (
-          // It rises from the button and drifts to the door it was left at.
-          <Flight from={{ x: width / 2, y: height - 62 }} to={door} onLanded={landed} />
-        ) : null
       }
     >
       <View style={{ paddingHorizontal: 4 }}>

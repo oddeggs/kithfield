@@ -26,12 +26,14 @@ import { fadeTo, sheetTo } from '../../../ui/motion/motion';
 import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { timing, TravelAnchor, travelIds, useTravel } from '../../../ui/travel';
 import { Txt } from '../../../ui/type/text';
 import { lookOf } from '../model/people';
 import { refusalOf } from '../model/refusals';
 import type { BubbleItem } from '../model/timeline';
 import { clock } from '../model/format';
 import { useChatColours } from '../ui/chat-colours';
+import { go } from '../routes';
 import { BubbleBody } from './bubbles';
 import { ReactionRow } from './gesture-seams';
 import { useRoom } from './room-context';
@@ -158,6 +160,56 @@ function useShake(failed: boolean) {
     );
   }, [failed, reduce, x]);
   return useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
+}
+
+/** A face drawn at the size it swells to in flight, so it never blurs. */
+const FACE_IN_FLIGHT = 76;
+
+/**
+ * A friend's critter beside their message. Tapped, the face lifts out of the chat, arcs to the
+ * Farm tab and lands as their whole critter, then their card rises (signature motion); when the
+ * farm isn't the one the Farm tab shows, the card opens here instead.
+ */
+function CritterFace({
+  farm,
+  seq,
+  person,
+  kind,
+  look,
+  label,
+}: {
+  readonly farm: string;
+  readonly seq: number | null;
+  readonly person: string;
+  readonly kind: string;
+  readonly look: ReturnType<typeof lookOf>;
+  readonly label: string;
+}) {
+  const travel = useTravel();
+  const id = travelIds.chatFace(farm, seq ?? -1);
+  const meet = () => {
+    const to = travelIds.farmCritter(farm, person);
+    if (seq === null || !travel.has(to)) return go.critter(farm, person);
+    travel.fly({
+      from: id,
+      to,
+      sprite: { avatar: kind, look, size: FACE_IN_FLIGHT },
+      morph: true,
+      grow: 0.35,
+      arc: 70,
+      durationMs: timing('critterTravel', 'out'),
+      backMs: timing('critterTravel', 'back'),
+      onTouchdown: () => go.critter(farm, person),
+    });
+    go.farm();
+  };
+  return (
+    <Press onPress={meet} darken={false} radius={15} hitSlop={6}>
+      <TravelAnchor id={id}>
+        <Avatar kind={kind} look={look} size={30} label={label} />
+      </TravelAnchor>
+    </Press>
+  );
 }
 
 export interface BubbleRowProps {
@@ -294,10 +346,12 @@ export function BubbleRow({ item, first, showSent }: BubbleRowProps) {
         >
           {!item.mine ? (
             first && person?.critter ? (
-              <Avatar
+              <CritterFace
+                farm={room.farm}
+                seq={item.seq}
+                person={item.actor ?? ''}
                 kind={person.critter.species}
                 look={lookOf(person.critter)}
-                size={30}
                 label={room.nameOf(item.actor)}
               />
             ) : (

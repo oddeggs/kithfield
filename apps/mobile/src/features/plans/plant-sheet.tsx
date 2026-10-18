@@ -1,7 +1,7 @@
 import type { FarmId, LocalDate, Seq, Yeses } from '@kithfield/contracts';
 import { fontFor, type } from '@kithfield/theme';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useDataClient, useOpenFarm } from '../../data';
@@ -12,6 +12,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics } from '../../ui/motion/haptics';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { tabIconBox, timing, TravelAnchor, travelIds, useTravel } from '../../ui/travel';
 import { Txt } from '../../ui/type/text';
 import { canPlant, draftStage, placeSuggestions, plantPayload, titleFrom } from './draft';
 import { leave } from './chrome';
@@ -24,6 +25,7 @@ import { plantAndJoin } from './planted';
 import { plantedStore, useMe, usePlan, usePlantedAnswers } from './use-plans';
 import type { BedFarm } from './use-seed-bed';
 
+const SEED = 96;
 const STAGE_CAPTIONS = ['plans.stage.0', 'plans.stage.1', 'plans.stage.2', 'plans.stage.3'] as const;
 
 /**
@@ -50,6 +52,8 @@ export function PlantSheet({
   const insets = useSafeAreaInsets();
   const client = useDataClient();
   const { show } = useToast();
+  const travel = useTravel();
+  const screen = useWindowDimensions();
   const me = useMe();
   const here = usePlan(farm, null);
   const message = useMessage(farm, fromSeq);
@@ -84,6 +88,18 @@ export function PlantSheet({
       return;
     }
     haptics.success();
+    // The seed drops into the Seed bed: the chat's way in when it shows, otherwise the tab.
+    travel.fly({
+      from: travelIds.plantingSeed,
+      to: travel.has(travelIds.seedBedDoor)
+        ? travelIds.seedBedDoor
+        : tabIconBox('seedbed', screen.width, screen.height, insets.bottom),
+      sprite: { scene: 'seed', attrs: { stage }, width: SEED, height: SEED },
+      toWidth: SEED * 0.4,
+      arc: 60,
+      hideSource: false,
+      durationMs: timing('plantSeed', 'plant') / 2,
+    });
     leave();
   };
 
@@ -117,7 +133,9 @@ export function PlantSheet({
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <SeedArt stage={stage} size={96} tile={look.seedTile} radius={24} />
+          <TravelAnchor id={travelIds.plantingSeed}>
+            <SeedArt stage={stage} size={SEED} tile={look.seedTile} radius={24} />
+          </TravelAnchor>
           <View style={{ flex: 1, gap: 4 }}>
             <TextInput
               value={title}

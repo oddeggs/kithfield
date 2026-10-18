@@ -11,6 +11,7 @@ import { ArtIcon } from '../../../ui/art/art-view';
 import { Glass } from '../../../ui/components/glass';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { TravelAnchor, travelIds } from '../../../ui/travel';
 import { Txt } from '../../../ui/type/text';
 import { useChatColours } from '../ui/chat-colours';
 
@@ -166,7 +167,14 @@ export function HeaderBar({
         )}
       </Glass>
       <GlassCircle label={right.label} onPress={right.onPress}>
-        <ArtIcon name={right.icon} size={right.icon === 'seeds' ? 24 : 22} color={palette.text} />
+        {right.icon === 'seeds' ? (
+          // Where a seed planted from this chat drops into the Seed bed (signature motion).
+          <TravelAnchor id={travelIds.seedBedDoor}>
+            <ArtIcon name="seeds" size={24} color={palette.text} />
+          </TravelAnchor>
+        ) : (
+          <ArtIcon name={right.icon} size={22} color={palette.text} />
+        )}
       </GlassCircle>
     </View>
   );
