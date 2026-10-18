@@ -4,9 +4,12 @@ import { type RuleRef } from './primitives';
 
 /**
  * What each kind's tombstone keeps, by fact name: every payload field the farm reducer reads for
- * growth, caps, roses, the doorstep, pins and plans. Kinds not listed keep nothing beyond the
- * envelope (kind, actor, time), which is all the reducer needs from them. `gate` keeps its
- * gesture as `action`.
+ * growth, caps, roses, the doorstep, pins, plans, members and status bubbles. Kinds not listed
+ * keep nothing beyond the envelope (kind, actor, time, day), which is all the reducer needs from
+ * them. `gate` keeps its gesture as `action`. A `critter_changed` keeps the critter but not the
+ * birthday: a birthday is personal, and neither tombstone path needs it (an account deletion
+ * removes the member and their rose; a safety removal is followed by a `critter_changed` the farm
+ * writes to restore the previous values).
  */
 export const TOMBSTONE_KEEPS = {
   unsend: ['target'],
@@ -30,6 +33,9 @@ export const TOMBSTONE_KEEPS = {
   fire: ['state'],
   left: ['how'],
   removed: ['person'],
+  joined: ['critter', 'via'],
+  critter_changed: ['critter'],
+  status: ['status', 'raised', 'battery'],
 } as const satisfies Partial<Record<EventKind, readonly (keyof TombstoneFacts)[]>>;
 
 /** The fields a kind's payload offers as facts; a gate's gesture is read from inside it. */
@@ -59,6 +65,6 @@ export const tombstoneOf = (
   return {
     tombstone,
     ...(rule === undefined ? {} : { rule }),
-    ...(keeps.length > 0 ? { facts } : {}),
+    ...(Object.keys(facts).length > 0 ? { facts } : {}),
   };
 };

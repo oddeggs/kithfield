@@ -18,22 +18,36 @@ only through the contracts owner.
 - **`opId`** is a lowercase UUIDv7 made by the writer. The farm mints one for the events it writes.
 - **`seq`** starts at 1, and seq 1 is always `farm_created`. `lastSeq: 0` in `hello` means the
   phone holds nothing.
+- **`day`** on every event is the farm's local day (`YYYY-MM-DD`) it happened on, set by the farm
+  at commit from the farm's time zone. Day rules (caps, roses) read it, never device time-zone
+  data. Required from rules version `DAY_FROM_RULES_VERSION` (2); development data written under
+  rules version 1 may lack it.
 - **Ids** are URL-safe, at most 64 characters, and made by the server (people, farms, reports),
   except device ids, which the app makes on first launch (`PUT /v1/devices/:deviceId`).
 - **`actor`** is a person id. It is null only for the farm's own kinds (`farm_created`, `weather`,
   `shared_rain`, `season_rolled`, `harvested`, `rules_changed`, `restored`) and for what the farm or
   the safety team writes on `unsend` (`by: safety`), `removed` (`by: safety`), `settings_changed`
-  (`frozen`, `paused`) and `fire` (`out`).
+  (`frozen`, `paused`, and the keeper handover `role: keeper` when the last keeper leaves or is
+  removed, given to the longest-standing remaining member) and `fire` (`out`).
+- The farm writes `ON_BEHALF_KINDS` on a person's behalf, with that person as actor: `joined`,
+  `farm_opened`, `hibernate`, `gate`, `traded`, and `critter_changed` and `status` (also phone
+  commands). After a safety removal of a `critter_changed` or `status`, the farm writes a follow-up
+  of the same kind restoring the person's previous values.
 - A removed, unsent or deleted author's event keeps its `seq` and `kind`; its `payload` becomes a
   `Tombstone`. Check with `isTombstone`. The farm builds it with `tombstoneOf`, which keeps the
   facts the reducer reads (`TOMBSTONE_KEEPS`), so a phone catching up past an unsend or a deleted
-  account grows the farm the same. `settings_changed` is the farm's, never tombstoned.
-- Account deletion tombstones everything the person wrote on their farms and visits, and also
-  their `gate` and `traded` events on farms they only visited.
+  account grows the farm the same. `settings_changed` is the farm's, never tombstoned. A tombstoned
+  `joined` adds a nameless member (it keeps the critter and `via`); a tombstoned `status` clears
+  the bubble whose `seq` it was.
+- Account deletion tombstones everything the person wrote on their farms and visits. On farms they
+  only visited it tombstones their `gate` and `traded` events, then writes `left {how:
+  account_deleted}` with them as actor.
 - An appeal that undoes a removal writes `restored`; phones refetch the target by paging and the
   reducer applies it once the target is back. The snapshot is the truth.
 - **Protocol version**: `PROTOCOL_VERSION` (1), sent in `hello` on both sockets. The server compares
-  it and answers `protocol_unsupported` when it can't serve it.
+  it and answers `protocol_unsupported` when it can't serve it. Adding `day` to the envelope didn't
+  change it: frames are unchanged, and older apps drop the key. What changed is a rule (which day
+  an event counts on), so it rides on the rules version instead.
 
 ## Forward compatibility
 

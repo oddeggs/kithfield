@@ -53,6 +53,12 @@ export const PlantState = z.object({
   /** Growth this season, for the shared reducer only. Never drawn as a number. */
   dew: z.int().min(0),
   rare: RareVariant.nullable(),
+  /**
+   * The farm day of its one rare roll this season: the first weather or shared-rain day on or
+   * after it bloomed. Shared rain later that same day may roll again; after that day the variant
+   * is fixed for the season.
+   */
+  rareRolledOn: LocalDate.nullable(),
   bloomedAt: EpochMs.nullable(),
   credits: z.array(Credit).max(LIMITS.members),
 });
@@ -60,12 +66,19 @@ export type PlantState = z.infer<typeof PlantState>;
 
 export const MemberState = z.object({
   person: PersonId,
-  name: DisplayName,
+  /** Null when their `joined` arrived as a tombstone (a removed name, or a deleted account). */
+  name: DisplayName.nullable(),
   critter: Critter,
   role: Role,
   joinedAt: EpochMs,
   /** Sleepy and awake are computed from these and "now", never stored. */
   lastOpenedAt: EpochMs.nullable(),
+  /**
+   * The latest thing that woke their critter other than opening the farm, such as opening a
+   * firefly left for them. Sleepiness reads the later of this and `lastOpenedAt`; shared rain
+   * reads only `lastOpenedAt`.
+   */
+  lastWokenAt: EpochMs.nullable(),
   lastTendedAt: EpochMs.nullable(),
   hibernating: z.boolean(),
   /** Paused by the safety team until then: the critter naps and can't post. Compare with now. */
@@ -73,7 +86,8 @@ export const MemberState = z.object({
   /** Tended at least once this season: sets the growth scaling. */
   activeThisSeason: z.boolean(),
   birthday: MonthDay.nullable(),
-  status: z.object({ text: text(LIMITS.status), at: EpochMs }).nullable(),
+  /** The status bubble and the `status` event that set it, so an unsend clears the right one. */
+  status: z.object({ text: text(LIMITS.status), at: EpochMs, seq: Seq }).nullable(),
   cloudAt: EpochMs.nullable(),
   battery: z.enum(['open', 'resting']),
 });
@@ -84,28 +98,39 @@ export const FormerMember = z.object({
   person: PersonId,
   name: DisplayName.nullable(),
   critter: Critter,
+  /** With the members' `joinedAt`, the earliest one is where the farm's sleepiness starts. */
+  joinedAt: EpochMs,
   leftAt: EpochMs,
   how: Departure,
 });
 export type FormerMember = z.infer<typeof FormerMember>;
 
-export const SeedState = z.object({
-  seq: Seq,
-  planter: PersonId,
-  title: text(80),
-  days: z.array(DayOption).max(14),
-  place: Place.nullable(),
-  yeses: Yeses,
-  someday: z.boolean(),
-  hat: PersonId,
-  settleOn: LocalDate.nullable(),
-  votes: z.array(z.object({ option: z.int().min(0).max(13), people })).max(14),
-  rsvps: z
-    .array(z.object({ person: PersonId, answer: z.enum(['in', 'maybe', 'out']) }))
-    .max(LIMITS.members),
-  checkins: people,
-  sproutedAt: EpochMs.nullable(),
-});
+/**
+ * A plan seed. `unsent` is true when its planting was unsent or removed (perhaps before this
+ * device saw it): its content is gone (no title, no place), and it is never drawn.
+ */
+export const SeedState = z
+  .object({
+    seq: Seq,
+    planter: PersonId,
+    unsent: z.boolean(),
+    title: text(80).nullable(),
+    days: z.array(DayOption).max(14),
+    place: Place.nullable(),
+    yeses: Yeses,
+    someday: z.boolean(),
+    hat: PersonId,
+    settleOn: LocalDate.nullable(),
+    votes: z.array(z.object({ option: z.int().min(0).max(13), people })).max(14),
+    rsvps: z
+      .array(z.object({ person: PersonId, answer: z.enum(['in', 'maybe', 'out']) }))
+      .max(LIMITS.members),
+    checkins: people,
+    sproutedAt: EpochMs.nullable(),
+  })
+  .refine((s) => s.unsent === (s.title === null) && (!s.unsent || s.place === null), {
+    message: 'An unsent seed has no title or place; a live one has a title',
+  });
 export type SeedState = z.infer<typeof SeedState>;
 
 export const FieldGuidePage = z.object({

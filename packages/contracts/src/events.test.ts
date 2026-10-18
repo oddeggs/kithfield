@@ -2,7 +2,10 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
 import {
+  DAY_FROM_RULES_VERSION,
   EVENT_KINDS,
+  FARM_WRITTEN_KINDS,
+  ON_BEHALF_KINDS,
   EventEnvelope,
   FarmEvent,
   isTombstone,
@@ -30,7 +33,8 @@ const eventOf = (kind: string, payload: unknown, seq = 40) => ({
   opId,
   at,
   actor: FARM_ONLY.has(kind) ? null : bea,
-  rulesVersion: 1,
+  day: '2026-10-18',
+  rulesVersion: 2,
   kind,
   payload,
 });
@@ -112,11 +116,36 @@ describe('farm events', () => {
       ['fire', { state: 'out' }, null, true],
       ['fire', { state: 'out' }, bea, false],
       ['fire', { state: 'lit' }, null, false],
+      ['settings_changed', { setting: 'role', person: fig, role: 'keeper' }, null, true],
+      ['settings_changed', { setting: 'role', person: fig, role: 'keeper' }, bea, true],
+      ['settings_changed', { setting: 'role', person: fig, role: 'helper' }, null, false],
+      ['critter_changed', { name: 'June' }, null, false],
     ];
     for (const [kind, payload, actor, ok] of cases) {
       const event = withActor(kind, payload, actor);
       expect(valid(event), `${kind} ${JSON.stringify(payload)} by ${actor}`).toBe(ok);
       if (ok) roundTrip(event);
+    }
+  });
+
+  it('carries the farm-time day from the rules version that brought it', () => {
+    const message = eventOf('message', eventPayloads.message);
+    const { day: _day, ...noDay } = message;
+    expect(DAY_FROM_RULES_VERSION).toBe(2);
+    expect(valid(noDay)).toBe(false);
+    expect(EventEnvelope.safeParse(noDay).success).toBe(false);
+    roundTrip({ ...noDay, rulesVersion: 1 });
+    expect(EventEnvelope.safeParse({ ...noDay, rulesVersion: 1 }).success).toBe(true);
+    for (const day of ['18/10/2026', '2026-13-01', 20261018]) {
+      expect(valid({ ...message, day }), String(day)).toBe(false);
+    }
+  });
+
+  it("names the kinds the farm may write on a person's behalf", () => {
+    for (const kind of ON_BEHALF_KINDS) expect(EVENT_KINDS).toContain(kind);
+    for (const kind of ['critter_changed', 'status'] as const) {
+      expect(ON_BEHALF_KINDS).toContain(kind);
+      expect(FARM_WRITTEN_KINDS).not.toContain(kind);
     }
   });
 
