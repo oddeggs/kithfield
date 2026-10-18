@@ -7,12 +7,14 @@ import {
   ArtId,
   CareFamily,
   Critter,
+  Departure,
   DisplayName,
   EpochMs,
   FarmId,
   FarmKind,
   FarmName,
   FarmPlace,
+  Hemisphere,
   LIMITS,
   LocalDate,
   MonthDay,
@@ -23,6 +25,7 @@ import {
   RareVariant,
   Role,
   Seq,
+  TimeZone,
   Weather,
   text,
 } from './primitives';
@@ -32,7 +35,10 @@ const people = z.array(PersonId).max(LIMITS.members);
 /** Who helped a plant and with which kinds of care. Credits name people and kinds, never totals. */
 export const Credit = z.object({
   person: PersonId,
-  kinds: z.array(EventKindSchema).max(40),
+  kinds: z
+    .array(EventKindSchema)
+    .max(40)
+    .refine((kinds) => new Set(kinds).size === kinds.length, { message: 'Each kind once' }),
 });
 export type Credit = z.infer<typeof Credit>;
 
@@ -58,8 +64,8 @@ export const MemberState = z.object({
   lastOpenedAt: EpochMs.nullable(),
   lastTendedAt: EpochMs.nullable(),
   hibernating: z.boolean(),
-  /** Paused by the safety team: the critter naps and can't post. */
-  paused: z.boolean(),
+  /** Paused by the safety team until then: the critter naps and can't post. Compare with now. */
+  pausedUntil: EpochMs.nullable(),
   /** Tended at least once this season: sets the growth scaling. */
   activeThisSeason: z.boolean(),
   birthday: MonthDay.nullable(),
@@ -75,7 +81,7 @@ export const FormerMember = z.object({
   name: DisplayName.nullable(),
   critter: Critter,
   leftAt: EpochMs,
-  how: z.enum(['left', 'removed', 'account_deleted']),
+  how: Departure,
 });
 export type FormerMember = z.infer<typeof FormerMember>;
 
@@ -110,6 +116,19 @@ export type FieldGuidePage = z.infer<typeof FieldGuidePage>;
 export const Crop = z.object({ plant: PlantId, variant: RareVariant.nullable() });
 export type Crop = z.infer<typeof Crop>;
 
+/**
+ * Something addressed to a person that waits on their doorstep: a firefly or gift not yet opened,
+ * or a slow post not yet delivered (`deliverAt`).
+ */
+export const DoorstepItem = z.object({
+  seq: Seq,
+  kind: z.enum(['firefly', 'gift', 'slow_post']),
+  from: PersonId,
+  to: PersonId,
+  deliverAt: EpochMs.optional(),
+});
+export type DoorstepItem = z.infer<typeof DoorstepItem>;
+
 /** A visit's porch pot: one plant a season from both people's care, and its own scrapbook. */
 export const PorchPot = PlantState.extend({
   pressed: z.array(z.object({ season: SeasonRef, plant: PlantId, pressedAt: EpochMs })).max(400),
@@ -123,9 +142,14 @@ export type PorchPot = z.infer<typeof PorchPot>;
 export const FarmState = z.object({
   farm: FarmId,
   kind: FarmKind,
-  name: FarmName,
+  /** Null for a visit. */
+  name: FarmName.nullable(),
   land: ArtId,
   theme: ArtId.nullable(),
+  /** Day boundaries and seasons. */
+  timeZone: TimeZone,
+  hemisphere: Hemisphere,
+  /** The keeper's town, for weather only. */
   place: FarmPlace.nullable(),
   birthdaysBloom: z.boolean(),
   approval: z.boolean(),
@@ -150,13 +174,14 @@ export const FarmState = z.object({
       .max(LIMITS.members * 8),
   }),
   roses: z
-    .array(z.object({ person: PersonId, day: LocalDate, waterers: people }))
+    .array(z.object({ person: PersonId, day: LocalDate, waterers: people, signers: people }))
     .max(LIMITS.members),
   pot: PorchPot.nullable(),
   fieldGuide: z.array(FieldGuidePage).max(1000),
   basket: z.object({ season: SeasonRef, crops: z.array(Crop).max(8) }).nullable(),
   seeds: z.array(SeedState).max(100),
   pins: z.array(Seq).max(LIMITS.pins),
+  doorstep: z.array(DoorstepItem).max(500),
   fireLitAt: EpochMs.nullable(),
 });
 export type FarmState = z.infer<typeof FarmState>;
