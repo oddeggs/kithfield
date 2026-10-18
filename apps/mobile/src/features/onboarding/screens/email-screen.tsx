@@ -8,6 +8,7 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { useAccount } from '../../../ui/session/account';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { routes } from '../flow';
+import { sendFailure } from '../sign-in-errors';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
 import { Body, ErrorLine, Title, TopBar, useDesignTop, useSceneAttrs } from '../kit';
@@ -44,8 +45,10 @@ export function EmailScreen() {
       await signIn.sendEmailCode(address);
       update({ email: address });
       router.push(routes.emailCode);
-    } catch {
-      setError(t('onboarding.failed'));
+    } catch (failure) {
+      setError(
+        t(sendFailure(failure) === 'lockout' ? 'onboarding.code.lockout' : 'onboarding.failed'),
+      );
     } finally {
       setBusy(false);
     }

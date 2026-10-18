@@ -69,10 +69,12 @@ export const onboardingVi: ViCatalogue<typeof onboardingEn> = {
   'onboarding.code.note': 'Mã sẽ tự điền từ ứng dụng Mail. Mã dùng được trong 10 phút.',
   'onboarding.code.wrong': 'Mã chưa khớp. Thử lại nhé.',
   'onboarding.code.sent': 'Một mã mới đang trên đường đến.',
+  'onboarding.code.lockout':
+    'Địa chỉ này đã thử quá nhiều lần. Hãy thử lại vào ngày mai, hoặc dùng Apple hay Google.',
 
   'onboarding.age.title': 'Sinh nhật bạn là khi nào?',
   'onboarding.age.body':
-    'Kithfield dành cho người từ 13 tuổi (16 tuổi ở một số nước). Chỉ ngày và tháng được hiện, và chỉ khi bạn bật hoa sinh nhật.',
+    'Kithfield dành cho người từ 13 tuổi trở lên, hoặc lớn hơn ở nơi luật địa phương yêu cầu. Chỉ ngày và tháng được hiện, và chỉ khi bạn bật hoa sinh nhật.',
   'onboarding.age.day': 'Ngày',
   'onboarding.age.month': 'Tháng',
   'onboarding.age.year': 'Năm',

@@ -75,10 +75,12 @@ export const onboardingEn = {
   'onboarding.code.note': 'The code fills in on its own from Mail. It works for 10 minutes.',
   'onboarding.code.wrong': 'That code didn’t fit. Try again.',
   'onboarding.code.sent': 'Another code is on its way.',
+  'onboarding.code.lockout':
+    'Too many tries for this address. Try tomorrow, or use Apple or Google.',
 
   'onboarding.age.title': 'When’s your birthday?',
   'onboarding.age.body':
-    'Kithfield is for people 13 and over (16 in some countries). Only the day and month are ever shown, and only if you turn on birthday blooms.',
+    'Kithfield is for people 13 and over, or older where local law asks. Only the day and month are ever shown, and only if you turn on birthday blooms.',
   'onboarding.age.day': 'Day',
   'onboarding.age.month': 'Month',
   'onboarding.age.year': 'Year',
