@@ -18,7 +18,7 @@ The plan is built for parallel subagents, not one developer.
 | Hotspot | Rule |
 |---|---|
 | Routes | Each feature owns its own route folder under `apps/mobile/src/app/(feature)/`. Only the shell lane edits `_layout.tsx` and the tab bar |
-| i18n | One catalogue file per feature: `packages/i18n/src/<feature>.en.ts` / `.vi.ts`. The index re-exports with a glob |
+| i18n | One catalogue file per feature: `packages/i18n/src/<feature>.en.ts` / `.vi.ts`. `pnpm --filter @kithfield/i18n gen` writes `catalogues.generated.ts`; re-run it after a merge conflict |
 | D1 migrations | Number ranges per lane (below). Never edit another lane's migration |
 | Contracts | Owned by the contracts lane only |
 | `package.json` dependencies | A lane may add dependencies only to the packages it owns, at versions already in the catalogue; new catalogue entries go through the integration agent |
@@ -44,7 +44,7 @@ Gate 0: contracts frozen, renders exist, CI green.
 |---|---|---|---|---|
 | 1a Art | `packages/art` | Byte-for-byte sync of `design/kithfield-art.js`; the Canvas 2D → Skia adapter (blend modes, filters as colour matrices, blur masks, fonts); the sprite cache with a memory cap; a layered critter API (body, marking, accessory, outfit, companion); 12-frame loops; CanvasKit baker for Node; golden tests against headless Chrome | 3 | Golden scenes (every critter awake and asleep, farm day and night, each season, fire, plants at all stages) match within 2/255 mean; one farm at 120 fps on the simulator |
 | 1b Farm rules | `packages/farm` (not `catalog.ts`) | The pure reducer: dew per family, caps, `k` scaling, stages only up, sleepy and misty functions, seasons by hemisphere, harvest day, rare-variant hash, shared rain, porch pot, rules versions | 2 | Property tests for caps, scaling, determinism and "never down"; every table in `farm-model.md` has a test |
-| 1c Auth | `apps/api/src/auth/**`, migrations `0001–0099` | Better Auth on D1 (anonymous, Apple, Google, email code, phone code), sessions, devices, socket tokens, age and Terms records, account merge | 2 | Integration tests for every sign-in path and the anonymous upgrade, run under `wrangler dev` |
+| 1c Auth | `apps/api/src/auth/**`, migrations `0001–0099` | Better Auth on D1 (anonymous, Apple, Google, email code; phone sign-in is deferred), sessions, devices, socket tokens, age and Terms records, account merge | 2 | Integration tests for every sign-in path and the anonymous upgrade, run under `wrangler dev` |
 | 1d Farm object | `apps/api/src/farm/**` | `FarmDO`: event log, `op_id` idempotency, reducer integration, derived tables, socket protocol (hello, snapshot, events, cmd, ack, rejected), HTTP commands and paging, FTS5 search, presence and typing, alarms (weather through an interface, filled in during wave 3), hibernation | 3 | A protocol test suite: replay, reconnect after a gap, duplicate `op_id`, rejection, a snapshot for a stale client, an alarm firing |
 | 1e Cottage and push | `apps/api/src/cottage/**`, `apps/api/src/push/**`, migrations `0100–0199` | `CottageDO` (chat list, waiting counts, budget, devices); the push queue consumer through Expo push; mute, hibernate, connected, quiet-hours and budget checks; collapsing; the ledger; back-off | 2 | Tests for each push decision rule; one real push to a simulator through Expo |
 | 1f Mobile shell | `apps/mobile/src/app/_layout.tsx`, `apps/mobile/src/ui/**` | Expo Router structure; the tab bar (Farm, Chat, Seed bed, You); sheets; primitives and the component library from `01 Foundations`; haptics; motion helpers on Reanimated | 2 | Every component from `01 Foundations` renders on the simulator and matches its render; Reduce Motion honoured |
@@ -119,7 +119,7 @@ Critter mask (16, marked later), visit calls by knocking (16), sticker creator m
 | Needed by | Gate |
 |---|---|
 | Wave 0 | Expo/EAS project; Cloudflare zone `kithfield.com` with Workers, D1, R2, Queues and Durable Objects enabled |
-| Wave 1 | Apple Developer team, bundle ids, App Group; Sign in with Apple and Google OAuth clients; a phone-code provider |
+| Wave 1 | Apple Developer team, bundle ids, App Group; Sign in with Apple and Google OAuth clients. Phone sign-in is deferred (founder decision, 18 Oct 2026): wave 1 auth ships anonymous, Apple, Google and email code, so no phone-code provider is needed yet |
 | Wave 2 | APNs key and FCM project for Expo push; Cloudflare CSAM scanning enabled; Cloudflare Access for the admin console |
 | Wave 3 | RevenueCat project and every product in App Store Connect; LiveKit Cloud project; WeatherKit key; the AI provider for captions and the recap; Stripe for the printed book |
 | Wave 4 | Google Play developer account; privacy policy and Terms text reviewed by counsel; trademark search; app licence choice (`tech-decisions.md` §6) |
