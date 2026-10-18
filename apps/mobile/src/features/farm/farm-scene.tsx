@@ -232,6 +232,7 @@ export function FarmScene({
             mine={w.mine}
             tail={p.tail}
             maxWidth={w.maxWidth}
+            width={p.width}
             running={running}
             phase={(i * 0.29) % 1}
             style={{ left: p.left, top: p.top }}

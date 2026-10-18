@@ -65,6 +65,7 @@ export function SpeechBubble({
   tail = 'left',
   mine = false,
   maxWidth,
+  width,
   running,
   phase = 0,
   style,
@@ -75,6 +76,8 @@ export function SpeechBubble({
   readonly tail?: 'left' | 'right';
   readonly mine?: boolean;
   readonly maxWidth?: number;
+  /** The width the farm's layout gave it, so it takes no more room than was kept for it. */
+  readonly width?: number;
   /** Whether the bob runs: off on a hidden screen and under Reduce Motion. */
   readonly running: boolean;
   /** Where in the loop it starts, 0–1, so neighbours don't bob in step. */
@@ -92,6 +95,7 @@ export function SpeechBubble({
       <View
         style={{
           maxWidth,
+          width,
           paddingTop: 6,
           paddingBottom: 7,
           paddingHorizontal: 11,
