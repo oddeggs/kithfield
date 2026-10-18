@@ -25,6 +25,9 @@ export const secretNames = [
   'R2_ACCOUNT_ID',
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
+  // The team's APNs key (the `.p8` file's contents), for Live Activity pushes sent straight to
+  // Apple. Unset, Live Activities only move while the app runs.
+  'APNS_KEY_P8',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -65,6 +68,17 @@ export type Bindings = Secrets & {
    * MEDIA_UPLOAD_PROXY_ORIGIN:http://localhost:8787`). Unset, the request's own origin.
    */
   readonly MEDIA_UPLOAD_PROXY_ORIGIN?: string;
+  /** The APNs key's id (the `.p8`'s `AuthKey_<id>`); with `APNS_KEY_P8`, Live Activity pushes. */
+  readonly APNS_KEY_ID?: string;
+  /** The Apple team the key belongs to; `YFND2EEW8S` when unset. */
+  readonly APNS_TEAM_ID?: string;
+  /**
+   * `api.push.apple.com` or `api.sandbox.push.apple.com`. Unset, production is tried first and a
+   * development build's token falls back to the sandbox.
+   */
+  readonly APNS_HOST?: string;
+  /** A relay that forwards APNs requests over HTTP/2, if the Worker's own `fetch` can't. */
+  readonly APNS_RELAY_URL?: string;
   /** At most 20 sign-in nonces a minute per client address. */
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Gestures at another farm's gate, per visitor. */

@@ -37,6 +37,10 @@
         // Signed reads come from the media Worker on its own host (apps/media-worker).
         "MEDIA_ORIGIN": "https://media-dev.kithfield.com",
         "MEDIA_BUCKET_NAME": "kithfield-media-dev",
+        // The team's APNs key for Live Activity pushes (public id); the key itself is the
+        // `APNS_KEY_P8` secret. Without the secret, Live Activities only move while the app runs.
+        "APNS_KEY_ID": "4QN5TUP479",
+        "APNS_TEAM_ID": "YFND2EEW8S",
       },
       "durable_objects": {
         "bindings": [
@@ -142,6 +146,10 @@
         // Signed reads come from the media Worker on its own host (apps/media-worker).
         "MEDIA_ORIGIN": "https://media.kithfield.com",
         "MEDIA_BUCKET_NAME": "kithfield-media",
+        // The team's APNs key for Live Activity pushes (public id); the key itself is the
+        // `APNS_KEY_P8` secret. Without the secret, Live Activities only move while the app runs.
+        "APNS_KEY_ID": "4QN5TUP479",
+        "APNS_TEAM_ID": "YFND2EEW8S",
       },
       "durable_objects": {
         "bindings": [

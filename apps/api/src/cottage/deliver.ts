@@ -6,6 +6,7 @@ import { farmFromDirectory } from './directory';
 import { considerDelivery, type Intake } from './intake';
 import { isPurged } from './schema';
 import { considerRefresh } from './surface-refresh';
+import { considerActivities } from './live-activities';
 import { updateProfile } from './profile';
 
 /**
@@ -52,6 +53,7 @@ export async function decideDelivery(intake: Intake, delivery: CottageDelivery):
     if (await fromBlocked(intake, delivery)) return;
     await considerDelivery(intake, delivery);
     await considerRefresh(intake, delivery);
+    await considerActivities(intake, delivery);
   } catch (error) {
     chats.forgetDelivered(intake.sql, delivery.farm, delivery.seq);
     throw error;

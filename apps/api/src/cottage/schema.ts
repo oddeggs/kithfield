@@ -109,6 +109,17 @@ export const COTTAGE_SCHEMA = [
     at INTEGER NOT NULL,
     PRIMARY KEY (device, activity, farm, seed)
   )`,
+  // The sprouted plans the person is going to, while their day is ahead or under way: when its
+  // Live Activity starts and ends on their phones, and the people it last showed.
+  `CREATE TABLE IF NOT EXISTS plan_days (
+    farm TEXT NOT NULL,
+    seed INTEGER NOT NULL,
+    start_at INTEGER NOT NULL,
+    end_at INTEGER NOT NULL,
+    started INTEGER NOT NULL DEFAULT 0,
+    last_json TEXT,
+    PRIMARY KEY (farm, seed)
+  )`,
   // Set once the person's account is purged: a late delivery or farm row is never taken in again.
   `CREATE TABLE IF NOT EXISTS purged (id INTEGER PRIMARY KEY CHECK (id = 1))`,
 ] as const;

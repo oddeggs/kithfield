@@ -23,3 +23,6 @@ MEDIA_SIGNING_KEY=
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
+# The team's APNs key for Live Activity pushes: the whole `.p8` file's contents (PEM). Empty
+# locally unless testing remote Live Activities on a device. Its id goes in the APNS_KEY_ID var.
+APNS_KEY_P8=
