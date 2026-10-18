@@ -41,6 +41,7 @@ import { useRoomData } from './use-room-data';
 import { MicButton, RecorderPanel, useVoiceRecorder } from './voice-recorder';
 import { noteSeen } from '../ui/seen-store';
 import { useArtVisible } from '../../../ui/motion/visibility';
+import { fieldGuideRoutes } from '../../field-guide/routes';
 import { useMe } from '../ui/use-me';
 import { TypingLine } from './lines';
 import { sprouted, useMentionRows, useOutLine } from './room-people';
@@ -226,6 +227,10 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
               width={screenW}
               height={size.full}
               night={palette.appearance === 'night'}
+              onPot={{
+                label: t('chat.room.porchPot'),
+                open: () => router.push(fieldGuideRoutes.porchPot(farm)),
+              }}
             />
           ) : (
             <FarmHeaderArt

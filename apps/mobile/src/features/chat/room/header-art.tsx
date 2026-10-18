@@ -16,6 +16,7 @@ import {
 
 import { ArtStill } from '../../../ui/art/art-view';
 import { useArt, useArtStill } from '../../../ui/art/art-provider';
+import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { lookOf } from '../model/people';
 
@@ -183,13 +184,17 @@ function SettlingLayer({
   );
 }
 
-/** A visit's porch: the two critters on the bench, the porch owner's first (`S.porch`). */
+/**
+ * A visit's porch: the two critters on the bench, the porch owner's first (`S.porch`). Tapping
+ * the pot opens its page.
+ */
 export function PorchArt({
   cast,
   pot,
   width,
   height,
   night,
+  onPot,
 }: {
   readonly cast: string;
   /** The visit's porch pot: this season's plant and how far it has grown. */
@@ -197,24 +202,35 @@ export function PorchArt({
   readonly width: number;
   readonly height: number;
   readonly night: boolean;
+  readonly onPot: { readonly label: string; readonly open: () => void };
 }) {
   return (
-    <View style={{ width, height }} pointerEvents="none">
-      <ArtStill
-        scene="porch"
-        width={width}
-        height={height}
-        t={1.2}
-        attrs={{ cast, ...(night ? { night: true } : {}) }}
-      />
-      {pot ? (
+    <View style={{ width, height }} pointerEvents="box-none">
+      <View pointerEvents="none">
         <ArtStill
-          scene="plant"
-          width={62}
-          height={84}
-          attrs={{ name: pot.plant, stage: pot.stage, pot: true, color: 'none' }}
-          style={{ position: 'absolute', left: width / 2 - 30.5, top: height - 94 }}
+          scene="porch"
+          width={width}
+          height={height}
+          t={1.2}
+          attrs={{ cast, ...(night ? { night: true } : {}) }}
         />
+      </View>
+      {pot ? (
+        <Press
+          onPress={onPot.open}
+          darken={false}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={onPot.label}
+          style={{ position: 'absolute', left: width / 2 - 30.5, top: height - 94 }}
+        >
+          <ArtStill
+            scene="plant"
+            width={62}
+            height={84}
+            attrs={{ name: pot.plant, stage: pot.stage, pot: true, color: 'none' }}
+          />
+        </Press>
       ) : null}
     </View>
   );

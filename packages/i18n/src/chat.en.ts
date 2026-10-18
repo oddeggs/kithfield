@@ -60,6 +60,8 @@ export const chatEn = {
   'chat.room.back': 'Back',
   'chat.room.seedBed': 'Seed bed',
   'chat.room.more': 'More',
+  /** The visit's porch pot in the porch art: opens its page. */
+  'chat.room.porchPot': 'Our porch pot',
   'chat.room.media': 'Shared on the farm',
   'chat.room.search': 'Search this farm',
   'chat.room.out.one': '{a} is out',

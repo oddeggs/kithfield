@@ -52,6 +52,7 @@ export const chatVi: ViCatalogue<typeof chatEn> = {
   'chat.room.back': 'Quay lại',
   'chat.room.seedBed': 'Luống hạt',
   'chat.room.more': 'Thêm',
+  'chat.room.porchPot': 'Chậu cây hiên nhà mình',
   'chat.room.media': 'Đã chia sẻ trên nông trại',
   'chat.room.search': 'Tìm trong nông trại này',
   'chat.room.out.one': '{a} đang ra ngoài',
