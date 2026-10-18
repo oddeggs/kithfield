@@ -154,6 +154,8 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
   return {
     store,
     cottage,
+    /** The API's HTTP calls the hooks don't make: the profile, planting and joining farms. */
+    api: deps.api,
     rules: deps.rules,
     /** Reports a problem (no content), as the data layer's own failures are. */
     report,

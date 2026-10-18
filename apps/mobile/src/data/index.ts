@@ -26,6 +26,9 @@
  *   its op id, or `refused` with the reason when the shared rules already say no. A queued write
  *   is retried until the farm answers; a rejection is final and shows in `useRejections`.
  *
+ * The rest of the API (the profile, the farm list, planting a farm, invites, joining):
+ * `useDataClient().api`.
+ *
  * Sockets: `useOpenFarm(farm)` keeps a farm's socket open while a screen shows it (the last one
  * held wins). The cottage socket runs while the app is in the foreground and there is a person.
  *
@@ -35,6 +38,7 @@
  * `session.signOut()` and start again with `startData`.
  */
 export { startData, type DataRuntime } from './native';
+export type { ApiClient } from './api-client';
 export type { DataClient, DataStatus } from './data-client';
 export type { FarmRules } from './farm-rules';
 export type { FarmLink, BlockedCode } from './farm-connection';

@@ -1,11 +1,20 @@
 import {
   CommandResult,
+  CreateFarmResponse,
   ErrorBody,
+  FarmList,
+  Invite,
+  JoinResponse,
   LIMITS,
+  Me,
   RtTokenResponse,
   SignInNonceResponse,
+  type CreateFarmRequest,
+  type CreateInviteRequest,
   type ErrorCode,
   type FarmId,
+  type JoinRequest,
+  type MeProfileUpdate,
 } from '@kithfield/contracts';
 import { z } from 'zod';
 
@@ -70,7 +79,7 @@ const parseJson = (text: string): unknown => {
 export function createApiClient(deps: ApiClientDeps) {
   async function request<S extends z.ZodType>(
     schema: S,
-    method: 'GET' | 'POST',
+    method: 'GET' | 'POST' | 'PATCH',
     path: string,
     body?: unknown,
     signedIn = true,
@@ -133,6 +142,26 @@ export function createApiClient(deps: ApiClientDeps) {
 
     /** A single-use nonce for an Apple or Google sign-in; needs no session. */
     signInNonce: () => request(SignInNonceResponse, 'POST', '/v1/sign-in-nonce', {}, false),
+
+    /** The signed-in person: profile, sign-in methods, age and Terms records, settings. */
+    me: () => request(Me, 'GET', '/v1/me'),
+
+    /** Sets the person's name, critter or birthday; every farm they live on hears of it. */
+    updateProfile: (update: MeProfileUpdate) => request(Me, 'PATCH', '/v1/me/profile', update),
+
+    /** Every farm and visit the person lives on. */
+    farms: () => request(FarmList, 'GET', '/v1/farms'),
+
+    /** Plants a farm with this person as its keeper, with its first invite. */
+    createFarm: (farm: CreateFarmRequest) => request(CreateFarmResponse, 'POST', '/v1/farms', farm),
+
+    /** A new invite to a farm, replacing the one before. Keepers and helpers. */
+    createInvite: (farm: FarmId, invite: CreateInviteRequest) =>
+      request(Invite, 'POST', `/v1/farms/${encodeURIComponent(farm)}/invites`, invite),
+
+    /** Moves in with an invite's code, or waits for the keeper when the farm asks first. */
+    join: (code: string, join: JoinRequest) =>
+      request(JoinResponse, 'POST', `/v1/invites/${encodeURIComponent(code)}/join`, join),
   };
 }
 

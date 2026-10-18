@@ -47,4 +47,38 @@ describe('the API client', () => {
     expect(page.events).toEqual([{ seq: 'nope' }]);
     expect(seen[0]?.credentials).toBe('omit');
   });
+
+  it('moves in with an invite code, sent as typed and checked against the contract', async () => {
+    const seen: { url: string; init: RequestInit | undefined }[] = [];
+    const ok: typeof fetch = (input, init) => {
+      seen.push({ url: input instanceof Request ? input.url : input.toString(), init });
+      const body = JSON.stringify({ farm: 'f_lot', status: 'joined' });
+      return Promise.resolve(new Response(body, { status: 200 }));
+    };
+    const critter = {
+      species: 'rabbit',
+      coat: 'cocoa',
+      mark: null,
+      accessory: null,
+      outfit: null,
+      outfitColor: null,
+      companion: null,
+      cottage: null,
+    } as const;
+    const joined = await client(ok).join('ab/cd', { name: 'Bea', critter });
+    expect(joined).toEqual({ farm: 'f_lot', status: 'joined' });
+    expect(seen[0]?.url).toBe('https://test.kithfield.invalid/api/v1/invites/ab%2Fcd/join');
+    expect(seen[0]?.init?.method).toBe('POST');
+    expect(JSON.parse(seen[0]?.init?.body as string)).toEqual({ name: 'Bea', critter });
+  });
+
+  it('sets the profile with PATCH and refuses an answer that isn’t a person', async () => {
+    const methods: string[] = [];
+    const odd: typeof fetch = (_input, init) => {
+      methods.push(init?.method ?? '');
+      return Promise.resolve(new Response(JSON.stringify({ name: 'Bea' }), { status: 200 }));
+    };
+    await expect(client(odd).updateProfile({ name: 'Bea' })).rejects.toBeInstanceOf(ApiError);
+    expect(methods).toEqual(['PATCH']);
+  });
 });
