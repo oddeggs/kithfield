@@ -11,8 +11,9 @@ import {
   signInWithCode,
   watchLetters,
 } from '../src/auth/testing/client';
+import { askToDelete, confirmDeletion, deletedAt, emailPerson, letterTo } from './support/deletion';
 import { TestSocket } from './farm/support/client';
-import { api, cast, critter, type Person, plantFarm, useTestPorts } from './farm/support/doubles';
+import { api, cast, type Person, plantFarm, useTestPorts } from './farm/support/doubles';
 
 beforeEach(() => {
   useTestPorts();
@@ -21,30 +22,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
 });
-
-/** Someone who signs in with an email code, with a name and critter. */
-async function emailPerson(letters: ReturnType<typeof watchLetters>) {
-  const email = `leaving.${crypto.randomUUID().slice(0, 8)}@example.com`;
-  await sendCode(email);
-  const signedIn = await readSignIn(await signInWithCode(email, letters.codeFor(email)));
-  const person: Person = {
-    id: signedIn.user.id,
-    token: signedIn.token,
-    name: 'Wren',
-    critter: critter('owl'),
-  };
-  const set = await api(person, 'PATCH', '/v1/me/profile', {
-    name: person.name,
-    critter: person.critter,
-  });
-  expect(set.status).toBe(200);
-  return { email, person };
-}
-
-const deletedAt = (person: string) =>
-  env.DB.prepare('SELECT deleted_at FROM people WHERE id = ?')
-    .bind(person)
-    .first<{ deleted_at: number | null }>();
 
 /** The person's cottage socket, said hello to with a real socket token. */
 async function cottageSocket(person: Person) {
@@ -143,22 +120,8 @@ describe('deleting an account in the app', () => {
 });
 
 describe('deleting an account from the website', () => {
-  const ask = (email: string, ip = `10.8.${Math.floor(Math.random() * 250)}.1`) =>
-    call('/v1/deletion-requests', { body: { email, lang: 'vi' }, ip });
-  /** The letter goes after the answer: waits for it to reach the address. */
-  const letterTo = async (letters: ReturnType<typeof watchLetters>, address: string, after = 0) => {
-    for (let i = 0; i < 200; i++) {
-      const letter = letters
-        .sent()
-        .slice(after)
-        .find((l) => l.to === address);
-      if (letter !== undefined) return letter;
-      await new Promise((r) => setTimeout(r, 5));
-    }
-    return null;
-  };
-  const confirm = (email: string, code: string) =>
-    call('/v1/deletion-requests/confirm', { body: { email, code } });
+  const ask = askToDelete;
+  const confirm = confirmDeletion;
 
   it('answers the same for any address, and sends a code only to one with an account', async () => {
     const letters = watchLetters();

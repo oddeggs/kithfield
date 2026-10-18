@@ -11,7 +11,15 @@ import type { z } from 'zod';
 
 import { cottageOf } from '../cottage/stub';
 import type { Bindings } from '../env';
-import { addressHash, CODE_SENDER, mayGetAnotherCode, recordSend } from './email-code';
+import {
+  addressHash,
+  clearCodeFailures,
+  CODE_FAILURE_WINDOW_MS,
+  CODE_SENDER,
+  isAddressLocked,
+  mayGetAnotherCode,
+  recordSend,
+} from './email-code';
 import { authSecret } from './instance';
 import { DELETION_GRACE_MS } from './me';
 import { errorResponse, requireSession, type SessionEnv } from './session';
@@ -141,7 +149,8 @@ export async function sendDeletionCode(
     .prepare('SELECT id FROM people WHERE email = ? AND coalesce(is_anonymous, 0) = 0')
     .bind(address)
     .first<{ id: string }>();
-  if (person === null || !(await mayGetAnotherCode(db, address, input.now))) return;
+  if (person === null || (await isAddressLocked(db, address, input.now))) return;
+  if (!(await mayGetAnotherCode(db, address, input.now))) return;
   const code = newDeletionCode();
   const hash = await addressHash(address);
   await db
@@ -168,7 +177,21 @@ export async function sendDeletionCode(
   }
 }
 
-/** The person a right code is for, spending it; null for a wrong, expired or used one. */
+/** Whether two hex digests match, in time that doesn't depend on where they differ. */
+function sameDigest(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/**
+ * The person a right code is for, spending it; null for a wrong, expired or used one, or any code
+ * at all while the address is locked. Each try is spent before the code is compared, so guesses
+ * sent at once can't outrun the five tries. A wrong code counts against the address's daily lock
+ * (shared with sign-in codes) only while a code is waiting, so strangers can't lock an address; a
+ * right one clears it. The same statements run whether or not a code is waiting.
+ */
 export async function takeDeletionCode(
   env: Bindings,
   input: { email: string; code: string; now: number },
@@ -176,35 +199,36 @@ export async function takeDeletionCode(
   const db = env.DB;
   const address = input.email.trim().toLowerCase();
   const hash = await addressHash(address);
-  const row = await db
-    .prepare('SELECT code_hash, expires_at FROM deletion_codes WHERE address_hash = ?')
-    .bind(hash)
-    .first<{ code_hash: string; expires_at: number }>();
   const tried = await codeHash(authSecret(env), address, input.code);
-  if (row === null) return null;
-  if (row.expires_at <= input.now) {
-    await db.prepare('DELETE FROM deletion_codes WHERE address_hash = ?').bind(hash).run();
-    return null;
-  }
-  if (tried !== row.code_hash) {
-    await db.batch([
-      db
-        .prepare('UPDATE deletion_codes SET tries_left = tries_left - 1 WHERE address_hash = ?')
-        .bind(hash),
-      db
-        .prepare('DELETE FROM deletion_codes WHERE address_hash = ? AND tries_left <= 0')
-        .bind(hash),
-    ]);
-    return null;
-  }
-  // Spent once: of two requests with the same right code, only one takes it.
-  const taken = await db
+  if (await isAddressLocked(db, address, input.now)) return null;
+  const spent = await db
     .prepare(
-      'DELETE FROM deletion_codes WHERE address_hash = ? AND code_hash = ? RETURNING person_id',
+      `UPDATE deletion_codes SET tries_left = tries_left - 1
+       WHERE address_hash = ? AND tries_left > 0 AND expires_at > ?
+       RETURNING code_hash, person_id`,
     )
-    .bind(hash, tried)
-    .first<{ person_id: string }>();
-  return taken?.person_id ?? null;
+    .bind(hash, input.now)
+    .first<{ code_hash: string; person_id: string }>();
+  const right = spent !== null && sameDigest(tried, spent.code_hash);
+  const [, , taken] = await db.batch<{ person_id: string }>([
+    db
+      .prepare('DELETE FROM email_code_failures WHERE address_hash = ? AND failed_at <= ?')
+      .bind(hash, input.now - CODE_FAILURE_WINDOW_MS),
+    db
+      .prepare(
+        'INSERT INTO email_code_failures (address_hash, failed_at) SELECT ?1, ?2 WHERE ?3 = 1',
+      )
+      .bind(hash, input.now, spent !== null && !right ? 1 : 0),
+    // Spent once: of two requests with the same right code, only one takes it.
+    db
+      .prepare(
+        'DELETE FROM deletion_codes WHERE address_hash = ? AND (code_hash = ? OR tries_left <= 0) RETURNING person_id, code_hash',
+      )
+      .bind(hash, right ? tried : ''),
+  ]);
+  const person = right ? (taken?.results[0]?.person_id ?? null) : null;
+  if (person !== null) await clearCodeFailures(db, address);
+  return person;
 }
 
 /* Routes. */
