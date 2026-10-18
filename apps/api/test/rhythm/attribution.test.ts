@@ -53,6 +53,17 @@ describe('the weather attribution', () => {
     });
   });
 
+  it('gives Apple ten seconds to answer', async () => {
+    const signals: unknown[] = [];
+    const fetcher = (_input: RequestInfo | URL, init?: RequestInit) => {
+      signals.push(init?.signal);
+      return Promise.resolve(Response.json(apple('en')));
+    };
+    await weatherAttribution('weatherkit', 'en', { fetch: fetcher, cache: memoryCache() });
+    expect(signals).toHaveLength(1);
+    expect(signals[0]).toBeInstanceOf(AbortSignal);
+  });
+
   it('asks Apple once a day per language', async () => {
     let asked = 0;
     const fetcher = () => {

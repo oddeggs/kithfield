@@ -8,12 +8,15 @@ import type { Farm } from './farm';
 import type { FarmHost } from './host';
 import type { FarmPorts } from './ports';
 import type { FarmStore } from './store';
+import { WeatherKitError, weatherFailure } from './weather/weatherkit';
 
 /*
  * The object's single alarm wakes for the earliest of: a farm chore the rules say is due
  * (harvest day, the season rolling over: `nextChoreAt`), the daily weather, the fire going out,
  * slow posts arriving, a socket that never said hello, and anything owed that
  * failed (D1's membership mirror, cottage news, a trade's other half), retried a minute later.
+ * The weather is the exception: a source that fails is asked again with a growing back-off, and a
+ * key it refuses isn't retried at all.
  */
 
 /** The weather is fetched at 05:00 farm time, before anyone's morning. */
@@ -25,12 +28,31 @@ export const RETRY_MS = 60_000;
 /** A socket must say hello within this long. */
 export const HELLO_DEADLINE_MS = 30_000;
 
-/** Keeps the next weather timer waiting while the keeper has set a town, and none otherwise. */
+/** The weather's back-off starts at a minute, doubles with each try, and stops growing at two hours. */
+const WEATHER_RETRY_MS = 60_000;
+const WEATHER_RETRY_MAX_MS = 2 * 60 * 60_000;
+/** Each wait is moved by up to a fifth either way, so farms of one town don't ask in step. */
+const WEATHER_JITTER = 0.2;
+
+/** How long to wait after try `attempt` (0 for the morning's own) failed; `random` is in [0, 1). */
+export const weatherRetryDelay = (attempt: number, random: number): number => {
+  const base = Math.min(WEATHER_RETRY_MS * 2 ** attempt, WEATHER_RETRY_MAX_MS);
+  return Math.round(base * (1 - WEATHER_JITTER + 2 * WEATHER_JITTER * random));
+};
+
+const weatherTimers = (store: FarmStore) =>
+  store.dueTimers(Number.MAX_SAFE_INTEGER).filter((t) => t.key.startsWith('weather:'));
+
+/**
+ * Keeps the next weather timer waiting while the keeper has set a town, and none otherwise. One
+ * weather timer at a time: while a day's weather is being asked again, the next morning waits.
+ */
 export const ensureWeather = (store: FarmStore, state: FarmState, now: number): void => {
   if (state.place === null) {
     store.deleteTimers('weather:');
     return;
   }
+  if (weatherTimers(store).length > 0) return;
   const at = nextLocalHour(now, WEATHER_HOUR, state.timeZone);
   store.addTimer(`weather:${localDay(at, state.timeZone)}`, at);
 };
@@ -70,6 +92,47 @@ const runChores = (farm: Farm, ports: FarmPorts, now: number, events: FarmEvent[
   if (rolled !== null) events.push(rolled);
 };
 
+/**
+ * Asks for `day`'s weather (try `attempt`) and writes it. A key the source refuses is not asked
+ * again (the provider stops every farm asking for a while); a source that is down, slow or busy
+ * is asked again later, until the farm's day has passed `day`; anything else is left for the day.
+ */
+const runWeather = async (
+  host: FarmHost,
+  state: FarmState,
+  day: string,
+  attempt: number,
+  events: FarmEvent[],
+): Promise<void> => {
+  const { rules, weather, random } = host.ports();
+  const now = host.now();
+  if (state.place === null || rules.farmDay(state, now) > day) return;
+  try {
+    const reading = await weather.today(host.env, state.place, day, state.timeZone);
+    const event =
+      reading === null ? null : host.farm.write(null, 'weather', { day, ...reading }, host.now());
+    if (event !== null) events.push(event);
+  } catch (error) {
+    const failure = weatherFailure(error);
+    const why =
+      error instanceof WeatherKitError
+        ? { status: error.status, reason: error.reason }
+        : { error: error instanceof Error ? error.message : 'unknown' };
+    if (failure !== 'retry') {
+      console.error(failure === 'auth' ? 'weather key refused' : 'weather unusable', why);
+      return;
+    }
+    const tries = Number.isInteger(attempt) && attempt >= 0 ? attempt : 0;
+    const at = now + weatherRetryDelay(tries, (random ?? Math.random)());
+    if (rules.farmDay(state, at) > day) {
+      console.warn('weather not reached for the day', { ...why, tries: tries + 1 });
+      return;
+    }
+    console.warn('weather not reached yet', { ...why, tries: tries + 1 });
+    host.store.setTimer(`weather:${day}:${tries + 1}`, at);
+  }
+};
+
 /** One timer's work; it may write events to `events`. Throws if it should be tried again. */
 const runTimer = async (host: FarmHost, key: string, events: FarmEvent[]): Promise<void> => {
   const { farm } = host;
@@ -78,10 +141,7 @@ const runTimer = async (host: FarmHost, key: string, events: FarmEvent[]): Promi
   const [kind, arg] = key.split(':');
   if (state === null) return;
   if (kind === 'weather' && state.place !== null && arg !== undefined) {
-    const reading = await host.ports().weather.today(host.env, state.place, arg, state.timeZone);
-    const event =
-      reading === null ? null : farm.write(null, 'weather', { day: arg, ...reading }, host.now());
-    if (event !== null) events.push(event);
+    await runWeather(host, state, arg, Number(key.split(':')[2] ?? 0), events);
   } else if (kind === 'fire_out' && state.fireLitAt !== null) {
     const event = farm.write(null, 'fire', { state: 'out' }, now);
     if (event !== null) events.push(event);

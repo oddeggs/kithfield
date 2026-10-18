@@ -1,7 +1,11 @@
 import { HttpUrl, type Lang, type WeatherAttribution } from '@kithfield/contracts';
 import { z } from 'zod';
 
-import { WEATHERKIT_ORIGIN, WEATHERKIT_SOURCE } from '../farm/weather/weatherkit';
+import {
+  WEATHERKIT_ORIGIN,
+  WEATHERKIT_SOURCE,
+  WEATHERKIT_TIMEOUT_MS,
+} from '../farm/weather/weatherkit';
 
 /*
  * The weather provider's attribution, shown wherever the weather changes the farm. For WeatherKit
@@ -29,7 +33,9 @@ const defaultCache = (): Cache => (caches as unknown as { default: Cache }).defa
 export type AttributionDeps = { fetch: typeof fetch; cache: () => Cache };
 
 const fetchApple = async (deps: AttributionDeps, lang: Lang): Promise<WeatherAttribution> => {
-  const response = await deps.fetch(`${WEATHERKIT_ORIGIN}/attribution/${lang}`);
+  const response = await deps.fetch(`${WEATHERKIT_ORIGIN}/attribution/${lang}`, {
+    signal: AbortSignal.timeout(WEATHERKIT_TIMEOUT_MS),
+  });
   if (!response.ok) throw new Error(`Apple's attribution answered ${response.status}`);
   const apple = AppleAttribution.parse(await response.json());
   return {

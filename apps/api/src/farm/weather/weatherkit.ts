@@ -64,7 +64,10 @@ export const workersCache = (cache: () => Cache = defaultCache): ReadingCache =>
   },
 });
 
-/** Apple answered something other than a forecast: thrown, so the farm's alarm tries again. */
+/**
+ * Apple answered something other than a forecast, or didn't answer: `status` is 0 when no answer
+ * came (`reason` `timeout` or `network`) or the key couldn't sign a token (`unusable_key`).
+ */
 export class WeatherKitError extends Error {
   constructor(
     readonly status: number,
@@ -74,6 +77,25 @@ export class WeatherKitError extends Error {
     this.name = 'WeatherKitError';
   }
 }
+
+/**
+ * What a failure to read the weather calls for: `auth` (the key is refused or unusable: stop
+ * asking), `retry` (Apple is busy, down or unreachable: ask again later), or `give_up` (Apple
+ * answered something this server can't use: asking again would get the same).
+ */
+export const weatherFailure = (error: unknown): 'auth' | 'retry' | 'give_up' => {
+  if (!(error instanceof WeatherKitError)) return 'retry';
+  const { status, reason } = error;
+  if (status === 401 || status === 403 || reason === 'unusable_key') return 'auth';
+  if (status === 0 || status === 429 || status >= 500) return 'retry';
+  return 'give_up';
+};
+
+/** Apple gets this long to answer; a slow answer counts as no answer. */
+export const WEATHERKIT_TIMEOUT_MS = 10_000;
+
+/** After Apple refuses the key, nothing asks again for this long. */
+export const AUTH_REFUSED_MS = 6 * 60 * 60_000;
 
 const reasonOf = async (response: Response): Promise<string | null> => {
   try {
@@ -104,13 +126,28 @@ const fetchReading = async (
   url.searchParams.set('dataSets', 'forecastDaily');
   url.searchParams.set('timezone', timeZone ?? solarZone(Number(lng)));
   url.searchParams.set('countryCode', place.country);
-  const token = await weatherKitToken(config, Math.floor(deps.now() / 1000));
-  const response = await deps.fetch(url.toString(), {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new WeatherKitError(response.status, await reasonOf(response));
-  const parsed = DailyForecastResponse.safeParse(await response.json());
-  if (!parsed.success) throw new WeatherKitError(response.status, 'unreadable');
+  let token: string;
+  try {
+    token = await weatherKitToken(config, Math.floor(deps.now() / 1000));
+  } catch {
+    throw new WeatherKitError(0, 'unusable_key');
+  }
+  let body: unknown;
+  try {
+    const response = await deps.fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(WEATHERKIT_TIMEOUT_MS),
+    });
+    if (!response.ok) throw new WeatherKitError(response.status, await reasonOf(response));
+    body = await response.json();
+  } catch (error) {
+    if (error instanceof WeatherKitError) throw error;
+    if (error instanceof SyntaxError) throw new WeatherKitError(200, 'unreadable');
+    const timedOut = (error as { name?: unknown } | null)?.name === 'TimeoutError';
+    throw new WeatherKitError(0, timedOut ? 'timeout' : 'network');
+  }
+  const parsed = DailyForecastResponse.safeParse(body);
+  if (!parsed.success) throw new WeatherKitError(200, 'unreadable');
   const forecast = parsed.data.forecastDaily?.days.find(
     (d) => forecastDay(d.forecastStart, Number(lng), timeZone) === day,
   );
@@ -126,17 +163,30 @@ export const weatherKitProvider = (deps: Partial<WeatherKitDeps> = {}): WeatherP
     cache: deps.cache ?? workersCache(),
     now: deps.now ?? (() => Date.now()),
   };
+  /**
+   * Until when Apple is not asked, after it refused the key. Held by the provider, so for every
+   * farm on this isolate (production has one provider per isolate): checked with no I/O before
+   * anything else, unlike the Cache API, which costs a lookup per farm and may drop the mark
+   * early. Each isolate learns of a refused key with one request every six hours at most.
+   */
+  let refusedUntil = 0;
   return {
     async today(env, place, day, timeZone) {
+      if (full.now() < refusedUntil) return null;
       const config = weatherKitConfig(env);
       if (config === null) return null;
       const { lat, lng } = roundedPlace(place);
       const key = `${lat}/${lng}/${day}/${timeZone ?? 'solar'}`;
       const cached = await full.cache.get(key);
       if (cached !== null) return cached;
-      const reading = await fetchReading(full, config, place, day, timeZone);
-      if (reading !== null) await full.cache.put(key, reading);
-      return reading;
+      try {
+        const reading = await fetchReading(full, config, place, day, timeZone);
+        if (reading !== null) await full.cache.put(key, reading);
+        return reading;
+      } catch (error) {
+        if (weatherFailure(error) === 'auth') refusedUntil = full.now() + AUTH_REFUSED_MS;
+        throw error;
+      }
     },
   };
 };

@@ -52,6 +52,8 @@ export interface FarmPorts {
   rules: FarmRules;
   weather: WeatherProvider;
   clock: Clock;
+  /** A number in [0, 1) for retry jitter; `Math.random` when not given. */
+  random?: () => number;
 }
 
 /** A person's name and critter, as drawn in `joined` and at the gate. */

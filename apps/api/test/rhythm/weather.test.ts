@@ -12,8 +12,10 @@ import {
 } from '../../src/farm/weather/forecast';
 import { signWeatherKitToken, weatherKitToken } from '../../src/farm/weather/token';
 import {
+  AUTH_REFUSED_MS,
   type ReadingCache,
   WeatherKitError,
+  weatherFailure,
   weatherKitProvider,
   workersCache,
 } from '../../src/farm/weather/weatherkit';
@@ -253,6 +255,75 @@ describe('the WeatherKit provider', () => {
     const asked = provider.today(withKey(pem), london, '2054-10-19');
     await expect(asked).rejects.toBeInstanceOf(WeatherKitError);
     await expect(asked).rejects.toMatchObject({ status: 401, reason: 'NOT_ENABLED' });
+  });
+
+  it('stops asking Apple for six hours once Apple refuses the key, for every farm it serves', async () => {
+    let now = Date.UTC(2054, 9, 19, 4, 0);
+    const apple = appleDouble(
+      () => Response.json({ reason: 'NOT_ENABLED' }, { status: 403 }),
+      forecast(day({ temperatureMax: 31 })),
+    );
+    const provider = weatherKitProvider({
+      fetch: apple.fetch,
+      cache: new MemoryCache(),
+      now: () => now,
+    });
+    await expect(provider.today(withKey(pem), london, '2054-10-19')).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(await provider.today(withKey(pem), hanoi, '2054-10-19')).toBeNull();
+    now += AUTH_REFUSED_MS - 1;
+    expect(await provider.today(withKey(pem), london, '2054-10-19')).toBeNull();
+    expect(apple.asked).toHaveLength(1);
+    now += 1;
+    expect(await provider.today(withKey(pem), london, '2054-10-19')).toEqual({
+      weather: 'heat',
+      source: 'weatherkit',
+    });
+    expect(apple.asked).toHaveLength(2);
+  });
+
+  it('gives Apple ten seconds to answer', async () => {
+    const signals: (AbortSignal | null | undefined)[] = [];
+    const provider = weatherKitProvider({
+      fetch: (_input, init) => {
+        signals.push(init?.signal);
+        return Promise.resolve(forecast(day())());
+      },
+      cache: new MemoryCache(),
+    });
+    await provider.today(withKey(pem), london, '2054-10-19');
+    expect(signals).toHaveLength(1);
+    expect(signals[0]).toBeInstanceOf(AbortSignal);
+  });
+
+  it('counts a timeout or a lost connection as a failure to try again', async () => {
+    const failing = (error: Error) =>
+      weatherKitProvider({ fetch: () => Promise.reject(error), cache: new MemoryCache() });
+    const timedOut = failing(new DOMException('The operation timed out.', 'TimeoutError'));
+    const lost = failing(new TypeError('Network connection lost.'));
+    const caught = async (asked: Promise<unknown>) =>
+      asked.then(
+        () => null,
+        (e: unknown) => e,
+      );
+    const late = await caught(timedOut.today(withKey(pem), london, '2054-10-19'));
+    expect(late).toMatchObject({ status: 0, reason: 'timeout' });
+    expect(weatherFailure(late)).toBe('retry');
+    const gone = await caught(lost.today(withKey(pem), london, '2054-10-19'));
+    expect(gone).toMatchObject({ status: 0, reason: 'network' });
+    expect(weatherFailure(gone)).toBe('retry');
+  });
+
+  it('sorts what went wrong into a refused key, a reason to try again, and neither', () => {
+    expect(weatherFailure(new WeatherKitError(401, 'NOT_ENABLED'))).toBe('auth');
+    expect(weatherFailure(new WeatherKitError(403, null))).toBe('auth');
+    expect(weatherFailure(new WeatherKitError(429, null))).toBe('retry');
+    expect(weatherFailure(new WeatherKitError(500, null))).toBe('retry');
+    expect(weatherFailure(new WeatherKitError(503, null))).toBe('retry');
+    expect(weatherFailure(new WeatherKitError(400, null))).toBe('give_up');
+    expect(weatherFailure(new WeatherKitError(200, 'unreadable'))).toBe('give_up');
+    expect(weatherFailure(new Error('anything else'))).toBe('retry');
   });
 
   it('throws on an answer it cannot read', async () => {
