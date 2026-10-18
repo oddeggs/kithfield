@@ -65,8 +65,11 @@ const overlaps = (a: PlacedBubble, b: PlacedBubble) =>
   b.top < a.top + a.height + GAP;
 
 /**
- * Places bubbles within `width`, never above `ceiling`. Bubbles nearer the front (lower on the
- * farm) are placed first and keep their spot; those behind move up out of their way.
+ * Places bubbles within `width`, never above `ceiling`, in priority order (`order`, then front
+ * to back). Each sits on top of its critter's drawing, beside the head: to the left, then to the
+ * right; if both are taken it lifts by half and then one bubble's height. A bubble with no room
+ * is left out rather than stacked away from what it speaks for, and none ever covers its own
+ * critter or another bubble.
  */
 export function layoutBubbles(
   wishes: readonly BubbleWish[],
@@ -75,29 +78,35 @@ export function layoutBubbles(
   margin = 10,
 ): PlacedBubble[] {
   const placed: PlacedBubble[] = [];
-  for (const w of [...wishes].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || b.y - a.y)) {
+  const sorted = [...wishes].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || b.y - a.y);
+  for (const w of sorted) {
     const size = bubbleSize(w.text, w.maxWidth, w.meta);
-    const near: 'left' | 'right' = w.x > width / 2 ? 'right' : 'left';
-    const at = (tail: 'left' | 'right', top: number): PlacedBubble => {
+    const at = (tail: 'left' | 'right', lift: number): PlacedBubble | null => {
       const raw = tail === 'left' ? w.x - 12 : w.x + 12 - size.width;
       const left = Math.min(width - margin - size.width, Math.max(margin, raw));
-      return { key: w.key, left, top, tail, ...size };
+      const top = Math.max(ceiling, w.y - size.height - lift);
+      // Clamped under the ceiling it would come down over the critter: no room there.
+      if (top + size.height > w.y) return null;
+      const b: PlacedBubble = { key: w.key, left, top, tail, ...size };
+      return placed.some((p) => overlaps(p, b)) ? null : b;
     };
-    const free = (b: PlacedBubble) => !placed.some((p) => overlaps(p, b));
-    // Over the critter on its nearer side, then its other side, then lifted clear.
-    let bubble = [
-      at(near, w.y - size.height),
-      at(near === 'left' ? 'right' : 'left', w.y - size.height),
-    ].find(free);
-    if (!bubble) {
-      bubble = at(near, w.y - size.height);
-      for (let guard = 0; guard < placed.length + 1; guard++) {
-        const hit = placed.find((p) => overlaps(p, bubble as PlacedBubble));
-        if (!hit) break;
-        bubble = { ...bubble, top: hit.top - bubble.height - GAP };
+    for (const lift of [0, size.height / 2 + GAP, size.height + GAP]) {
+      const b = at('right', lift) ?? at('left', lift);
+      if (b) {
+        placed.push(b);
+        break;
       }
     }
-    placed.push({ ...bubble, top: Math.max(ceiling, bubble.top) });
   }
   return placed;
 }
+
+/**
+ * Where a critter's bubble sits: the top of its drawing, over the middle of it. The art's sprite
+ * box is 1.55 sizes tall with the feet 0.08 above its bottom (`critterLayers`).
+ */
+export const headOf = (
+  spot: { readonly x: number; readonly y: number; readonly size: number },
+  width: number,
+  height: number,
+) => ({ x: width * spot.x, y: height * spot.y - width * spot.size * 1.47 });

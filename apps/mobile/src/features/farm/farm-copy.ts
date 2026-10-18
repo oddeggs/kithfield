@@ -143,3 +143,9 @@ export function crowdLine(t: Translate, species: readonly string[]): string {
   // It opens a sentence.
   return line.charAt(0).toUpperCase() + line.slice(1);
 }
+
+/** A plan's flag on the farm, in hand lettering: its first word as a question ("picnic?"). */
+export function flagOf(t: Translate, title: string): string {
+  const word = title.trim().split(/\s+/)[0] ?? title;
+  return t('farm.plan.flag', { word: word.toLocaleLowerCase() });
+}

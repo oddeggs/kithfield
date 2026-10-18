@@ -6,9 +6,9 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { FarmCanvas } from './farm-canvas';
-import { hoursLeft, nameOf } from './farm-copy';
+import { flagOf, hoursLeft, nameOf } from './farm-copy';
 import { HOUSES, LANDMARKS, type PlacedHouse } from './scene-layout';
-import { layoutBubbles, type BubbleWish } from './bubble-layout';
+import { headOf, layoutBubbles, type BubbleWish } from './bubble-layout';
 import { SpeechBubble } from './speech-bubble';
 import { useFarmScene } from './use-farm-scene';
 
@@ -98,7 +98,7 @@ export function FarmScene({
   const plan = view?.plans.find((p) => !p.seed.someday) ?? null;
   const head = (person: PersonId) => {
     const spot = spotOf.get(person);
-    return spot ? { x: width * spot.x, y: height * spot.y - width * spot.size * 1.18 } : null;
+    return spot ? headOf(spot, width, height) : null;
   };
   const wishes: (BubbleWish & { mine: boolean; metaText?: string })[] = [];
   for (const c of view?.critters ?? []) {
@@ -140,8 +140,8 @@ export function FarmScene({
   if (plan?.seed.title) {
     wishes.push({
       key: 'plan',
-      text: plan.seed.title,
-      // Beside the flag, as the farm home draws "picnic?".
+      text: flagOf(t, plan.seed.title),
+      // Beside the flag, in the short hand the farm home draws ("picnic?").
       x: width * LANDMARKS.stake.x + 21,
       y: height * LANDMARKS.stake.y + 2,
       maxWidth: 150,

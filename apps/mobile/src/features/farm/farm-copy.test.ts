@@ -2,7 +2,15 @@ import { describe, expect, it } from '@jest/globals';
 import { farmView } from '@kithfield/farm';
 import { translator } from '@kithfield/i18n';
 
-import { crowdLine, farmCredits, hoursLeft, listOf, planLine, seasonLabel } from './farm-copy';
+import {
+  crowdLine,
+  farmCredits,
+  flagOf,
+  hoursLeft,
+  listOf,
+  planLine,
+  seasonLabel,
+} from './farm-copy';
 import { DAY, farmLog } from './farm-log.test-data';
 
 const en = translator('en');
@@ -64,6 +72,10 @@ describe('the farm’s words', () => {
     });
     expect(planLine(en, plan(true, false, false))).toBe('Has a day. Still needs a place.');
     expect(planLine(en, plan(true, true, true))).toBe('Sprouted. It’s happening.');
+  });
+
+  it('writes a plan’s flag in the design’s short hand', () => {
+    expect(flagOf(en, 'Picnic by the river')).toBe('picnic?');
   });
 
   it('counts a bubble’s hours left, rounding up', () => {

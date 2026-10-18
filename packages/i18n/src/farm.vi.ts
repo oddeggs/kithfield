@@ -61,6 +61,7 @@ export const farmVi: ViCatalogue<typeof farmEn> = {
   'farm.plan.101': 'Đã có ngày và đủ lời đồng ý. Còn cần một nơi.',
   'farm.plan.110': 'Đã có ngày và nơi. Đang chờ lời đồng ý.',
   'farm.plan.111': 'Đã nảy mầm. Chắc chắn rồi.',
+  'farm.plan.flag': '{word}?',
   'farm.plan.someday': 'Đang nghỉ trong kho, để dành cho một ngày nào đó.',
   'farm.empty.title': 'Chưa có nông trại nào',
   'farm.empty.body':
@@ -285,4 +286,4 @@ export const farmVi: ViCatalogue<typeof farmEn> = {
   'farm.welcome.look': 'Chỉ dạo quanh thôi',
 };
 
-export const farmSameInBoth = ['farm.list.comma', 'farm.critter.label'];
+export const farmSameInBoth = ['farm.list.comma', 'farm.critter.label', 'farm.plan.flag'];

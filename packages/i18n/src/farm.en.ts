@@ -66,6 +66,7 @@ export const farmEn = {
   'farm.plan.101': 'Has a day and its yeses. Still needs a place.',
   'farm.plan.110': 'Has a day and a place. Waiting on yeses.',
   'farm.plan.111': 'Sprouted. It’s happening.',
+  'farm.plan.flag': '{word}?',
   'farm.plan.someday': 'Resting in the shed for someday.',
   'farm.empty.title': 'No farm here yet',
   'farm.empty.body': 'Plant one for your friends, or open the invite link a friend sent you.',
