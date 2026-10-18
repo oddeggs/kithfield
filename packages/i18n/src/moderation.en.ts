@@ -130,6 +130,9 @@ export const moderationEn = {
   'moderation.report.voice': 'A voice note',
   'moderation.report.sticker': 'A sticker',
   'moderation.report.show': 'Show',
+  'moderation.report.quarantine': 'Quarantine',
+  'moderation.report.quarantineItem': 'Quarantine {n}',
+  'moderation.report.quarantineNote': 'Quarantined from report {report}',
   'moderation.report.theReport': 'The report',
   'moderation.report.reporters': {
     one: '{count} member reported this',

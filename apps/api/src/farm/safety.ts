@@ -6,6 +6,7 @@ import {
   type RuleRef,
 } from '@kithfield/contracts';
 
+import { forgetMedia } from '../media/deletion';
 import { followUpFor } from './followups';
 import type { FarmHost } from './host';
 import { restoreEvent, tombstoneAuthor, tombstoneEvent } from './tombstones';
@@ -137,6 +138,7 @@ export const deleteAccount = async (host: FarmHost, person: PersonId): Promise<v
 const deleteOwedMedia = async (host: FarmHost): Promise<void> => {
   for (let keys = host.store.mediaOwed(); keys.length > 0; keys = host.store.mediaOwed()) {
     await host.env.MEDIA.delete(keys);
+    await forgetMedia(host.env.DB, keys);
     host.store.mediaDeleted(keys);
   }
 };

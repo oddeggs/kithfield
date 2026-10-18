@@ -97,6 +97,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .pv-what{font:13.5px/1.45 ${sys};color:${day.ink2}}
 .pv-box{border-radius:14px;background:${day.paper};padding:12px 14px;font:14px/1.45 ${sys}}
 .pv-hint{font:12.5px/1.4 ${sys};color:${day.ink3}}
+form.inline{display:inline}
 .pending{margin:0 28px 12px;gap:0}
 .prow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid rgba(42,34,29,.07);font:13px/1.35 ${sys}}
 .kv{display:flex;flex-direction:column;gap:6px;font:13px/1.4 ${sys};color:${day.ink2}}

@@ -14,7 +14,9 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { z } from 'zod';
 
 import { requireSession, type SessionEnv } from '../auth';
-// The safety desk's steps in an account's purge and merge.
+import { mediaAdminRoutes } from '../media/quarantine';
+// The safety desk's steps in an account's purge and merge, and its reports for quarantined media.
+import './media-reports';
 import './people';
 import { appealPage, decideAppeal, readAppeal, takeAppeal } from './appeals';
 import { auditCsv, auditPage, quarterOf, quarterRange } from './audit';
@@ -108,6 +110,13 @@ export function adminRoutes(): Hono<ModeratorEnv> {
     await next();
     return undefined;
   });
+
+  // `POST /media/quarantine`: a moderator, or the founder from Cloudflare's notice, holds an
+  // object as evidence; an urgent report opens.
+  app.route(
+    '/',
+    mediaAdminRoutes<ModeratorEnv>((c) => c.get('moderator').id),
+  );
 
   app.get('/me', (c) => {
     const me = c.get('moderator');

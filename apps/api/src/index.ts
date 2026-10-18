@@ -24,7 +24,7 @@ export default {
     ctx.waitUntil(queueDuePurges(env, controller.scheduledTime));
     ctx.waitUntil(expireExports(env, controller.scheduledTime));
     ctx.waitUntil(keepModerationTidy(env.DB, controller.scheduledTime));
-    // Uploads left unfinished for a week.
-    ctx.waitUntil(sweepMedia(env, controller.scheduledTime));
+    // Uploads left unfinished, or finished but sent in no event, for a week.
+    ctx.waitUntil(sweepMedia(env, controller.scheduledTime, { unreferenced: true }));
   },
 } satisfies ExportedHandler<Bindings>;

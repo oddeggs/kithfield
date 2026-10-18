@@ -1,5 +1,6 @@
 import type { FarmId, PersonId } from '@kithfield/contracts';
 
+import { registerAccountDeletionStep } from '../auth';
 import type { Bindings } from '../env';
 import { deletableOf, deletableOnFarm, dropRows } from './index-store';
 
@@ -60,3 +61,13 @@ export async function deleteFarmMedia(
 ): Promise<number> {
   return deleteObjects(env, await deletableOnFarm(env.DB, farm));
 }
+
+/*
+ * The purge's step. Each farm also deletes the media of the events the person wrote there (its
+ * `media_owed`), so the two overlap on the person's own uploads: an R2 delete of a key already
+ * gone is a no-op, the index rows go once, and neither touches quarantined evidence, so running
+ * both is harmless.
+ */
+registerAccountDeletionStep('media', async (env, person) => {
+  await deletePersonMedia(env, person);
+});

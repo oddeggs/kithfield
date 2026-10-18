@@ -7,8 +7,10 @@ import {
   RuleRef,
 } from '@kithfield/contracts';
 import { Hono } from 'hono';
+import { z } from 'zod';
 
 import { send } from './api';
+import { tr } from './copy';
 import type { AdminEnv } from './env';
 import { type Ctx, failure } from './render';
 
@@ -95,6 +97,29 @@ export function formRoutes(): Hono<AdminEnv> {
     const out = await send(c, `/actions/${id}/approve`, undefined, ActionResponse);
     if (!out.ok) return failure(c, out);
     return c.redirect('/queue?done=1');
+  });
+
+  // Quarantine a photo from a report: the API holds it as evidence and opens an urgent report.
+  app.post('/media/quarantine', async (c) => {
+    const form = await formOf(c);
+    const report = idOf(form['report']);
+    const key = form['key'];
+    if (key === undefined || key === '') {
+      return failure(c, { ok: false, status: 400, code: 'bad_request' });
+    }
+    const out = await send(
+      c,
+      '/media/quarantine',
+      {
+        key,
+        source: 'member',
+        ...(report === null ? {} : { note: tr('moderation.report.quarantineNote', { report }) }),
+      },
+      z.object({ report: Id.nullable() }),
+    );
+    if (!out.ok) return failure(c, out);
+    const opened = out.data?.report ?? report;
+    return c.redirect(opened === null ? '/queue' : `/reports/${opened}`);
   });
 
   app.post('/appeals/:id/decide', async (c) => {

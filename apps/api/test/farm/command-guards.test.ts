@@ -59,7 +59,7 @@ describe('gestures between people where one blocked the other', () => {
 });
 
 describe('media keys a write may name', () => {
-  it('takes only the farm’s own media, or media forwarded from a farm the writer lives on', async () => {
+  it('takes only the farm’s own media, forwarded or not', async () => {
     const { pip, fig } = await cast('pip', 'fig');
     const home = await plantFarm(pip, [fig]);
     const mine = await plantFarm(pip);
@@ -88,12 +88,20 @@ describe('media keys a write may name', () => {
     });
     expect(voice).toMatchObject({ result: 'rejected', reason: 'not_allowed' });
 
+    // A forward sends copies under this farm's prefix; the original's key is refused even from a
+    // farm the writer lives on.
     const forwarded = await home.stub.command(pip.id, {
       opId: op(4),
       kind: 'media',
       payload: { items: [photo(mine.farm, 4)], forwardedFrom: { farm: mine.farm, seq: 3 } },
     });
-    expect(forwarded).toMatchObject({ result: 'ack' });
+    expect(forwarded).toMatchObject({ result: 'rejected', reason: 'not_allowed' });
+    const copied = await home.stub.command(pip.id, {
+      opId: op(7),
+      kind: 'media',
+      payload: { items: [photo(home.farm, 7)], forwardedFrom: { farm: mine.farm, seq: 3 } },
+    });
+    expect(copied).toMatchObject({ result: 'ack' });
     const notTheirs = await home.stub.command(pip.id, {
       opId: op(5),
       kind: 'media',

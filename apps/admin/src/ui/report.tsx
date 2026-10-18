@@ -44,7 +44,36 @@ const field = (payload: unknown, key: string): string | null => {
   return typeof value === 'string' && value.trim() !== '' ? value : null;
 };
 
-function EventBody(props: { event: EventEnvelope }) {
+/** Media keys of a photo or video message, for quarantining from the report. */
+const mediaKeysOf = (payload: unknown): string[] => {
+  const items = (payload as { items?: unknown } | null)?.items;
+  if (!Array.isArray(items)) return [];
+  return items.flatMap((item) => {
+    const key = (item as { key?: unknown } | null)?.key;
+    return typeof key === 'string' ? [key] : [];
+  });
+};
+
+/** Holds a reported photo as evidence and opens an urgent child-safety report. */
+function QuarantineButtons(props: { report: string; keys: readonly string[] }) {
+  return (
+    <>
+      {props.keys.map((key, i) => (
+        <form class="inline" method="post" action="/media/quarantine">
+          <input type="hidden" name="key" value={key} />
+          <input type="hidden" name="report" value={props.report} />
+          <button class="show" type="submit">
+            {props.keys.length === 1
+              ? tr('moderation.report.quarantine')
+              : tr('moderation.report.quarantineItem', { n: i + 1 })}
+          </button>
+        </form>
+      ))}
+    </>
+  );
+}
+
+function EventBody(props: { event: EventEnvelope; report: string }) {
   const { event } = props;
   const id = `blur-${event.seq}`;
   if (field(event.payload, 'tombstone') !== null) {
@@ -60,6 +89,7 @@ function EventBody(props: { event: EventEnvelope }) {
           <button class="show" type="button" data-show={id}>
             {tr('moderation.report.show')}
           </button>
+          <QuarantineButtons report={props.report} keys={mediaKeysOf(event.payload)} />
         </div>
       );
     case 'voice':
@@ -137,7 +167,7 @@ export function ReportPage(view: ReportView) {
                         </>
                       ) : null}
                     </div>
-                    <EventBody event={event} />
+                    <EventBody event={event} report={detail.report} />
                   </div>
                 </div>
               );

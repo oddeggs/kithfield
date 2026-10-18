@@ -8,10 +8,12 @@ import {
 } from '@kithfield/contracts';
 
 import type { Bindings } from '../env';
+import { forgetMedia } from '../media/deletion';
+import { markMediaReferenced } from '../media/sweep';
 import { cottage } from './adapters/cottage';
 import { ensureWeather, HELLO_DEADLINE_MS, nextWake, resetWeather, RETRY_MS } from './alarms';
 import { refusalOf } from './command-guards';
-import { replyTarget } from './content';
+import { mediaKeys, replyTarget } from './content';
 import { Farm, type Written } from './farm';
 import { departed, handOff } from './handoff';
 import { mirrorMembership } from './mirror';
@@ -204,11 +206,31 @@ export class FarmHost {
         return Promise.resolve();
       });
     }
+    await this.markReferenced(all);
     if (media.length > 0) {
-      await step('media delete', () => this.env.MEDIA.delete([...media]));
+      // The index forgets the keys only once R2 has let them go.
+      await step('media delete', async () => {
+        await this.env.MEDIA.delete([...media]);
+        await forgetMedia(this.env.DB, media);
+      });
     }
     await step('schedule', () => this.schedule());
     this.ctx.waitUntil(this.flush());
+  }
+
+  /**
+   * Tells the media index which uploads these events point at, so the daily sweep keeps them. A
+   * failure is tried again from the alarm: an unmarked upload would be swept after a week.
+   */
+  async markReferenced(events: readonly FarmEvent[]): Promise<void> {
+    const pointing = events.filter((e) => mediaKeys(e).length > 0);
+    if (pointing.length === 0) return;
+    const ok = await step('media referenced', () =>
+      markMediaReferenced(this.env.DB, pointing.flatMap(mediaKeys), this.now()),
+    );
+    if (!ok) {
+      for (const e of pointing) this.store.setTimer(`mediaref:${e.seq}`, this.now() + RETRY_MS);
+    }
   }
 
   /** Sends the cottages everything still owed; one run at a time, again if more was owed meanwhile. */

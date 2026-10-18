@@ -1,32 +1,28 @@
 import { env } from 'cloudflare:workers';
 import { Hono } from 'hono';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { Bindings } from '../env';
 import { cast, plantFarm, useTestPorts } from '../../test/farm/support/doubles';
 import { deleteFarmMedia, deletePersonMedia, forgetMedia } from './deletion';
 import { isQuarantined, mediaRow } from './index-store';
-import {
-  evidenceKey,
-  mediaAdminRoutes,
-  quarantineMedia,
-  registerUrgentReportOpener,
-  type UrgentMediaReport,
-} from './quarantine';
+import { evidenceKey, mediaAdminRoutes, quarantineMedia } from './quarantine';
 import { readUrls, uploadPhoto } from './support.test-data';
-
-let opened: UrgentMediaReport[] = [];
-let unregister: (() => void) | null = null;
 
 beforeEach(() => {
   useTestPorts();
-  opened = [];
-  unregister = registerUrgentReportOpener((_env, report) => {
-    opened.push(report);
-    return Promise.resolve(`report-${opened.length}`);
-  });
 });
-afterEach(() => unregister?.());
+
+/** The urgent report the safety desk opened for a quarantined key. */
+const reportOf = async (key: string) => {
+  const id = (await mediaRow(env.DB, key))?.report_id ?? null;
+  if (id === null) return null;
+  return env.DB.prepare(
+    'SELECT id, farm_id, reported_id, category, urgent, source, status FROM reports WHERE id = ?',
+  )
+    .bind(id)
+    .first();
+};
 
 describe('quarantine', () => {
   it('stops reads, holds the evidence apart and opens one urgent report', async () => {
@@ -44,10 +40,16 @@ describe('quarantine', () => {
       note: 'Cloudflare notice',
       at: Date.now(),
     });
-    expect(first).toMatchObject({ key, first: true, held: true, report: 'report-1' });
-    expect(opened).toEqual([
-      expect.objectContaining({ farm, key, uploader: pip.id, source: 'hash_match' }),
-    ]);
+    expect(first).toMatchObject({ key, first: true, held: true });
+    expect(await reportOf(key)).toEqual({
+      id: first.report,
+      farm_id: farm,
+      reported_id: pip.id,
+      category: 'child_safety',
+      urgent: 1,
+      source: 'hash_match',
+      status: 'open',
+    });
     expect(await isQuarantined(env.DB, key)).toBe(true);
     expect(await env.MEDIA.head(key)).toBeNull();
     expect((await env.MEDIA.head(evidenceKey(key)))?.customMetadata).toEqual({ from: key });
@@ -61,9 +63,13 @@ describe('quarantine', () => {
       note: null,
       at: Date.now(),
     });
-    expect(again).toMatchObject({ first: false, held: true, report: 'report-1' });
-    expect(opened).toHaveLength(1);
-    expect((await mediaRow(env.DB, key))?.report_id).toBe('report-1');
+    expect(again).toMatchObject({ first: false, held: true, report: first.report });
+    const reports = await env.DB.prepare(
+      'SELECT COUNT(*) AS n FROM reports WHERE farm_id = ? AND reported_id = ?',
+    )
+      .bind(farm, pip.id)
+      .first<{ n: number }>();
+    expect(reports?.n).toBe(1);
   });
 
   it('survives everything that deletes media: evidence is never deleted', async () => {
@@ -100,8 +106,14 @@ describe('quarantine', () => {
     expect((await post({ url: 'https://media-dev.kithfield.com/elsewhere' })).status).toBe(400);
     const res = await post({ key, note: 'seen in a report' });
     expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ key, first: true, report: 'report-1' });
-    expect(opened[0]).toMatchObject({ source: 'hash_match', note: 'seen in a report' });
+    expect(await res.json()).toMatchObject({ key, first: true });
+    expect(await reportOf(key)).toMatchObject({ category: 'child_safety', source: 'hash_match' });
+    const logged = await env.DB.prepare(
+      "SELECT reason FROM audit_log WHERE what = 'upload_blocked' AND item = ?",
+    )
+      .bind((await reportOf(key))?.['id'] ?? '')
+      .first<{ reason: string | null }>();
+    expect(logged?.reason).toBe('seen in a report');
   });
 });
 

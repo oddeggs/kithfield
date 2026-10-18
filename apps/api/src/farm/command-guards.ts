@@ -2,7 +2,6 @@ import type { FarmCommand, PersonId, RejectReason } from '@kithfield/contracts';
 
 import { eitherBlocked } from '../auth';
 import type { Bindings } from '../env';
-import { roleOf } from './d1';
 
 /*
  * Checks on a phone's write that need more than the farm's own log: whom a gesture is addressed
@@ -35,22 +34,11 @@ const prefixOf = (farm: string) => `farm/${farm}/`;
 
 /**
  * A write may name only its own farm's media, so unsending it or deleting its author's account
- * never deletes another farm's. The exception is a forward: media from the farm it was forwarded
- * from, when the writer lives there too.
+ * never deletes another farm's. A forward is no exception: the phone copies the media into this
+ * farm first (`POST /v1/media/copy`) and sends the copies' keys.
  */
-const mediaRefusal = async (
-  env: Bindings,
-  farm: string,
-  cmd: FarmCommand,
-  actor: PersonId,
-): Promise<RejectReason | null> => {
-  const foreign = keysOf(cmd).filter((key) => !key.startsWith(prefixOf(farm)));
-  if (foreign.length === 0) return null;
-  const from = (cmd.payload as { forwardedFrom?: { farm?: unknown } }).forwardedFrom?.farm;
-  if (typeof from !== 'string' || from === farm) return 'not_allowed';
-  if (foreign.some((key) => !key.startsWith(prefixOf(from)))) return 'not_allowed';
-  return (await roleOf(env.DB, from, actor)) === null ? 'not_allowed' : null;
-};
+const mediaRefusal = (farm: string, cmd: FarmCommand): RejectReason | null =>
+  keysOf(cmd).every((key) => key.startsWith(prefixOf(farm))) ? null : 'not_allowed';
 
 /** Why the write is refused before the farm's rules see it, or null. */
 export const refusalOf = async (
@@ -60,7 +48,7 @@ export const refusalOf = async (
   actor: PersonId,
   personOf: (id: PersonId) => PersonId,
 ): Promise<RejectReason | null> => {
-  const media = await mediaRefusal(env, farm, cmd, actor);
+  const media = mediaRefusal(farm, cmd);
   if (media !== null) return media;
   const to = (cmd.payload as { to?: unknown }).to;
   if (!ADDRESSED.has(cmd.kind) || typeof to !== 'string') return null;
