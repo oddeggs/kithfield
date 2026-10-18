@@ -41,6 +41,19 @@ describe('findCatalogueProblems', () => {
     ]);
   });
 
+  it('flags empty English and placeholders that are not plain names', () => {
+    expect(
+      findCatalogueProblems(
+        { 'a.blank': '', 'a.spaced': 'Hi {first name}' },
+        { 'a.blank': 'Trống', 'a.spaced': 'Chào {first name}' },
+      ),
+    ).toEqual([
+      'a.blank: empty in English',
+      'a.spaced: placeholder {first name} in English is not a plain name',
+      'a.spaced: placeholder {first name} in the translation is not a plain name',
+    ]);
+  });
+
   it('allows English text only for keys listed as the same in both, and keeps that list honest', () => {
     expect(
       findCatalogueProblems(

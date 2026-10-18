@@ -32,13 +32,15 @@ describe('the generated index', () => {
     expect(written).toBe(catalogueIndexSource(findCatalogueFiles(dir)));
   });
 
-  it('is reached only through code that runs in every bundler (no Node modules)', () => {
+  it('is reached only through code that runs in every bundler (no Node or React)', () => {
     const dir = sourceDir();
     const runtime = readdirSync(dir).filter(
       (name) => name.endsWith('.ts') && !name.endsWith('.test.ts'),
     );
     for (const name of runtime) {
-      expect(readFileSync(join(dir, name), 'utf8'), name).not.toMatch(/from 'node:/);
+      expect(readFileSync(join(dir, name), 'utf8'), name).not.toMatch(
+        /from '(node:|react)|\bprocess\.|\bBuffer\b|\brequire\(/,
+      );
     }
   });
 });

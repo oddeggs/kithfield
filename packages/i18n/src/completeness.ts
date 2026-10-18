@@ -13,14 +13,20 @@ function paramNames(entry: Entry): string[] {
   return [...names].sort();
 }
 
+/** A placeholder whose name has a space or punctuation, which `t` would never fill. */
+function oddPlaceholders(entry: Entry | undefined): string[] {
+  if (entry === undefined) return [];
+  return texts(entry).flatMap((text) => text.match(/\{[^}]*\W[^}]*\}/g) ?? []);
+}
+
 function sameTexts(a: Entry, b: Entry): boolean {
   return texts(a).join('\n') === texts(b).join('\n');
 }
 
 /**
  * Everything wrong with a translation measured against its English, one line per problem, each
- * naming its key: a key in one language only, an empty string, a plural in one language only,
- * placeholders that differ, or text left in English for a key not listed in `sameInBoth`. An
+ * naming its key: a key in one language only, an empty string (in either language), a plural in one language only,
+ * placeholders that differ or are not plain names, or text left in English for a key not listed in `sameInBoth`. An
  * empty list means the translation is complete.
  */
 export function findCatalogueProblems(
@@ -36,7 +42,18 @@ export function findCatalogueProblems(
     if (!(key in source)) problems.push(`${key}: listed as the same in both, but not in English`);
   }
   for (const [key, sourceEntry] of Object.entries(source)) {
+    if (texts(sourceEntry).some((text) => text.trim() === '')) {
+      problems.push(`${key}: empty in English`);
+    }
     const entry = translation[key];
+    for (const [language, checked] of [
+      ['English', sourceEntry],
+      ['the translation', entry],
+    ] as const) {
+      for (const placeholder of oddPlaceholders(checked)) {
+        problems.push(`${key}: placeholder ${placeholder} in ${language} is not a plain name`);
+      }
+    }
     if (entry === undefined) {
       problems.push(`${key}: missing from the translation`);
       continue;
