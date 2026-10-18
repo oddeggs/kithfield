@@ -5,7 +5,7 @@ import { useParams } from '../../features/settings/params';
 export default function Route() {
   const { id } = useParams('id');
   return (
-    <ModalRoot>
+    <ModalRoot sheet>
       <NoteSheet id={id} />
     </ModalRoot>
   );

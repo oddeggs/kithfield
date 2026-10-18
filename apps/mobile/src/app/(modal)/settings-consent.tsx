@@ -6,7 +6,7 @@ import { useParams } from '../../features/settings/params';
 export default function Route() {
   const { feature, farm } = useParams('feature', 'farm');
   return (
-    <ModalRoot>
+    <ModalRoot sheet>
       <ConsentSheet
         feature={isAiFeature(feature) ? feature : 'captions'}
         {...(farm ? { farm } : {})}

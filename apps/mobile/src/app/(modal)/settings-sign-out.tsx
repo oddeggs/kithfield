@@ -3,7 +3,7 @@ import { SignOutSheet } from '../../features/settings/account/sign-out-sheet';
 
 export default function Route() {
   return (
-    <ModalRoot>
+    <ModalRoot sheet>
       <SignOutSheet />
     </ModalRoot>
   );

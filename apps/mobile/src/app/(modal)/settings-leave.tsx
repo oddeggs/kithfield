@@ -5,7 +5,7 @@ import { useParams } from '../../features/settings/params';
 export default function Route() {
   const { farm } = useParams('farm');
   return (
-    <ModalRoot>
+    <ModalRoot sheet>
       <LeaveSheet farm={farm} />
     </ModalRoot>
   );

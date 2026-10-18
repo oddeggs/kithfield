@@ -5,7 +5,7 @@ import { useParams } from '../../features/settings/params';
 export default function Route() {
   const { action } = useParams('action');
   return (
-    <ModalRoot>
+    <ModalRoot sheet>
       <AppealSheet action={action} />
     </ModalRoot>
   );

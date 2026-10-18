@@ -18,9 +18,9 @@ export function SheetPage({
 }) {
   const { palette } = useTheme();
   return (
-    <View style={{ flex: 1, backgroundColor: palette.sheet }}>
+    <View style={{ backgroundColor: palette.sheet }}>
       <ScrollView
-        style={{ flex: 1 }}
+        style={{ flexGrow: 0 }}
         contentContainerStyle={{ paddingTop: 26, paddingHorizontal: 18, gap: 12 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

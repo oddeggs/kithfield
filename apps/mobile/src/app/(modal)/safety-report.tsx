@@ -6,7 +6,7 @@ export default function Route() {
   const { farm, seq, person } = useParams('farm', 'seq', 'person');
   const n = Number(seq);
   return (
-    <ModalRoot>
+    <ModalRoot sheet>
       <ReportSheet
         farm={farm}
         target={
