@@ -10,6 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import type { HeldElsewhere } from '../data';
 import { clearMediaForSignOut, MediaUploads, pendingUploadCount } from '../features/media';
 import { useStoredLanguage } from '../features/settings/device-prefs';
+import { StickerPurchases } from '../features/shop/store/sticker-purchases';
 import { clearSurfacesForSignOut, SurfacesHost } from '../features/surfaces';
 import { ArtProvider, createArtStore } from '../ui/art/art-provider';
 import { ToastHost } from '../ui/components/toast';
@@ -114,6 +115,8 @@ export default function RootLayout() {
                           <MediaUploads />
                           {/* Widgets, Live Activities, lock-screen answers and shares. */}
                           <SurfacesHost />
+                          {/* The shop's store, for buying sticker packs and gifts. */}
+                          <StickerPurchases />
                           <SplashGate>
                             <Screens />
                           </SplashGate>

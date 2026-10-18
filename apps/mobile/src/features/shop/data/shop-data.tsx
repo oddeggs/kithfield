@@ -67,7 +67,7 @@ const ShopContext = createContext<ShopData | null>(null);
 
 /** Starts the store for this person once per app run, not once per screen. */
 const stores = new Map<string, Store>();
-function storeFor(person: string): Store {
+export function storeFor(person: string): Store {
   let store = stores.get(person);
   if (!store) {
     store = revenueCatStore(person);
