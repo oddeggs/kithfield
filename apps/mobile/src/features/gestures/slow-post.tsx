@@ -3,7 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { ArtStill } from '../../ui/art/art-view';
+import { LayeredScene } from '../../ui/art/layered-scene';
 import { Button } from '../../ui/components/button';
 import { Chip } from '../../ui/components/chip';
 import { TextField } from '../../ui/components/text-field';
@@ -74,7 +74,7 @@ export function SlowPostScreen() {
   return (
     <SceneScreen
       art={(width) => (
-        <ArtStill
+        <LayeredScene
           scene="slowpost"
           width={width}
           height={ART_H}

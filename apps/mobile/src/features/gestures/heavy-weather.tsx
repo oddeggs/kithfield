@@ -3,7 +3,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { ArtIcon, ArtStill } from '../../ui/art/art-view';
+import { ArtIcon } from '../../ui/art/art-view';
+import { LayeredScene } from '../../ui/art/layered-scene';
 import { Button } from '../../ui/components/button';
 import { CritterStack } from '../../ui/components/card';
 import { useLocale } from '../../ui/locale/locale-provider';
@@ -90,7 +91,15 @@ export function HeavyWeatherScreen() {
   return (
     <SceneScreen
       art={(width) => (
-        <ArtStill scene="weather" width={width} height={ART_H} attrs={{ season: g.season }} />
+        // The rain cloud and its rain move over a third of the scene: a drift of 8 in a channel
+        // stays still, so what moves fits the art's budget.
+        <LayeredScene
+          scene="weather"
+          width={width}
+          height={ART_H}
+          attrs={{ season: g.season }}
+          tolerance={8}
+        />
       )}
       artHeight={ART_H}
       sheetTop={raised ? SHEET_TOP - UMBRELLA_H : SHEET_TOP}

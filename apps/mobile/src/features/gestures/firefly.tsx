@@ -3,7 +3,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { Keyboard, View, useWindowDimensions } from 'react-native';
 
-import { ArtIcon, ArtStill } from '../../ui/art/art-view';
+import { ArtIcon } from '../../ui/art/art-view';
+import { LayeredScene } from '../../ui/art/layered-scene';
 import { Button } from '../../ui/components/button';
 import { TextField } from '../../ui/components/text-field';
 import { useLocale } from '../../ui/locale/locale-provider';
@@ -64,7 +65,7 @@ export function FireflyScreen() {
   return (
     <SceneScreen
       art={(width) => (
-        <ArtStill
+        <LayeredScene
           scene="farm"
           width={width}
           height={ART_H}

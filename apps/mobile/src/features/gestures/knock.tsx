@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ArtStill } from '../../ui/art/art-view';
+import { LayeredScene } from '../../ui/art/layered-scene';
 import { Button } from '../../ui/components/button';
 import { Card } from '../../ui/components/card';
 import { useLocale } from '../../ui/locale/locale-provider';
@@ -81,7 +82,7 @@ export function KnockScreen() {
     <SceneScreen
       art={(width) => (
         <Animated.View style={[{ transformOrigin: 'center 30%' }, wobble]}>
-          <ArtStill scene="window" width={width} height={ART_H} attrs={{ kind }} />
+          <LayeredScene scene="window" width={width} height={ART_H} attrs={{ kind }} />
         </Animated.View>
       )}
       artHeight={ART_H}
