@@ -10,7 +10,7 @@ import {
   findCatalogueFiles,
   generatedFileName,
   sourceDir,
-} from '../scripts/generate-catalogues';
+} from '../scripts/catalogue-index';
 
 const folders: string[] = [];
 

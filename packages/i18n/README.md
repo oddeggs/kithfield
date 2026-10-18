@@ -6,9 +6,9 @@ All Kithfield copy, in English and Vietnamese: one typed catalogue pair per feat
 
 Each feature has `src/<feature>.en.ts` and `src/<feature>.vi.ts`. The index has to gather them "with a glob" in four bundlers: Metro (the app), Vite (Astro, the website), esbuild (Wrangler, the API Worker's push copy) and Vitest. There is no glob all four understand: `import.meta.glob` is Vite-only and `require.context` is Metro-only.
 
-So a small generator, `scripts/generate-catalogues.ts`, lists the files on disk and writes `src/catalogues.generated.ts`: plain static imports that every bundler reads, with no build step for consumers. A test regenerates it in memory and fails if the committed file differs, so a forgotten run is caught in CI. When two branches both add features the generated file may conflict; resolve it by re-running the generator. No hand-written file lists features, so lanes never collide on one.
+So a small generator (`scripts/catalogue-index.ts`, run by `scripts/generate-catalogues.ts`) lists the files on disk and writes `src/catalogues.generated.ts`: plain static imports that every bundler reads, with no build step for consumers. A test regenerates it in memory and fails if the committed file differs, so a forgotten run is caught in CI. When two branches both add features the generated file may conflict; resolve it by re-running the generator. No hand-written file lists features, so branches never collide on one.
 
-The generator needs nothing installed: Node runs the TypeScript file directly.
+The generator runs through tsx (`pnpm --filter @kithfield/i18n gen`), like the repo's other Node scripts.
 
 ## Adding a feature catalogue
 
