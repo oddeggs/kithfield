@@ -36,6 +36,10 @@ export const secretNames = [
   // The team's APNs key (the `.p8` file's contents), for Live Activity pushes sent straight to
   // Apple. Unset, Live Activities only move while the app runs.
   'APNS_KEY_P8',
+  // LiveKit, for the fire room: the project's API key and secret. They mint room tokens and check
+  // LiveKit's webhook signatures (`livekit-server --dev` uses devkey / secret locally).
+  'LIVEKIT_API_KEY',
+  'LIVEKIT_API_SECRET',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -97,6 +101,11 @@ export type Bindings = Secrets & {
    * last called a bad device token. prd: `api.push.apple.com`; dev: the sandbox, then production.
    */
   readonly APNS_HOST?: string;
+  /**
+   * The LiveKit project the fire room runs on (`wss://<project>.livekit.cloud`); a local
+   * `livekit-server --dev` is `ws://localhost:7880`.
+   */
+  readonly LIVEKIT_URL: string;
   /** At most 20 sign-in nonces a minute per client address. */
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Gestures at another farm's gate, per visitor. */
@@ -119,6 +128,8 @@ export type Bindings = Secrets & {
   readonly AI_FARM_LIMIT: RateLimit;
   /** The shop's writes, per person: purchase syncs, gifts, chip-ins and wall names. */
   readonly SHOP_LIMIT: RateLimit;
+  /** Pieces of a speaker's voice for live captions, per person: about twelve a minute. */
+  readonly FIRE_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;

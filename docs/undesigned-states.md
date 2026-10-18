@@ -196,3 +196,18 @@ in the house voice, and is logged here so design can draw it later.
 | 10-11, 10-12, 10-13 Sheets at night | The mic, camera and sound sheets take the night palette after the farm's sunset | The design paints them light over the night fire room |
 | 05-08 Share sheet | Send hands the share to the app, which opens on the farm and sends it through its own queue, instead of sending in the background as the notes say; a share the app can't send (over a limit) is said with "That share couldn't be sent." | An extension can't run the app's upload queue, and a background upload from the extension would bypass the outbox's once-only sending |
 | 10-01 Widgets | A knock doesn't wobble its window: the knock's pre-rendered wobble entry isn't built yet (the silent knock push only redraws the widget) | Not built in this pass |
+| 16-03 Pull up a log | Before you sit down the name chips over the circle carry names only, no mic, ear or talking state | Who is by the fire comes from the farm's `presence` frame, which never says how anyone is there; LiveKit says so only once you're in the room |
+| 16-01, 16-03, 16-08, 16-09 | The scene rises behind the tall panel on the sheet spring, and the moon moves lower (`alt`) as it does; the stills cross-fade | The design draws the lifted and the seated scene apart, with no move between them |
+| 16-04 to 16-07 | A talking critter leans 2° toward the fire and bobs with its person's loudness; its mouth doesn't move | The renderer's mouth (`faceFx`) can't be drawn per frame; the lean and bob come from the design notes |
+| 16-05 | Tapping a critter picks who your wave, dewdrop or hug goes to; untapped, it goes to whoever spoke last | The design shows a dewdrop over Bea but not how she was chosen |
+| 16-07 | "Their critter dozes and their audio is paused until it's back" instead of "His…" | The app doesn't know anyone's pronouns |
+| 16-07, more than 8 by the fire | Everyone past the eighth log shows as a little lantern in a row over the circle | The notes say "more sit as a ring of small lanterns"; no design draws it |
+| 16-10 | The captions card before anyone has said anything: "Words appear here as people talk." | The design shows the card full |
+| 16-11 | No "Expressions from your voice" row yet; with your perks on, the sheet ends in "Done" instead of "Turn on with Plus" | Expressions need on-device voice analysis that isn't built; the design draws only the offer |
+| 16-12 to 16-16 | Turning your lit lantern round ("look at this") is a tap on your own frame | 16-16 draws only "Flip back", not how the camera was flipped |
+| 16-15 | "Sharing your screen from iPhone isn't ready yet." when the share button is pressed; someone else's shared screen shows in the card | Sharing from iPhone needs a broadcast upload extension that isn't in the app |
+| Fire room | "Couldn't reach the fire. Try again in a moment.", and notes when the mic or camera can't be used, as toasts | No error states are designed for the room |
+| 16-04 to 16-10 | No CC button while captions can't be had here at all (the API's token answer says so) | The speech and perks behind captions aren't wired yet; a button that leads nowhere would be a dead end |
+| Fire room | Someone in the room the farm doesn't know yet is drawn as a mole called "a friend", never hidden | The design assumes everyone by the fire is a known member |
+| 16-15 | The share button in the lantern layouts is a stub: it says sharing from iPhone isn't ready yet | Needs a broadcast upload extension (native surfaces) |
+| 16-11 | "Expressions from your voice" is deferred: the row is left out of the sheet | Needs on-device voice expression analysis |

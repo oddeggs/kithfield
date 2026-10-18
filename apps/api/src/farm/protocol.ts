@@ -7,6 +7,7 @@ import {
 } from '@kithfield/contracts';
 
 import { rtTokenSession } from '../auth';
+import { presenceFrame } from '../calls/farm-fire';
 import { socketPerson } from './adapters/identity';
 import type { FarmHost } from './host';
 import { attach, attachmentOf, refuse, send, who } from './sockets';
@@ -56,7 +57,7 @@ const hello = async (host: FarmHost, ws: WebSocket, frame: Hello): Promise<void>
   attach(ws, { ...attachmentOf(ws), person, session: rtTokenSession(frame.token) });
   catchUp(host, ws, frame.lastSeq);
   const sockets = host.sockets();
-  send(ws, { type: 'presence', here: who(sockets, 'here') });
+  send(ws, presenceFrame(host, who(sockets, 'here')));
   send(ws, { type: 'typing', people: who(sockets, 'typing') });
 };
 
@@ -85,8 +86,10 @@ export const refreshPresence = (
   const sockets = host.sockets(closing);
   const here = who(sockets, 'here');
   const typing = who(sockets, 'typing');
-  if (here.join() !== before.here.join())
-    for (const ws of sockets) send(ws, { type: 'presence', here });
+  if (here.join() !== before.here.join()) {
+    const frame = presenceFrame(host, here);
+    for (const ws of sockets) send(ws, frame);
+  }
   if (typing.join() !== before.typing.join())
     for (const ws of sockets) send(ws, { type: 'typing', people: typing });
 };

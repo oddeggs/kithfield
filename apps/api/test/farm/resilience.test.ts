@@ -3,6 +3,7 @@ import { runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { standInLiveKit } from '../../src/calls/livekit-double.test-data';
 import { CottageDO } from '../../src/cottage/cottage-object';
 import { configureFarmPorts } from '../../src/farm/wiring';
 import { messageFrame, op, TestSocket } from './support/client';
@@ -177,6 +178,8 @@ describe('the cottages', () => {
 
 describe('the alarm', () => {
   it('runs each timer on its own: weather that fails is asked again about a minute later', async () => {
+    // The fire's timer asks the room who is there: nobody.
+    standInLiveKit();
     const { pip } = await cast('pip');
     const { stub } = await plantFarm(pip);
     const place = {
@@ -185,7 +188,6 @@ describe('the alarm', () => {
     } as const;
     await stub.command(pip.id, { opId: op(1), kind: 'settings_changed', payload: place });
     await stub.command(pip.id, { opId: op(2), kind: 'fire', payload: { state: 'lit' } });
-    await stub.fireRoom(false);
     vi.spyOn(ports.weather, 'today').mockRejectedValueOnce(new Error('weather down'));
     ports.clock.at = Date.UTC(2054, 9, 19, 4, 0);
     await runDurableObjectAlarm(stub);

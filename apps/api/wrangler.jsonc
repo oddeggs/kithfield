@@ -51,6 +51,8 @@
         "APNS_TEAM_ID": "YFND2EEW8S",
         // Dev builds run on the sandbox; a TestFlight build of Kithfield Dev on production.
         "APNS_HOST": "api.sandbox.push.apple.com,api.push.apple.com",
+        // The fire room's LiveKit project; its API key and secret are Worker secrets.
+        "LIVEKIT_URL": "wss://kithfield-cvm2v8ac.livekit.cloud",
       },
       "durable_objects": {
         "bindings": [
@@ -136,6 +138,12 @@
           "namespace_id": "1261",
           "simple": { "limit": 10, "period": 60 },
         },
+        // Pieces of a speaker's voice for live captions, per person.
+        {
+          "name": "FIRE_LIMIT",
+          "namespace_id": "1263",
+          "simple": { "limit": 12, "period": 60 },
+        },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
       "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@kithfield.com"] }],
@@ -195,6 +203,8 @@
         "APNS_KEY_ID": "4QN5TUP479",
         "APNS_TEAM_ID": "YFND2EEW8S",
         "APNS_HOST": "api.push.apple.com",
+        // The fire room's LiveKit project; its API key and secret are Worker secrets.
+        "LIVEKIT_URL": "wss://kithfield-cvm2v8ac.livekit.cloud",
       },
       "durable_objects": {
         "bindings": [
@@ -278,6 +288,12 @@
           "name": "SHOP_LIMIT",
           "namespace_id": "1262",
           "simple": { "limit": 10, "period": 60 },
+        },
+        // Pieces of a speaker's voice for live captions, per person.
+        {
+          "name": "FIRE_LIMIT",
+          "namespace_id": "1264",
+          "simple": { "limit": 12, "period": 60 },
         },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.

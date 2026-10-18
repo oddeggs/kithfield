@@ -36,3 +36,7 @@ STRIPE_WEBHOOK_SECRET=
 # The team's APNs key for Live Activity pushes: the whole `.p8` file's contents (PEM). Empty
 # locally unless testing remote Live Activities on a device. Its id goes in the APNS_KEY_ID var.
 APNS_KEY_P8=
+# LiveKit, for the fire room. Locally, `livekit-server --dev` takes devkey / secret, and
+# `wrangler dev --var LIVEKIT_URL:ws://localhost:7880` points the API at it.
+LIVEKIT_API_KEY=
+LIVEKIT_API_SECRET=

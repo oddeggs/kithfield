@@ -31,6 +31,9 @@ export default defineConfig(async () => {
             // The purchases webhooks' secrets, fixed so the tests can sign as the senders do.
             REVENUECAT_WEBHOOK_AUTH: 'Bearer rc-test-webhook-auth',
             STRIPE_WEBHOOK_SECRET: 'whsec_test_secret',
+            // The fire room's LiveKit key pair; the room service itself is stood in for.
+            LIVEKIT_API_KEY: 'APItest',
+            LIVEKIT_API_SECRET: `${randomUUID()}${randomUUID()}`,
           },
         },
       }),

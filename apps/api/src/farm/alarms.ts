@@ -1,6 +1,7 @@
 import { FarmEvent, type FarmState, type TradedPayload } from '@kithfield/contracts';
 import { localDay } from '@kithfield/farm';
 
+import { fireMayGoOut } from '../calls/farm-fire';
 import { markMediaReferenced } from '../media/sweep';
 import { nextLocalHour } from './calendar';
 import { mediaKeys } from './content';
@@ -142,7 +143,7 @@ const runTimer = async (host: FarmHost, key: string, events: FarmEvent[]): Promi
   if (state === null) return;
   if (kind === 'weather' && state.place !== null && arg !== undefined) {
     await runWeather(host, state, arg, Number(key.split(':')[2] ?? 0), events);
-  } else if (kind === 'fire_out' && state.fireLitAt !== null) {
+  } else if (kind === 'fire_out' && state.fireLitAt !== null && (await fireMayGoOut(host))) {
     const event = farm.write(null, 'fire', { state: 'out' }, now);
     if (event !== null) events.push(event);
   } else if (kind === 'slow_post') {
