@@ -18,3 +18,14 @@ export function inviteCodeIn(pasted: string): string | null {
 export function inviteLinkIn(text: string): string | null {
   return /\S*kithfield\S*\/i\/[A-Za-z0-9-]{4,64}/.exec(text)?.[0] ?? null;
 }
+
+/**
+ * Where an opened link goes when it is a farm invite (`kithfield.com/i/<code>`, the Vietnamese
+ * `/vi/i/<code>`, the app's own `kithfield://i/<code>`): the join route, which decides by who is
+ * opening it. Null for any other link.
+ */
+export function joinPathFor(path: string): string | null {
+  const match =
+    /^(?:[a-z][a-z0-9+.-]*:\/\/[^/]*)?(?:\/vi)?\/?i\/([A-Za-z0-9-]{4,64})(?:[/?#]|$)/.exec(path);
+  return match?.[1] ? `/join/${match[1]}` : null;
+}

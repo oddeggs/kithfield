@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { inviteCodeIn, inviteLinkIn } from './invite-code';
+import { inviteCodeIn, inviteLinkIn, joinPathFor } from './invite-code';
 
 describe('invite links', () => {
   it('finds the code in a pasted link or a bare code', () => {
@@ -23,5 +23,15 @@ describe('invite links', () => {
       'https://kithfield.com/i/abcd1234',
     );
     expect(inviteLinkIn('abcd1234')).toBeNull();
+  });
+
+  it('sends an opened invite link to the join route, and leaves other links alone', () => {
+    expect(joinPathFor('/i/abcd1234')).toBe('/join/abcd1234');
+    expect(joinPathFor('kithfield-dev://i/abcd1234')).toBe('/join/abcd1234');
+    expect(joinPathFor('https://kithfield.com/i/abcd1234?x=1')).toBe('/join/abcd1234');
+    expect(joinPathFor('https://kithfield.com/vi/i/abcd1234')).toBe('/join/abcd1234');
+    expect(joinPathFor('/farm')).toBeNull();
+    expect(joinPathFor('/join/abcd1234')).toBeNull();
+    expect(joinPathFor('kithfield-dev://expo-development-client/?url=x')).toBeNull();
   });
 });

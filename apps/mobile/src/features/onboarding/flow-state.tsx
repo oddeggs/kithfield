@@ -45,16 +45,10 @@ interface Flow {
 
 const FlowContext = createContext<Flow | null>(null);
 
-/** Holds the way in's state for its screens, and its calls to the API. */
-export function FlowProvider({ children }: { readonly children: ReactNode }) {
+/** The way in's own calls (the age check, the Terms, invite previews), with the session. */
+export function useOnboardingApi(): OnboardingApi {
   const account = useAccount();
-  const person = useSession().person?.id ?? null;
-  // A way in cut short after the critter was chosen picks up with that critter.
-  const [state, setState] = useState<FlowState>(() => {
-    const draft = person ? readDraft(keychain, person) : null;
-    return draft ? { ...initial, name: draft.name, choice: choiceOf(draft.critter) } : initial;
-  });
-  const api = useMemo(
+  return useMemo(
     () =>
       createOnboardingApi({
         baseUrl: (Constants.expoConfig?.extra as { apiBase: string }).apiBase,
@@ -63,6 +57,17 @@ export function FlowProvider({ children }: { readonly children: ReactNode }) {
       }),
     [account],
   );
+}
+
+/** Holds the way in's state for its screens, and its calls to the API. */
+export function FlowProvider({ children }: { readonly children: ReactNode }) {
+  const person = useSession().person?.id ?? null;
+  // A way in cut short after the critter was chosen picks up with that critter.
+  const [state, setState] = useState<FlowState>(() => {
+    const draft = person ? readDraft(keychain, person) : null;
+    return draft ? { ...initial, name: draft.name, choice: choiceOf(draft.critter) } : initial;
+  });
+  const api = useOnboardingApi();
   const flow = useMemo<Flow>(
     () => ({ state, api, update: (change) => setState((s) => ({ ...s, ...change })) }),
     [state, api],
