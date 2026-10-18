@@ -1,9 +1,10 @@
 import type { Collection, Critter } from '@kithfield/contracts';
-import { File, Paths } from 'expo-file-system';
 import { useCallback, useEffect, useState } from 'react';
 
 import { useDataClient } from '../../data';
+import { useSession } from '../../ui/session/session';
 import { stickersApi } from './api';
+import { personFile } from './local-files';
 import { pushRecent, type RecentSticker } from './model/recents';
 
 export type { RecentSticker } from './model/recents';
@@ -68,40 +69,44 @@ export function useTogetherPeople(farm: string): readonly string[] | null {
 
 /* Recent stickers */
 
-const recentFile = () => new File(Paths.document, 'stickers-recent.json');
-
-/** The recent row, per farm (together stickers name that farm's friends). */
+/** The recent row, the person's own, per farm (together stickers name that farm's friends). */
 export function useRecents(farm: string): {
   readonly recents: readonly RecentSticker[];
   readonly add: (sent: RecentSticker) => void;
 } {
+  const { person } = useSession();
+  const id = person?.id ?? null;
   const [all, setAll] = useState<Record<string, RecentSticker[]>>({});
   useEffect(() => {
+    setAll({});
+    if (id === null) return;
     let live = true;
-    void readRecents().then((r) => live && setAll(r));
+    void readRecents(id).then((r) => live && setAll(r));
     return () => {
       live = false;
     };
-  }, []);
+  }, [id]);
   const add = useCallback(
     (sent: RecentSticker) => {
       setAll((prev) => {
         const next = { ...prev, [farm]: pushRecent(prev[farm] ?? [], sent) };
         // The row is a nicety: losing it loses nothing sent.
-        void recentFile()
-          .write(JSON.stringify(next))
-          .catch(() => undefined);
+        if (id !== null) {
+          void personFile('recent', id)
+            .write(JSON.stringify(next))
+            .catch(() => undefined);
+        }
         return next;
       });
     },
-    [farm],
+    [farm, id],
   );
   return { recents: all[farm] ?? [], add };
 }
 
-async function readRecents(): Promise<Record<string, RecentSticker[]>> {
+async function readRecents(person: string): Promise<Record<string, RecentSticker[]>> {
   try {
-    const file = recentFile();
+    const file = personFile('recent', person);
     if (!file.exists) return {};
     const parsed = JSON.parse(await file.text()) as unknown;
     return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)

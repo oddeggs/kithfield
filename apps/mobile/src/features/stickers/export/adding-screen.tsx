@@ -21,7 +21,10 @@ import { bakeWhatsAppPack, openInWhatsApp, whatsappInstalled, type WhatsAppPack 
 
 type PackState =
   | { readonly kind: 'packing'; readonly progress: number }
-  | { readonly kind: 'ready' }
+  /** `dropped`: stickers left out for being over the other app's limit. */
+  | { readonly kind: 'ready'; readonly dropped?: number }
+  /** Too few stickers came in under the other app's limit to make a pack. */
+  | { readonly kind: 'too_big' }
   | { readonly kind: 'missing' }
   | { readonly kind: 'failed' }
   /** Telegram sets are made by Kithfield's bot, which isn't connected yet. */
@@ -50,7 +53,8 @@ export function AddingScreen() {
   const set = t('stickers.adding.setName', { name });
 
   useEffect(() => {
-    if (stickers === null || critter === null) return;
+    const person = me.person;
+    if (stickers === null || critter === null || person === null) return;
     let stop = false;
     void (async () => {
       if (!(await whatsappInstalled())) {
@@ -61,9 +65,7 @@ export function AddingScreen() {
         const baked = await bakeWhatsAppPack(
           store.art,
           {
-            identifier: `kithfield_${me.person ?? 'me'}`
-              .replace(/[^a-zA-Z0-9_.-]/g, '_')
-              .slice(0, 128),
+            person,
             name: set,
             stickers,
             tray: sceneOfSticker(
@@ -77,9 +79,13 @@ export function AddingScreen() {
             !stop && setWhatsapp({ kind: 'packing', progress: total > 0 ? done / total : 0 }),
           () => stop,
         );
-        if (stop || baked === null) return;
-        pack.current = baked;
-        setWhatsapp({ kind: 'ready' });
+        if (stop || baked.status === 'cancelled') return;
+        if (baked.status === 'too_few') {
+          setWhatsapp({ kind: 'too_big' });
+          return;
+        }
+        pack.current = baked.pack;
+        setWhatsapp({ kind: 'ready', dropped: baked.pack.dropped.length });
       } catch {
         if (!stop) setWhatsapp({ kind: 'failed' });
       }
@@ -188,7 +194,13 @@ export function AddingScreen() {
             <Txt variant="notice" multiline color={sc.noteText}>
               {c.id === 'telegram'
                 ? t('stickers.adding.telegram', { set, count })
-                : t('stickers.adding.whatsapp', { set, count })}
+                : t('stickers.adding.whatsapp', {
+                    set,
+                    count: pack.current?.stickers ?? count,
+                  })}
+              {c.id === 'whatsapp' && c.state.kind === 'ready' && c.state.dropped
+                ? ` ${t('stickers.adding.dropped', { count: c.state.dropped })}`
+                : ''}
             </Txt>
           </View>
         ))}
@@ -210,6 +222,8 @@ function stateWords(t: ReturnType<typeof useLocale>['t'], state: PackState): str
       return t('stickers.adding.notInstalled');
     case 'failed':
       return t('stickers.adding.failed');
+    case 'too_big':
+      return t('stickers.adding.tooBig');
     case 'soon':
       return t('stickers.adding.notYet');
   }

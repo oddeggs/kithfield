@@ -10,6 +10,7 @@ export { QuickTendStickers } from './quick/quick-stickers';
 export { quickStickers, type QuickTendCardInfo } from './model/quick';
 export { useInStickerNote } from './together/in-sticker-note';
 export { useMessagesSync } from './export/use-messages-sync';
+export { clearStickersForSignOut } from './local-files';
 export { stickerRoutes } from './routes';
 export {
   setPurchases,
