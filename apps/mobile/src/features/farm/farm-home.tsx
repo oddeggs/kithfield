@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useDataClient, useFarm, useFarmView, useOpenFarm, useSend } from '../../data';
+import { useDataClient, useFarm, useFarmLink, useFarmView, useOpenFarm, useSend } from '../../data';
 import { ArtStill } from '../../ui/art/art-view';
 import { EmptyState } from '../../ui/components/state-shell';
 import { Sheet, SheetScrollView } from '../../ui/components/sheet';
@@ -23,6 +23,7 @@ import { FarmHeader } from './farm-header';
 import { FarmScene } from './farm-scene';
 import { FarmSheetContent } from './farm-sheet';
 import { momentFor } from './moments';
+import { removalNote } from './removal-note';
 import { farmRoutes } from './routes';
 import { sceneHeight } from './scene-layout';
 import { useNow } from './use-now';
@@ -92,6 +93,14 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
   useSunPlace(state?.place ? { lat: state.place.lat, lng: state.place.lng } : null);
   useYouCritter(self ? { kind: self.critter.species, look: lookOf(self.critter) } : null);
   useMoments(farm, me);
+  // Turned away by the farm (a removal the phone never saw, or a farm that is gone).
+  const link = useFarmLink(farm);
+  const { lost } = useValley();
+  const turnedAway =
+    link.status === 'blocked' && (link.code === 'not_member' || link.code === 'farm_gone');
+  useEffect(() => {
+    if (turnedAway) void lost(farm);
+  }, [turnedAway, lost, farm]);
 
   const openCritter = (person: string) =>
     router.push(person === me ? farmRoutes.bubble(farm) : farmRoutes.critter(farm, person));
@@ -170,14 +179,27 @@ function useGoneNote(gone: FarmId | null, forget: () => void) {
     let live = true;
     void (async () => {
       const replica = await client.replica(gone);
-      const former = replica.getState().state?.former.find((f) => f.person === me);
+      const held = replica.getState().state;
+      const former = held?.former.find((f) => f.person === me) ?? null;
+      const events = await client.events(gone, { limit: 200 });
+      const removal = [...events]
+        .reverse()
+        .find(
+          (e) => e.kind === 'removed' && (e.payload as { person?: unknown } | null)?.person === me,
+        );
+      const by = (removal?.payload as { by?: unknown } | undefined)?.by;
+      const note = removalNote({
+        former,
+        by: by === 'keeper' || by === 'safety' ? by : null,
+        stillHeld: held?.members.some((m) => m.person === me) ?? false,
+      });
       const key = `farm:removedSeen:${gone}`;
       const seen = await client.store.meta(key);
       if (!live) return;
       forget();
-      if (former?.how !== 'removed' || seen !== null) return;
+      if (note === null || seen !== null) return;
       await client.store.transaction(() => client.store.setMeta(key, '1'));
-      router.push(farmRoutes.removed(gone));
+      router.push(farmRoutes.removed(gone, note));
     })();
     return () => {
       live = false;

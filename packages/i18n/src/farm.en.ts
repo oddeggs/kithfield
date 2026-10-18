@@ -283,6 +283,8 @@ export const farmEn = {
   'farm.removed.titleUnnamed': 'You’re no longer on that farm',
   'farm.removed.body':
     'A keeper of that farm made this change. Farms change shape sometimes. Your other farms and visits are just where you left them.',
+  'farm.removed.bodyNeutral':
+    'This farm changed shape, and you’re no longer on it. Your other farms and visits are just where you left them.',
   'farm.removed.farms': 'Go to my farms',
   'farm.removed.rules': 'Read the house rules',
 

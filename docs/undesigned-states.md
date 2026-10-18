@@ -43,3 +43,4 @@ in the house voice, and is logged here so design can draw it later.
 | 04-21 Removed | No keepsakes note | Keepsakes don't exist yet; the note would promise something the app doesn't do |
 | 04-22 Dozing cottage | No "after 30 days a keeper can sketch it back" line; "Send an invite back" opens the farm's invites in settings | Sketching a cottage back isn't built |
 | 04-23 Your bubble | Shown as a short sheet over the bright farm; "Clear" only while a bubble is up; your bubble shows its hours left on the farm | The design shows the sheet but not the empty state |
+| 04-21 Removed | When the safety team removed the person, or the phone never saw who did (the farm turned it away before the removal arrived), the body names no one: "This farm changed shape, and you're no longer on it", en and vi | The design's line says a keeper made the change, which is only true of a keeper's removal |

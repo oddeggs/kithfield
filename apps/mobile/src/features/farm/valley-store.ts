@@ -94,6 +94,18 @@ class ValleyStore {
     await this.persist(current);
   }
 
+  /**
+   * The farm turned the person away (not a member, or the farm is gone) before the farm list
+   * caught up: the tab moves on, and the farm home decides what to say about it.
+   */
+  async lost(farm: FarmId): Promise<void> {
+    if (!this.state.farms.some((f) => f.farm === farm)) return;
+    const farms = this.state.farms.filter((f) => f.farm !== farm);
+    const current = farms[farms.length - 1]?.farm ?? null;
+    this.set({ ...this.state, farms, current, gone: farm });
+    await this.persist(current);
+  }
+
   /** The note about a farm the person left or was taken off has been seen. */
   forget(): void {
     if (this.state.gone !== null) this.set({ ...this.state, gone: null });
@@ -115,6 +127,7 @@ export interface ValleyControl extends Valley {
   refresh: () => Promise<void>;
   choose: (farm: FarmId) => Promise<void>;
   left: (farm: FarmId) => Promise<void>;
+  lost: (farm: FarmId) => Promise<void>;
   forget: () => void;
 }
 
@@ -138,8 +151,9 @@ export function useValley(): ValleyControl {
   const refresh = useCallback(() => store.refresh(), [store]);
   const choose = useCallback((farm: FarmId) => store.choose(farm), [store]);
   const left = useCallback((farm: FarmId) => store.left(farm), [store]);
+  const lost = useCallback((farm: FarmId) => store.lost(farm), [store]);
   const forget = useCallback(() => store.forget(), [store]);
-  return { ...valley, refresh, choose, left, forget };
+  return { ...valley, refresh, choose, left, lost, forget };
 }
 
 /** A flag of the phone's own about a farm (seen once, and the like). */

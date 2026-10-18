@@ -268,6 +268,8 @@ export const farmVi: ViCatalogue<typeof farmEn> = {
   'farm.removed.titleUnnamed': 'Bạn không còn ở nông trại đó',
   'farm.removed.body':
     'Một người giữ nông trại đó đã thay đổi điều này. Nông trại đôi khi đổi khác. Các nông trại và hiên nhà khác của bạn vẫn y nguyên.',
+  'farm.removed.bodyNeutral':
+    'Nông trại này đã đổi khác, và bạn không còn ở đó nữa. Các nông trại và hiên nhà khác của bạn vẫn y nguyên.',
   'farm.removed.farms': 'Đến các nông trại của tôi',
   'farm.removed.rules': 'Đọc nội quy chung',
 

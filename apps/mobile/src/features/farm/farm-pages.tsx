@@ -102,7 +102,14 @@ function rulesUrl(language: string): string {
  * Taken off a farm, shown once: the farm's name, never who made the change, and the way
  * on to the farms that are still yours.
  */
-export function RemovedFromFarm({ farm }: { readonly farm: FarmId }) {
+export function RemovedFromFarm({
+  farm,
+  by,
+}: {
+  readonly farm: FarmId;
+  /** A keeper made the change, or no one is named (the safety team, or not known). */
+  readonly by: 'keeper' | 'neutral';
+}) {
   const { t, language } = useLocale();
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
@@ -125,7 +132,7 @@ export function RemovedFromFarm({ farm }: { readonly farm: FarmId }) {
           {name ? t('farm.removed.title', { name }) : t('farm.removed.titleUnnamed')}
         </Txt>
         <Txt variant="sheetBody" multiline align="center" color={palette.body}>
-          {t('farm.removed.body')}
+          {by === 'keeper' ? t('farm.removed.body') : t('farm.removed.bodyNeutral')}
         </Txt>
       </View>
       <View
