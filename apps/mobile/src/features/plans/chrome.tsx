@@ -1,0 +1,100 @@
+import { glass } from '@kithfield/theme';
+import { router } from 'expo-router';
+import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Glass } from '../../ui/components/glass';
+import { useLocale } from '../../ui/locale/locale-provider';
+import { Press } from '../../ui/motion/press';
+import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
+import { useTheme } from '../../ui/theme/theme-provider';
+import { Txt } from '../../ui/type/text';
+
+const SIZE = 44;
+
+/** The round glass back button the plan screens wear over their content (‹). */
+export function GlassBack({
+  fill,
+  border,
+  color,
+}: {
+  readonly fill?: string;
+  readonly border?: string;
+  readonly color?: string;
+}) {
+  const { palette, appearance } = useTheme();
+  const { t } = useLocale();
+  const day = appearance === 'day';
+  return (
+    <Press
+      onPress={leave}
+      haptic="select"
+      radius={SIZE / 2}
+      darken={false}
+      accessibilityLabel={t('plans.plan.back')}
+      testID="plans-back"
+    >
+      <Glass
+        radius={SIZE / 2}
+        fill={fill ?? (day ? glass.button.fill : palette.glassButton.fill)}
+        border={border ?? (day ? glass.button.border : palette.glassButton.border)}
+        style={{ width: SIZE, height: SIZE, alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Txt
+          variant="body"
+          color={color ?? palette.text}
+          style={{ fontSize: 26, lineHeight: 26, marginTop: -3 }}
+          importantForAccessibility="no"
+        >
+          ‹
+        </Txt>
+      </Glass>
+    </Press>
+  );
+}
+
+/** A plan screen's header: the back button and the screen's name, centred between. */
+export function PlanHeader({ title, top }: { readonly title: string; readonly top: number }) {
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        top,
+        left: 14,
+        right: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        zIndex: 6,
+      }}
+    >
+      <GlassBack />
+      <Txt
+        variant="button"
+        accessibilityRole="header"
+        numberOfLines={1}
+        align="center"
+        style={{ flex: 1, marginHorizontal: 8 }}
+      >
+        {title}
+      </Txt>
+      <View style={{ width: SIZE }} />
+    </View>
+  );
+}
+
+/**
+ * How far above the screen's bottom edge a pushed plan screen sets its bottom button. The design
+ * puts it 34 from the edge with no tab bar; the tab bar floats over a tab's pushed screens, so the
+ * button stands just above it.
+ */
+export function useBottomButtonOffset(): number {
+  const insets = useSafeAreaInsets();
+  return tabBarClearance(insets.bottom);
+}
+
+/** Back where the person came from, or to the seed bed when a link opened this screen first. */
+export function leave(): void {
+  if (router.canGoBack()) router.back();
+  else router.replace('/seedbed');
+}
