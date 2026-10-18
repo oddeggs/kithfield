@@ -3,6 +3,9 @@ import { Stack } from 'expo-router';
 import { FlowProvider } from '../../features/onboarding/flow-state';
 import { useTheme } from '../../ui/theme/theme-provider';
 
+/** Entering the group (a redirect, a cold start) opens on the gate, under any deeper screen. */
+export const unstable_settings = { initialRouteName: 'welcome' };
+
 /** The way in: its own stack, shown instead of the tabs until the person is onboarded. */
 export default function OnboardingStack() {
   const { palette } = useTheme();
