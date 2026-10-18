@@ -17,7 +17,6 @@ import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useArtVisible } from '../../ui/motion/visibility';
 import { useSession } from '../../ui/session/session';
-import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { lookOf } from './farm-bake';
@@ -287,7 +286,8 @@ export function ValleyScreen() {
             position: 'absolute',
             left: 12,
             right: 12,
-            bottom: tabBarClearance(insets.bottom) - 8,
+            // Where the design draws the card: just over the home indicator, the tab bar stepped aside.
+            bottom: 28,
           }}
         >
           <ValleyCard farm={selected} onGo={() => void go(selected.farm)} />

@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Glass } from '../../ui/components/glass';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
-import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 
@@ -84,13 +83,11 @@ export function PlanHeader({ title, top }: { readonly title: string; readonly to
 }
 
 /**
- * How far above the screen's bottom edge a pushed plan screen sets its bottom button. The design
- * puts it 34 from the edge with no tab bar; the tab bar floats over a tab's pushed screens, so the
- * button stands just above it.
+ * How far above the screen's bottom edge a pushed plan screen sets its bottom button: 34, as the
+ * design puts it. The tab bar steps aside on a tab's pushed screens.
  */
 export function useBottomButtonOffset(): number {
-  const insets = useSafeAreaInsets();
-  return tabBarClearance(insets.bottom);
+  return 34;
 }
 
 /** Back where the person came from, or to the seed bed when a link opened this screen first. */

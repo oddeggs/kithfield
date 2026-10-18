@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArtIcon } from '../../../ui/art/art-view';
 import { Press } from '../../../ui/motion/press';
 import { useLocale } from '../../../ui/locale/locale-provider';
-import { tabBarClearance } from '../../../ui/tab-bar/tab-bar';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import type { ViewStyleProp } from '../../../ui/style';
 import { useKitColors } from './colors';
@@ -141,7 +140,7 @@ export function NavBar({
 
 /**
  * A pushed screen: the screen background, the header, and its content scrolling from `top` with
- * the design's 16-point margins and 10-point gaps, clearing the floating tab bar at the bottom.
+ * the design's 16-point margins and 10-point gaps, clearing the home indicator at the bottom.
  */
 export function Page({
   header,
@@ -168,7 +167,7 @@ export function Page({
         contentContainerStyle={{
           paddingTop: at(top),
           paddingHorizontal: inset,
-          paddingBottom: footer ? 16 : tabBarClearance(insets.bottom),
+          paddingBottom: footer ? 16 : insets.bottom + 24,
           gap,
         }}
         showsVerticalScrollIndicator={false}

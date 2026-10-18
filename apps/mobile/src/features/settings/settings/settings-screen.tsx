@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Toggle } from '../../../ui/components/toggle';
 import { useLocale } from '../../../ui/locale/locale-provider';
-import { tabBarClearance } from '../../../ui/tab-bar/tab-bar';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { AI_PROVIDER, aiDataCount } from '../ai/consent';
@@ -65,7 +64,7 @@ export function SettingsScreen() {
         contentContainerStyle={{
           paddingTop: top(114),
           paddingHorizontal: 16,
-          paddingBottom: tabBarClearance(insets.bottom),
+          paddingBottom: insets.bottom + 24,
           gap: 16,
         }}
         showsVerticalScrollIndicator={false}

@@ -8,7 +8,6 @@ import { useToast } from '../../../ui/components/toast';
 import { Toggle } from '../../../ui/components/toggle';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
-import { tabBarClearance } from '../../../ui/tab-bar/tab-bar';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { useSettingsApi } from '../api/use-api';
@@ -90,7 +89,7 @@ export function AiScreen() {
         contentContainerStyle={{
           paddingTop: top(118),
           paddingHorizontal: 16,
-          paddingBottom: tabBarClearance(insets.bottom),
+          paddingBottom: insets.bottom + 24,
           gap: 16,
         }}
         showsVerticalScrollIndicator={false}

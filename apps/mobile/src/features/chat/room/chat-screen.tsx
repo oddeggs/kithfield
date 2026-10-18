@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, useWindowDimensions, View } from 'react-native';
 import {
-  KeyboardProvider,
   KeyboardStickyView,
   useReanimatedKeyboardAnimation,
 } from 'react-native-keyboard-controller';
@@ -62,16 +61,7 @@ export interface ChatScreenProps {
 }
 
 /** A farm's chat under its farm, or a visit on its porch. */
-export function ChatScreen(props: ChatScreenProps) {
-  // Here until the root layout provides the keyboard controller for every screen.
-  return (
-    <KeyboardProvider>
-      <ChatRoom {...props} />
-    </KeyboardProvider>
-  );
-}
-
-function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
+export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
   const data = useRoomData(farm);
   const { palette } = useTheme();
   const colours = useChatColours();
