@@ -137,6 +137,7 @@ export const farmState = {
     },
   ],
   pins: [14],
+  aliases: { p_anon_7: bea },
   doorstep: [
     { seq: 30, kind: 'firefly', from: pip, to: fig },
     { seq: 31, kind: 'slow_post', from: bea, to: pip, deliverAt: at + 3_600_000 },
@@ -165,6 +166,7 @@ export const visitState = {
   signature: null,
   seeds: [],
   pins: [],
+  aliases: {},
   doorstep: [],
   fieldGuide: [],
   today: { day: '2026-10-18', given: [] },

@@ -216,6 +216,17 @@ export const FarmState = z.object({
   basket: z.object({ season: SeasonRef, crops: z.array(Crop).max(8) }).nullable(),
   seeds: z.array(SeedState).max(100),
   pins: z.array(Seq).max(LIMITS.pins),
+  /**
+   * People merged away, mapped to who they are now (merged-away id → kept id). Past events keep
+   * their old actor; phones draw them as the kept person and the reducer maps actors through this
+   * before applying. Written into the snapshot after a `person_merged` job reaches the farm.
+   */
+  aliases: z
+    .record(PersonId, PersonId)
+    .refine((a) => Object.keys(a).length <= 500, { message: 'At most 500 aliases' })
+    .refine((a) => Object.entries(a).every(([from, into]) => from !== into && !(into in a)), {
+      message: 'An alias points at a kept person, never at itself or another alias',
+    }),
   doorstep: z.array(DoorstepItem).max(500),
   fireLitAt: EpochMs.nullable(),
 });
