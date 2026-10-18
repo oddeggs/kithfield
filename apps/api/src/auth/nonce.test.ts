@@ -1,3 +1,4 @@
+import { SignInNonceResponse } from '@kithfield/contracts';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -104,8 +105,7 @@ describe('sign-in nonces and replay', () => {
   it('answers a nonce in the contract shape', async () => {
     const response = await call('/v1/sign-in-nonce', { method: 'POST' });
     expect(response.status).toBe(200);
-    const body = await response.json<{ nonce: string; expiresAt: number }>();
-    expect(body.nonce).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const body = SignInNonceResponse.parse(await response.json());
     expect(body.expiresAt).toBeGreaterThan(Date.now());
   });
 });

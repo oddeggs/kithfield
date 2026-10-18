@@ -1,3 +1,4 @@
+import { PersonMergedJob } from '@kithfield/contracts';
 import { env } from 'cloudflare:workers';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -55,6 +56,7 @@ describe('merging an anonymous person into a returning one', () => {
       .bind(person.user.id)
       .first();
     expect(row).toEqual({ display_name: 'moved over' });
+    expect(PersonMergedJob.safeParse(queued.mock.calls[0]?.[0]).success).toBe(true);
     expect(queued).toHaveBeenCalledWith({
       kind: 'person_merged',
       from: laptop.user.id,

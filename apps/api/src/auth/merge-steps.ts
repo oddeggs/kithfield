@@ -1,3 +1,5 @@
+import type { PersonMergedJob } from '@kithfield/contracts';
+
 /**
  * What other parts of the API add when an anonymous person merges into a returning one.
  *
@@ -33,15 +35,6 @@ export function registerMergeStep(name: string, step: MergeStep): () => void {
 /** Every registered step's statements, in registration order. */
 export function mergeStepStatements(db: D1Database, merge: PersonMerge): D1PreparedStatement[] {
   return [...steps.values()].flatMap((step) => step(db, merge));
-}
-
-/** The deletion queue's message after a merge commits: Durable Objects move `from`'s state. */
-export interface PersonMergedJob {
-  readonly kind: 'person_merged';
-  readonly from: string;
-  readonly into: string;
-  /** When the merge committed, epoch ms. */
-  readonly at: number;
 }
 
 export async function announceMerge(queue: Queue, merge: PersonMerge): Promise<void> {

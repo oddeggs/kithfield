@@ -1,5 +1,5 @@
 import { AgeRequest, RtTokenRequest, TermsRequest } from '@kithfield/contracts';
-import type { RtTokenResponse } from '@kithfield/contracts';
+import type { RtTokenResponse, SignInNonceResponse } from '@kithfield/contracts';
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import type { z } from 'zod';
@@ -51,7 +51,8 @@ export function authRoutes(): Hono<SessionEnv> {
     const address = c.req.header('cf-connecting-ip') ?? 'unknown';
     const { success } = await c.env.SIGN_IN_NONCE_LIMIT.limit({ key: address });
     if (!success) return errorResponse(c, 429, 'rate_limited');
-    return c.json(await issueSignInNonce(c.env.DB, Date.now()));
+    const issued = await issueSignInNonce(c.env.DB, Date.now());
+    return c.json(issued satisfies SignInNonceResponse);
   });
 
   routes.post('/v1/rt-token', requireSession, async (c) => {
