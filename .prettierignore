@@ -1,0 +1,19 @@
+pnpm-lock.yaml
+design/
+docs/
+plans/
+.claude/
+**/dist/
+**/.astro/
+**/.expo/
+**/.wrangler/
+apps/mobile/ios/
+apps/mobile/android/
+**/*.md
+
+# Generated (formatting follows the generator)
+**/*.generated.*
+
+# Written by Expo on every start
+**/expo-env.d.ts
+**/worker-configuration.d.ts
