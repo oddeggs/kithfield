@@ -104,10 +104,10 @@ export const onboardingVi: ViCatalogue<typeof onboardingEn> = {
     'Không bắt nạt, thù ghét hay làm phiền. Người giữ trại và đội ngũ của chúng mình có thể mời ra những ai khiến nông trại thấy không an toàn.',
   'onboarding.rules.yours.title': 'Tin nhắn là của bạn',
   'onboarding.rules.yours.body':
-    'Trò chuyện và ghé thăm được mã hóa đầu cuối. Chúng mình không đọc được, và không bao giờ bán hay quảng cáo bằng dữ liệu của bạn.',
+    'Tin nhắn được mã hóa khi gửi đi và khi lưu trữ, và chúng mình không bao giờ bán hay quảng cáo bằng dữ liệu của bạn. Chúng không được mã hóa đầu cuối, để tìm kiếm và báo cáo an toàn hoạt động được.',
   'onboarding.rules.fire.title': 'Bên lửa không ghi lại gì',
   'onboarding.rules.fire.body':
-    'Phòng thoại và đèn lồng không được ghi hay lưu lại. Phụ đề chạy ngay trên điện thoại của bạn.',
+    'Phòng thoại và đèn lồng không được ghi hay lưu lại. Phụ đề chỉ bật khi bạn đồng ý.',
   'onboarding.rules.leave.title': 'Rời đi bất cứ khi nào',
   'onboarding.rules.leave.body': 'Tải về những kỷ niệm của bạn và xóa mọi thứ.',
   'onboarding.rules.terms': 'Điều khoản dịch vụ',

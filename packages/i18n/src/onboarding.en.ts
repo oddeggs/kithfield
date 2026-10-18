@@ -110,10 +110,10 @@ export const onboardingEn = {
     'No bullying, hate or unwanted contact. Keepers and our team can remove people who make a farm feel unsafe.',
   'onboarding.rules.yours.title': 'Your messages are yours',
   'onboarding.rules.yours.body':
-    'Chats and visits are end-to-end encrypted. We can’t read them, and we never sell or advertise with your data.',
+    'They travel and are stored encrypted, and we never sell them or advertise with your data. They aren’t end-to-end encrypted, so that search and safety reports can work.',
   'onboarding.rules.fire.title': 'Nothing is recorded by the fire',
   'onboarding.rules.fire.body':
-    'Voice rooms and lanterns aren’t recorded or stored. Captions run on your phone.',
+    'Voice rooms and lanterns aren’t recorded or stored. Captions stay off until you say yes.',
   'onboarding.rules.leave.title': 'Leave whenever you like',
   'onboarding.rules.leave.body': 'Download your keepsakes and delete everything.',
   'onboarding.rules.terms': 'Terms of service',
