@@ -119,10 +119,15 @@ describe('the fire', () => {
   it('goes out three minutes after the last person leaves the room', async () => {
     const { stub } = await plantFarm(pip);
     await stub.command(pip.id, { opId: op(1), kind: 'fire', payload: { state: 'lit' } });
-    await stub.fireRoom(true);
+    await stub.fireRoomEvent({
+      event: 'participant_joined',
+      at: 1,
+      room: 'RM_a',
+      identity: pip.id,
+    });
     expect(await alarmAt(stub)).toBe(Date.UTC(2054, 10, 29, 0, 0));
     ports.clock.advance(20 * 60_000);
-    await stub.fireRoom(false);
+    await stub.fireRoomEvent({ event: 'participant_left', at: 2, room: 'RM_a', identity: pip.id });
     expect(await fire(stub)).toBe(ports.clock.at);
     expect((await farmWritten(stub)).map((e) => [e.kind, e.payload])).toEqual([
       ['fire', { state: 'out' }],

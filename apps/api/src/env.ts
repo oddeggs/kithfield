@@ -25,6 +25,10 @@ export const secretNames = [
   'R2_ACCOUNT_ID',
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
+  // LiveKit, for the fire room: the project's API key and secret. They mint room tokens and check
+  // LiveKit's webhook signatures (`livekit-server --dev` uses devkey / secret locally).
+  'LIVEKIT_API_KEY',
+  'LIVEKIT_API_SECRET',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -65,6 +69,11 @@ export type Bindings = Secrets & {
    * MEDIA_UPLOAD_PROXY_ORIGIN:http://localhost:8787`). Unset, the request's own origin.
    */
   readonly MEDIA_UPLOAD_PROXY_ORIGIN?: string;
+  /**
+   * The LiveKit project the fire room runs on (`wss://<project>.livekit.cloud`); a local
+   * `livekit-server --dev` is `ws://localhost:7880`.
+   */
+  readonly LIVEKIT_URL: string;
   /** At most 20 sign-in nonces a minute per client address. */
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Gestures at another farm's gate, per visitor. */

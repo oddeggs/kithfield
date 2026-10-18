@@ -23,3 +23,7 @@ MEDIA_SIGNING_KEY=
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
+# LiveKit, for the fire room. Locally, `livekit-server --dev` takes devkey / secret, and
+# `wrangler dev --var LIVEKIT_URL:ws://localhost:7880` points the API at it.
+LIVEKIT_API_KEY=
+LIVEKIT_API_SECRET=

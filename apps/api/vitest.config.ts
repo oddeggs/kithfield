@@ -26,6 +26,9 @@ export default defineConfig(async () => {
               'sam@example.com': 'moderator',
             }),
             MEDIA_SIGNING_KEY: `${randomUUID()}${randomUUID()}`,
+            // The fire room's LiveKit key pair; the room service itself is stood in for.
+            LIVEKIT_API_KEY: 'APItest',
+            LIVEKIT_API_SECRET: `${randomUUID()}${randomUUID()}`,
           },
         },
       }),

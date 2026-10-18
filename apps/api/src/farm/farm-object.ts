@@ -22,11 +22,12 @@ import {
 import type { FarmView } from '@kithfield/farm';
 import { DurableObject } from 'cloudflare:workers';
 
+import type { RoomEvent } from '../calls/circle';
+import { onRoomEvent } from '../calls/farm-fire';
 import type { Bindings } from '../env';
 import * as actions from './actions';
 import { runAlarm } from './alarms';
 import { exportOf, type FarmExport } from './export';
-import { fireOutAfterMs } from './farm';
 import { pageEvents, searchEvents, type WirePage } from './history';
 import { FarmHost } from './host';
 import type { Profile } from './ports';
@@ -224,12 +225,9 @@ export class FarmDO extends DurableObject<Bindings> {
     return actions.setHibernating(this.host, person, on);
   }
 
-  /** The fire room's occupancy: the fire goes out 3 minutes after the last person leaves. */
-  async fireRoom(occupied: boolean): Promise<void> {
-    if (occupied) this.host.store.deleteTimer('fire_out');
-    else if (this.host.farm.state?.fireLitAt != null)
-      this.host.store.setTimer('fire_out', this.host.now() + fireOutAfterMs);
-    await this.host.schedule();
+  /** The fire room's webhook: who is by the fire, and the fire going out after the last leaves. */
+  fireRoomEvent(event: RoomEvent): Promise<void> {
+    return onRoomEvent(this.host, event);
   }
 
   /* Called by the safety team's tools and account deletion. */

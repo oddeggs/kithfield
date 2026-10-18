@@ -37,6 +37,8 @@
         // Signed reads come from the media Worker on its own host (apps/media-worker).
         "MEDIA_ORIGIN": "https://media-dev.kithfield.com",
         "MEDIA_BUCKET_NAME": "kithfield-media-dev",
+        // The fire room's LiveKit project; its API key and secret are Worker secrets.
+        "LIVEKIT_URL": "wss://kithfield-cvm2v8ac.livekit.cloud",
       },
       "durable_objects": {
         "bindings": [
@@ -142,6 +144,8 @@
         // Signed reads come from the media Worker on its own host (apps/media-worker).
         "MEDIA_ORIGIN": "https://media.kithfield.com",
         "MEDIA_BUCKET_NAME": "kithfield-media",
+        // The fire room's LiveKit project; its API key and secret are Worker secrets.
+        "LIVEKIT_URL": "wss://kithfield-cvm2v8ac.livekit.cloud",
       },
       "durable_objects": {
         "bindings": [
