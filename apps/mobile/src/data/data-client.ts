@@ -11,6 +11,9 @@ import type { RtTokens } from './rt-tokens';
 import type { KeepAlive, OpenSocket } from './socket';
 import { createSyncStore, type StoredEvent, type StoredRejection } from './sync-store';
 
+/** The link of a farm never opened: one object, so hooks reading it see no change. */
+const STOPPED: FarmLink = { status: 'stopped' };
+
 /** React Native's `AppState`, narrowed to what the client needs. */
 export interface AppStateSource {
   readonly currentState: string | null | undefined;
@@ -177,7 +180,7 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
 
     /** How a farm's link stands; farms never opened are `stopped`. */
     link(farm: FarmId): FarmLink {
-      return links.get(farm) ?? { status: 'stopped' };
+      return links.get(farm) ?? STOPPED;
     },
 
     /**
