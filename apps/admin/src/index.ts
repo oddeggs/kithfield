@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { forward } from './api';
 import type { AdminEnv } from './env';
 import { formRoutes } from './forms';
+import { sameOriginWrites } from './guard';
 import { pageRoutes } from './pages';
 
 /*
@@ -11,6 +12,8 @@ import { pageRoutes } from './pages';
  */
 
 const app = new Hono<AdminEnv>();
+
+app.use('*', sameOriginWrites);
 
 app.get('/health', (c) => c.json({ status: 'ok', environment: c.env.ENVIRONMENT }));
 

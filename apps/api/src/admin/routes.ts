@@ -93,6 +93,14 @@ const DaysQuery = z.object({ days: z.coerce.number().int().min(1).max(366).defau
 export function adminRoutes(): Hono<ModeratorEnv> {
   const app = new Hono<ModeratorEnv>();
   app.use('*', requireModerator);
+  // Writes are JSON only: a browser can't send that cross-site without asking first.
+  app.use('*', async (c: Context<ModeratorEnv>, next) => {
+    const method = c.req.method;
+    const json = (c.req.header('content-type') ?? '').split(';')[0]?.trim() === 'application/json';
+    if (method !== 'GET' && method !== 'HEAD' && !json) return deny(c, 415, 'bad_request');
+    await next();
+    return undefined;
+  });
 
   app.get('/me', (c) => {
     const me = c.get('moderator');

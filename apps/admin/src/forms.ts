@@ -22,12 +22,6 @@ const idOf = (value: string | undefined): string | null => {
   return parsed.success ? parsed.data : null;
 };
 
-/** A form post from another site never reaches the API. */
-const sameOrigin = (c: Ctx) => {
-  const origin = c.req.header('origin');
-  return origin === undefined || origin === new URL(c.req.url).origin;
-};
-
 const formOf = async (c: Ctx): Promise<Record<string, string>> => {
   const body = await c.req.parseBody();
   const out: Record<string, string> = {};
@@ -73,12 +67,6 @@ const backTo = (raw: string | undefined, fallback: string) =>
 
 export function formRoutes(): Hono<AdminEnv> {
   const app = new Hono<AdminEnv>();
-
-  app.use('*', async (c: Ctx, next) => {
-    if (c.req.method === 'POST' && !sameOrigin(c)) return c.text('Forbidden', 403);
-    await next();
-    return undefined;
-  });
 
   app.post('/reports/:id/decide', async (c) => {
     const id = idOf(c.req.param('id'));

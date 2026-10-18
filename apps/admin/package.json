@@ -8,7 +8,8 @@
     "assets": "node scripts/copy-assets.mjs",
     "dev": "wrangler dev --env dev --port 8788",
     "build": "wrangler deploy --dry-run --env dev --outdir dist",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@kithfield/art": "workspace:*",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
-    "wrangler": "catalog:"
+    "wrangler": "catalog:",
+    "vitest": "catalog:"
   }
 }

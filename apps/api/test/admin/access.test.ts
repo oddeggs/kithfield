@@ -88,4 +88,23 @@ describe('the safety desk behind Cloudflare Access', () => {
       expect((await call(`/admin/v1${path}`, { body: {} })).status, path).toBe(401);
     }
   });
+
+  it('takes writes only as JSON, so a cross-site form can never post one', async () => {
+    const token = await access.token(ANA);
+    const asForm = await call('/admin/v1/actions/A-1/approve', {
+      method: 'POST',
+      headers: {
+        'Cf-Access-Jwt-Assertion': token,
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+    });
+    expect(asForm.status).toBe(415);
+    const bare = await call('/admin/v1/actions/A-1/approve', {
+      method: 'POST',
+      headers: { 'Cf-Access-Jwt-Assertion': token },
+    });
+    expect(bare.status).toBe(415);
+    const json = await desk(access, ANA, 'POST', '/actions/A-1/approve', {});
+    expect(json.status).toBe(404);
+  });
 });
