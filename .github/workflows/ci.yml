@@ -22,6 +22,9 @@ jobs:
       - uses: actions/setup-node@v7
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      # Expo writes this ignored file on a developer's first start; without it the app is checked
+      # against narrower React Native style types than every developer sees.
+      - run: echo '/// <reference types="expo/types" />' > apps/mobile/expo-env.d.ts
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm format:check
