@@ -18,6 +18,8 @@
  * - `useFarmView(farm, now)`: the shared rules' view (sleepy, misty and the rest) at `now`.
  * - `useFarmEvents(farm, limit)`: the newest cached events, oldest first. Older history:
  *   `useDataClient().pageHistory(farm, beforeSeq)`.
+ * - `useDataClient().catchUp(farm)`: brings a farm whose socket isn't open up to date over HTTP,
+ *   or answers `needs_socket` when only a snapshot can (nothing held, or too far behind).
  * - `useFarmLink(farm)`: connecting, catching up, live, offline, paused, or blocked with a code
  *   (`rules_outdated` and `protocol_unsupported` mean the app needs an update).
  * - `useCottage()`: the chat list, the cottage's link and whether a safety note waits.
@@ -44,7 +46,7 @@ export { startData, type DataRuntime } from './native';
 export { kithfieldRules } from './farm-rules';
 export type { NetworkSwitch } from './dev-network';
 export type { ApiClient } from './api-client';
-export type { DataClient, DataStatus } from './data-client';
+export type { CatchUp, DataClient, DataStatus } from './data-client';
 export type { FarmRules } from './farm-rules';
 export type { FarmLink, BlockedCode } from './farm-connection';
 export type { CottageLink, CottageState } from './cottage-connection';

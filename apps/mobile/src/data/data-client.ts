@@ -1,15 +1,28 @@
-import type { FarmId, OpId } from '@kithfield/contracts';
+import { LIMITS, type FarmId, type OpId } from '@kithfield/contracts';
 
 import { failure } from './apply-events';
 import type { DataClientDeps, DataStatus } from './client-types';
 import { createCottageConnection, type CottageConnection } from './cottage-connection';
 import { createFarmConnection, type FarmConnection, type FarmLink } from './farm-connection';
 import type { EnqueueResult } from './farm-replica';
+import { catchUpOverHttp } from './http-drain';
 import { createOutboxDrainer } from './outbox-drainer';
 import { createReplicas } from './replicas';
 import { createSyncStore, type StoredEvent, type StoredRejection } from './sync-store';
 
 export type { AppStateSource, DataClientDeps, DataStatus } from './client-types';
+
+/**
+ * How catching a farm up over HTTP ended: `done`; `open` (its socket is open and keeps it up to
+ * date); `needs_socket` (the phone holds nothing of it, owes it a snapshot, or is more than a
+ * snapshot gap behind: only the socket sends snapshots).
+ */
+export type CatchUp = 'done' | 'open' | 'needs_socket';
+
+const seqOf = (raw: unknown): number | null => {
+  const seq = (raw as { seq?: unknown } | null)?.seq;
+  return typeof seq === 'number' ? seq : null;
+};
 
 /** The link of a farm never opened: one object, so hooks reading it see no change. */
 const STOPPED: FarmLink = { status: 'stopped' };
@@ -200,6 +213,21 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
       if (result.status === 'queued' && open?.farm !== farm)
         guard('outbox.drain', drainer.drainAll());
       return result;
+    },
+
+    /**
+     * Brings a farm the phone isn't holding open up to date over HTTP paging, for screens that
+     * show many farms at once. Network failures throw.
+     */
+    async catchUp(farm: FarmId): Promise<CatchUp> {
+      if (open?.farm === farm) return 'open';
+      const r = await replica(farm);
+      if (r.helloSeq() === 0) return 'needs_socket';
+      const newest = await deps.api.events(farm, { limit: 1 });
+      const head = seqOf(newest.events.at(-1)) ?? 0;
+      if (head - r.getState().lastSeq > LIMITS.snapshotGap) return 'needs_socket';
+      await catchUpOverHttp(r, deps.api);
+      return 'done';
     },
 
     /** Cached events before `before` (or the newest), oldest first. */
