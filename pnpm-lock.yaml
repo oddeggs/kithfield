@@ -266,6 +266,9 @@ catalogs:
     jest-expo:
       specifier: 58.0.10
       version: 58.0.10
+    playwright:
+      specifier: 1.58.2
+      version: 1.58.2
     prettier:
       specifier: 3.9.9
       version: 3.9.9
@@ -552,6 +555,28 @@ importers:
         specifier: 'catalog:'
         version: 4.141.0(@cloudflare/workers-types@5.20260926.1)(@types/node@26.6.3)
 
+  packages/art:
+    dependencies:
+      '@kithfield/theme':
+        specifier: workspace:*
+        version: link:../theme
+      '@shopify/react-native-skia':
+        specifier: 'catalog:'
+        version: 2.13.1(3437d375848eabd3343a32c2c440aa1b)
+    devDependencies:
+      eslint:
+        specifier: 'catalog:'
+        version: 10.11.0(supports-color@8.1.1)
+      globals:
+        specifier: 'catalog:'
+        version: 17.12.0
+      playwright:
+        specifier: 'catalog:'
+        version: 1.58.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.2(@types/node@26.6.3)(jsdom@26.1.0(supports-color@8.1.1))(vite@8.3.4(@types/node@26.6.3)(esbuild@0.28.2)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+
   packages/contracts:
     dependencies:
       zod:
@@ -571,6 +596,9 @@ importers:
         specifier: workspace:*
         version: link:../contracts
     devDependencies:
+      fast-check:
+        specifier: 'catalog:'
+        version: 4.10.2
       vitest:
         specifier: 'catalog:'
         version: 5.0.2(@types/node@26.6.3)(jsdom@26.1.0(supports-color@8.1.1))(vite@8.3.4(@types/node@26.6.3)(esbuild@0.28.2)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
@@ -597,6 +625,21 @@ importers:
       '@kithfield/theme':
         specifier: workspace:*
         version: link:../../packages/theme
+
+  tools/readme:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.3
+      playwright:
+        specifier: 'catalog:'
+        version: 1.58.2
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
 packages:
 
@@ -4664,6 +4707,11 @@ packages:
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -5749,6 +5797,16 @@ packages:
   pkg-dir@4.2.0:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
+
+  playwright-core@1.58.2:
+    resolution: {integrity: sha512-yZkEtftgwS8CsfYo7nm0KE8jsvm6i/PTgVtB8DL726wNf6H2IMsDuxCpJj59KDaxCtSnrWan2AeDqM7JBaultg==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.58.2:
+    resolution: {integrity: sha512-vA30H8Nvkq/cPBnNw4Q8TWz1EJyqgpuinBcHET0YVJVFldr8JDNiU9LaWAE1KqSkRYazuaBhTpB5ZzShOezQ6A==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   plist@3.1.1:
     resolution: {integrity: sha512-ZIfcLJC+7E7FBFnDxm9MPmt7D+DidyQ26lewieO75AdhA2ayMtsJSES0iWzqJQbcVRSrTufQoy0DR94xHue0oA==}
@@ -11532,6 +11590,9 @@ snapshots:
 
   fs.realpath@1.0.0: {}
 
+  fsevents@2.3.2:
+    optional: true
+
   fsevents@2.3.3:
     optional: true
 
@@ -12966,6 +13027,14 @@ snapshots:
   pkg-dir@4.2.0:
     dependencies:
       find-up: 4.1.0
+
+  playwright-core@1.58.2: {}
+
+  playwright@1.58.2:
+    dependencies:
+      playwright-core: 1.58.2
+    optionalDependencies:
+      fsevents: 2.3.2
 
   plist@3.1.1:
     dependencies:
