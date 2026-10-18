@@ -1,7 +1,14 @@
 import type { FarmId, MemberState, Role } from '@kithfield/contracts';
 import { motion } from '@kithfield/theme';
-import { useRef, useState, type ComponentRef } from 'react';
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import {
+  AccessibilityInfo,
+  Pressable,
+  StyleSheet,
+  View,
+  findNodeHandle,
+  useWindowDimensions,
+} from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { ArtIcon } from '../../../ui/art/art-view';
@@ -15,6 +22,7 @@ import { go } from '../go';
 import { useKitColors } from '../kit/colors';
 import { Badge, Group, IconCircle, NavBar, Page, Row } from '../kit/layout';
 import { KText } from '../kit/text';
+import { memberActions, type MemberAction } from './member-actions';
 import { useFarmSettings } from './use-farm-settings';
 
 interface MenuItem {
@@ -40,8 +48,15 @@ export function MembersScreen({ farm }: { readonly farm: FarmId }) {
   const kit = useKitColors();
   const { person } = useSession();
   const { height } = useWindowDimensions();
-  const { state, isKeeper, canInvite, write } = useFarmSettings(farm);
+  const { state, role, canInvite, write } = useFarmSettings(farm);
   const [menu, setMenu] = useState<OpenMenu | null>(null);
+  const menuRef = useRef<ComponentRef<typeof Animated.View>>(null);
+  // VoiceOver moves into the menu as it opens.
+  useEffect(() => {
+    if (!menu) return;
+    const node = findNodeHandle(menuRef.current);
+    if (typeof node === 'number') AccessibilityInfo.setAccessibilityFocus(node);
+  }, [menu]);
   const buttons = useRef(new Map<string, ComponentRef<typeof View> | null>());
 
   const month = (at: number) =>
@@ -53,67 +68,46 @@ export function MembersScreen({ farm }: { readonly farm: FarmId }) {
 
   const itemsFor = (m: MemberState): MenuItem[] => {
     const name = nameOf(m);
-    if (m.person === person?.id) {
-      return [
-        {
-          label: t('settings.farm.leave'),
-          icon: 'door',
-          danger: true,
-          act: () => go('/(modal)/settings-leave', { farm }),
-        },
-      ];
-    }
-    const roles: MenuItem[] = isKeeper
-      ? [
-          ...(m.role !== 'helper'
-            ? [
-                {
-                  label: t('settings.members.makeHelper'),
-                  icon: 'people',
-                  act: () => setRole(m, 'helper'),
-                },
-              ]
-            : []),
-          ...(m.role !== 'keeper'
-            ? [
-                {
-                  label: t('settings.members.makeKeeper'),
-                  icon: 'key',
-                  act: () => setRole(m, 'keeper'),
-                },
-              ]
-            : []),
-          ...(m.role !== 'critter'
-            ? [
-                {
-                  label: t('settings.members.makeCritter'),
-                  icon: 'leaf',
-                  act: () => setRole(m, 'critter'),
-                },
-              ]
-            : []),
-        ]
-      : [];
-    return [
-      ...roles,
-      {
+    const items: Record<MemberAction, MenuItem> = {
+      leave: {
+        label: t('settings.farm.leave'),
+        icon: 'door',
+        danger: true,
+        act: () => go('/(modal)/settings-leave', { farm }),
+      },
+      makeHelper: {
+        label: t('settings.members.makeHelper'),
+        icon: 'people',
+        act: () => setRole(m, 'helper'),
+      },
+      makeKeeper: {
+        label: t('settings.members.makeKeeper'),
+        icon: 'key',
+        act: () => setRole(m, 'keeper'),
+      },
+      makeCritter: {
+        label: t('settings.members.makeCritter'),
+        icon: 'leaf',
+        act: () => setRole(m, 'critter'),
+      },
+      report: {
         label: t('settings.members.report', { name }),
         icon: 'flag',
         act: () => go('/(modal)/safety-report', params(m)),
       },
-      isKeeper
-        ? {
-            label: t('settings.members.remove'),
-            icon: 'leaf',
-            danger: true,
-            act: () => go('/(modal)/settings-remove', params(m)),
-          }
-        : {
-            label: t('settings.members.block', { name }),
-            icon: 'block',
-            act: () => go('/(modal)/safety-block', { person: m.person }),
-          },
-    ];
+      remove: {
+        label: t('settings.members.remove'),
+        icon: 'leaf',
+        danger: true,
+        act: () => go('/(modal)/settings-remove', params(m)),
+      },
+      block: {
+        label: t('settings.members.block', { name }),
+        icon: 'block',
+        act: () => go('/(modal)/safety-block', params(m)),
+      },
+    };
+    return memberActions(person?.id ?? null, m, role).map((a) => items[a]);
   };
 
   const openMenu = (m: MemberState) => {
@@ -235,6 +229,9 @@ export function MembersScreen({ farm }: { readonly farm: FarmId }) {
             onPress={() => setMenu(null)}
           />
           <Animated.View
+            ref={menuRef}
+            accessibilityViewIsModal
+            onAccessibilityEscape={() => setMenu(null)}
             entering={FadeIn.duration(motion.fade.durationMs)}
             exiting={FadeOut.duration(motion.cross.durationMs)}
             style={{
