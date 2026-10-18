@@ -12,11 +12,13 @@ export default defineConfig(async () => {
     plugins: [
       cloudflareTest({
         wrangler: { configPath: './wrangler.jsonc', environment: 'dev' },
-        // A fresh auth secret per run: tests never share one with `.dev.vars` or a deployment.
+        // Fresh secrets per run: tests never share one with `.dev.vars` or a deployment.
         miniflare: {
           bindings: {
             TEST_MIGRATIONS: migrations,
             BETTER_AUTH_SECRET: `${randomUUID()}${randomUUID()}`,
+            INVITE_CODE_KEY: `${randomUUID()}${randomUUID()}`,
+            EXPORT_URL_KEY: `${randomUUID()}${randomUUID()}`,
           },
         },
       }),

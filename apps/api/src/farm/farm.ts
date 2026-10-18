@@ -33,6 +33,8 @@ export type CommandOptions = {
   then?: (event: FarmEvent) => void;
   /** A slow post's recipient's own time zone, from their cottage; the farm's when unknown. */
   recipientZone?: TimeZone;
+  /** Why checks outside the log refuse the write (`command-guards.ts`), if they do. */
+  refuse?: RejectReason;
 };
 
 /** The fire goes out this long after the last person leaves the room. */
@@ -254,6 +256,7 @@ export class Farm {
           this.contextFor(state, actor, now),
         );
         if (!check.ok) return check.reason;
+        if (options.refuse !== undefined) return options.refuse;
         const tz = options.recipientZone ?? state.timeZone;
         return { actor, kind: cmd.kind, payload: payloadOf(cmd, now, tz) };
       },

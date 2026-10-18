@@ -79,6 +79,7 @@ JSON frames over the farm socket (`GET /v1/farms/:id/socket`, upgraded and forwa
 - **The gate** is open only to friends of friends: people who share a farm (not a visit) with one of its members. Never to someone removed from that farm. A visitor leaves at most one gesture per farm per farm day, and gate gestures are rate-limited per person (`GATE_LIMIT`, 10 a minute). Visitors never read the chat.
 - **Trades.** Two farms trade at most once in a rolling 90 days, and only a visitor the gate would let in can trade. `traded` is written on both farms; the visited farm writes first and owes the other half until it lands.
 - **Blocks** apply to visits, the gate and trades: between two people where either blocked the other no visit opens, no gate gesture or trade from one reaches the other, and the gate doesn't show one to the other.
+- **Blocks inside a shared farm**: a gesture addressed to one person (firefly, gift, slow post, knock, hug, wave) between two people where either blocked the other is rejected `unavailable` (design 11-12); the rest of the chat is unchanged.
 
 **Wire conventions.** JSON with camelCase keys. Ids are named by their noun: `farm`, `person`, `device`, `report`, never `farmId`. Ids are made by the server, except device ids, which the app makes. Times are epoch milliseconds (integers, UTC), never ISO strings. Calendar days are `YYYY-MM-DD` in the farm's time zone, birthdays `MM-DD`, wall-clock times `HH:MM`.
 

@@ -12,6 +12,10 @@ export const secretNames = [
   'EXPO_ACCESS_TOKEN',
   // Keys the waitlist's address hashes (HMAC-SHA256), so a listed address can't be brute-forced.
   'WAITLIST_EMAIL_KEY',
+  // Seals each farm's current invite code (AES-GCM), so keepers can read their link again.
+  'INVITE_CODE_KEY',
+  // Signs the keepsakes export's short-lived download links (HMAC-SHA256).
+  'EXPORT_URL_KEY',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -44,6 +48,8 @@ export type Bindings = Secrets & {
   readonly GATE_LIMIT: RateLimit;
   /** At most 5 waitlist sign-ups a minute per client address. */
   readonly WAITLIST_LIMIT: RateLimit;
+  /** At most 5 account deletion requests or code tries a minute per client address. */
+  readonly DELETION_REQUEST_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;

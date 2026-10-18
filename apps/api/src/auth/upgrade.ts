@@ -12,6 +12,7 @@ import {
   deletePerson,
   deleteSession,
   findPerson,
+  isBeingPurged,
   mergeIntoReturning,
   recordEmailIdentity,
 } from './people';
@@ -50,6 +51,14 @@ function banned(): APIError {
   return APIError.fromStatus('FORBIDDEN', { code: 'banned', message: 'This person is banned' });
 }
 
+/** The 30 days after asking for deletion are over: the account is being deleted. */
+function purged(): APIError {
+  return APIError.fromStatus('FORBIDDEN', {
+    code: 'forbidden',
+    message: 'This account is being deleted',
+  });
+}
+
 function conflict(): APIError {
   return APIError.fromStatus('CONFLICT', {
     code: 'conflict',
@@ -73,10 +82,12 @@ export function upgradeDatabaseHooks(
       create: {
         // Every session Better Auth issues, for every sign-in method, passes here.
         before: async (session) => {
-          if (await isBanned(db, session.userId, Date.now())) throw banned();
+          const now = Date.now();
+          if (await isBanned(db, session.userId, now)) throw banned();
+          if (await isBeingPurged(db, session.userId, now)) throw purged();
         },
         after: async (session) => {
-          await cancelPendingDeletion(db, session.userId);
+          await cancelPendingDeletion(db, session.userId, Date.now());
         },
       },
     },

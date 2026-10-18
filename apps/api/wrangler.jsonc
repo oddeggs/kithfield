@@ -16,7 +16,8 @@
     "dev": {
       "name": "kithfield-api-dev",
       "routes": [{ "pattern": "dev.kithfield.com/api/*", "zone_name": "kithfield.com" }],
-      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses).
+      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses),
+      // expired keepsakes exports, and the purge of accounts whose 30 days are over.
       "triggers": { "crons": ["17 3 * * *"] },
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
       // Sign-in identity token audiences (public ids, not secrets).
@@ -62,6 +63,12 @@
           "namespace_id": "1201",
           "simple": { "limit": 5, "period": 60 },
         },
+        // Per-address limit on account deletion requests and code tries from the website.
+        {
+          "name": "DELETION_REQUEST_LIMIT",
+          "namespace_id": "1103",
+          "simple": { "limit": 5, "period": 60 },
+        },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
       "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@kithfield.com"] }],
@@ -87,7 +94,8 @@
     "prd": {
       "name": "kithfield-api",
       "routes": [{ "pattern": "kithfield.com/api/*", "zone_name": "kithfield.com" }],
-      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses).
+      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses),
+      // expired keepsakes exports, and the purge of accounts whose 30 days are over.
       "triggers": { "crons": ["17 3 * * *"] },
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
       // Sign-in identity token audiences (public ids, not secrets).
@@ -131,6 +139,12 @@
         {
           "name": "WAITLIST_LIMIT",
           "namespace_id": "1202",
+          "simple": { "limit": 5, "period": 60 },
+        },
+        // Per-address limit on account deletion requests and code tries from the website.
+        {
+          "name": "DELETION_REQUEST_LIMIT",
+          "namespace_id": "1104",
           "simple": { "limit": 5, "period": 60 },
         },
       ],

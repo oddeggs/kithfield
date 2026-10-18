@@ -10,6 +10,7 @@ import {
 import type { Bindings } from '../env';
 import { cottage } from './adapters/cottage';
 import { ensureWeather, HELLO_DEADLINE_MS, nextWake, resetWeather, RETRY_MS } from './alarms';
+import { refusalOf } from './command-guards';
 import { replyTarget } from './content';
 import { Farm, type Written } from './farm';
 import { departed, handOff } from './handoff';
@@ -105,20 +106,28 @@ export class FarmHost {
   }
 
   /**
-   * A phone's command. A slow post is timed in its recipient's own time zone, asked of their
-   * cottage only for a write that hasn't been answered yet.
+   * A phone's command. For a write not answered yet: the checks outside the log (blocks, other
+   * farms' media), and a slow post's recipient's own time zone, asked of their cottage.
    */
   async command(cmd: FarmCommand, person: PersonId, media: string[]): Promise<Written> {
-    const fresh = cmd.kind === 'slow_post' && this.store.outcome(cmd.opId) === null;
-    const recipientZone = fresh
-      ? await cottage
-          .settingsOf(this.env, cmd.payload.to)
-          .then((s) => s.timeZone ?? undefined)
-          .catch(() => undefined)
-      : undefined;
+    const answered = this.store.outcome(cmd.opId) !== null;
+    const farm = this.farm.state?.farm;
+    const actor = this.farm.actorOf(person);
+    const refuse =
+      answered || farm === undefined
+        ? null
+        : await refusalOf(this.env, farm, cmd, actor, (id) => this.farm.actorOf(id));
+    const recipientZone =
+      !answered && cmd.kind === 'slow_post'
+        ? await cottage
+            .settingsOf(this.env, cmd.payload.to)
+            .then((s) => s.timeZone ?? undefined)
+            .catch(() => undefined)
+        : undefined;
     return this.farm.command(cmd, person, {
       then: this.effectsOf(media),
       ...(recipientZone === undefined ? {} : { recipientZone }),
+      ...(refuse === null ? {} : { refuse }),
     });
   }
 

@@ -25,6 +25,7 @@ import { DurableObject } from 'cloudflare:workers';
 import type { Bindings } from '../env';
 import * as actions from './actions';
 import { runAlarm } from './alarms';
+import { exportOf, type FarmExport } from './export';
 import { fireOutAfterMs } from './farm';
 import { pageEvents, searchEvents, type WirePage } from './history';
 import { FarmHost } from './host';
@@ -161,6 +162,11 @@ export class FarmDO extends DurableObject<Bindings> {
   /** Search, for members only; null for anyone else. */
   search(person: PersonId, q: string): SearchResults | null {
     return this.livesHere(person) ? searchEvents(this.host.store, q) : null;
+  }
+
+  /** What the person wrote and shared here, for their keepsakes export. */
+  exportFor(person: PersonId): FarmExport | null {
+    return exportOf(this.host, person);
   }
 
   /** Closes a person's sockets, as after a ban or an account deletion. */

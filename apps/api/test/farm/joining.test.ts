@@ -1,14 +1,16 @@
 import {
   CreateFarmResponse,
+  CurrentInvite,
   FarmEvent,
   FarmGate,
   FarmList,
+  Invite,
   InvitePreview,
   WaitingList,
 } from '@kithfield/contracts';
 import { createMessageBatch, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   readSignIn,
@@ -18,7 +20,6 @@ import {
   watchLetters,
 } from '../../src/auth/testing/client';
 import { cottageOf } from '../../src/cottage/stub';
-import { blocks } from '../../src/farm/blocks';
 import { consumeDeletion } from '../../src/deletion';
 import { op, TestSocket } from './support/client';
 import {
@@ -157,6 +158,45 @@ describe('planting and joining', () => {
     expect((await api(null, 'GET', `/v1/invites/${invite.code}`)).status).toBe(404);
     const url = (fresh.body as { url: string }).url;
     expect((await api(null, 'GET', `/v1/invites/${codeOf(url)}`)).status).toBe(200);
+  });
+
+  it('shows keepers and helpers the current link again, and nobody else', async () => {
+    const { pip, fig, kit, mo } = await cast('pip', 'fig', 'kit', 'mo');
+    const { farm, invite } = await plant(pip);
+    for (const who of [fig, kit]) {
+      await api(who, 'POST', `/v1/invites/${invite.code}/join`, profile(who));
+    }
+    await farmStub(farm).command(pip.id, {
+      opId: op(1),
+      kind: 'settings_changed',
+      payload: { setting: 'role', person: fig.id, role: 'helper' },
+    });
+    const current = async (who: Person) => {
+      const read = await api(who, 'GET', `/v1/farms/${farm}/invite`);
+      return read.status === 200 ? CurrentInvite.parse(read.body).invite : read.status;
+    };
+    expect(await current(pip)).toEqual(invite);
+    expect(await current(fig)).toEqual(invite);
+    expect(await current(kit)).toBe(403);
+    expect(await current(mo)).toBe(404);
+    // Only sealed: the database never holds the code itself.
+    const row = await env.DB.prepare('SELECT * FROM invites WHERE farm_id = ?').bind(farm).first();
+    expect(JSON.stringify(row)).not.toContain(invite.code);
+
+    const fresh = Invite.parse(
+      (await api(fig, 'POST', `/v1/farms/${farm}/invites`, { expiresAt: null })).body,
+    );
+    expect(await current(pip)).toEqual(fresh);
+    await api(pip, 'POST', `/v1/farms/${farm}/invites`, { expiresAt: Date.now() - 1 });
+    expect(await current(pip)).toBeNull();
+  });
+
+  it('turns away a join through a link that was taken back', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    const { farm, invite } = await plant(pip);
+    await api(pip, 'POST', `/v1/farms/${farm}/invites`, { expiresAt: null });
+    const old = await api(fig, 'POST', `/v1/invites/${invite.code}/join`, profile(fig));
+    expect(old).toEqual({ status: 404, body: { error: { code: 'invite_invalid' } } });
   });
 
   it('keeps people waiting where the keeper lets them in, and lets them in or not, quietly', async () => {
@@ -412,23 +452,39 @@ describe('the gate', () => {
     expect((await api(kit, 'GET', `/v1/farms/${home.farm}/gate`)).status).toBe(404);
   });
 
-  it('hides a member who blocked a visitor from that visitor, and refuses trades between them', async () => {
+  it('hides a member who blocked a visitor from that visitor, and refuses gestures and trades between them', async () => {
     const { pip, fig, kit, home, next } = await neighbours();
-    // The safety work isn't built yet: this stands in for Pip having blocked Kit.
-    const blocked = (a: string, b: string) =>
-      [a, b].sort().join() === [pip.id, kit.id].sort().join();
-    vi.spyOn(blocks, 'isBlocked').mockImplementation((_env, a, b) =>
-      Promise.resolve(blocked(a, b)),
-    );
+    expect((await api(pip, 'PUT', `/v1/blocks/${kit.id}`)).status).toBe(204);
     const gate = FarmGate.parse((await api(kit, 'GET', `/v1/farms/${home.farm}/gate`)).body);
     expect(gate.critters.map((c) => c.person)).toEqual([fig.id]);
+    const firefly = { opId: op(2), gesture: { gesture: 'firefly', to: pip.id } };
+    expect((await api(kit, 'POST', `/v1/farms/${home.farm}/gate`, firefly)).body).toEqual({
+      result: 'rejected',
+      opId: op(2),
+      reason: 'unavailable',
+    });
     const trade = { opId: op(1), from: next.farm, with: pip.id, give: null, take: 'marigold' };
     expect((await api(kit, 'POST', `/v1/farms/${home.farm}/trade`, trade)).body).toEqual({
       result: 'rejected',
       opId: op(1),
       reason: 'unavailable',
     });
-    vi.restoreAllMocks();
+    // Unblocked, Pip shows at the gate again.
+    expect((await api(pip, 'DELETE', `/v1/blocks/${kit.id}`)).status).toBe(204);
+    const again = FarmGate.parse((await api(kit, 'GET', `/v1/farms/${home.farm}/gate`)).body);
+    expect(again.critters.map((c) => c.person)).toEqual([pip.id, fig.id]);
+  });
+
+  it('opens no visit between two people where either blocked the other', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    await plantFarm(pip, [fig]);
+    const open = (who: Person, person: string) =>
+      api(who, 'POST', '/v1/visits', { person, timeZone: 'Europe/London', hemisphere: 'north' });
+    expect((await api(fig, 'PUT', `/v1/blocks/${pip.id}`)).status).toBe(204);
+    expect((await open(pip, fig.id)).status).toBe(404);
+    expect((await open(fig, pip.id)).status).toBe(404);
+    expect((await api(fig, 'DELETE', `/v1/blocks/${pip.id}`)).status).toBe(204);
+    expect((await open(pip, fig.id)).status).toBe(201);
   });
 
   it('takes one gesture a farm day from each visitor, and limits how fast they come', async () => {
@@ -629,6 +685,8 @@ describe('merging people', () => {
     const again = await TestSocket.open(farm);
     const caught = await again.hello(pip, farm, 4);
     expect(caught.snapshot?.state.members.map((m) => m.person)).toEqual([pip.id, into]);
+    // The snapshot names who the merged-away id is now, so phones draw fig's words as the account.
+    expect(caught.snapshot?.state.aliases).toEqual({ [fig.id]: into });
     again.close();
 
     const edit = await stub.command(into, {

@@ -7,6 +7,8 @@ import {
   VisitPeer,
 } from '@kithfield/contracts';
 
+import { isPurged } from './schema';
+
 /** At most this many things wait in Quick Tend per farm (`ChatListItem.waiting`). */
 const WAITING_CAP = 99;
 /** The chat list frame carries at most this many rows. */
@@ -41,6 +43,7 @@ type FarmRow = {
  * for a visit, the other person. The person's own pin and mute stay as they were.
  */
 export function upsertFarm(sql: SqlStorage, info: CottageFarm): void {
+  if (isPurged(sql)) return;
   sql.exec(
     `INSERT INTO farms (farm, farm_kind, name, with_json) VALUES (?, ?, ?, ?)
      ON CONFLICT (farm) DO UPDATE SET farm_kind = excluded.farm_kind, name = excluded.name,
@@ -120,6 +123,30 @@ export function isMuted(sql: SqlStorage, farm: string | null, now: number): bool
   return row?.until != null && row.until > now;
 }
 
+/**
+ * The person's own events that tend what waited on that farm before them: opening it, or any
+ * reply, gesture or sticker there.
+ */
+const TENDING_KINDS: ReadonlySet<string> = new Set([
+  'farm_opened',
+  'message',
+  'link',
+  'quiet_note',
+  'media',
+  'voice',
+  'sticker',
+  'reaction',
+  'dewdrop',
+  'wave',
+  'hug',
+  'firefly',
+  'gift',
+  'slow_post',
+  'rsvp',
+  'vote',
+  'card_signed',
+]);
+
 /** Delivered seqs are remembered this long to tell repeats from late arrivals. */
 const DELIVERED_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -127,8 +154,8 @@ const DELIVERED_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
  * Takes a newly committed event into the chat list. A seq delivered before is a repeat and changes
  * nothing (returns false). A late arrival (a slow post, or events committed together arriving out
  * of order) still counts, but the chat row keeps showing the newest event. Something meant for the
- * person waits in Quick Tend unless they have the farm open; opening the farm clears what waited
- * there before it.
+ * person waits in Quick Tend unless they have the farm open; opening the farm, or tending it (a
+ * reply, gesture or sticker there), clears what waited there before it.
  */
 export function applyDelivery(
   sql: SqlStorage,
@@ -158,16 +185,18 @@ export function applyDelivery(
     delivery.preview,
     Number(delivery.forYou),
   );
-  if (delivery.actor === person && delivery.kind === 'farm_opened') {
+  if (delivery.actor === person && TENDING_KINDS.has(delivery.kind)) {
     sql.exec('DELETE FROM doorstep WHERE farm = ? AND seq < ?', delivery.farm, delivery.seq);
   } else if (delivery.forYou && delivery.actor !== person && !delivery.connected) {
     sql.exec(
-      'INSERT OR IGNORE INTO doorstep (farm, seq, kind, actor, at) VALUES (?, ?, ?, ?, ?)',
+      `INSERT OR IGNORE INTO doorstep (farm, seq, kind, actor, at, preview)
+       VALUES (?, ?, ?, ?, ?, ?)`,
       delivery.farm,
       delivery.seq,
       delivery.kind,
       delivery.actor,
       delivery.at,
+      delivery.preview,
     );
   }
   return true;
