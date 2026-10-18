@@ -23,6 +23,17 @@ import { useMessage } from './use-message';
 import { useMe } from './use-plans';
 
 const CHOICES: readonly NudgeChoice[] = ['morning', 'evening', 'weekend'];
+
+/**
+ * The sheet rises over the chat to where the design draws it (its top 214 points down on an
+ * 852-point screen), leaving the farm's strip in view, with the sheet's own grabber.
+ */
+export const REMEMBER_SHEET = {
+  presentation: 'formSheet' as const,
+  sheetAllowedDetents: [(852 - 214) / 852],
+  sheetGrabberVisible: false,
+  sheetCornerRadius: 30,
+};
 const TITLE_MAX = 80;
 
 /** A section label as the sheet sets it: small capitals, a little apart. */
@@ -165,7 +176,13 @@ export function RememberSheet({
           </View>
         </View>
         <Label text={t('plans.remember.nudgeMe')} />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 6 }}
+          style={{ flexGrow: 0, marginHorizontal: -20 }}
+        >
+          <View style={{ width: 14 }} />
           {CHOICES.map((c) => {
             const on = c === choice;
             return (
@@ -195,7 +212,8 @@ export function RememberSheet({
               </Press>
             );
           })}
-        </View>
+          <View style={{ width: 14 }} />
+        </ScrollView>
         <Label text={t('plans.remember.youllSee', { weekday: weekdayName(t, whenDay) })} />
         <View
           accessible
