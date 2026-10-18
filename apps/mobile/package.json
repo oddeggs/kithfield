@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@better-auth/expo": "catalog:",
     "@expo/log-box": "catalog:",
     "@expo/metro-runtime": "catalog:",
     "@kithfield/contracts": "workspace:*",
@@ -18,13 +19,16 @@
     "@kithfield/theme": "workspace:*",
     "@react-native/metro-config": "catalog:",
     "@shopify/react-native-skia": "catalog:",
+    "better-auth": "catalog:",
     "expo": "catalog:",
     "expo-constants": "catalog:",
+    "expo-crypto": "catalog:",
     "expo-dev-client": "catalog:",
     "expo-font": "catalog:",
     "expo-haptics": "catalog:",
     "expo-linking": "catalog:",
     "expo-router": "catalog:",
+    "expo-secure-store": "catalog:",
     "expo-splash-screen": "catalog:",
     "expo-sqlite": "catalog:",
     "expo-status-bar": "catalog:",
@@ -35,7 +39,8 @@
     "react-native-reanimated": "catalog:",
     "react-native-safe-area-context": "catalog:",
     "react-native-screens": "catalog:",
-    "react-native-worklets": "catalog:"
+    "react-native-worklets": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@babel/core": "catalog:",
