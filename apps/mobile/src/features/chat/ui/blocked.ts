@@ -1,11 +1,6 @@
-/*
- * Who this person has blocked, for hiding what they say. The settings lane's `useBlocked()`
- * (`data/blocks`) plugs in here; until it does, nobody is blocked.
- */
+import { useBlocked } from '../../../data/blocks';
 
-const NOBODY: ReadonlySet<string> = new Set();
-
-/** The person ids this person blocked. */
+/** The person ids this person blocked, for hiding what they say: the phone's one block list. */
 export function useBlockedIds(): ReadonlySet<string> {
-  return NOBODY;
+  return useBlocked().people;
 }

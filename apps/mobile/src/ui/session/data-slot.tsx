@@ -11,6 +11,7 @@ import {
   type SessionPerson,
   type SyncReport,
 } from '../../data';
+import { blocksPort, connectBlocks, sharedBlocks } from '../../data/blocks';
 import { ArtStill } from '../art/art-view';
 import { ErrorState } from '../components/state-shell';
 import { useLocale } from '../locale/locale-provider';
@@ -51,6 +52,16 @@ function SessionBridge({
     return () => void off();
   }, [runtime]);
   const id = sessionEnded || person === null ? null : person.person;
+  // The phone's one block list, read for each person through the data layer's requests.
+  useEffect(() => {
+    if (id === null) {
+      sharedBlocks()?.clear();
+      return;
+    }
+    const blocks = connectBlocks(blocksPort(runtime.client.api));
+    blocks.clear();
+    blocks.refresh().catch(() => undefined);
+  }, [runtime, id]);
   const { onboarded, recheck } = useOnboarded(runtime, id);
   // A person the server removed (the age check) is dropped here too, so nothing acts as them.
   const dropped = useCallback(() => setPerson(null), []);

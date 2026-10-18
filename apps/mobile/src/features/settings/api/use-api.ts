@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useEffect, useMemo } from 'react';
 
 import { useDataClient } from '../../../data';
-import { connectBlocks, type Blocks } from '../../../data/blocks';
+import { blocksPort, connectBlocks, type Blocks } from '../../../data/blocks';
 import { BEARER_KEY } from '../../../data/session';
 import { safetyApi, type SafetyApi } from '../../safety/safety-api';
 import { createRequest, type Request } from './request';
@@ -52,15 +52,12 @@ export function useSafetyApi(): SafetyApi {
 }
 
 /**
- * The phone's block list, connected to the server through these calls and read fresh when a
- * screen that shows or changes it opens.
+ * The phone's one block list (connected at startup through the data layer's requests), read
+ * fresh when a screen that shows or changes it opens.
  */
 export function useBlocks(): Blocks {
-  const api = useSettingsApi();
-  const blocks = useMemo(
-    () => connectBlocks({ list: api.blocks, block: api.block, unblock: api.unblock }),
-    [api],
-  );
+  const client = useDataClient();
+  const blocks = useMemo(() => connectBlocks(blocksPort(client.api)), [client]);
   useEffect(() => {
     blocks.refresh().catch(() => undefined);
   }, [blocks]);

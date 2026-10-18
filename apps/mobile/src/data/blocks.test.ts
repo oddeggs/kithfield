@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import type { BlockList } from '@kithfield/contracts';
 
-import { createBlocks, type BlocksPort } from './blocks';
+import { connectBlocks, createBlocks, type BlocksPort } from './blocks';
 
 const bram = { person: 'bram', name: 'Bram', critter: null, at: 1 };
 
@@ -69,5 +69,20 @@ describe('the people this person blocked', () => {
     s.answer();
     await expect(done).rejects.toThrow('unavailable');
     expect(blocks.getState().blocked).toEqual([bram]);
+  });
+});
+
+describe('the one block list across sessions', () => {
+  it('reads through the session that connected last and forgets the one before', async () => {
+    const first = connectBlocks(server([bram]).port);
+    await first.refresh();
+    expect(first.isBlocked('bram')).toBe(true);
+    first.clear();
+    expect(first.isBlocked('bram')).toBe(false);
+    const next = connectBlocks(server([{ ...bram, person: 'fig', name: 'Fig' }]).port);
+    expect(next).toBe(first);
+    await next.refresh();
+    expect(next.isBlocked('fig')).toBe(true);
+    expect(next.isBlocked('bram')).toBe(false);
   });
 });

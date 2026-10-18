@@ -1,4 +1,4 @@
-import { KNOWN_REACTIONS, type PersonId } from '@kithfield/contracts';
+import type { PersonId } from '@kithfield/contracts';
 import { View } from 'react-native';
 
 import { ArtIcon } from '../../../ui/art/art-view';
@@ -7,12 +7,11 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
+import { DEWDROP, type RowMark } from '../../gestures';
 import { lookOf } from '../model/people';
 import type { BubbleItem } from '../model/timeline';
 import { useChatColours } from '../ui/chat-colours';
 import { useRoom } from './room-context';
-
-const known = new Set<string>(KNOWN_REACTIONS);
 
 /** Who left a dewdrop, as the chip says it: "Pip and Bea", "Pip, Bea and you". */
 export function useDewLabel(people: readonly PersonId[]): string {
@@ -61,9 +60,11 @@ function DewChip({ item }: { readonly item: BubbleItem }) {
 
 function ReactionChip({
   reaction,
+  icon,
   people,
 }: {
   readonly reaction: string;
+  readonly icon: string;
   readonly people: readonly PersonId[];
 }) {
   const { palette } = useTheme();
@@ -87,7 +88,7 @@ function ReactionChip({
         boxShadow: colours.chipShadow,
       }}
     >
-      <ArtIcon name={known.has(reaction) ? reaction : 'sparkle'} size={18} color={palette.text} />
+      <ArtIcon name={icon} size={18} color={palette.text} />
       <View style={{ flexDirection: 'row' }}>
         {people.slice(0, 4).map((p, i) => {
           const critter = room.people.get(p)?.critter;
@@ -107,9 +108,18 @@ function ReactionChip({
   );
 }
 
-/** The dewdrops and warm reactions under a bubble, tucked up against it. */
-export function Reactions({ item }: { readonly item: BubbleItem }) {
-  if (item.dew.length === 0 && item.reactions.length === 0) return null;
+/**
+ * The dewdrops and warm reactions under a bubble, tucked up against it: one chip per mark, in the
+ * marks' order, each with who left it.
+ */
+export function Reactions({
+  item,
+  marks,
+}: {
+  readonly item: BubbleItem;
+  readonly marks: readonly RowMark[];
+}) {
+  if (marks.length === 0) return null;
   return (
     <View
       style={{
@@ -120,10 +130,20 @@ export function Reactions({ item }: { readonly item: BubbleItem }) {
         ...(item.mine ? { marginRight: 12, justifyContent: 'flex-end' } : { marginLeft: 12 }),
       }}
     >
-      {item.dew.length > 0 ? <DewChip item={item} /> : null}
-      {item.reactions.map((r) => (
-        <ReactionChip key={r.reaction} reaction={r.reaction} people={r.people} />
-      ))}
+      {marks.map((mark) =>
+        mark.id === DEWDROP ? (
+          item.dew.length > 0 ? (
+            <DewChip key={mark.id} item={item} />
+          ) : null
+        ) : (
+          <ReactionChip
+            key={mark.id}
+            reaction={mark.id}
+            icon={mark.icon}
+            people={item.reactions.find((r) => r.reaction === mark.id)?.people ?? []}
+          />
+        ),
+      )}
     </View>
   );
 }

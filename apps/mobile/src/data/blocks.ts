@@ -1,5 +1,8 @@
-import type { BlockList, PersonId } from '@kithfield/contracts';
+import { BlockList, type PersonId } from '@kithfield/contracts';
 import { useSyncExternalStore } from 'react';
+import { z } from 'zod';
+
+import type { ApiClient } from './api-client';
 
 type Blocked = BlockList['blocked'][number];
 
@@ -36,6 +39,8 @@ export function createBlocks(port: BlocksPort, now: () => number = Date.now) {
       return () => listeners.delete(listener);
     },
     isBlocked: (person: PersonId) => state.people.has(person),
+    /** Forgets the list, as when the person signs out; the next person's is read afresh. */
+    clear: (): void => set([]),
     async refresh(): Promise<void> {
       set((await port.list()).blocked);
     },
@@ -65,13 +70,43 @@ export function createBlocks(port: BlocksPort, now: () => number = Date.now) {
 
 export type Blocks = ReturnType<typeof createBlocks>;
 
-let shared: Blocks | null = null;
+/** The blocking routes through the data layer's own signed-in requests. */
+export function blocksPort(api: Pick<ApiClient, 'request'>): BlocksPort {
+  const path = (person: PersonId) => `/v1/blocks/${encodeURIComponent(person)}`;
+  return {
+    list: () => api.request(BlockList, 'GET', '/v1/blocks'),
+    block: async (person) => void (await api.request(z.unknown(), 'PUT', path(person))),
+    unblock: async (person) => void (await api.request(z.unknown(), 'DELETE', path(person))),
+  };
+}
 
-/** Connects the phone's one block list to the server, once; later calls reuse it. */
-export function connectBlocks(port: BlocksPort): Blocks {
-  shared ??= createBlocks(port);
+let shared: Blocks | null = null;
+let current: BlocksPort | null = null;
+
+const port = (): BlocksPort => {
+  if (current === null) throw new Error('connectBlocks has not run');
+  return current;
+};
+
+/** The shared list's calls go to whichever session connected last. */
+const viaCurrent: BlocksPort = {
+  list: () => port().list(),
+  block: (person) => port().block(person),
+  unblock: (person) => port().unblock(person),
+};
+
+/**
+ * Connects the phone's one block list to the server (at startup, and again for each new session);
+ * every caller shares the same list.
+ */
+export function connectBlocks(next: BlocksPort): Blocks {
+  current = next;
+  shared ??= createBlocks(viaCurrent);
   return shared;
 }
+
+/** The shared list, once connected. */
+export const sharedBlocks = (): Blocks | null => shared;
 
 /** Whether this person blocked someone, for callers outside React (filters, the gate). */
 export const isBlocked = (person: PersonId): boolean => shared?.isBlocked(person) ?? false;

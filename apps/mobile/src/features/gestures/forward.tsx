@@ -5,6 +5,7 @@ import { ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useDataClient } from '../../data';
+import { useBlocked } from '../../data/blocks';
 import { ArtIcon } from '../../ui/art/art-view';
 import { Avatar } from '../../ui/art/avatar';
 import { NoticeCard } from '../../ui/components/card';
@@ -61,19 +62,8 @@ export function ForwardScreen() {
   const [picked, setPicked] = useState<string[]>([]);
   const [query, setQuery] = useState('');
   const [sending, setSending] = useState(false);
-  const [blocked, setBlocked] = useState<ReadonlySet<string>>(new Set());
-
   // People you've blocked: their messages are never passed along.
-  useEffect(() => {
-    let live = true;
-    client.api.blocks().then(
-      (list) => live && setBlocked(new Set(list.blocked.map((b) => b.person))),
-      () => undefined,
-    );
-    return () => {
-      live = false;
-    };
-  }, [client]);
+  const blocked = useBlocked().people;
 
   useEffect(() => {
     let live = true;

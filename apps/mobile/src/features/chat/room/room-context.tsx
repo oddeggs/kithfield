@@ -25,6 +25,16 @@ export interface RoomValue {
   readonly wave: (to: PersonId) => void;
   /** Whether a plan planted from this message has sprouted. */
   readonly sproutedFrom: (seq: number) => boolean;
+  /** The farm's events the chat holds now, oldest first (read when a row draws, not watched). */
+  readonly events: () => readonly RoomEvent[];
+}
+
+/** An event as a row reads it. */
+export interface RoomEvent {
+  readonly seq: number;
+  readonly actor: string | null;
+  readonly kind: string;
+  readonly payload: unknown;
 }
 
 const RoomContext = createContext<RoomValue | null>(null);

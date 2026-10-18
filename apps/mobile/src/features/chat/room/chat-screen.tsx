@@ -174,6 +174,7 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
       jumpTo: (s: number) => setJump((j) => ({ seq: s, id: (j?.id ?? 0) + 1 })),
       wave: (to) => void latest.current.data.actions.wave(to),
       sproutedFrom: (s) => sprouted(latest.current.data.events, latest.current.state, s),
+      events: () => latest.current.data.events,
     }),
     [farm, data.me, state?.timeZone, visit, people, nameOf],
   );

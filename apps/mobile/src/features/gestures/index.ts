@@ -8,5 +8,5 @@
  *   `farm` and `to`; `/gestures-forward?farm&seq`; `/gestures-quick-tend`.
  */
 export { FileBubble, type FileBubbleProps } from './file-bubble';
-export { reactionRow, iconOfReaction, type RowMark } from './model/reactions';
+export { DEWDROP, reactionRow, iconOfReaction, type RowMark } from './model/reactions';
 export { routes as gestureRoutes } from './routes';
