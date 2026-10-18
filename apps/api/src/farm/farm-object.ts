@@ -1,6 +1,7 @@
 import {
   type CommandResult,
   type Crop,
+  type CritterChangedPayload,
   type EpochMs,
   type EventsQuery,
   type FarmCommand,
@@ -106,6 +107,15 @@ export class FarmDO extends DurableObject<Bindings> {
   view(): FarmView | null {
     const state = this.host.farm.state;
     return state === null ? null : farmPorts().rules.farmView(state, this.host.now());
+  }
+
+  /** The person changed their profile: written here once per op id. */
+  profileChanged(
+    person: PersonId,
+    opId: OpId,
+    changed: CritterChangedPayload,
+  ): Promise<CommandResult> {
+    return actions.profileChanged(this.host, person, opId, changed);
   }
 
   /** An anonymous person was merged into a returning one: see `actions.mergePerson`. */

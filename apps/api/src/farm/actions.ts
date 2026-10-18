@@ -2,6 +2,7 @@ import {
   type ArtId,
   type CommandResult,
   type Crop,
+  type CritterChangedPayload,
   type FarmEvent,
   type FarmGate,
   type FarmId,
@@ -293,3 +294,22 @@ export const mergePerson = async (
     }),
   );
 };
+
+/**
+ * A profile change, written as `critter_changed` on the person's behalf, once per op id. Someone
+ * who no longer lives here is skipped.
+ */
+export const profileChanged = (
+  host: FarmHost,
+  person: PersonId,
+  opId: OpId,
+  changed: CritterChangedPayload,
+) =>
+  finish(
+    host,
+    host.farm.once(opId, host.now(), () => {
+      const actor = host.farm.actorOf(person);
+      if (host.farm.state?.members.some((m) => m.person === actor) !== true) return 'not_member';
+      return { actor, kind: 'critter_changed', payload: changed };
+    }),
+  );

@@ -33,7 +33,9 @@ import {
   useTestPorts,
   pageOf,
   hostOf,
+  settled,
 } from './support/doubles';
+import { tellFarmsOfProfile } from '../../src/farm/profile-fanout';
 import { configureFarmPorts } from '../../src/farm/wiring';
 
 let ports: TestPorts;
@@ -251,6 +253,44 @@ describe('a full farm', () => {
       (await api(pip, 'GET', `/v1/farms/${farm}/waiting`)).body,
     ).waiting;
     expect(waiting.map((w) => w.person)).toEqual([kit.id]);
+  });
+});
+
+describe('a profile change', () => {
+  it('reaches every farm the person lives on once, and their visits’ chat rows', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    const { farm, stub } = await plantFarm(pip, [fig]);
+    const opened = await api(pip, 'POST', '/v1/visits', {
+      person: fig.id,
+      timeZone: 'UTC',
+      hemisphere: 'north',
+    });
+    const visit = (opened.body as { farm: string }).farm;
+    const look = critter('hedgehog');
+    expect(
+      (await api(fig, 'PATCH', '/v1/me/profile', { name: 'Figgy', critter: look })).status,
+    ).toBe(200);
+    for (const id of [farm, visit]) {
+      const me = (await farmStub(id).state())?.members.find((m) => m.person === fig.id);
+      expect(me).toMatchObject({ name: 'Figgy', critter: look });
+      const last = FarmEvent.parse((await pageOf(farmStub(id), { limit: 1 })).events[0]);
+      expect(last).toMatchObject({
+        kind: 'critter_changed',
+        actor: fig.id,
+        payload: { name: 'Figgy', critter: look },
+      });
+    }
+    await settled(farmStub(visit));
+    const rows = await cottageOf(env, pip.id).chatList();
+    expect(rows.find((r) => r.farm === visit)?.with).toMatchObject({
+      person: fig.id,
+      name: 'Figgy',
+    });
+
+    // Telling the farms about the same change again writes nothing new.
+    const before = (await pageOf(stub)).events.length;
+    await tellFarmsOfProfile(env, fig.id, { name: 'Figgy', critter: look });
+    expect((await pageOf(stub)).events.length).toBe(before);
   });
 });
 

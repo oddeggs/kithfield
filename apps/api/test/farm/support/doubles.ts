@@ -29,7 +29,7 @@ export const critter = (species: Critter['species']): Critter => ({
   cottage: null,
 });
 
-/** Someone signed in anonymously, with the name and critter onboarding would have stored. */
+/** Someone signed in anonymously, who has chosen a name and critter (`PATCH /v1/me/profile`). */
 export type Person = { id: string; token: string; name: string; critter: Critter };
 
 const SPECIES: Record<string, Critter['species']> = {
@@ -40,14 +40,17 @@ const SPECIES: Record<string, Critter['species']> = {
   Kit: 'cat',
 };
 
-/** A new anonymous person, with the display name and critter onboarding stores on `people`. */
+/** A new anonymous person, with their name and critter set as onboarding sets them. */
 export const newPerson = async (handle: string): Promise<Person> => {
   const name = `${handle.charAt(0).toUpperCase()}${handle.slice(1)}`;
   const { token, user } = await signInAnonymously();
   const look = critter(SPECIES[name] ?? 'fox');
-  await env.DB.prepare('UPDATE people SET display_name = ?, critter = ? WHERE id = ?')
-    .bind(name, JSON.stringify(look), user.id)
-    .run();
+  const set = await call('/v1/me/profile', {
+    method: 'PATCH',
+    token,
+    body: { name, critter: look },
+  });
+  expect(set.status).toBe(200);
   return { id: user.id, token, name, critter: look };
 };
 

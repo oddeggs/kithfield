@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 
 import type { SessionEnv } from '../auth';
 import './merge';
+import './profile-fanout';
 import { farmRoutes } from './routes-farm';
 import { joiningRoutes } from './routes-joining';
 import { meRoutes } from './routes-me';
