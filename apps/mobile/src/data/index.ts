@@ -4,8 +4,11 @@
  *
  * Starting it (once, at app start, by the shell):
  *
- *   const { client, session, signIn } = await startData(farmRules, report);
- *   <DataProvider client={client} rules={farmRules}>…</DataProvider>
+ *   const { client, session, signIn, network } = await startData(kithfieldRules, report);
+ *   <DataProvider client={client} rules={kithfieldRules} network={network}>…</DataProvider>
+ *
+ * `network` is a switch that cuts the data layer's network (development builds only; null in
+ * release), read with `useNetworkSwitch()`.
  *
  * Reading:
  * - `useFarm(farm)`: the farm with this phone's pending writes drawn in (`state`), the confirmed
@@ -38,6 +41,8 @@
  * `session.signOut()` and start again with `startData`.
  */
 export { startData, type DataRuntime } from './native';
+export { kithfieldRules } from './farm-rules';
+export type { NetworkSwitch } from './dev-network';
 export type { ApiClient } from './api-client';
 export type { DataClient, DataStatus } from './data-client';
 export type { FarmRules } from './farm-rules';
@@ -58,6 +63,7 @@ export {
   useFarmLink,
   useFarmSelector,
   useFarmView,
+  useNetworkSwitch,
   useOpenFarm,
   usePresence,
   useRejections,

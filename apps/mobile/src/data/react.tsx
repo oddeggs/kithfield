@@ -14,6 +14,7 @@ import {
 import { failure } from './apply-events';
 import type { CottageState } from './cottage-connection';
 import type { DataClient, DataStatus } from './data-client';
+import type { NetworkSwitch } from './dev-network';
 import type { FarmLink } from './farm-connection';
 import type { EnqueueResult, FarmReplica, FarmReplicaState } from './farm-replica';
 import type { FarmRules } from './farm-rules';
@@ -24,6 +25,7 @@ import type { StoredEvent, StoredRejection } from './sync-store';
 interface DataContextValue {
   readonly client: DataClient;
   readonly rules: FarmRules<unknown>;
+  readonly network: NetworkSwitch | null;
 }
 
 const DataContext = createContext<DataContextValue | null>(null);
@@ -32,10 +34,12 @@ const DataContext = createContext<DataContextValue | null>(null);
 export function DataProvider(props: {
   readonly client: DataClient;
   readonly rules: FarmRules<unknown>;
+  /** The development network switch (`DataRuntime.network`), when there is one. */
+  readonly network?: NetworkSwitch | null;
   readonly children: ReactNode;
 }) {
-  const { client, rules, children } = props;
-  const value = useMemo(() => ({ client, rules }), [client, rules]);
+  const { client, rules, network = null, children } = props;
+  const value = useMemo(() => ({ client, rules, network }), [client, rules, network]);
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
 
@@ -165,4 +169,19 @@ export function useRejections(): readonly StoredRejection[] {
 export function useDataStatus(): DataStatus {
   const client = useDataClient();
   return useSyncExternalStore(client.subscribe, client.status);
+}
+
+const online = () => false;
+
+/**
+ * The development network switch and whether it is off; null in release builds. Cuts the data
+ * layer's sockets and requests, for trying the outbox and catch-up on a simulator.
+ */
+export function useNetworkSwitch(): { network: NetworkSwitch; offline: boolean } | null {
+  const { network } = useData();
+  const offline = useSyncExternalStore(
+    network ? (listener: () => void) => network.subscribe(listener) : noSubscribe,
+    network ? () => network.offline() : online,
+  );
+  return network ? { network, offline } : null;
 }

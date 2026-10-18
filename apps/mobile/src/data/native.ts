@@ -8,12 +8,13 @@ import { createApiClient } from './api-client';
 import type { SyncReport } from './apply-events';
 import { authPort, createKithfieldAuthClient, type KithfieldAuthClient } from './auth-client';
 import { createDataClient, type DataClient } from './data-client';
+import { createNetworkSwitch, type NetworkSwitch } from './dev-network';
 import type { FarmRules } from './farm-rules';
 import { createOpIdMaker } from './op-id';
 import { createRtTokens } from './rt-tokens';
 import { SessionEnded, createSession, type Session, type SessionStorage } from './session';
 import { createSignIn, type SignIn } from './sign-in';
-import type { WebSocketLike } from './socket';
+import type { OpenSocket, WebSocketLike } from './socket';
 
 // Readable after first unlock, so a background wake can still reach the API. It travels with
 // encrypted backups and device moves, like the database key, so a restored phone stays signed in.
@@ -39,7 +40,11 @@ export interface DataRuntime<View> {
   readonly signIn: SignIn;
   /** Better Auth's client, for anything the helpers don't cover. */
   readonly auth: KithfieldAuthClient;
+  /** Cuts the data layer's network, as losing signal does. Development builds only; else null. */
+  readonly network: NetworkSwitch | null;
 }
+
+const platformSocket: OpenSocket = (url) => new WebSocket(url) as unknown as WebSocketLike;
 
 /**
  * Starts the data layer on the phone: opens the encrypted store, wires the session, the API and
@@ -53,11 +58,27 @@ export async function startData<View>(
   report: (report: SyncReport) => void = () => undefined,
 ): Promise<DataRuntime<View>> {
   const { apiBase } = Constants.expoConfig?.extra as AppExtra;
+  // In a release bundle `__DEV__` is false and the switch is never made.
+  const network = __DEV__
+    ? createNetworkSwitch({
+        fetch: (input, init) => fetch(input, init),
+        openSocket: platformSocket,
+      })
+    : null;
+  const netFetch = network?.fetch ?? fetch;
   const db = await openDatabase((reason) => report({ type: 'store_reset', reason }));
-  const auth = createKithfieldAuthClient({ apiBase, storage: keychain });
+  const auth = createKithfieldAuthClient({
+    apiBase,
+    storage: keychain,
+    ...(network ? { fetch: network.fetch } : {}),
+  });
   const port = authPort(auth);
   const session = createSession(port, keychain);
-  const api = createApiClient({ baseUrl: apiBase, fetch, authHeaders: () => session.headers() });
+  const api = createApiClient({
+    baseUrl: apiBase,
+    fetch: netFetch,
+    authHeaders: () => session.headers(),
+  });
 
   let ended = false;
   await session.ensure().catch((error: unknown) => {
@@ -71,7 +92,7 @@ export async function startData<View>(
     api,
     tokens: createRtTokens((farm) => api.rtToken(farm)),
     socketBase: apiBase.replace(/^http/, 'ws'),
-    openSocket: (url) => new WebSocket(url) as unknown as WebSocketLike,
+    openSocket: network?.openSocket ?? platformSocket,
     me: () => session.person()?.person ?? null,
     appState: AppState,
     newOpId: createOpIdMaker(getRandomBytes),
@@ -99,6 +120,7 @@ export async function startData<View>(
     client,
     session,
     auth,
+    network,
     signIn: {
       ...signIn,
       withIdToken: (provider, openSheet) =>
