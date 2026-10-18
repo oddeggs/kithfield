@@ -1,4 +1,4 @@
-import type { CottageDelivery, FarmState, Lang } from '@kithfield/contracts';
+import type { CottageDelivery, FarmState } from '@kithfield/contracts';
 import { t } from '@kithfield/i18n';
 
 import type { Bindings } from '../env';
@@ -46,13 +46,6 @@ type PlanDayRow = {
   readonly started: number;
   readonly last_json: string | null;
 };
-
-/** `t` for a key that may not be in the catalogue yet: null instead of the key itself. */
-function copy(lang: Lang, key: string, params: Record<string, string>): string | null {
-  const lookup = t as unknown as (l: Lang, k: string, p: Record<string, string>) => string;
-  const text = lookup(lang, key, params);
-  return text === key ? null : text;
-}
 
 async function sendAll(
   intake: Intake,
@@ -201,8 +194,7 @@ async function startPlanDay(intake: Intake, config: ApnsConfig, row: PlanDayRow)
   const attributes = planDayAttributes(env.ENVIRONMENT, state, seed, window);
   const people = planDayState(state, seed);
   const lang = readProfile(sql).settings.lang;
-  const body =
-    copy(lang, 'push.planDay.start', { title: attributes.title }) ?? attributes.place ?? '';
+  const body = t(lang, 'push.planDay.start', { title: attributes.title });
   const payload = startPayload(
     attributes,
     people,

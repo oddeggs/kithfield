@@ -31,4 +31,6 @@ export const pushEn = {
   'push.nudge.last': 'I’ll stop knocking. The farm will wait.',
   /** A remember-me seed's nudge. The seed's title already names the friend. */
   'push.remember': 'You planted a seed: {title}. Maybe ask how it went?',
+  /** The plan's day starting on the Lock Screen (its Live Activity), shown quietly. */
+  'push.planDay.start': '{title} is today.',
 } as const satisfies EnCatalogue;

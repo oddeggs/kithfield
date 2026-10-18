@@ -185,7 +185,7 @@ describe('Live Activities from the server', () => {
     expect(aps).toMatchObject({
       event: 'start',
       'attributes-type': 'SurfaceAttributes',
-      alert: { title: 'Picnic by the river' },
+      alert: { title: 'Picnic by the river', body: 'Picnic by the river is today.' },
     });
     const attributes = aps['attributes'] as { kind: string; key: string; json: string };
     expect(attributes.kind).toBe('plan_day');
