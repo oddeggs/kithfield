@@ -88,6 +88,8 @@ describe('the farm’s words', () => {
   it('counts a bubble’s hours left, rounding up', () => {
     expect(hoursLeft(0, 60 * 60 * 1000 + 1, DAY)).toBe(23);
     expect(hoursLeft(0, DAY - 1, DAY)).toBe(1);
+    // A bubble stamped a little ahead of this phone's clock still has a day at most.
+    expect(hoursLeft(10 * 60_000, 0, DAY)).toBe(24);
   });
 
   it('says who lives here by kind, most first', () => {

@@ -124,7 +124,7 @@ export function planLine(t: Translate, plan: PlanView): string {
 
 /** Hours a status bubble has left of its day, rounded up: "23h left". */
 export const hoursLeft = (at: number, now: number, lifeMs: number): number =>
-  Math.max(1, Math.ceil((at + lifeMs - now) / 3_600_000));
+  Math.min(Math.ceil(lifeMs / 3_600_000), Math.max(1, Math.ceil((at + lifeMs - now) / 3_600_000)));
 
 /**
  * Who lives here, as the sheet says it: "a fox, a bear and two rabbits". Kinds with the most
