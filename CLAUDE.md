@@ -35,6 +35,10 @@ Precedence: docs > design notes > design visuals > older reports.
 - D1 migrations: one file each, `apps/api/migrations/NNNN_<what>.sql`, using the number range your lane is given.
 - Run `pnpm exec prettier --write` on what you changed.
 
+## Tools
+
+Agents run autonomously and may use any suitable tool without asking: chrome-devtools MCP (web pages, the design files, Workers in the browser), computer use (the simulator, Xcode, native apps), agent-device and the Expo MCP (simulators, devices, builds, screenshots), the Cloudflare MCP and plugin skills, and any installed skill that fits the task (Expo, Cloudflare, Wrangler, Durable Objects, code review). Use them to check your own work: screenshot the screen, compare it with `design/renders/`, fix, repeat.
+
 ## This Mac
 
 - Native work is checked on the local iOS simulator; `apps/mobile/ios` is generated and ignored (`expo prebuild -p ios --clean` after native changes).
@@ -48,7 +52,7 @@ Only `.env.example` and `.dev.vars.example` are committed. Never print a secret 
 
 ## Commits
 
-Each lane works on its own branch (`feat/<area>-<behaviour>`) in its own worktree; conventional commits; one commit per task.
+Each lane works on its own branch (`feat/<area>-<behaviour>`) in its own worktree; conventional commits; one commit per task; no AI references or attribution lines (no `Co-Authored-By`, no session links).
 
 ## Status
 
