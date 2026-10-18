@@ -1,0 +1,21 @@
+{
+  "name": "@kithfield/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The Kithfield website (landing pages, legal, invite page, waitlist): a static Astro site served by Cloudflare Workers static assets at <host>/",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "astro": "catalog:"
+  },
+  "devDependencies": {
+    "@astrojs/check": "catalog:",
+    "typescript": "catalog:",
+    "wrangler": "catalog:"
+  }
+}
