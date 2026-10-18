@@ -1,5 +1,5 @@
 import { KNOWN_WEATHER_SOURCES, type WeatherAttribution } from '@kithfield/contracts';
-import { day } from '@kithfield/theme';
+import { rhythmColours } from '@kithfield/theme';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Image, View } from 'react-native';
@@ -9,7 +9,6 @@ import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import type { ViewStyleProp } from '../../ui/style';
-import { rhythmColours } from './colours';
 import { useLoad, useRhythmApi } from './rhythm-api';
 
 /** The provider's mark is shown this tall, never altered or recoloured. */
@@ -52,7 +51,7 @@ export function WeatherAttributionRow({
 }) {
   const { t, language } = useLocale();
   const { palette, appearance } = useTheme();
-  const colours = rhythmColours(appearance);
+  const colours = rhythmColours[appearance];
   const api = useRhythmApi();
   const known = (KNOWN_WEATHER_SOURCES as readonly string[]).includes(source);
   const found = useLoad<WeatherAttribution | null>(
@@ -102,7 +101,7 @@ export function WeatherAttributionRow({
         >
           <Txt
             variant="code"
-            color={appearance === 'night' ? palette.body : day.ink2}
+            color={colours.attributionLink}
             style={{ fontWeight: '600', textDecorationLine: 'underline' }}
           >
             {t('rhythm.weather.sources')}

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { KeyboardStickyView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { rhythmColours } from '@kithfield/theme';
 
 import { useFarm, useFarmView, useOpenFarm, useSend } from '../../data';
 import { LayeredScene } from '../../ui/art/layered-scene';
@@ -19,7 +20,6 @@ import { NightVeil, Panel } from '../farm/panel';
 import { useNow } from '../farm/use-now';
 import { birthdayBloom } from './birthday';
 import { ActionButton, Faces, TitlePill, TopBar } from './chrome';
-import { rhythmColours } from './colours';
 
 const W = 393;
 
@@ -51,7 +51,7 @@ export function BirthdayScreen({
 }) {
   const { t } = useLocale();
   const { palette, appearance } = useTheme();
-  const colours = rhythmColours(appearance);
+  const colours = rhythmColours[appearance];
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const k = width / W;

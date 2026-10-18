@@ -7,6 +7,7 @@ export * from './fonts';
 export * from './gestures';
 export * from './motion';
 export * from './plans';
+export * from './rhythm';
 export * from './settings';
 export * from './space';
 export * from './transitions';

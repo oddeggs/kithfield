@@ -2,6 +2,7 @@ import type { FarmId, LocalDate, PersonId, WeeklyRecap } from '@kithfield/contra
 import { router } from 'expo-router';
 import { ScrollView, Share, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { rhythmColours } from '@kithfield/theme';
 
 import { useFarm } from '../../data';
 import { ArtIcon, ArtStill } from '../../ui/art/art-view';
@@ -15,7 +16,6 @@ import { Txt } from '../../ui/type/text';
 import { nameOf } from '../farm/farm-copy';
 import { typeAt } from '../farm/type-at';
 import { ActionButton, BackButton, Faces } from './chrome';
-import { rhythmColours } from './colours';
 import { recapCopy } from './recap-copy';
 import { useLoad, useRhythmApi } from './rhythm-api';
 import { rhythmRoutes } from './routes';
@@ -89,7 +89,7 @@ function RecapCard({
 }) {
   const { t, fontLocale } = useLocale();
   const { palette, appearance } = useTheme();
-  const colours = rhythmColours(appearance);
+  const colours = rhythmColours[appearance];
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const state = useFarm(farm)?.state ?? null;

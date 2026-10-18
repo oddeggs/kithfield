@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { fruitColour, rhythmColours } from '@kithfield/theme';
 
 import { useFarm } from '../../data';
 import { ArtStill } from '../../ui/art/art-view';
@@ -21,7 +22,6 @@ import { Txt } from '../../ui/type/text';
 import { NightVeil, Panel } from '../farm/panel';
 import { SpeechBubble } from '../farm/speech-bubble';
 import { ActionButton, Faces, IconChip, TitlePill, TopBar } from './chrome';
-import { fruitColour, rhythmColours } from './colours';
 import { say } from './copy';
 import { atGate } from './gate-calls';
 import type { GateOutcome } from './gate-gestures';
@@ -114,7 +114,7 @@ function Gate({
 }) {
   const { t } = useLocale();
   const { palette, appearance } = useTheme();
-  const colours = rhythmColours(appearance);
+  const colours = rhythmColours[appearance];
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const k = width / W;
@@ -217,7 +217,7 @@ function Gate({
             label={t('rhythm.visit.take', { fruits })}
             onPress={() => router.push(rhythmRoutes.trade(gate.farm, from, host?.person ?? friend))}
             bg={fruitColour(gate.signature)}
-            fg={colours.rose.fg}
+            fg={colours.onFruit}
           />
         </View>
       ) : null}

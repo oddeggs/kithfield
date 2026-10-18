@@ -1,5 +1,5 @@
 import type { Crop, FarmGate, FarmId, PersonId } from '@kithfield/contracts';
-import { day } from '@kithfield/theme';
+import { fruitColour, rhythmColours } from '@kithfield/theme';
 import { getRandomBytes } from 'expo-crypto';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -21,7 +21,6 @@ import { NightVeil, Panel } from '../farm/panel';
 import { backToFarm } from '../farm/routes';
 import { typeAt } from '../farm/type-at';
 import { ActionButton } from './chrome';
-import { fruitColour, rhythmColours } from './colours';
 import { useLoad, useRhythmApi } from './rhythm-api';
 import { fruitWords } from './visit-screen';
 
@@ -55,7 +54,7 @@ function CropCard({
   readonly hint?: string;
 }) {
   const { palette, appearance } = useTheme();
-  const colours = rhythmColours(appearance);
+  const colours = rhythmColours[appearance];
   const body = (
     <>
       <ArtStill
@@ -152,7 +151,7 @@ function Swap({
 }) {
   const { t, fontLocale } = useLocale();
   const { palette, appearance } = useTheme();
-  const colours = rhythmColours(appearance);
+  const colours = rhythmColours[appearance];
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const k = width / W;
@@ -303,14 +302,14 @@ function Swap({
             ring={tint}
           />
         </View>
-        <Txt variant="notice" multiline color={appearance === 'night' ? palette.body : day.ink2}>
+        <Txt variant="notice" multiline color={colours.tradeNote}>
           {t('rhythm.trade.note')}
         </Txt>
         <ActionButton
           label={give ? t('rhythm.trade.swap', { name }) : t('rhythm.trade.take')}
           onPress={() => void swap()}
           bg={tint}
-          fg={colours.rose.fg}
+          fg={colours.onFruit}
           disabled={busy || !take}
         />
         <ActionButton

@@ -1,5 +1,5 @@
 import type { Critter } from '@kithfield/contracts';
-import { layout, sizes } from '@kithfield/theme';
+import { layout, rhythmColours, sizes } from '@kithfield/theme';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
@@ -13,12 +13,7 @@ import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import type { ViewStyleProp } from '../../ui/style';
-import { palettes } from '../../ui/theme/palette';
-import { withAlpha } from '../farm/over-art';
 import { typeAt } from '../farm/type-at';
-
-/** The pill's glass by day; by night it takes the night glass, as the farm header does. */
-const PILL_FILL = withAlpha(palettes.day.panel, 0.8);
 
 /* The chrome the rhythm screens share: the top bar over the art, the title pill and buttons. */
 
@@ -104,7 +99,8 @@ export function TitlePill({
   return (
     <Glass
       radius={22}
-      fill={appearance === 'night' ? palette.glassButton.fill : PILL_FILL}
+      // By night the pill takes the night glass, as the farm header does.
+      fill={rhythmColours[appearance].pill ?? palette.glassButton.fill}
       border={palette.glassButton.border}
       style={{
         paddingHorizontal: icon ? 14 : 16,

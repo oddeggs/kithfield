@@ -1,6 +1,6 @@
 import type { FarmId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
-import { farm as farmTheme } from '@kithfield/theme';
+import { farm as farmTheme, rhythmColours } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +17,6 @@ import { NightVeil, Panel } from '../farm/panel';
 import { typeAt } from '../farm/type-at';
 import { useNow } from '../farm/use-now';
 import { WeatherAttributionRow } from './attribution';
-import { rhythmColours } from './colours';
 import { say } from './copy';
 import { todayWeather, type RealWeather, type TodayWeather } from './moments';
 
@@ -80,7 +79,7 @@ export function WeatherChip({
 export function WeatherScreen({ farm }: { readonly farm: FarmId }) {
   const { t, fontLocale } = useLocale();
   const { palette, appearance } = useTheme();
-  const colours = rhythmColours(appearance);
+  const colours = rhythmColours[appearance];
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const k = width / W;

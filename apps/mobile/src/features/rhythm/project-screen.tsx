@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { rhythmColours } from '@kithfield/theme';
 
 import { useFarm, useFarmView, useOpenFarm } from '../../data';
 import { ArtStill } from '../../ui/art/art-view';
@@ -18,7 +19,6 @@ import { backToFarm } from '../farm/routes';
 import { typeAt } from '../farm/type-at';
 import { useNow } from '../farm/use-now';
 import { ActionButton, Faces, TitlePill, TopBar } from './chrome';
-import { rhythmColours } from './colours';
 import { say } from './copy';
 import { captionKey, projectKeys, projectProgress, type ProjectWhen } from './project-copy';
 
@@ -32,7 +32,7 @@ const ART_H = 470;
 export function ProjectScreen({ farm }: { readonly farm: FarmId }) {
   const { t, fontLocale } = useLocale();
   const { palette, appearance } = useTheme();
-  const colours = rhythmColours(appearance);
+  const colours = rhythmColours[appearance];
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const k = width / W;

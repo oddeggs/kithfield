@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { rhythmColours } from '@kithfield/theme';
 
 import { useFarmEvents, useFarm, useFarmView, useOpenFarm, useSend } from '../../data';
 import { ArtStill } from '../../ui/art/art-view';
@@ -17,7 +18,6 @@ import { Txt } from '../../ui/type/text';
 import { typeAt } from '../farm/type-at';
 import { useNow } from '../farm/use-now';
 import { BackButton } from './chrome';
-import { rhythmColours } from './colours';
 import { useRhythmApi } from './rhythm-api';
 import {
   pageTilt,
@@ -60,7 +60,7 @@ function PageCard({
 }) {
   const { t, language, fontLocale } = useLocale();
   const { palette, appearance } = useTheme();
-  const colours = rhythmColours(appearance);
+  const colours = rhythmColours[appearance];
   const date = shortDate(page.at, language, timeZone);
   const snapTilt = index % 2 === 0 ? -5 : 4;
   return (
@@ -98,7 +98,7 @@ function PageCard({
             borderRadius: 3,
             overflow: 'hidden',
             transform: [{ rotate: `${snapTilt}deg` }],
-            boxShadow: '0 2px 6px -2px rgba(0,0,0,.25)',
+            boxShadow: colours.snapShadow,
           }}
         >
           <ArtStill
