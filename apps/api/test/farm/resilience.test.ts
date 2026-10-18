@@ -12,6 +12,7 @@ import {
   hostOf,
   pageOf,
   plantFarm,
+  profile,
   settled,
   type TestPorts,
   useTestPorts,
@@ -81,6 +82,24 @@ describe('who lives on the farm', () => {
     ports.clock.advance(2 * 60_000);
     await runDurableObjectAlarm(stub);
     expect((await membership(farm, fig.id))?.left_at).not.toBeNull();
+  });
+});
+
+describe('the membership mirror', () => {
+  it('is caught up from the farm as it is now, so a late retry never brings back someone who left', async () => {
+    const { pip, kit } = await cast('pip', 'kit');
+    const { farm, stub } = await plantFarm(pip, [kit]);
+    await stub.command(kit.id, { opId: op(1), kind: 'left', payload: {} });
+    // Kit comes back while D1 is down, so the mirror of that `joined` waits for a retry...
+    const heal = await breakMemberships();
+    await stub.join(kit.id, profile(kit), true);
+    await heal();
+    // ...and leaves again before the retry runs.
+    await stub.command(kit.id, { opId: op(2), kind: 'left', payload: {} });
+    ports.clock.advance(2 * 60_000);
+    await runDurableObjectAlarm(stub);
+    expect((await membership(farm, kit.id))?.left_at).not.toBeNull();
+    expect((await stub.state())?.members.map((m) => m.person)).toEqual([pip.id]);
   });
 });
 

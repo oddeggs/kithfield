@@ -113,13 +113,6 @@ export const endMembership = async (db: D1Database, farm: FarmId, person: Person
     .run();
 };
 
-export const setRole = async (db: D1Database, farm: FarmId, person: PersonId, role: Role) => {
-  await db
-    .prepare('UPDATE memberships SET role = ? WHERE farm_id = ? AND person_id = ?')
-    .bind(role, farm, person)
-    .run();
-};
-
 /* Invites: only a hash of the code is kept. A new invite retires the farm's old ones. */
 
 export type InviteRow = { farm_id: FarmId; expires_at: number | null; uses_left: number | null };

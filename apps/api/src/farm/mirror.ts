@@ -1,11 +1,13 @@
 import { type FarmEvent, type FarmState, isTombstone } from '@kithfield/contracts';
 
-import { endMembership, setRole, updateFarm, upsertMembership } from './d1';
+import { endMembership, updateFarm, upsertMembership } from './d1';
 
 /**
  * D1's mirror of who lives on a farm, kept in step with the log: joining, leaving, removal, roles,
- * and the farm's name and land. The farm's own state is the truth; this copy serves the farm list,
- * push fan-out and the gate's friends-of-friends check. Throws if D1 fails, for a retry.
+ * and the farm's name and land. The farm's own state is the truth and this copy is written from it
+ * as it is now, never from the event's payload, so a retry that runs late can't bring back a
+ * membership that has since ended. It serves the farm list, push fan-out and the gate's
+ * friends-of-friends check. Throws if D1 fails, for a retry.
  */
 export const mirrorMembership = async (
   db: D1Database,
@@ -14,20 +16,30 @@ export const mirrorMembership = async (
 ): Promise<void> => {
   if (isTombstone(event.payload)) return;
   const farm = state.farm;
-  if (event.kind === 'joined' && event.actor !== null) {
-    const role = state.members.find((m) => m.person === event.actor)?.role ?? 'critter';
-    await upsertMembership(db, farm, event.actor, role, event.at);
-  } else if (event.kind === 'left' && event.actor !== null) {
-    await endMembership(db, farm, event.actor, event.at);
-  } else if (event.kind === 'removed') {
-    await endMembership(db, farm, event.payload.person, event.at);
-  } else if (event.kind === 'settings_changed') {
-    const p = event.payload;
-    if (p.setting === 'name') await updateFarm(db, farm, { name: p.name });
-    if (p.setting === 'land') await updateFarm(db, farm, { land: p.land });
-    if (p.setting === 'role') {
-      await setRole(db, farm, p.person, p.role);
-      if (p.role === 'keeper') await updateFarm(db, farm, { keeper: p.person });
+  const person =
+    event.kind === 'joined' || event.kind === 'left'
+      ? event.actor
+      : event.kind === 'removed'
+        ? event.payload.person
+        : event.kind === 'settings_changed' && event.payload.setting === 'role'
+          ? event.payload.person
+          : null;
+  if (person !== null) {
+    const member = state.members.find((m) => m.person === person);
+    if (member === undefined) {
+      await endMembership(db, farm, person, event.at);
+    } else {
+      await upsertMembership(db, farm, person, member.role, member.joinedAt);
     }
+    // Who keeps the farm can change with a role or a departure (the farm hands it over).
+    const keeper = state.members.find((m) => m.role === 'keeper');
+    if (keeper !== undefined && event.kind !== 'joined') {
+      await updateFarm(db, farm, { keeper: keeper.person });
+    }
+  }
+  if (event.kind === 'settings_changed') {
+    const { setting } = event.payload;
+    if (setting === 'name' && state.name !== null) await updateFarm(db, farm, { name: state.name });
+    if (setting === 'land') await updateFarm(db, farm, { land: state.land });
   }
 };
