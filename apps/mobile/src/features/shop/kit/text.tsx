@@ -1,13 +1,12 @@
-import { vietnamese } from '@kithfield/theme';
 import { Children, type ReactNode } from 'react';
 import type { TextStyle } from 'react-native';
 
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Txt, type TxtProps } from '../../../ui/type/text';
+import { lineHeightOf, type Face } from './line-height';
 import type { TypeVariant } from '../../../ui/type/styles';
 
-/** The three faces `09 Shop and Plus` sets: Young Serif, Gaegu and the system face. */
-export type Face = 'serif' | 'hand' | 'sys';
+export type { Face } from './line-height';
 
 export interface STextProps extends Omit<TxtProps, 'variant'> {
   /** Defaults to the system face. */
@@ -49,11 +48,7 @@ export function SText({
   ...rest
 }: STextProps) {
   const { fontLocale } = useLocale();
-  const designed = Math.round(s * lh * 10) / 10;
-  const lineHeight =
-    fontLocale === 'vi'
-      ? Math.max(designed, Math.round(s * vietnamese.minLineHeightRatio))
-      : designed;
+  const lineHeight = lineHeightOf(f, s, lh, fontLocale);
   const own: TextStyle = {
     fontSize: s,
     lineHeight,
