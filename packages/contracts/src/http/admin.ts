@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { EventKindSchema, FarmEvent } from '../events';
+import { AnyEventKind, EventEnvelope } from '../events';
 import {
   DisplayName,
   EpochMs,
@@ -24,7 +24,7 @@ import { ReportReason } from './safety';
 export const ModeratorRole = z.enum(['moderator', 'senior', 'legal']);
 export type ModeratorRole = z.infer<typeof ModeratorRole>;
 
-/** Queue categories (19-01). Urgent ones carry a 1-hour target, the rest 24 hours. */
+/** Queue categories. Urgent ones carry a 1-hour target, the rest 24 hours. */
 export const ReportCategory = z.enum([
   'harassment',
   'spam',
@@ -56,9 +56,10 @@ export const QueueRow = z.object({
   category: ReportCategory,
   urgent: z.boolean(),
   /** What was reported; null for a report about a person, or an automatic flag. */
-  kind: EventKindSchema.nullable(),
+  kind: AnyEventKind.nullable(),
   farm: FarmId,
-  farmName: FarmName,
+  /** Null for a visit. */
+  farmName: FarmName.nullable(),
   reporters: z.int().min(0).max(LIMITS.members),
   source: z.enum(['member', 'link_reputation', 'hash_match']),
   claimedBy: Id.nullable(),
@@ -71,7 +72,7 @@ export const QueuePage = z.object({
 });
 export type QueuePage = z.infer<typeof QueuePage>;
 
-/** `GET /admin/v1/reports/:id` claims the report and logs the look (19-02). */
+/** `GET /admin/v1/reports/:id` claims the report and logs the look. */
 export const ReportDetail = z.object({
   report: Id,
   status: ReportStatus,
@@ -80,13 +81,14 @@ export const ReportDetail = z.object({
   receivedAt: EpochMs,
   dueAt: EpochMs,
   farm: FarmId,
-  farmName: FarmName,
+  /** Null for a visit. */
+  farmName: FarmName.nullable(),
   reported: z.object({ person: PersonId, name: DisplayName.nullable() }),
   reportedSeq: Seq.nullable(),
   reasons: z.array(ReportReason).max(LIMITS.members),
   notes: z.array(text(500)).max(LIMITS.members),
   /** The reported event and those around it, copied when the report was made. */
-  context: z.array(FarmEvent).max(LIMITS.reportContext),
+  context: z.array(EventEnvelope).max(LIMITS.reportContext),
   signals: z.object({
     earlierReports: z.int().min(0),
     accountAgeDays: z.int().min(0),
@@ -97,7 +99,11 @@ export const ReportDetail = z.object({
 });
 export type ReportDetail = z.infer<typeof ReportDetail>;
 
-/** The decisions a moderator can make (19-02). Removal from Kithfield needs a second moderator. */
+/**
+ * The decisions a moderator can make. Removal from Kithfield needs a second moderator. Pausing
+ * writes `settings_changed {setting: 'paused'}` on the person's farms; freezing writes
+ * `settings_changed {setting: 'frozen'}`.
+ */
 export const ModerationAction = z.enum([
   'dismiss',
   'remove',
@@ -107,12 +113,19 @@ export const ModerationAction = z.enum([
   'remove_from_kithfield',
   'escalate_urgent',
   'escalate_legal',
+  'freeze_farm',
+  'unfreeze_farm',
 ]);
 export type ModerationAction = z.infer<typeof ModerationAction>;
 
-const ruleFree = new Set<ModerationAction>(['dismiss', 'escalate_urgent', 'escalate_legal']);
+const ruleFree = new Set<ModerationAction>([
+  'dismiss',
+  'escalate_urgent',
+  'escalate_legal',
+  'unfreeze_farm',
+]);
 
-/** `POST /admin/v1/reports/:id/actions`. Every action but a dismissal or escalation names a rule. */
+/** `POST /admin/v1/reports/:id/actions`. Every action but a dismissal, an escalation or an unfreeze names a rule. */
 export const ActionRequest = z
   .object({
     action: ModerationAction,
@@ -138,7 +151,7 @@ export type ActionResponse = z.infer<typeof ActionResponse>;
 export const AppealStatus = z.enum(['open', 'kept', 'undone']);
 export type AppealStatus = z.infer<typeof AppealStatus>;
 
-/** `GET /admin/v1/appeals` (19-04). */
+/** `GET /admin/v1/appeals`. */
 export const AppealRow = z.object({
   appeal: Id,
   person: PersonId,
@@ -154,20 +167,23 @@ export const AppealRow = z.object({
 });
 export type AppealRow = z.infer<typeof AppealRow>;
 
-/** `POST /admin/v1/appeals/:id/decision`: only by someone who didn't touch the report. */
+/**
+ * `POST /admin/v1/appeals/:id/decision`: only by someone who didn't touch the report. Undoing a
+ * removal writes `restored` on the farm.
+ */
 export const AppealDecision = z.object({
   outcome: z.enum(['keep', 'undo']),
   reply: text(2000),
 });
 export type AppealDecision = z.infer<typeof AppealDecision>;
 
-/** `GET /admin/v1/members/:id` (19-03): safety history only, never other chats. */
+/** `GET /admin/v1/members/:id`: safety history only, never other chats. */
 export const MemberRecord = z.object({
   person: PersonId,
   name: DisplayName.nullable(),
   species: Species.nullable(),
   joinedAt: EpochMs,
-  farms: z.array(z.object({ farm: FarmId, name: FarmName })).max(500),
+  farms: z.array(z.object({ farm: FarmId, name: FarmName.nullable() })).max(500),
   warnings: z.int().min(0),
   pausedUntil: EpochMs.nullable(),
   history: z
@@ -188,7 +204,7 @@ export const MemberRecord = z.object({
 });
 export type MemberRecord = z.infer<typeof MemberRecord>;
 
-/** One append-only audit log row (19-05). `by` is null for the system (hash matches). */
+/** One append-only audit log row. `by` is null for the system (hash matches). */
 export const AuditEntry = z.object({
   id: Id,
   at: EpochMs,

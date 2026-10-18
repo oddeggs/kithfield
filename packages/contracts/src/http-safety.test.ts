@@ -1,7 +1,8 @@
 import * as admin from './http/admin';
 import * as errors from './http/errors';
 import * as safety from './http/safety';
-import { at, bea, describeSchemas, eventPayloads, farm, opId, pip } from './samples.test-data';
+import { at, bea, eventPayloads, farm, opId, pip } from './samples.test-data';
+import { describeSchemas } from './schema-runner.test-data';
 
 const event = { seq: 41, opId, at, actor: bea, rulesVersion: 1, kind: 'message' };
 const queueRow = {
@@ -87,7 +88,10 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
   ReportCategory: [['under_13', 'self_harm'], ['rudeness']],
   ReportStatus: [['claimed'], ['lost']],
   QueueQuery: [[{}, { category: 'hate', cursor: 'c1' }], [{ category: 'all' }]],
-  QueueRow: [[queueRow], [{ ...queueRow, reporters: -1 }]],
+  QueueRow: [
+    [queueRow, { ...queueRow, farmName: null, kind: 'lantern_lit' }],
+    [{ ...queueRow, reporters: -1 }],
+  ],
   QueuePage: [[{ rows: [queueRow], cursor: null }], [{ rows: [queueRow] }]],
   ReportDetail: [
     [
@@ -104,7 +108,10 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         reportedSeq: 41,
         reasons: ['unkind', 'unkind'],
         notes: ['third time this week'],
-        context: [{ ...event, payload: eventPayloads.message }],
+        context: [
+          { ...event, payload: eventPayloads.message },
+          { ...event, seq: 42, kind: 'lantern_lit', payload: {} },
+        ],
         signals: {
           earlierReports: 1,
           accountAgeDays: 210,
@@ -116,7 +123,10 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
     ],
     [{ report: 'R-1', context: Array(22).fill({ ...event, payload: eventPayloads.message }) }],
   ],
-  ModerationAction: [['remove_warn', 'remove_from_kithfield'], ['shadowban']],
+  ModerationAction: [
+    ['remove_warn', 'remove_from_kithfield', 'freeze_farm', 'unfreeze_farm'],
+    ['shadowban'],
+  ],
   ActionRequest: [
     [
       {
@@ -134,6 +144,20 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         tellMember: false,
       },
       {
+        action: 'unfreeze_farm',
+        rule: null,
+        note: 'Keepers back in charge',
+        tellReporters: false,
+        tellMember: false,
+      },
+      {
+        action: 'freeze_farm',
+        rule: 6,
+        note: 'Scam links from a taken-over account',
+        tellReporters: true,
+        tellMember: false,
+      },
+      {
         action: 'escalate_urgent',
         rule: 'self_harm',
         note: 'Resources sent',
@@ -141,7 +165,10 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         tellMember: false,
       },
     ],
-    [{ action: 'remove', rule: null, note: 'gone', tellReporters: true, tellMember: true }],
+    [
+      { action: 'remove', rule: null, note: 'gone', tellReporters: true, tellMember: true },
+      { action: 'freeze_farm', rule: null, note: 'raid', tellReporters: true, tellMember: false },
+    ],
   ],
   ActionResponse: [
     [{ action: 'a1', status: 'awaiting_second' }],

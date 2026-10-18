@@ -1,48 +1,58 @@
 import { describe, expect, it } from 'vitest';
 
-import * as account from './http/account';
 import * as farms from './http/farms';
-import {
-  at,
-  bea,
-  critter,
-  describeSchemas,
-  eventPayloads,
-  farm,
-  opId,
-  pip,
-} from './samples.test-data';
+import * as media from './http/media';
+import { at, bea, critter, eventPayloads, farm, opId, pip } from './samples.test-data';
+import { describeSchemas } from './schema-runner.test-data';
 
 const url = 'https://kithfield.com/i/thursday-lot';
 const key = 'farm/f_thursday_lot/0192f1e2-3b4c-7d5e-8f60-123456789abc';
 const event = { seq: 41, opId, at, actor: bea, rulesVersion: 1, kind: 'message' };
 const invite = { code: 'thursday-lot', url, expiresAt: null };
-const device = {
-  device: 'd_1',
-  name: "June's iPhone",
-  platform: 'ios',
-  city: 'London',
-  lastActiveAt: at,
-  current: true,
+const calendar = { timeZone: 'Europe/London', hemisphere: 'north' };
+const gate = {
+  farm: 'f_fern_hollow',
+  name: 'Fern Hollow',
+  land: 'orchard',
+  theme: null,
+  hemisphere: 'north',
+  season: { season: 'autumn', year: 2026 },
+  signature: 'plum',
+  inSeason: ['pumpkin', 'apple'],
+  critters: [{ person: 'p_kit', name: 'Kit', critter }],
 };
 
 const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
   EventsPage: [
-    [{ events: [{ ...event, payload: eventPayloads.message }], more: true }],
-    [{ events: [] }],
+    [
+      {
+        events: [
+          { ...event, payload: eventPayloads.message },
+          { ...event, seq: 42, kind: 'lantern_lit', payload: { colour: 'amber' } },
+        ],
+        more: true,
+      },
+    ],
+    [{ events: [] }, { events: [{ ...event, kind: 'Bad Kind', payload: {} }], more: false }],
   ],
   SearchQuery: [[{ q: 'picnic' }], [{ q: '' }, { q: 'x'.repeat(101) }]],
   SearchResults: [
     [{ results: [{ seq: 41, at, actor: bea, kind: 'message', snippet: 'a <b>picnic</b>' }] }],
-    [{ results: [{ seq: 41, at, actor: bea, kind: 'gossip', snippet: 'x' }] }],
+    [{ results: [{ seq: 41, at, actor: bea, kind: 'Gossip!', snippet: 'x' }] }],
   ],
   Invite: [[invite, { ...invite, expiresAt: at }], [{ ...invite, code: 'a b' }]],
   CreateFarmRequest: [
-    [{ name: 'The Thursday Lot', land: 'meadow' }],
-    [{ name: '', land: 'meadow' }],
+    [{ name: 'The Thursday Lot', land: 'meadow', ...calendar }],
+    [
+      { name: '', land: 'meadow', ...calendar },
+      { name: 'The Thursday Lot', land: 'meadow' },
+    ],
   ],
   CreateFarmResponse: [[{ farm, invite }], [{ farm }]],
-  OpenVisitRequest: [[{ person: pip }], [{}]],
+  OpenVisitRequest: [
+    [{ person: pip, ...calendar }],
+    [{ person: pip }, { person: pip, timeZone: 'Mars/Base', hemisphere: 'east' }],
+  ],
   OpenVisitResponse: [[{ farm }], [{ farm: '' }]],
   FarmList: [
     [
@@ -56,6 +66,14 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
             role: 'keeper',
             joinedAt: at,
           },
+          {
+            farm: 'f_visit',
+            kind: 'visit',
+            name: null,
+            land: 'porch',
+            role: 'critter',
+            joinedAt: at,
+          },
         ],
       },
     ],
@@ -67,12 +85,21 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
       {
         name: 'The Thursday Lot',
         land: 'meadow',
-        critters: ['rabbit', 'owl'],
+        critters: [critter, { ...critter, species: 'owl' }],
         full: false,
         approval: true,
       },
     ],
-    [{ name: 'x', land: 'meadow', critters: Array(25).fill('owl'), full: false, approval: false }],
+    [
+      {
+        name: 'x',
+        land: 'meadow',
+        critters: Array(25).fill(critter),
+        full: false,
+        approval: false,
+      },
+      { name: 'x', land: 'meadow', critters: ['owl'], full: false, approval: false },
+    ],
   ],
   JoinRequest: [[{ name: 'June', critter }], [{ name: 'June' }]],
   JoinResponse: [[{ farm, status: 'waiting_for_keeper' }], [{ farm, status: 'maybe' }]],
@@ -117,62 +144,48 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         uploadId: 'u1',
         partBytes: 8 * 1024 * 1024,
         parts: [{ part: 1, url }],
-        completeUrl: url,
         expiresAt: at,
       },
     ],
     [{ upload: 'single', key: 'other/key', url, expiresAt: at }],
   ],
-  RtTokenRequest: [[{}, { farm }], [{ farm: 'bad id!' }]],
-  RtTokenResponse: [
-    [{ token: 'x'.repeat(32), expiresAt: at }],
-    [{ token: 'short', expiresAt: at }],
+  WaitingList: [
+    [{ waiting: [{ person: 'p_rue', name: 'Rue', critter, askedAt: at }] }, { waiting: [] }],
+    [{ waiting: [{ person: 'p_rue', name: 'Rue' }] }],
   ],
-  Platform: [['ios', 'windows'], ['symbian']],
-  RegisterDeviceRequest: [
+  ApprovalRequest: [[{ approve: true }, { approve: false }], [{ approve: 'yes' }]],
+  FarmGate: [[gate, { ...gate, signature: null, inSeason: [] }], [{ ...gate, season: 'autumn' }]],
+  GateRequest: [
     [
-      {
-        platform: 'ios',
-        name: "June's iPhone",
-        pushToken: 'ExponentPushToken[abc]',
-        appVersion: '1.0.0 (412)',
-      },
+      { opId, gesture: { gesture: 'wave' } },
+      { opId, gesture: { gesture: 'firefly', to: bea, words: 'hello from Kit' } },
+      { opId, gesture: { gesture: 'gift', gift: 'g_2', to: bea, item: 'jam.plum', wrap: 'kraft' } },
     ],
-    [{ platform: 'ios', name: 'x', pushToken: null, appVersion: 'one' }],
+    [{ opId, gesture: { gesture: 'read_chat' } }, { gesture: { gesture: 'wave' } }],
   ],
-  DeviceList: [
-    [{ devices: [device, { ...device, city: null, current: false }] }],
-    [{ devices: [{ ...device, platform: 'tv' }] }],
+  TradeRequest: [
+    [
+      { opId, from: farm, give: 'lavender', take: 'plum' },
+      { opId, from: farm, give: null, take: 'plum' },
+    ],
+    [
+      { opId, from: farm, give: 'lavender' },
+      { opId, give: null, take: 'plum' },
+    ],
   ],
-  DesktopLinkResponse: [
-    [{ code: 'abcdefghijklmnop', expiresAt: at }],
-    [{ code: 'short', expiresAt: at }],
+  CompleteUploadRequest: [
+    [{ key, uploadId: 'u1', parts: [{ part: 1, etag: '"abc"' }] }],
+    [{ key, uploadId: 'u1', parts: [] }],
   ],
-  DesktopLinkPreview: [
-    [{ name: "June's MacBook Air", platform: 'macos', city: 'London' }],
-    [{ name: '', platform: 'macos', city: null }],
+  CompleteUploadResponse: [[{ key }], [{ key: 'elsewhere/x' }]],
+  ReadUrlsRequest: [[{ keys: [key] }], [{ keys: [] }, { keys: Array(51).fill(key) }]],
+  ReadUrlsResponse: [
+    [{ urls: [{ key, url, expiresAt: at }] }],
+    [{ urls: [{ key, url: 'ftp://x', expiresAt: at }] }],
   ],
-  AgeRequest: [[{ birthYear: 2001, country: 'VN' }], [{ birthYear: 2001, country: 'vn' }]],
-  TermsRequest: [[{ version: '2026-10-01' }], [{ version: 'latest' }]],
-  AiFeature: [['captions', 'recap'], ['catch_up']],
-  ConsentRequest: [
-    [{ allowed: true, textVersion: '2026-10.1' }],
-    [{ allowed: 'yes', textVersion: '1' }],
-  ],
-  ConsentList: [
-    [{ consents: [{ feature: 'recap', allowed: false, textVersion: '1', at }] }],
-    [{ consents: [{ feature: 'recap' }] }],
-  ],
-  DeleteAccountResponse: [[{ purgeAt: at }], [{}]],
-  DeletionRequest: [[{ email: 'june@example.com', lang: 'vi' }], [{ email: 'june', lang: 'en' }]],
-  WaitlistRequest: [
-    [{ email: 'june@example.com', lang: 'en' }],
-    [{ email: 'june@example.com', lang: 'fr' }],
-  ],
-  BlockList: [[{ blocked: [pip] }], [{ blocked: ['bad id!'] }]],
 };
 
-describeSchemas('HTTP bodies for farms and accounts', { ...farms, ...account }, samples, [
+describeSchemas('HTTP bodies for farms and media', { ...farms, ...media }, samples, [
   'EventsQuery',
 ]);
 
@@ -183,11 +196,21 @@ describe('the events paging query', () => {
       limit: 200,
     });
     expect(farms.EventsQuery.parse({ before: '41' })).toEqual({ before: 41, limit: 50 });
+    expect(farms.EventsQuery.parse({ kinds: 'media,link' })).toEqual({
+      limit: 50,
+      kinds: ['media', 'link'],
+    });
     for (const bad of [
       { limit: '201' },
       { after: '-1' },
       { after: '9', before: '9' },
       { after: 'x' },
+      { after: '1e3' },
+      { after: '' },
+      { limit: ' 5' },
+      { after: '0x10' },
+      { kinds: 'media,gossip' },
+      { kinds: '' },
     ]) {
       expect(farms.EventsQuery.safeParse(bad).success, JSON.stringify(bad)).toBe(false);
     }

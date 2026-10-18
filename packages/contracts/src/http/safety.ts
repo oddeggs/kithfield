@@ -1,15 +1,15 @@
 import { z } from 'zod';
 
-import { EventKindSchema } from '../events';
+import { AnyEventKind } from '../events';
 import { EpochMs, FarmId, FarmName, Id, PersonId, RuleRef, Seq, text } from '../primitives';
 
-/** What a member can pick when reporting (11-09). */
+/** What a member can pick when reporting a message. */
 export const ReportReason = z.enum(['unkind', 'unwanted_contact', 'spam', 'something_else']);
 export type ReportReason = z.infer<typeof ReportReason>;
 
 /**
  * `POST /v1/reports`: a message (with up to 20 events around it copied as evidence) or a person
- * (11-06). The reported person is never told who reported.
+ * from the members list. The reported person is never told who reported.
  */
 export const ReportRequest = z.object({
   farm: FarmId,
@@ -26,14 +26,15 @@ export type ReportRequest = z.infer<typeof ReportRequest>;
 export const ReportResponse = z.object({ report: Id });
 export type ReportResponse = z.infer<typeof ReportResponse>;
 
-/** What happened to a member's account after a decision, as they are told it (11-22). */
+/** What happened to a member's account after a decision, as they are told it. */
 export const AccountOutcome = z.enum(['unchanged', 'warned', 'paused', 'removed_from_farm']);
 export type AccountOutcome = z.infer<typeof AccountOutcome>;
 
 /**
  * `GET /v1/me/safety-notes`: the quiet notes from the safety team, shown in the farm, never pushed
- * with content. The reporter hears the outcome for the item, never the sanction (11-21); the
- * reported person hears which rule and can ask for another look (11-22).
+ * with content. The reporter hears the outcome for the item, never the sanction; the reported
+ * person hears which rule and can ask for another look. The cottage socket's `safety_note` frame
+ * says when there is a new one.
  */
 export const SafetyNote = z.discriminatedUnion('note', [
   z.object({
@@ -42,9 +43,10 @@ export const SafetyNote = z.discriminatedUnion('note', [
     at: EpochMs,
     report: Id,
     farm: FarmId,
-    farmName: FarmName,
+    /** Null for a visit. */
+    farmName: FarmName.nullable(),
     about: PersonId.nullable(),
-    kind: EventKindSchema.nullable(),
+    kind: AnyEventKind.nullable(),
     eventAt: EpochMs.nullable(),
     outcome: z.enum(['removed', 'kept']),
   }),
@@ -54,8 +56,9 @@ export const SafetyNote = z.discriminatedUnion('note', [
     at: EpochMs,
     action: Id,
     farm: FarmId,
-    farmName: FarmName,
-    kind: EventKindSchema.nullable(),
+    /** Null for a visit. */
+    farmName: FarmName.nullable(),
+    kind: AnyEventKind.nullable(),
     eventAt: EpochMs.nullable(),
     rule: RuleRef,
     /** Shown blurred until tapped, so it doesn't hurt twice. */

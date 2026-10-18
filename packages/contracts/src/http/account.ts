@@ -30,7 +30,17 @@ export const RegisterDeviceRequest = z.object({
 });
 export type RegisterDeviceRequest = z.infer<typeof RegisterDeviceRequest>;
 
-/** `GET /v1/devices` (11-14). Place is a city only. `DELETE /v1/devices/:deviceId` signs one out. */
+/**
+ * The device's action key, for the share extension and notification reply actions: they send it
+ * in the `Kithfield-Action-Key` header to `POST /v1/farms/:id/cmd` without the app's session.
+ * Registering again rotates it.
+ */
+export const RegisterDeviceResponse = z.object({
+  actionKey: z.string().regex(/^[A-Za-z0-9_-]{32,256}$/),
+});
+export type RegisterDeviceResponse = z.infer<typeof RegisterDeviceResponse>;
+
+/** `GET /v1/devices`. Place is a city only. `DELETE /v1/devices/:deviceId` signs one out. */
 export const DeviceList = z.object({
   devices: z
     .array(
@@ -47,7 +57,7 @@ export const DeviceList = z.object({
 });
 export type DeviceList = z.infer<typeof DeviceList>;
 
-/** `POST /v1/desktop-link` from a computer: a one-time QR code that lives 60 seconds (11-13). */
+/** `POST /v1/desktop-link` from a computer: a one-time QR code that lives 60 seconds. */
 export const DesktopLinkResponse = z.object({
   code: z.string().regex(/^[A-Za-z0-9_-]{16,128}$/),
   expiresAt: EpochMs,
@@ -64,18 +74,18 @@ export type DesktopLinkPreview = z.infer<typeof DesktopLinkPreview>;
 
 /** `POST /v1/desktop-link/:code/approve` or `/decline` takes no body. */
 
-/** `POST /v1/me/age` (03-14). The year is never shown to anyone; under-age answers `under_age`. */
+/** `POST /v1/me/age`. The year is never shown to anyone; under-age answers `under_age`. */
 export const AgeRequest = z.object({
   birthYear: z.int().min(1900).max(2100),
   country: CountryCode,
 });
 export type AgeRequest = z.infer<typeof AgeRequest>;
 
-/** `POST /v1/me/terms` (03-15). */
+/** `POST /v1/me/terms`: the version (its date) of the terms the person accepted. */
 export const TermsRequest = z.object({ version: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) });
 export type TermsRequest = z.infer<typeof TermsRequest>;
 
-/** AI features that send words or voices out, each asked per person (11-18, 11-19). */
+/** AI features that send words or voices out, each asked per person before anything is sent. */
 export const AiFeature = z.enum(['captions', 'recap']);
 export type AiFeature = z.infer<typeof AiFeature>;
 
@@ -101,7 +111,7 @@ export const ConsentList = z.object({
 });
 export type ConsentList = z.infer<typeof ConsentList>;
 
-/** `POST /v1/me/delete` (11-03): soft delete; signing in within 30 days restores everything. */
+/** `POST /v1/me/delete`: soft delete; signing in within 30 days restores everything. */
 export const DeleteAccountResponse = z.object({ purgeAt: EpochMs });
 export type DeleteAccountResponse = z.infer<typeof DeleteAccountResponse>;
 
