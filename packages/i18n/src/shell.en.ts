@@ -5,6 +5,8 @@ import type { EnCatalogue } from './catalogue-types';
  * falls back on. Tab names follow the tab bar in `01 Foundations` and `12 States`.
  */
 export const shellEn = {
+  /** The app's name, where a screen stands in before its feature is built. */
+  'shell.appName': 'Kithfield',
   'shell.tab.farm': 'Farm',
   'shell.tab.chat': 'Chats',
   'shell.tab.seedBed': 'Seed bed',
@@ -15,6 +17,8 @@ export const shellEn = {
   'shell.sheet.handle': 'Sheet handle',
   'shell.sheet.handleHint': 'Swipe up or down to resize',
   'shell.sheet.close': 'Close',
+  /** VoiceOver's name for a control's long-press, in the actions rotor. */
+  'shell.action.more': 'More options',
   /** A quiet note's header: the sender's name, then the note's promise. */
   'shell.bubble.quietNote': '{name} · no reply needed',
   /** Under a bubble that didn't send; tapping it sends again. */

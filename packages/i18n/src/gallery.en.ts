@@ -1,9 +1,10 @@
 import type { EnCatalogue } from './catalogue-types';
 
 /**
- * The developer component gallery (never in the store app): the sample copy of the component
- * library in `01 Foundations`, word for word, so the gallery can be checked against its render,
- * plus the samples of the empty and error shells from `12 States`.
+ * The developer component gallery's sample copy: the component library in `01 Foundations`, word
+ * for word, so the gallery can be checked against its render, plus samples of the empty and error
+ * shells from `12 States`. The gallery screen is left out of release builds; this catalogue, like
+ * every other, ships with the app.
  */
 export const galleryEn = {
   'gallery.title': 'Component library',
@@ -40,6 +41,11 @@ export const galleryEn = {
   'gallery.segment.everyone': 'Everyone',
   'gallery.bubble.name': 'Bea',
   'gallery.bubble.quietName': 'Mo',
+  'gallery.name.fig': 'Fig',
+  'gallery.name.otis': 'Otis',
+  'gallery.language.en': 'English',
+  'gallery.language.vi': 'Tiếng Việt',
+  'gallery.error.code': 'KF-503',
   'gallery.bubble.theirs': 'Theirs, with name and critter',
   'gallery.bubble.yours': 'Yours, moss',
   'gallery.bubble.quiet': 'A quiet note',

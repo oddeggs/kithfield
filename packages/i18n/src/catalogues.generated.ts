@@ -8,7 +8,7 @@ import { glossarySameInBoth, glossaryVi } from './glossary.vi';
 import { pushEn } from './push.en';
 import { pushSameInBoth, pushVi } from './push.vi';
 import { shellEn } from './shell.en';
-import { shellVi } from './shell.vi';
+import { shellSameInBoth, shellVi } from './shell.vi';
 import { signInCodeEn } from './sign-in-code.en';
 import { signInCodeVi } from './sign-in-code.vi';
 
@@ -17,7 +17,7 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'gallery', file: 'gallery', en: galleryEn, vi: galleryVi, sameInBoth: gallerySameInBoth },
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
-  { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: [] },
+  { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
 ];
 

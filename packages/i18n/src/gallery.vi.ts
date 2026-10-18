@@ -36,6 +36,11 @@ export const galleryVi: ViCatalogue<typeof galleryEn> = {
   'gallery.segment.everyone': 'Tất cả',
   'gallery.bubble.name': 'Bea',
   'gallery.bubble.quietName': 'Mo',
+  'gallery.name.fig': 'Fig',
+  'gallery.name.otis': 'Otis',
+  'gallery.language.en': 'English',
+  'gallery.language.vi': 'Tiếng Việt',
+  'gallery.error.code': 'KF-503',
   'gallery.bubble.theirs': 'Của bạn ấy, có tên và bạn thú',
   'gallery.bubble.yours': 'Của bạn, màu rêu',
   'gallery.bubble.quiet': 'Một lời nhắn nhẹ nhàng',
@@ -72,8 +77,13 @@ export const galleryVi: ViCatalogue<typeof galleryEn> = {
   'gallery.toast.text': 'Đã lưu vào sổ lưu niệm.',
 };
 
-/** Friends' names in the samples. */
+/** Friends' names, each language's own name for itself, and a support code. */
 export const gallerySameInBoth = [
   'gallery.bubble.name',
   'gallery.bubble.quietName',
+  'gallery.name.fig',
+  'gallery.name.otis',
+  'gallery.language.en',
+  'gallery.language.vi',
+  'gallery.error.code',
 ] as const satisfies readonly (keyof typeof galleryEn)[];
