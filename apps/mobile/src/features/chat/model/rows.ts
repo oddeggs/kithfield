@@ -27,3 +27,19 @@ export function canEdit(
     now - item.at <= EDIT_WINDOW_MS
   );
 }
+
+/**
+ * The room to leave above the oldest row, so that scrolled to its end the oldest row sits right
+ * under the header however far the header has folded (it folds 1:1 with the scroll, up to
+ * `collapse`). `full` is the room under the unfolded header; `rows` is the height of everything
+ * else in the list; `viewport` is the list's height.
+ */
+export function topRoom(full: number, collapse: number, rows: number, viewport: number): number {
+  const over = rows - viewport;
+  // Short enough that it never scrolls: the whole header stands over it.
+  if (over <= -full) return full;
+  // Long enough to fold the header all the way.
+  if (over >= 2 * collapse - full) return full - collapse;
+  // In between, the room and the fold meet: room = full - (over + room).
+  return (full - over) / 2;
+}

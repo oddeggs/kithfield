@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { canEdit, rowIndexOf } from './rows';
+import { canEdit, rowIndexOf, topRoom } from './rows';
 import { buildTimeline, type LogEvent } from './timeline';
 
 const T0 = Date.UTC(2026, 9, 15, 18, 0);
@@ -54,5 +54,31 @@ describe('editing', () => {
     expect(canEdit(mine, T0 + 16 * 60_000)).toBe(false);
     expect(canEdit({ ...mine, mine: false }, T0)).toBe(false);
     expect(canEdit({ ...mine, body: { kind: 'quiet_note', text: 'x' } }, T0)).toBe(false);
+  });
+});
+
+describe('the room above the oldest row', () => {
+  // The farm's header leaves 234 points over the chat, and folds away 86 of them as it scrolls.
+  const room = (rows: number, viewport = 800) => topRoom(234, 86, rows, viewport);
+
+  it('is the whole header when the chat fits without scrolling', () => {
+    expect(room(300)).toBe(234);
+    expect(room(800 - 234)).toBe(234);
+  });
+
+  it('is the folded header when the chat scrolls far enough to fold it', () => {
+    expect(room(2000)).toBe(234 - 86);
+    // Scrolled to its end, the header has folded exactly as far as the room left for it.
+    const rows = 800 - (234 - 86) + 86;
+    expect(room(rows)).toBe(148);
+  });
+
+  it('meets the header part-way when the chat scrolls only a little', () => {
+    const rows = 800 - 234 + 40;
+    const p = room(rows);
+    const scrolled = rows + p - 800;
+    expect(p).toBe(234 - scrolled);
+    expect(scrolled).toBeGreaterThan(0);
+    expect(scrolled).toBeLessThan(86);
   });
 });

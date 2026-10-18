@@ -7,7 +7,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import { rowIndexOf } from '../model/rows';
+import { rowIndexOf, topRoom } from '../model/rows';
 import type { TimelineItem } from '../model/timeline';
 import { runsOf } from './room-people';
 import { TimelineRow } from './timeline-row';
@@ -27,6 +27,8 @@ export interface TimelineListProps {
   readonly loadOlder: () => void;
   /** Room above the oldest row (under the farm) and below the newest (over the composer). */
   readonly topSpace: number;
+  /** How far the header folds away as the chat scrolls back. */
+  readonly topFold: number;
   readonly bottomSpace: number;
   /** How far the chat has scrolled back from its newest row; the header follows it. */
   readonly scrollY: SharedValue<number>;
@@ -46,7 +48,8 @@ const Gap = () => <View style={{ height: 12 }} />;
  * scrolled to once measured, and lit only once it's on screen.
  */
 export function TimelineList(props: TimelineListProps) {
-  const { rows, now, older, loadOlder, topSpace, bottomSpace, scrollY, jump, top, bottom } = props;
+  const { rows, now, older, loadOlder, topSpace, topFold, bottomSpace, scrollY, jump } = props;
+  const { top, bottom } = props;
   const list = useAnimatedRef<Animated.FlatList<TimelineItem>>();
   const newestFirst = useMemo(() => [...rows].reverse(), [rows]);
   const runs = useMemo(() => {
@@ -71,6 +74,15 @@ export function TimelineList(props: TimelineListProps) {
       openedAt.current !== null && row.type === 'bubble' && row.at > openedAt.current,
     [],
   );
+
+  // The room above the oldest row follows how far the header can fold over this chat, so the
+  // oldest row meets the header at the end of the scroll with no gap.
+  const [rowsHeight, setRowsHeight] = useState(0);
+  const [viewport, setViewport] = useState(0);
+  const roomAbove = viewport === 0 ? topSpace : topRoom(topSpace, topFold, rowsHeight, viewport);
+  // The room the last measured content was laid out with, to measure the rows without it.
+  const laidOut = useRef(roomAbove);
+  laidOut.current = roomAbove;
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
@@ -129,6 +141,8 @@ export function TimelineList(props: TimelineListProps) {
       data={newestFirst}
       keyExtractor={(item) => item.key}
       onScroll={onScroll}
+      onLayout={(e) => setViewport(e.nativeEvent.layout.height)}
+      onContentSizeChange={(_w, h) => setRowsHeight(h - laidOut.current)}
       scrollEventThrottle={16}
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"
@@ -156,7 +170,7 @@ export function TimelineList(props: TimelineListProps) {
         flexGrow: 1,
         justifyContent: 'flex-end',
         paddingTop: bottomSpace,
-        paddingBottom: topSpace,
+        paddingBottom: roomAbove,
         paddingHorizontal: 14,
       }}
       ItemSeparatorComponent={Gap}

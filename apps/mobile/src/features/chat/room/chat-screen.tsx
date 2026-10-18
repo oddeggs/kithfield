@@ -275,6 +275,7 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
               older={data.older}
               loadOlder={() => void data.loadOlder()}
               topSpace={size.full - SHEET_OVERLAP + 14 + pinTop}
+              topFold={size.full - size.min}
               bottomSpace={composerH + 8}
               scrollY={scrollY}
               jump={jump}
