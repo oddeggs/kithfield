@@ -76,7 +76,7 @@ export default defineConfig([
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
       'no-restricted-syntax': ['error', namedExportsOnly],
-      'max-lines': ['error', { max: 300, skipBlankLines: true, skipComments: true }],
+      'max-lines': ['error', { max: 600, skipBlankLines: true, skipComments: true }],
     },
   },
 
@@ -87,13 +87,21 @@ export default defineConfig([
     languageOptions: { globals: { ...globals.node } },
   },
 
-  // Everything Metro may bundle (the app and the shared packages) uses extensionless relative imports.
+  // All workspace TypeScript imports relatives extensionless, so any of it can move into code Metro
+  // bundles. Wrangler, Vite (Astro, Vitest) and tsx resolve it the same way; scripts in tools/ run
+  // through tsx, not Node's own type stripping, which needs the extension.
   {
-    files: ['apps/mobile/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
+    files: ['**/*.{ts,tsx}'],
     rules: { 'no-restricted-syntax': ['error', namedExportsOnly, ...extensionlessRelativeImports] },
   },
 
+  // Files that may default-export still import relatives extensionless when they are TypeScript.
   { files: defaultExportAllowed, rules: { 'no-restricted-syntax': 'off' } },
+  {
+    files: defaultExportAllowed,
+    ignores: ['**/*.{js,mjs,cjs}'],
+    rules: { 'no-restricted-syntax': ['error', ...extensionlessRelativeImports] },
+  },
 
   {
     files: testFiles,

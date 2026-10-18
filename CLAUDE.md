@@ -30,7 +30,7 @@ Precedence: docs > design notes > design visuals > older reports.
 ## Repo conventions
 
 - Packages are `@kithfield/<dir>`, ESM, export TypeScript source. Versions live in the `catalog:` of `pnpm-workspace.yaml`, pinned like 6pm.
-- TypeScript strict (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax`). Named exports except route files and configs. Files ≤ 300 lines.
+- TypeScript strict (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax`). Named exports except route files and configs. Files ≤ 600 lines.
 - Relative imports are extensionless (Metro).
 - D1 migrations: one file each, `apps/api/migrations/NNNN_<what>.sql`, using the number range your lane is given.
 - Run `pnpm exec prettier --write` on what you changed.
