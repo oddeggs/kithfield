@@ -36,6 +36,9 @@ export const activityPorts = {
     env.FARM.get(env.FARM.idFromName(farm)).state(),
 };
 
+/** Outside a plan event, a farm is asked for its plans at most this often. */
+export const PLAN_CHECK_MS = 60_000;
+
 /** Events that can change a plan's day, who is going, or who is there. */
 const PLAN_KINDS = new Set(['seed_planted', 'seed_changed', 'vote', 'rsvp', 'checkin', 'unsent']);
 
@@ -80,9 +83,28 @@ export async function considerActivities(intake: Intake, delivery: CottageDelive
   try {
     if (delivery.kind === 'fire') await fireChanged(intake, config, delivery.farm);
     else if (PLAN_KINDS.has(delivery.kind)) await plansChanged(intake, config, delivery.farm);
+    // A plan can also sprout with no plan event (its settle day passing): any event looks again.
+    else if (dueCheck(intake, delivery.farm)) await plansChanged(intake, config, delivery.farm);
   } catch (error) {
     console.error('live activity update failed', { error: String(error) });
   }
+}
+
+/** Whether a farm's plans are due another look outside a plan event, and notes it if so. */
+function dueCheck(intake: Intake, farm: string): boolean {
+  const { sql, now } = intake;
+  const canStart = activities.startTokens(sql).length > 0 && mayStartOn(sql, farm, now);
+  if (!canStart && activities.followedSeeds(sql, farm).length === 0) return false;
+  const last = sql
+    .exec<{ at: number }>('SELECT at FROM activity_checks WHERE farm = ?', farm)
+    .toArray()[0]?.at;
+  if (last !== undefined && now - last < PLAN_CHECK_MS) return false;
+  sql.exec(
+    'INSERT INTO activity_checks (farm, at) VALUES (?, ?) ON CONFLICT (farm) DO UPDATE SET at = excluded.at',
+    farm,
+    now,
+  );
+  return true;
 }
 
 async function fireChanged(intake: Intake, config: ApnsConfig, farm: string): Promise<void> {

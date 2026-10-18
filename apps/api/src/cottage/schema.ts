@@ -109,6 +109,11 @@ export const COTTAGE_SCHEMA = [
     at INTEGER NOT NULL,
     PRIMARY KEY (device, activity, farm, seed)
   )`,
+  // When the cottage last asked a farm for its plans outside a plan event (at most once a minute).
+  `CREATE TABLE IF NOT EXISTS activity_checks (
+    farm TEXT PRIMARY KEY,
+    at INTEGER NOT NULL
+  )`,
   // The sprouted plans the person is going to, while their day is ahead or under way: when its
   // Live Activity starts and ends on their phones, and the people it last showed.
   `CREATE TABLE IF NOT EXISTS plan_days (

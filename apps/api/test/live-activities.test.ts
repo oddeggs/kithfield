@@ -440,3 +440,27 @@ describe('the plan’s day and the push budget', () => {
     expect(starts()).toEqual([]);
   });
 });
+
+describe('a plan that sprouts without a plan event', () => {
+  it('is found on the farm’s next event, and the farm is asked at most once a minute', async () => {
+    const { person, cottage } = await personOnPhone();
+    await cottage.setActivityStartToken('phone-1', PHONE_START);
+    let asked = 0;
+    activityPorts.farmState = () => {
+      asked += 1;
+      return Promise.resolve(farm);
+    };
+    // The settle day passed and the plan sprouted: the farm wrote no plan event about it.
+    farm = farmWith([seed({ rsvps: [{ person, answer: 'in' }] })], ['pip', person]);
+    await cottage.deliver(delivery(40, 'message'));
+    await cottage.deliver(delivery(41, 'message'));
+    expect(asked).toBe(1);
+    useTestClock('2026-10-18T12:01:30Z');
+    await cottage.deliver(delivery(42, 'reaction'));
+    expect(asked).toBe(2);
+    const stub = env.COTTAGE.get(env.COTTAGE.idFromName(person));
+    useTestClock('2026-10-18T14:01:00Z');
+    await runInDurableObject(stub, (instance) => instance.alarm());
+    expect(sent.map((s) => s.body.aps['event'])).toEqual(['start']);
+  });
+});
