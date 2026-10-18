@@ -13,6 +13,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
+import { stickerRoutes } from '../stickers/routes';
 import { useAttach, type AttachFrom } from './attach';
 import { cloudUp, defaultFriend } from './model/people';
 import { open, routes } from './routes';
@@ -222,6 +223,9 @@ export function TrayScreen() {
           <View style={{ flexDirection: 'row', gap: 10 }}>
             {pill('camera', t('gestures.tray.photos'), () => void files('library'))}
             {pill('note', t('gestures.tray.files'), () => void files('files'))}
+            {pill('sparkle', t('gestures.tray.stickers'), () =>
+              then(() => open(stickerRoutes.picker(g.farm))),
+            )}
           </View>
         </>
       )}

@@ -105,6 +105,7 @@ export const gesturesVi: ViCatalogue<typeof gesturesEn> = {
   'gestures.tray.plantBody': 'Cho câu "mình nên gặp nhau". Nó lớn lên ngoài cuộc trò chuyện.',
   'gestures.tray.photos': 'Ảnh',
   'gestures.tray.files': 'Tệp',
+  'gestures.tray.stickers': 'Nhãn dán',
   'gestures.tray.notePlaceholder': 'Vài lời, không cần trả lời',
   'gestures.tray.noteSend': 'Để lại mẩu giấy',
 

@@ -108,6 +108,7 @@ export const gesturesEn = {
   'gestures.tray.plantBody': 'For "we should hang out." It grows outside the chat.',
   'gestures.tray.photos': 'Photos',
   'gestures.tray.files': 'Files',
+  'gestures.tray.stickers': 'Stickers',
   'gestures.tray.notePlaceholder': 'A few words, no reply needed',
   'gestures.tray.noteSend': 'Leave the note',
 
