@@ -2,6 +2,7 @@ import type { MiddlewareHandler } from 'hono';
 
 import { requireSession, verifyRtToken } from '../auth';
 import type { Bindings } from '../env';
+import { hibernateOnFarms } from '../farm/hibernate';
 
 /*
  * Where the cottage meets code built alongside it: sign-in (sessions and socket tokens) and the
@@ -40,13 +41,7 @@ export interface CottageAdapters {
 const production: CottageAdapters = {
   verifyRtToken: (env, token, scope) => verifyRtToken(env, token, scope),
   requireSession,
-  // The farm object isn't merged yet. Once it is, this walks the person's memberships and asks
-  // each farm to write `hibernate {on}`. Until then the cottage alone knows, and the route calls
-  // this on every request so a later wiring can be caught up by asking again.
-  fanOutHibernate: (_env, person) => {
-    console.warn('hibernate fan-out is not wired; the farms were not told', { person });
-    return Promise.resolve();
-  },
+  fanOutHibernate: hibernateOnFarms,
 };
 
 let current: CottageAdapters = production;
