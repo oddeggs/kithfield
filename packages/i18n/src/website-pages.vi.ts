@@ -31,19 +31,16 @@ export const websitePagesVi: ViCatalogue<typeof websitePagesEn> = {
   'websitePages.waitlist.body':
     'Tụi mình sẽ viết đúng một lần khi Kithfield mở cửa gần bạn. Không bản tin.',
   'websitePages.waitlist.email': 'Email',
-  'websitePages.waitlist.iphone': 'Mình dùng iPhone',
   'websitePages.waitlist.submit': 'Vào danh sách chờ',
 
   'websitePages.thanks.title': 'Trong lúc chờ, bạn là bé nào?',
   'websitePages.thanks.kicker': 'bạn đã có tên trong danh sách',
+  'websitePages.thanks.pendingKicker': 'còn một bước nữa',
+  'websitePages.thanks.pending': 'Mở hộp thư nhé: bấm vào link trong thư để giữ chỗ của bạn.',
   'websitePages.thanks.body':
     'Chọn bé của bạn ngay bây giờ, bé sẽ đợi sẵn khi cổng mở. Sau này đổi ý cũng được.',
   'websitePages.thanks.save': 'Giữ {name} con {kind} cho mình',
-  'websitePages.thanks.saveSoon':
-    'Sắp có thể giữ bé trước. Thư xác nhận email đang trên đường tới bạn.',
-  'websitePages.thanks.share':
-    'Rủ bạn bè: ai vào từ link của bạn sẽ có một căn nhà ngay cạnh nhà bạn.',
-  'websitePages.thanks.confirmed': 'Email của bạn đã được xác nhận. Hẹn gặp ở cổng.',
+  'websitePages.thanks.saveSoon': 'Sắp có thể giữ bé trước.',
 
   'websitePages.letter.subject': 'Xác nhận chỗ của bạn ở cổng Kithfield',
   'websitePages.letter.greeting': 'Xin chào từ nông trại!',
@@ -53,16 +50,29 @@ export const websitePagesVi: ViCatalogue<typeof websitePagesEn> = {
   'websitePages.letter.notYou':
     'Nếu bạn không yêu cầu, cứ để lá thư này lại, tụi mình sẽ quên email của bạn.',
   'websitePages.letter.signOff': 'Bác cú ở Kithfield',
+  'websitePages.confirm.title': 'Đang xác nhận chỗ của bạn',
+  'websitePages.confirm.working': 'Đang kiểm tra link…',
+  'websitePages.confirm.expired':
+    'Link này đã hết hạn hoặc đã được dùng. Giữ chỗ lại nhé, tụi mình sẽ gửi link mới.',
+  'websitePages.confirm.again': 'Giữ chỗ lại',
+  'websitePages.confirm.error': 'Cổng chưa trả lời. Thử lại chút nữa nhé.',
+  'websitePages.confirm.retry': 'Thử lại',
+  'websitePages.notFound.title': 'Lối này chẳng dẫn tới đâu',
+  'websitePages.notFound.body': 'Trang này có thể đã dời đi, hoặc link bị gõ nhầm.',
+  'websitePages.notFound.home': 'Về lại nông trại',
 
   'websitePages.privacy.title': 'Lời hứa về quyền riêng tư',
   'websitePages.privacy.lead':
-    'Cập nhật ngày 1 tháng 10 năm 2026. Nói ngắn gọn: tin nhắn là của bạn, và tụi mình không bao giờ bán hay dùng dữ liệu của bạn để quảng cáo.',
+    'Cập nhật ngày 18 tháng 10 năm 2026. Nói ngắn gọn: tin nhắn là của bạn, và tụi mình không bao giờ bán hay dùng dữ liệu của bạn để quảng cáo.',
   'websitePages.privacy.keepTitle': 'Những gì tụi mình giữ',
   'websitePages.privacy.keep':
-    'Tài khoản của bạn (email, hoặc đăng nhập Apple hay Google), bé của bạn, các nông trại bạn tham gia, và những gì bạn chia sẻ ở đó: tin nhắn, ảnh và tin thoại. Tất cả được mã hoá khi truyền đi và khi lưu trữ. Đây không phải mã hoá đầu cuối: máy chủ của tụi mình đọc được, để tìm kiếm, báo cáo an toàn và các tính năng bạn chọn hoạt động được.',
+    'Tài khoản của bạn (email, hoặc đăng nhập Apple hay Google), ngày sinh hoặc lần xác nhận tuổi và lúc bạn đồng ý nội quy, bé của bạn, các nông trại bạn tham gia, và những gì bạn chia sẻ ở đó: tin nhắn, ảnh và tin thoại. Tụi mình cũng giữ mã thông báo đẩy của thiết bị, những gì bạn đã mua và những gì chúng mở khoá, cùng các báo cáo bạn gửi hoặc người khác gửi về bạn. Tất cả được mã hoá khi truyền đi và khi lưu trữ. Đây không phải mã hoá đầu cuối: máy chủ của tụi mình đọc được, để tìm kiếm, báo cáo an toàn và các tính năng bạn chọn hoạt động được.',
   'websitePages.privacy.neverTitle': 'Những gì tụi mình không bao giờ làm',
   'websitePages.privacy.never':
     'Không quảng cáo, không bán dữ liệu, không môi giới dữ liệu, không ghi âm bên đống lửa. Phụ đề và bản tóm tắt Chủ nhật luôn tắt cho tới khi bạn đồng ý, và chỉ khi đó lời của bạn mới rời nông trại cho các tính năng này.',
+  'websitePages.privacy.partnersTitle': 'Ai giúp tụi mình',
+  'websitePages.privacy.partners':
+    'Cloudflare vận hành máy chủ và lưu dữ liệu của bạn. Expo chuyển thông báo tới Apple và Google. LiveKit truyền giọng nói bên đống lửa. RevenueCat ghi nhận các giao dịch mua. Apple và Google đăng nhập cho bạn khi bạn chọn họ. Mỗi bên chỉ nhận đúng những gì công việc của họ cần.',
   'websitePages.privacy.waitlistTitle': 'Danh sách chờ',
   'websitePages.privacy.waitlist':
     'Nếu bạn giữ chỗ, tụi mình giữ email của bạn để viết đúng một lần khi Kithfield mở cửa, rồi xoá đi. Email không được xác nhận sẽ bị xoá sau một tuần. Tụi mình chỉ giữ lại một dấu vân tay có khoá của email, để bé bạn chọn trước tìm được bạn khi bạn đăng ký.',
@@ -82,7 +92,7 @@ export const websitePagesVi: ViCatalogue<typeof websitePagesEn> = {
     'Plus và các món đồ được bán qua App Store và Google Play. Đồ bạn mua là của bạn chừng nào Kithfield còn hoạt động.',
   'websitePages.terms.leavingTitle': 'Rời đi',
   'websitePages.terms.leaving':
-    'Bạn có thể lặng lẽ rời bất kỳ nông trại nào, hoặc xoá tài khoản. Tụi mình xoá dữ liệu của bạn trong vòng 30 ngày.',
+    'Bạn có thể lặng lẽ rời bất kỳ nông trại nào, hoặc xoá tài khoản. Xoá tài khoản bắt đầu 30 ngày chờ, trong thời gian đó đăng nhập lại là huỷ; sau đó tụi mình xoá dữ liệu của bạn.',
 
   'websitePages.support.title': 'Trợ giúp và câu hỏi',
   'websitePages.support.search': 'Tìm trợ giúp',

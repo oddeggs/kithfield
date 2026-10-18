@@ -110,7 +110,7 @@ export const websiteVi: ViCatalogue<typeof websiteEn> = {
   'website.join.emailLabel': 'Email của bạn',
   'website.join.submit': 'Giữ chỗ cho mình',
   'website.join.saved': 'Đã giữ',
-  'website.join.done': 'Xong rồi. Cửa sổ nhà bạn đã treo đèn lồng.',
+  'website.join.done': 'Sắp xong rồi: tụi mình vừa gửi thư để bạn xác nhận email.',
   'website.join.sending': 'Đang giữ…',
   'website.join.invalid': 'Email này có vẻ chưa đúng.',
   'website.join.busy': 'Cổng đang đông người gõ. Thử lại sau một phút nhé.',

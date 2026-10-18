@@ -116,7 +116,7 @@ export const websiteEn = {
   'website.join.emailLabel': 'Your email',
   'website.join.submit': 'Save my cottage',
   'website.join.saved': 'Saved',
-  'website.join.done': 'Done. Your cottage has a lantern in the window.',
+  'website.join.done': 'Almost there: we sent a letter to confirm your email.',
   'website.join.sending': 'Saving…',
   'website.join.invalid': "That email doesn't look quite right.",
   'website.join.busy': 'Lots of knocks at the gate. Try again in a minute.',

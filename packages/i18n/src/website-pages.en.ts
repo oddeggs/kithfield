@@ -36,19 +36,16 @@ export const websitePagesEn = {
   'websitePages.waitlist.kicker': 'come in, come in',
   'websitePages.waitlist.body': "We'll write once when Kithfield opens near you. No newsletters.",
   'websitePages.waitlist.email': 'Email',
-  'websitePages.waitlist.iphone': "I'm on iPhone",
   'websitePages.waitlist.submit': 'Join the waitlist',
 
   'websitePages.thanks.title': 'While you wait, who are you?',
   'websitePages.thanks.kicker': "you're on the list",
+  'websitePages.thanks.pendingKicker': 'one more step',
+  'websitePages.thanks.pending': 'Check your inbox: tap the link in our letter to keep your spot.',
   'websitePages.thanks.body':
     "Pick your critter now and it'll be waiting when the gate opens. You can change your mind later.",
   'websitePages.thanks.save': 'Save {name} the {kind} for me',
-  'websitePages.thanks.saveSoon':
-    'Saving a critter early opens soon. Your letter to confirm your email is on its way.',
-  'websitePages.thanks.share':
-    'Tell a friend: everyone who joins from your link saves a cottage next to yours.',
-  'websitePages.thanks.confirmed': 'Your email is confirmed. See you at the gate.',
+  'websitePages.thanks.saveSoon': 'Saving a critter early opens soon.',
 
   'websitePages.letter.subject': 'Confirm your spot at the Kithfield gate',
   'websitePages.letter.greeting': 'Hello from the farm!',
@@ -58,16 +55,29 @@ export const websitePagesEn = {
   'websitePages.letter.notYou':
     "If you didn't ask for this, let this letter be and we'll forget your email.",
   'websitePages.letter.signOff': 'The owl at Kithfield',
+  'websitePages.confirm.title': 'Confirming your spot',
+  'websitePages.confirm.working': 'Checking your link…',
+  'websitePages.confirm.expired':
+    "This link has expired or was already used. Save your spot again and we'll send a fresh one.",
+  'websitePages.confirm.again': 'Save my spot again',
+  'websitePages.confirm.error': "The gate didn't answer. Try again in a moment.",
+  'websitePages.confirm.retry': 'Try again',
+  'websitePages.notFound.title': "This path doesn't lead anywhere",
+  'websitePages.notFound.body': 'The page may have moved, or the link was mistyped.',
+  'websitePages.notFound.home': 'Back to the farm',
 
   'websitePages.privacy.title': 'Our privacy promise',
   'websitePages.privacy.lead':
-    'Last updated 1 October 2026. The short version: your messages are yours, and we never sell or advertise with your data.',
+    'Last updated 18 October 2026. The short version: your messages are yours, and we never sell or advertise with your data.',
   'websitePages.privacy.keepTitle': 'What we keep',
   'websitePages.privacy.keep':
-    'Your account (your email, or your Apple or Google sign-in), your critter, the farms you belong to, and what you share there: messages, photos and voice notes. It travels encrypted and is stored encrypted. It is not end-to-end encrypted: our servers can read it, so that search, safety reports and the features you choose can work.',
+    "Your account (your email, or your Apple or Google sign-in), your birthday or age check and when you accepted the house rules, your critter, the farms you belong to, and what you share there: messages, photos and voice notes. We also keep your devices' push tokens, what you bought and what it unlocks, and the reports you make or that are made about you. It travels encrypted and is stored encrypted. It is not end-to-end encrypted: our servers can read it, so that search, safety reports and the features you choose can work.",
   'websitePages.privacy.neverTitle': 'What we never do',
   'websitePages.privacy.never':
     'No ads, no data brokers, no selling your data, no recording by the fire. Captions and the Sunday recap stay off until you say yes, and only then do your words leave the farm for them.',
+  'websitePages.privacy.partnersTitle': 'Who helps us',
+  'websitePages.privacy.partners':
+    'Cloudflare runs our servers and stores your data. Expo carries notifications to Apple and Google. LiveKit carries voices by the fire. RevenueCat keeps track of purchases. Apple and Google sign you in when you choose them. Each gets only what its job needs.',
   'websitePages.privacy.waitlistTitle': 'The waitlist',
   'websitePages.privacy.waitlist':
     'If you save a spot, we keep your email to write to you once when Kithfield opens, then we delete it. An email you never confirm is deleted after a week. A keyed fingerprint of it stays, so a critter you picked early finds you when you sign up.',
@@ -87,7 +97,7 @@ export const websitePagesEn = {
     'Plus and items are sold through the App Store and Google Play. Items you buy are yours for as long as Kithfield runs.',
   'websitePages.terms.leavingTitle': 'Leaving',
   'websitePages.terms.leaving':
-    'You can leave any farm quietly, or delete your account. We delete your data within 30 days.',
+    'You can leave any farm quietly, or delete your account. Deleting starts a 30-day wait in which signing in cancels it; after that we delete your data.',
 
   'websitePages.support.title': 'Help and questions',
   'websitePages.support.search': 'Search help',
