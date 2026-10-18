@@ -2,6 +2,7 @@ import type { SkImage } from '@shopify/react-native-skia';
 import type { SkiaApi } from './canvas2d/skia-api';
 
 import { adoptSpriteMap, DEFAULT_CACHE_BYTES, SpriteCache } from './cache';
+import { newCaches } from './canvas2d/caches';
 import { ArtCanvas, type SkiaEnv } from './canvas2d/canvas';
 import { FontBook, type FaceEntry } from './canvas2d/font';
 import { createHost, type HostElement } from './host/dom';
@@ -12,8 +13,6 @@ export interface ArtOptions {
   skia: SkiaApi;
   /** The embedded faces by CSS family and weight (see `faceEntries`). */
   faces: readonly FaceEntry[];
-  /** `raster` (CPU, the default) or `offscreen` (GPU). */
-  surface?: 'raster' | 'offscreen';
   /** The sprite cache's cap in bytes. */
   cacheBytes?: number;
   /** A scene that throws is reported here (the element itself only logs and carries on). */
@@ -39,6 +38,7 @@ interface KfElement extends HostElement {
   layers: Record<string, ArtCanvas>;
   draw(t: number): void;
   connectedCallback(): void;
+  disconnectedCallback(): void;
 }
 
 /**
@@ -55,6 +55,7 @@ export class Art {
   readonly env: SkiaEnv;
   private readonly KfArt: new () => KfElement;
   private readonly elements = new Map<string, KfElement>();
+  private readonly disposers = new Map<string, () => void>();
   /** Canvases holding a whole critter sprite, for drawing a scene with the critters lifted out. */
   readonly critterCanvases = new WeakSet<ArtCanvas>();
   private onError: (message: string, error: unknown) => void;
@@ -69,7 +70,7 @@ export class Art {
     this.env = {
       skia: options.skia,
       fonts: new FontBook(options.skia, options.faces),
-      surface: options.surface ?? 'raster',
+      caches: newCaches(),
       shadowSigma: canvasShadowSigma,
     };
     const { host, element } = createHost(this.env, (m, e) => this.onError(m, e));
@@ -92,18 +93,14 @@ export class Art {
     return c;
   }
 
-  private elementFor(req: SceneRequest): KfElement {
+  private elementFor(req: SceneRequest): { key: string; el: KfElement } {
     const dpr = req.dpr ?? 2;
     const attrs = Object.entries(req.attrs ?? {})
       .filter(([, v]) => v !== undefined && v !== false)
       .sort(([a], [b]) => a.localeCompare(b));
     const key = JSON.stringify([req.scene, req.width, req.height, dpr, attrs]);
     let el = this.elements.get(key);
-    if (el) {
-      this.elements.delete(key);
-      this.elements.set(key, el);
-      return el;
-    }
+    if (el) return { key, el };
     el = new this.KfArt();
     el.clientWidth = req.width;
     el.clientHeight = req.height;
@@ -112,17 +109,17 @@ export class Art {
     for (const [name, v] of attrs) el.setAttribute(name, String(v));
     el.connectedCallback();
     this.elements.set(key, el);
-    while (this.elements.size > 6) {
-      const oldest = this.elements.keys().next().value as string;
-      this.releaseElement(oldest);
-    }
-    return el;
+    this.disposers.set(key, () => this.releaseElement(key));
+    return { key, el };
   }
 
   private releaseElement(key: string): void {
     const el = this.elements.get(key);
     if (!el) return;
     this.elements.delete(key);
+    this.disposers.delete(key);
+    this.cache.forget(`scene:${key}`);
+    el.disconnectedCallback();
     el.cv.release();
     el.bgc?.release();
     for (const l of Object.values(el.layers)) l.release();
@@ -131,21 +128,39 @@ export class Art {
   /**
    * Draws `req` at time `t` (seconds) exactly as `<kf-art>` does and returns its canvas. The
    * scene's background is drawn once and kept, as in the browser; only the foreground redraws.
+   * The live scene (its canvas, background and layers) counts against the sprite cache.
+   *
+   * Bake time only: this runs the renderer on the JS thread. Never call it (or `image`) from a
+   * frame callback; animate cached images with transforms and loops instead.
    */
   draw(req: SceneRequest, t: number): ArtCanvas {
-    const el = this.elementFor(req);
+    const { key, el } = this.elementFor(req);
     el.draw(t);
+    const bytes =
+      el.cv.byteSize +
+      (el.bgc?.byteSize ?? 0) +
+      Object.values(el.layers).reduce((a, l) => a + l.byteSize, 0);
+    const dispose = this.disposers.get(key);
+    if (dispose) this.cache.track(`scene:${key}`, bytes, dispose);
     return el.cv;
   }
 
-  /** `draw`, as an image. */
+  /** `draw`, as an image (bake time only, like `draw`). */
   image(req: SceneRequest, t: number): SkImage | null {
     return this.draw(req, t).snapshot();
   }
 
-  /** Drops every cached drawing and live scene, as on a memory warning. */
+  /**
+   * Drops every cached drawing, loop and live scene, as on a memory warning. Images already handed
+   * out stay valid for whoever holds them; the cache only lets go of its own references.
+   */
   flush(): void {
-    for (const key of [...this.elements.keys()]) this.releaseElement(key);
     this.cache.flush();
+    for (const key of [...this.elements.keys()]) this.releaseElement(key);
+  }
+
+  /** Live scenes (for tests and diagnostics). */
+  get liveScenes(): number {
+    return this.elements.size;
   }
 }
