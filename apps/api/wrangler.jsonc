@@ -16,10 +16,13 @@
     "dev": {
       "name": "kithfield-api-dev",
       "routes": [{ "pattern": "dev.kithfield.com/api/*", "zone_name": "kithfield.com" }],
+      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses).
+      "triggers": { "crons": ["17 3 * * *"] },
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
       // Sign-in identity token audiences (public ids, not secrets).
       "vars": {
         "ENVIRONMENT": "dev",
+        "SITE_ORIGIN": "https://dev.kithfield.com",
         "COMMIT_SHA": "local",
         "APPLE_BUNDLE_ID": "com.kithfield.app.dev",
         "GOOGLE_IOS_CLIENT_ID": "564934268570-n2lmcq3r3vc060p5hsankdnisfnalk0v.apps.googleusercontent.com",
@@ -78,10 +81,13 @@
     "prd": {
       "name": "kithfield-api",
       "routes": [{ "pattern": "kithfield.com/api/*", "zone_name": "kithfield.com" }],
+      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses).
+      "triggers": { "crons": ["17 3 * * *"] },
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
       // Sign-in identity token audiences (public ids, not secrets).
       "vars": {
         "ENVIRONMENT": "prd",
+        "SITE_ORIGIN": "https://kithfield.com",
         "COMMIT_SHA": "local",
         "APPLE_BUNDLE_ID": "com.kithfield.app",
         "GOOGLE_IOS_CLIENT_ID": "564934268570-jr7d94ci3jtb88sm4uqio1pjoatb3l31.apps.googleusercontent.com",

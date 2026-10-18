@@ -85,8 +85,10 @@ moderation_actions(id, report_id, admin_id, action, note, created_at)
 bans(person_id, scope, until, reason)
 appeals(id, person_id, action_id, status, created_at)
 push_ledger(id, person_id, kind, farm_id, sent_at, collapsed)
-waitlist(email_hash, lang, created_at)
+waitlist(email_hash, email, lang, created_at, confirm_hash, confirmed_at, notified_at)
 ```
+
+The waitlist is double opt-in. A daily job deletes rows nobody confirmed within 7 days, and the raw email is deleted once the one launch letter has gone (`notified_at`); the keyed hash stays.
 
 Farm content never lives in D1. A report copies its context (the reported event and up to 20 events around it) into `reports.context_json`, so evidence survives an unsend; it is deleted when the report closes, plus 90 days.
 

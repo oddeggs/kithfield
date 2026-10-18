@@ -24,6 +24,8 @@ export type EnvironmentName = 'dev' | 'prd';
 export type Bindings = Secrets & {
   readonly ENVIRONMENT: EnvironmentName;
   readonly COMMIT_SHA: string;
+  /** The website's origin (`https://kithfield.com`), for links in letters. */
+  readonly SITE_ORIGIN: string;
   /** The bundle id Apple issues identity tokens for (`com.kithfield.app[.dev]`). */
   readonly APPLE_BUNDLE_ID: string;
   /** Google OAuth client ids an identity token may name: the iOS app's and the web/server one. */
