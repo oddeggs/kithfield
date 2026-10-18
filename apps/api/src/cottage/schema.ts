@@ -86,6 +86,8 @@ export const COTTAGE_SCHEMA = [
     since INTEGER NOT NULL,
     PRIMARY KEY (farm, type)
   )`,
+  // Set once the person's account is purged: a late delivery or farm row is never taken in again.
+  `CREATE TABLE IF NOT EXISTS purged (id INTEGER PRIMARY KEY CHECK (id = 1))`,
 ] as const;
 
 /** Columns added after a table first shipped, each added once. */
@@ -97,8 +99,10 @@ const ADDED_COLUMNS = [
   ['doorstep', 'preview', 'TEXT'],
 ] as const;
 
-export function applySchema(sql: SqlStorage): void {
+/** Makes the tables; `purged` also marks the cottage as its person's purged one. */
+export function applySchema(sql: SqlStorage, purged = false): void {
   for (const statement of COTTAGE_SCHEMA) sql.exec(statement);
+  if (purged) sql.exec('INSERT OR IGNORE INTO purged (id) VALUES (1)');
   for (const [table, column, type] of ADDED_COLUMNS) {
     const has = sql
       .exec<{ name: string }>(`SELECT name FROM pragma_table_info('${table}')`)
@@ -106,4 +110,9 @@ export function applySchema(sql: SqlStorage): void {
       .some((row) => row.name === column);
     if (!has) sql.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
   }
+}
+
+/** Whether the cottage's person was purged: then it takes in nothing more. */
+export function isPurged(sql: SqlStorage): boolean {
+  return sql.exec('SELECT 1 FROM purged').toArray().length > 0;
 }

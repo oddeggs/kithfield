@@ -7,7 +7,8 @@ import type { FarmId, PersonId } from '@kithfield/contracts';
 
 export type InviteRow = {
   farm_id: FarmId;
-  created_by: PersonId;
+  /** Null once the person who made it has deleted their account. */
+  created_by: PersonId | null;
   expires_at: number | null;
   uses_left: number | null;
 };

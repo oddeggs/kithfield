@@ -101,12 +101,12 @@ export class CottageDO extends DurableObject<Bindings> {
     return merge.exportCottage(this.sql);
   }
 
-  /** Empties the cottage (merged away, or the account purged): sockets closed, storage gone. */
-  async clear(): Promise<void> {
+  /** Empties the cottage (merged away, or `purged`): sockets closed, storage gone. */
+  async clear(purged = false): Promise<void> {
     this.closeSockets('unauthorized');
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
-    applySchema(this.sql);
+    applySchema(this.sql, purged);
   }
 
   /** The person lives on this farm or visit: its kind, and its name or peer. */

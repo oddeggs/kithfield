@@ -4,15 +4,17 @@ import { eitherBlocked } from '../auth';
 import * as chats from './chats';
 import { farmFromDirectory } from './directory';
 import { considerDelivery, type Intake } from './intake';
+import { isPurged } from './schema';
 import { updateProfile } from './profile';
 
 /**
  * Takes a farm's delivery into the chat list and Quick Tend. A farm the cottage wasn't told about
  * is looked up first, so a missed `upsertFarm` never hides a chat. The person opening a farm
- * themselves brings nudges back to the first. False for a repeat.
+ * themselves brings nudges back to the first. False for a repeat, or once the person is purged.
  */
 export async function receiveDelivery(intake: Intake, delivery: CottageDelivery): Promise<boolean> {
   const { sql, person, now } = intake;
+  if (isPurged(sql)) return false;
   if (!chats.knowsFarm(sql, delivery.farm)) {
     const info = await farmFromDirectory(intake.env.DB, delivery.farm, person);
     if (info !== null) chats.upsertFarm(sql, info);

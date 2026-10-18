@@ -176,11 +176,12 @@ export const joiningRoutes = (): Hono<SessionEnv> => {
     const state = await farmStub(c.env, invite.farm_id).state();
     if (state === null || state.name === null) return fail(c, 404, 'invite_invalid');
     // Whoever made the link, as they are now; nobody once they have left or deleted their account.
-    const inviter = state.aliases[invite.created_by] ?? invite.created_by;
-    const stillHere = state.members.some((m) => m.person === inviter);
+    const maker = invite.created_by;
+    const inviter = maker === null ? null : (state.aliases[maker] ?? maker);
+    const stillHere = inviter !== null && state.members.some((m) => m.person === inviter);
     const preview: InvitePreview = {
       name: state.name,
-      from: stillHere ? await profileOf(c.env, inviter) : null,
+      from: stillHere && inviter !== null ? await profileOf(c.env, inviter) : null,
       land: state.land,
       critters: state.members.map((m) => m.critter),
       full: state.members.length >= LIMITS.members,

@@ -7,6 +7,8 @@ import {
   VisitPeer,
 } from '@kithfield/contracts';
 
+import { isPurged } from './schema';
+
 /** At most this many things wait in Quick Tend per farm (`ChatListItem.waiting`). */
 const WAITING_CAP = 99;
 /** The chat list frame carries at most this many rows. */
@@ -41,6 +43,7 @@ type FarmRow = {
  * for a visit, the other person. The person's own pin and mute stay as they were.
  */
 export function upsertFarm(sql: SqlStorage, info: CottageFarm): void {
+  if (isPurged(sql)) return;
   sql.exec(
     `INSERT INTO farms (farm, farm_kind, name, with_json) VALUES (?, ?, ?, ?)
      ON CONFLICT (farm) DO UPDATE SET farm_kind = excluded.farm_kind, name = excluded.name,

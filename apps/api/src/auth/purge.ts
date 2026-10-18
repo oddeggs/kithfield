@@ -78,13 +78,18 @@ async function deleteRows(env: Bindings, person: string): Promise<void> {
     'DELETE FROM farm_visitors WHERE person_id = ?',
     'DELETE FROM farm_merges WHERE from_person = ?1 OR into_person = ?1',
     'DELETE FROM blocks WHERE blocker_id = ?',
+    // The farm's link keeps working, made by nobody now.
+    'UPDATE invites SET created_by = NULL WHERE created_by = ?',
     'DELETE FROM people WHERE id = ?',
   ];
   const statements = byPerson.map((sql) => db.prepare(sql).bind(person));
   if (email !== null) {
-    // The address's sign-in code counts, kept only as its hash.
+    // A sign-in code still waiting for the address, and its counts, kept only as its hash.
     const hash = await addressHash(email.email);
     statements.push(
+      db
+        .prepare('DELETE FROM verifications WHERE identifier = ?')
+        .bind(`sign-in-otp-${email.email.trim().toLowerCase()}`),
       db.prepare('DELETE FROM email_code_sends WHERE address_hash = ?').bind(hash),
       db.prepare('DELETE FROM email_code_failures WHERE address_hash = ?').bind(hash),
     );
@@ -105,7 +110,7 @@ export async function purgeAccount(env: Bindings, job: AccountDeletedJob): Promi
   const { person } = job;
   if (!(await stillDue(env, person, Date.now()))) return;
   for (const step of steps.values()) await step(env, person);
-  await cottageOf(env, person).clear();
+  await cottageOf(env, person).clear(true);
   await forgetExports(env, person);
   const apple = await env.DB.prepare(
     "SELECT account_id FROM accounts WHERE person_id = ? AND provider_id = 'apple'",
@@ -125,21 +130,33 @@ registerDeletionJob('account_deleted', AccountDeletedJob, purgeAccount);
 const PURGES_PER_RUN = 1000;
 
 /**
- * The daily job's part: everyone whose 30 days are over goes on the deletion queue. Someone already
- * queued yesterday and still there is queued again, which is harmless: a purge runs once.
+ * The daily job's part: everyone whose 30 days are over goes on the deletion queue, those queued
+ * least lately first, so a purge that keeps failing never holds back the rest. Someone queued
+ * again is harmless: a purge runs once.
  */
-export async function queueDuePurges(env: Bindings, now: number): Promise<number> {
+export async function queueDuePurges(
+  env: Bindings,
+  now: number,
+  limit = PURGES_PER_RUN,
+): Promise<number> {
   const { results } = await env.DB.prepare(
     `SELECT id, deleted_at FROM people WHERE deleted_at IS NOT NULL AND deleted_at <= ?
-     ORDER BY deleted_at LIMIT ${PURGES_PER_RUN}`,
+     ORDER BY coalesce(purge_queued_at, 0), deleted_at, id LIMIT ?`,
   )
-    .bind(now - DELETION_GRACE_MS)
+    .bind(now - DELETION_GRACE_MS, limit)
     .all<{ id: string; deleted_at: number }>();
   for (let i = 0; i < results.length; i += 100) {
-    const jobs = results.slice(i, i + 100).map((row): { body: AccountDeletedJob } => ({
-      body: { kind: 'account_deleted', person: row.id, at: row.deleted_at },
-    }));
-    await env.DELETION_QUEUE.sendBatch(jobs);
+    const chunk = results.slice(i, i + 100);
+    await env.DELETION_QUEUE.sendBatch(
+      chunk.map((row): { body: AccountDeletedJob } => ({
+        body: { kind: 'account_deleted', person: row.id, at: row.deleted_at },
+      })),
+    );
+    await env.DB.batch(
+      chunk.map((row) =>
+        env.DB.prepare('UPDATE people SET purge_queued_at = ? WHERE id = ?').bind(now, row.id),
+      ),
+    );
   }
   return results.length;
 }
