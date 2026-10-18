@@ -608,6 +608,27 @@ describe('merging people', () => {
     });
   });
 
+  it('moves the farms they visited too, so a visited farm knows them by either id', async () => {
+    const returning = await returningAccount();
+    const { kit, home } = await neighbours();
+    const wave = (who: { token: string }, n: number) =>
+      api({ ...kit, token: who.token }, 'POST', `/v1/farms/${home.farm}/gate`, {
+        opId: op(n),
+        gesture: { gesture: 'wave' },
+      });
+    expect((await wave(kit, 1)).body).toMatchObject({ result: 'ack' });
+    await returning.mergeInto(kit);
+    const visitors = await env.DB.prepare('SELECT person_id FROM farm_visitors WHERE farm_id = ?')
+      .bind(home.farm)
+      .all();
+    expect(visitors.results).toEqual([{ person_id: returning.id }]);
+    // Their wave today was already made, under the old id.
+    expect((await wave(returning, 2)).body).toMatchObject({
+      result: 'rejected',
+      reason: 'limit_reached',
+    });
+  });
+
   it('keeps the higher role when both people lived on the farm, so it never loses its keeper', async () => {
     const returning = await returningAccount();
     const { pip } = await cast('pip');

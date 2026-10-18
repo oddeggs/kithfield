@@ -48,6 +48,18 @@ export const farmMergeStatements = (db: D1Database, { from, into, now }: PersonM
       )
       .bind(into, from),
     db.prepare('DELETE FROM farm_waiting WHERE person_id = ?').bind(from),
+    // Farms they only visited learn the new id too, and keep knowing them as a visitor.
+    db
+      .prepare(
+        'INSERT OR IGNORE INTO farm_merges (from_person, into_person, farm_id, at) SELECT ?, ?, farm_id, ? FROM farm_visitors WHERE person_id = ?',
+      )
+      .bind(from, into, now, from),
+    db
+      .prepare(
+        'INSERT OR IGNORE INTO farm_visitors (person_id, farm_id, first_at) SELECT ?, farm_id, first_at FROM farm_visitors WHERE person_id = ?',
+      )
+      .bind(into, from),
+    db.prepare('DELETE FROM farm_visitors WHERE person_id = ?').bind(from),
     db.prepare('UPDATE farms SET keeper_id = ? WHERE keeper_id = ?').bind(into, from),
     db
       .prepare(
