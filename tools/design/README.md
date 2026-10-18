@@ -11,7 +11,13 @@ pnpm exec playwright install chromium-headless-shell   # once per machine
 pnpm --filter @kithfield/design render                 # everything (about 6 min)
 pnpm --filter @kithfield/design render -- --only 04-01,16,01-foundations
 pnpm --filter @kithfield/design render -- --check-determinism --only 04,17-landing
+pnpm --filter @kithfield/design compare -- design/renders/04-01.png ~/Desktop/sim.png --name 04-01-sim
 ```
+
+If `playwright install` stalls while unpacking (seen with Node 26), unzip the archive it downloaded
+(`$TMPDIR/playwright-download-*/…headless-shell….zip`) into
+`~/Library/Caches/ms-playwright/chromium_headless_shell-<revision>/` and create an empty
+`INSTALLATION_COMPLETE` file there.
 
 - `--only` takes screen ids (`04-01`), file numbers (`16`, every `16-xx`) or file slugs
   (`01-foundations`, `17-landing`). A partial run updates `index.json` in place; a full run clears
@@ -20,6 +26,9 @@ pnpm --filter @kithfield/design render -- --check-determinism --only 04,17-landi
 - `--concurrency <n>` design files in parallel (default 4).
 - `--check-determinism` renders the selection twice into temporary folders and fails unless every
   PNG matches (byte for byte, or within the drift tolerance below); `--keep` keeps both runs.
+- `compare` writes `design/renders/compare/<name>.side.png` (render left, screenshot scaled to the
+  render's width right) and `<name>.diff.png` (pixels over the threshold in red), and prints the
+  mean difference out of 255.
 
 ## Naming
 
