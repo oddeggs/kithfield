@@ -43,8 +43,8 @@ function Goodbye({ name, species, anonymous }: Deleted) {
   const close = async () => {
     setClosing(true);
     // The server ended every session already; whatever is unsent can't be sent any more.
+    // The data layer then starts again from nothing and the app opens on the way in.
     await signOut({ anyway: true });
-    router.dismissAll();
   };
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>

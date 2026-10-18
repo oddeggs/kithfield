@@ -34,8 +34,8 @@ export function SignOutSheet() {
     setBusy(true);
     try {
       const result = await signOutPhone({ anyway: force });
+      // Signed out, the data layer starts again from nothing and the app opens on the way in.
       if (result.status === 'unsent') setUnsent(true);
-      else router.dismissAll();
     } catch {
       toast.show(t('settings.failed'));
     } finally {
