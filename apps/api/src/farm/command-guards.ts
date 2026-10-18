@@ -60,6 +60,14 @@ export const refusalOf = async (
   ) {
     return 'not_allowed';
   }
+  // A gift friends chipped in for is written by the farm alone; a phone can't send one.
+  if (
+    cmd.kind === 'gift' &&
+    cmd.payload.action === 'given' &&
+    (cmd.payload.chipIn !== undefined || cmd.payload.with !== undefined)
+  ) {
+    return 'not_allowed';
+  }
   const to = (cmd.payload as { to?: unknown }).to;
   if (!ADDRESSED.has(cmd.kind) || typeof to !== 'string') return null;
   const recipient = personOf(to);
