@@ -9,6 +9,7 @@ import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useSession } from '../../ui/session/session';
 import { useUpload } from '../media';
+import { useMessagesSync } from '../stickers/export/use-messages-sync';
 import { followActivityTokens } from './activity-tokens';
 import { registerBackgroundTask, takeWoken } from './background';
 import { clearSurfacesForSignOut, writtenForSomeoneElse } from './clear';
@@ -96,6 +97,8 @@ function Running({ me }: { readonly me: string }) {
   const lang = useRef(language);
   lang.current = language;
   const surfacesRef = useRef<Surfaces | null>(null);
+  // The Messages drawer keeps wearing what the critter wears now.
+  useMessagesSync();
 
   useEffect(() => {
     const root = groupRoot();
