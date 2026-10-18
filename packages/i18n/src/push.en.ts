@@ -19,8 +19,6 @@ export const pushEn = {
   'push.doorstep.few': 'A few things are on your step.',
   /** A mention or a reply: the friend's name, followed by the message's own short line. */
   'push.mention': '{name}:',
-  /** Something meant for this person that has no words to show. */
-  'push.forYou': '{name} left something for you.',
   'push.joined': '{name} moved in. Wave hello?',
   'push.knock': '{name} is knocking on your porch.',
   /** Replaces the day's push for a farm once its budget is spent. */
