@@ -45,7 +45,8 @@ export type SyncReport =
 export const failure = (where: string, error: unknown): SyncReport => ({
   type: 'failed',
   where,
-  error: error instanceof Error ? error.name : typeof error,
+  error:
+    typeof (error as { name?: unknown })?.name === 'string' ? (error as Error).name : typeof error,
 });
 
 export interface BatchOutcome {
