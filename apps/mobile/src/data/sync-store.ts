@@ -19,6 +19,8 @@ export interface StoredEvent {
   readonly seq: number;
   readonly opId: string;
   readonly at: number;
+  /** The farm-time day the farm stamped; absent on events from before rules carried it. */
+  readonly day?: string | undefined;
   readonly actor: string | null;
   readonly kind: string;
   readonly payload: unknown;
@@ -49,6 +51,7 @@ const eventOf = (r: Row): StoredEvent => ({
   seq: Number(r['seq']),
   opId: String(r['op_id']),
   at: Number(r['at']),
+  ...(r['day'] === null || r['day'] === undefined ? {} : { day: String(r['day']) }),
   actor: r['actor'] === null ? null : String(r['actor']),
   kind: String(r['kind']),
   payload: parse(r['payload']),
@@ -67,7 +70,7 @@ const outboxOf = (r: Row): OutboxEntry => ({
   ackedSeq: r['acked_seq'] === null ? null : Number(r['acked_seq']),
 });
 
-const EVENT_COLUMNS = 'seq, op_id, at, actor, kind, payload, rules_version, known';
+const EVENT_COLUMNS = 'seq, op_id, at, day, actor, kind, payload, rules_version, known';
 
 /**
  * The phone's sync tables. Reads go straight to SQLite; every write runs inside `transaction`,
@@ -126,12 +129,13 @@ export function createSyncStore(db: SqlDatabase) {
 
     putEvent(farm: FarmId, e: StoredEvent) {
       return run(
-        `INSERT OR REPLACE INTO events (farm, ${EVENT_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT OR REPLACE INTO events (farm, ${EVENT_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           farm,
           e.seq,
           e.opId,
           e.at,
+          e.day ?? null,
           e.actor,
           e.kind,
           json(e.payload),

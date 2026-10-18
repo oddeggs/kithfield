@@ -27,6 +27,9 @@ export interface Session {
   silenced?: boolean;
 }
 
+/** The farm-time day of an instant; test farms keep UTC days. */
+export const farmDay = (at: number) => new Date(at).toISOString().slice(0, 10);
+
 let opCounter = 0;
 
 /** A server-minted op id for events the farm writes itself (UUIDv7-shaped). */
@@ -57,6 +60,7 @@ export function seedFarm(
     seq: 1,
     opId: farmOpId(),
     at,
+    day: farmDay(at),
     rulesVersion: rules.RULES_VERSION,
     actor: null,
     kind: 'farm_created',

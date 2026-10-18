@@ -34,7 +34,8 @@ const event = (
     seq,
     opId: `01900000-0000-7000-8000-${n.toString(16).padStart(12, '0')}`,
     at: 1_792_000_000_000 + seq,
-    rulesVersion: 1,
+    day: '2026-10-18',
+    rulesVersion: 2,
     actor,
     kind,
     payload,
@@ -101,7 +102,7 @@ describe('applying events', () => {
   it('stops before an event under newer farm rules', async () => {
     const r = await replica();
     await r.handle({ type: 'events', events: opening, more: false });
-    const newer = { ...event(3, BEA, 'wave', {}), rulesVersion: 2 };
+    const newer = { ...event(3, BEA, 'wave', {}), rulesVersion: 3 };
     expect(await r.handle({ type: 'event', event: newer })).toEqual({ rulesOutdated: true });
     expect(r.getState().lastSeq).toBe(2);
   });

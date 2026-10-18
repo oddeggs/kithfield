@@ -18,6 +18,7 @@ import type { OpenSocket } from '../socket';
 import { connectPair, type ServerEnd } from './test-sockets';
 import {
   TEST_CRITTER,
+  farmDay,
   farmOpId,
   seedFarm,
   writtenPayload,
@@ -85,6 +86,7 @@ export class FarmTestServer {
       seq: f.log.length + 1,
       opId,
       at: this.now(),
+      day: farmDay(this.now()),
       rulesVersion: f.rulesVersion,
       actor,
       kind,
@@ -103,6 +105,7 @@ export class FarmTestServer {
       seq: f.log.length + 1,
       opId: farmOpId(),
       at: this.now(),
+      day: farmDay(this.now()),
       rulesVersion: f.rulesVersion,
       ...fields,
     };

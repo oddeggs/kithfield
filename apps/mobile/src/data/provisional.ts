@@ -17,7 +17,29 @@ export interface ProvisionalPlace {
   readonly seq: number;
   /** When the write was made on this phone; the farm's own time replaces it. */
   readonly at: number;
+  /** The farm-time day it would carry; the farm stamps the real one. */
+  readonly day: string;
   readonly rulesVersion: number;
+}
+
+/**
+ * The farm's local day at `at`, `YYYY-MM-DD` in its time zone, for drawing a pending write. Falls
+ * back to `fallback` when this device can't resolve the zone.
+ */
+export function farmDayAt(at: number, timeZone: string, fallback: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(at);
+    const part = (type: string) => parts.find((p) => p.type === type)?.value;
+    const day = `${part('year')}-${part('month')}-${part('day')}`;
+    return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 /**
@@ -29,6 +51,7 @@ export function provisionalEvent(cmd: FarmCommand, place: ProvisionalPlace): Far
     seq: place.seq,
     opId: cmd.opId,
     at: place.at,
+    day: place.day,
     rulesVersion: place.rulesVersion,
     actor: place.actor,
     kind: cmd.kind,
@@ -62,6 +85,7 @@ export function drawPending(
       actor: entry.actor,
       seq,
       at: entry.createdAt,
+      day: farmDayAt(entry.createdAt, state.timeZone, state.today.day),
       rulesVersion: state.rulesVersion,
     });
     if (!event) continue;

@@ -29,10 +29,11 @@ const DAY = 86_400_000;
 
 const member = (event: FarmEvent & { kind: 'joined' }, first: boolean): MemberState => ({
   person: event.actor,
-  name: 'tombstone' in event.payload ? 'friend' : event.payload.name,
+  // A tombstoned join adds a nameless member with the critter its facts kept.
+  name: 'tombstone' in event.payload ? null : event.payload.name,
   critter:
     'tombstone' in event.payload
-      ? {
+      ? (event.payload.facts?.critter ?? {
           species: 'mouse',
           coat: 'grey',
           mark: null,
@@ -41,11 +42,12 @@ const member = (event: FarmEvent & { kind: 'joined' }, first: boolean): MemberSt
           outfitColor: null,
           companion: null,
           cottage: null,
-        }
+        })
       : event.payload.critter,
   role: first ? 'keeper' : 'critter',
   joinedAt: event.at,
   lastOpenedAt: null,
+  lastWokenAt: null,
   lastTendedAt: null,
   hibernating: false,
   pausedUntil: null,
@@ -62,7 +64,7 @@ const touch = (state: FarmState, person: string | null, change: Partial<MemberSt
 });
 
 export const testFarmRules: FarmRules<TestFarmView> = {
-  RULES_VERSION: 1,
+  RULES_VERSION: 2,
 
   createFarm(created) {
     const p = created.payload;
@@ -138,7 +140,7 @@ export const testFarmRules: FarmRules<TestFarmView> = {
   farmView(state, now) {
     return {
       sleepy: state.members
-        .filter((m) => m.lastOpenedAt === null || now - m.lastOpenedAt > 4 * DAY)
+        .filter((m) => now - Math.max(m.lastOpenedAt ?? 0, m.lastWokenAt ?? 0) > 4 * DAY)
         .map((m) => m.person),
     };
   },
