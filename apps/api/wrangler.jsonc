@@ -17,7 +17,14 @@
       "name": "kithfield-api-dev",
       "routes": [{ "pattern": "dev.kithfield.com/api/*", "zone_name": "kithfield.com" }],
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
-      "vars": { "ENVIRONMENT": "dev", "COMMIT_SHA": "local" },
+      // Sign-in identity token audiences (public ids, not secrets).
+      "vars": {
+        "ENVIRONMENT": "dev",
+        "COMMIT_SHA": "local",
+        "APPLE_BUNDLE_ID": "com.kithfield.app.dev",
+        "GOOGLE_IOS_CLIENT_ID": "564934268570-n2lmcq3r3vc060p5hsankdnisfnalk0v.apps.googleusercontent.com",
+        "GOOGLE_WEB_CLIENT_ID": "564934268570-hst5dob3msctegnpgskivamd25gh6jbc.apps.googleusercontent.com",
+      },
       "durable_objects": {
         "bindings": [
           { "name": "FARM", "class_name": "FarmDO" },
@@ -33,8 +40,16 @@
         },
       ],
       "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media-dev" }],
+      // Per-address limit on handing out sign-in nonces (keyed on cf-connecting-ip).
+      "ratelimits": [
+        {
+          "name": "SIGN_IN_NONCE_LIMIT",
+          "namespace_id": "1101",
+          "simple": { "limit": 20, "period": 60 },
+        },
+      ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
-      "send_email": [{ "name": "EMAIL" }],
+      "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@kithfield.com"] }],
       "queues": {
         "producers": [
           { "binding": "PUSH_QUEUE", "queue": "kithfield-push-dev" },
@@ -58,7 +73,14 @@
       "name": "kithfield-api",
       "routes": [{ "pattern": "kithfield.com/api/*", "zone_name": "kithfield.com" }],
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
-      "vars": { "ENVIRONMENT": "prd", "COMMIT_SHA": "local" },
+      // Sign-in identity token audiences (public ids, not secrets).
+      "vars": {
+        "ENVIRONMENT": "prd",
+        "COMMIT_SHA": "local",
+        "APPLE_BUNDLE_ID": "com.kithfield.app",
+        "GOOGLE_IOS_CLIENT_ID": "564934268570-jr7d94ci3jtb88sm4uqio1pjoatb3l31.apps.googleusercontent.com",
+        "GOOGLE_WEB_CLIENT_ID": "564934268570-hst5dob3msctegnpgskivamd25gh6jbc.apps.googleusercontent.com",
+      },
       "durable_objects": {
         "bindings": [
           { "name": "FARM", "class_name": "FarmDO" },
@@ -74,8 +96,16 @@
         },
       ],
       "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media" }],
+      // Per-address limit on handing out sign-in nonces (keyed on cf-connecting-ip).
+      "ratelimits": [
+        {
+          "name": "SIGN_IN_NONCE_LIMIT",
+          "namespace_id": "1102",
+          "simple": { "limit": 20, "period": 60 },
+        },
+      ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
-      "send_email": [{ "name": "EMAIL" }],
+      "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@kithfield.com"] }],
       "queues": {
         "producers": [
           { "binding": "PUSH_QUEUE", "queue": "kithfield-push" },
