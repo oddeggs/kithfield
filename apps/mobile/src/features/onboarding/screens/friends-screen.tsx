@@ -1,4 +1,4 @@
-import { fontFor } from '@kithfield/theme';
+import { fontFor, motion } from '@kithfield/theme';
 import { Fields, getContactsAsync, getPermissionsAsync, SortTypes } from 'expo-contacts/legacy';
 import { useRouter } from 'expo-router';
 import * as SMS from 'expo-sms';
@@ -74,7 +74,7 @@ function FriendRow({
       {/* The chip flips to Invited with a short cross-fade. */}
       <Animated.View
         key={invited ? 'invited' : 'invite'}
-        {...(reduce ? {} : { entering: FadeIn.duration(150) })}
+        {...(reduce ? {} : { entering: FadeIn.duration(motion.cross.durationMs) })}
       >
         {invited ? (
           <Chip label={t('onboarding.friends.invited')} kind="invited" />

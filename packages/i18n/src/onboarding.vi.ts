@@ -64,6 +64,7 @@ export const onboardingVi: ViCatalogue<typeof onboardingEn> = {
   'onboarding.code.title': 'Xem hộp thư nhé',
   'onboarding.code.body': 'Otis đã mang mã sáu chữ số đến {email}.',
   'onboarding.code.field': 'Mã sáu chữ số',
+  'onboarding.code.typed': '{count} trên 6',
   'onboarding.code.resendLead': 'Chưa nhận được?',
   'onboarding.code.resend': 'Gửi mã khác',
   'onboarding.code.otherEmail': 'Dùng email khác',

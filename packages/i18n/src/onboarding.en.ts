@@ -70,6 +70,7 @@ export const onboardingEn = {
   /** `{email}` is set in bold. */
   'onboarding.code.body': 'Otis flew a six-digit code to {email}.',
   'onboarding.code.field': 'Six-digit code',
+  'onboarding.code.typed': '{count} of 6',
   'onboarding.code.resendLead': 'Didn’t arrive?',
   'onboarding.code.resend': 'Send another',
   'onboarding.code.otherEmail': 'Use a different email',

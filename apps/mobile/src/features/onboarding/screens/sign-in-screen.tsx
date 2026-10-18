@@ -1,5 +1,6 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
 import { Text, useWindowDimensions, View } from 'react-native';
 
@@ -15,6 +16,7 @@ import { SceneArt } from '../scene-art';
 import { FadeUp, PaperFade } from '../fades';
 import { Body, ErrorLine, Title, TopBar, useBottom, useDesignTop, useSceneAttrs } from '../kit';
 import { useProgress } from '../progress';
+import { pageUrl } from './house-rules-screen';
 import { appleSheet, googleSheet, SheetCancelled, type SheetAnswer } from '../social';
 
 /** Where a sentence's two links go, split around their placeholders. */
@@ -27,7 +29,7 @@ const PRIVACY = '\u0002';
  */
 export function SignInScreen() {
   const router = useRouter();
-  const { t } = useLocale();
+  const { t, language } = useLocale();
   const { palette, appearance } = useTheme();
   const { width } = useWindowDimensions();
   const top = useDesignTop();
@@ -63,10 +65,10 @@ export function SignInScreen() {
   const agree = t('onboarding.signIn.agree', { rules: RULES, privacy: PRIVACY });
   const [before = '', rest = ''] = agree.split(RULES);
   const [middle = '', after = ''] = rest.split(PRIVACY);
-  const link = (label: string) => (
+  const link = (label: string, onPress: () => void) => (
     <Text
       accessibilityRole="link"
-      onPress={() => router.push(routes.houseRules)}
+      onPress={onPress}
       style={{ color: palette.text, textDecorationLine: 'underline' }}
     >
       {label}
@@ -133,9 +135,13 @@ export function SignInScreen() {
           style={{ fontSize: 12.5, lineHeight: 18.1, marginTop: 6 }}
         >
           {before}
-          {link(t('onboarding.signIn.rules'))}
+          {link(t('onboarding.signIn.rules'), () => router.push(routes.houseRules))}
           {middle}
-          {link(t('onboarding.signIn.privacy'))}
+          {link(t('onboarding.signIn.privacy'), () => {
+            void WebBrowser.openBrowserAsync(pageUrl('privacy', language), {
+              presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+            });
+          })}
           {after}
         </Txt>
       </View>

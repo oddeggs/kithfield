@@ -1,4 +1,4 @@
-import { fontFor } from '@kithfield/theme';
+import { fontFor, motion } from '@kithfield/theme';
 import { forwardRef, useEffect, useImperativeHandle, useRef, type ComponentRef } from 'react';
 import { TextInput, View } from 'react-native';
 import Animated, {
@@ -42,7 +42,7 @@ export const CodeBoxes = forwardRef<
 >(function CodeBoxes({ value, onChange, label }, ref) {
   const { palette } = useTheme();
   const inks = useInks();
-  const { fontLocale } = useLocale();
+  const { fontLocale, t } = useLocale();
   const reduce = useReduceMotion();
   const input = useRef<ComponentRef<typeof TextInput>>(null);
   const x = useSharedValue(0);
@@ -51,11 +51,12 @@ export const CodeBoxes = forwardRef<
     shake() {
       onChange('');
       if (reduce) return;
-      const step = { duration: 45, easing: Easing.inOut(Easing.sin) };
+      // Each sway is one held drawing on twos (`motion.twos`), there and back twice.
+      const step = { duration: motion.twos.frameMs / 2, easing: Easing.inOut(Easing.sin) };
       x.set(
         withSequence(
           withTiming(-3, step),
-          withRepeat(withTiming(3, { ...step, duration: 90 }), 3, true),
+          withRepeat(withTiming(3, { ...step, duration: motion.twos.frameMs }), 3, true),
           withTiming(0, step),
         ),
       );
@@ -72,8 +73,18 @@ export const CodeBoxes = forwardRef<
   const active = Math.min(value.length, CODE_LENGTH - 1);
 
   return (
-    <Press onPress={() => input.current?.focus()} darken={false} accessibilityLabel={label}>
-      <Animated.View style={[{ flexDirection: 'row', gap: 8 }, moved]}>
+    <Press
+      onPress={() => input.current?.focus()}
+      darken={false}
+      accessibilityLabel={label}
+      // One element for VoiceOver: how much of the code is in.
+      accessibilityValue={{ text: t('onboarding.code.typed', { count: value.length }) }}
+    >
+      <Animated.View
+        importantForAccessibility="no-hide-descendants"
+        accessibilityElementsHidden
+        style={[{ flexDirection: 'row', gap: 8 }, moved]}
+      >
         {Array.from({ length: CODE_LENGTH }, (_, i) => {
           const focused = i === active && value.length < CODE_LENGTH;
           return (
@@ -112,7 +123,8 @@ export const CodeBoxes = forwardRef<
         autoComplete="one-time-code"
         maxLength={CODE_LENGTH}
         caretHidden
-        accessibilityLabel={label}
+        accessibilityElementsHidden
+        importantForAccessibility="no"
         style={{ position: 'absolute', opacity: 0, width: 1, height: 1 }}
       />
     </Press>

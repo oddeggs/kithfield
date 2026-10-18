@@ -1,4 +1,4 @@
-import { layout } from '@kithfield/theme';
+import { layout, motion } from '@kithfield/theme';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,8 +16,8 @@ export interface PickerOption<T> {
 }
 
 const ROW = 48;
-/** Long enough for the sheet to spring shut before it leaves the screen. */
-const CLOSING_MS = 600;
+/** Two of the sheet spring's responses: long enough for it to settle shut before it leaves. */
+const CLOSING_MS = Math.round(motion.sheet.response * 2000);
 
 /** A modal sheet listing options to pick one from: a day, a month or a year. */
 export function PickerSheet<T extends string | number>({
