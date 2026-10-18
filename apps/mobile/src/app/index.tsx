@@ -1,5 +1,6 @@
-import { View } from 'react-native';
+import { Redirect } from 'expo-router';
 
-export default function Home() {
-  return <View style={{ flex: 1 }} />;
+/** The app opens on the farm. */
+export default function Index() {
+  return <Redirect href="/farm" />;
 }
