@@ -16,6 +16,7 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { numberWord, say } from '../farm/farm-copy';
 import { useNow } from '../farm/use-now';
+import { typeAt } from '../farm/type-at';
 import { plantTitle } from './guide-copy';
 import { guideMotion, useGuideLook } from './guide-look';
 import { porchNames, potLine } from './page-copy';
@@ -57,7 +58,7 @@ export function PorchPotPage({
   readonly view: FarmView | null;
   readonly me: PersonId | null;
 }) {
-  const { t, language } = useLocale();
+  const { t, language, fontLocale } = useLocale();
   const { palette, appearance } = useTheme();
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
@@ -135,14 +136,14 @@ export function PorchPotPage({
           alignItems: 'center',
         }}
       >
-        <Txt variant="displayS" numberOfLines={1} style={{ fontSize: 16, lineHeight: 18.4 }}>
+        <Txt variant="displayS" numberOfLines={1} style={typeAt('displayS', 16, 18.4, fontLocale)}>
           {porchNames(t, state, me)}
         </Txt>
         <Txt
           variant="caption"
           numberOfLines={1}
           color={palette.body}
-          style={{ fontSize: 12, lineHeight: 14.4 }}
+          style={typeAt('caption', 12, 14.4, fontLocale)}
         >
           {t('fieldGuide.pot.where')}
         </Txt>
@@ -185,21 +186,21 @@ export function PorchPotPage({
               radius={20}
             />
             <View style={{ flex: 1 }}>
-              <Txt variant="handS" color={look.found} style={{ fontSize: 16, lineHeight: 16 }}>
+              <Txt variant="handS" color={look.found} style={typeAt('handS', 16, 16, fontLocale)}>
                 {t('fieldGuide.pot.eyebrow')}
               </Txt>
               <Txt
                 variant="displayM"
                 accessibilityRole="header"
                 numberOfLines={1}
-                style={{ fontSize: 26, lineHeight: 28.6 }}
+                style={typeAt('displayM', 26, 28.6, fontLocale)}
               >
                 {plantTitle(t, language, state, pot.plant)}
               </Txt>
               <Txt
                 variant="caption"
                 color={palette.secondary}
-                style={{ fontSize: 13.5, lineHeight: 17.55, marginTop: 2 }}
+                style={{ ...typeAt('caption', 13.5, 17.55, fontLocale), marginTop: 2 }}
               >
                 {t('fieldGuide.pot.state', { season, stage })}
               </Txt>
@@ -224,7 +225,7 @@ export function PorchPotPage({
                   variant="caption"
                   numberOfLines={1}
                   color={i === pot.stage ? palette.text : look.bar.label}
-                  style={{ fontSize: 11.5, lineHeight: 11.5, fontWeight: '600' }}
+                  style={typeAt('rowTitle', 11.5, 11.5, fontLocale)}
                 >
                   {say(t, `fieldGuide.stageName.${i}`)}
                 </Txt>
@@ -253,7 +254,7 @@ export function PorchPotPage({
               variant="credit"
               multiline
               color={palette.creditText}
-              style={{ flex: 1, fontSize: 14.5, lineHeight: 20.3 }}
+              style={{ ...typeAt('body', 14.5, 20.3, fontLocale), flex: 1 }}
             >
               {potLine(t, state, me)}
             </Txt>
@@ -262,7 +263,7 @@ export function PorchPotPage({
             variant="caption"
             multiline
             color={palette.body}
-            style={{ fontSize: 13.5, lineHeight: 19.6 }}
+            style={typeAt('caption', 13.5, 19.6, fontLocale)}
           >
             {porchFrozen(state) ? t('fieldGuide.pot.frozen') : t('fieldGuide.pot.note')}
           </Txt>

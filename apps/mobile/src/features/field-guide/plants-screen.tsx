@@ -12,6 +12,7 @@ import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { say } from '../farm/farm-copy';
+import { typeAt } from '../farm/type-at';
 import { familyName, monthsOf, plantTitle } from './guide-copy';
 import { STRIP } from './guide-model';
 import { PlantTile, RoundButton } from './parts';
@@ -160,7 +161,7 @@ function itemsOf(
  * and only the rows on screen.
  */
 export function PlantsScreen({ farm }: { readonly farm: FarmId }) {
-  const { t, language } = useLocale();
+  const { t, language, fontLocale } = useLocale();
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -186,7 +187,7 @@ export function PlantsScreen({ farm }: { readonly farm: FarmId }) {
       color={palette.secondary}
       align="center"
       numberOfLines={2}
-      style={{ width: w, fontSize: 9.5, lineHeight: 11, letterSpacing: 0.4 }}
+      style={{ ...typeAt('label', 9.5, 11, fontLocale), width: w, letterSpacing: 0.4 }}
     >
       {text}
     </Txt>
@@ -225,7 +226,7 @@ export function PlantsScreen({ farm }: { readonly farm: FarmId }) {
                 <Txt
                   variant="displayM"
                   accessibilityRole="header"
-                  style={{ fontSize: 24, lineHeight: 26.4 }}
+                  style={typeAt('displayM', 24, 26.4, fontLocale)}
                 >
                   {item.title}
                 </Txt>
@@ -233,7 +234,7 @@ export function PlantsScreen({ farm }: { readonly farm: FarmId }) {
                   variant="caption"
                   multiline
                   color={palette.secondary}
-                  style={{ fontSize: 13, lineHeight: 16.9 }}
+                  style={typeAt('caption', 13, 16.9, fontLocale)}
                 >
                   {item.sub}
                 </Txt>
@@ -265,7 +266,7 @@ export function PlantsScreen({ farm }: { readonly farm: FarmId }) {
               ]}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Txt variant="displayS" style={{ fontSize: 16, lineHeight: 17.6 }}>
+                <Txt variant="displayS" style={typeAt('displayS', 16, 17.6, fontLocale)}>
                   {item.name}
                 </Txt>
                 {item.icon ? (
@@ -280,7 +281,7 @@ export function PlantsScreen({ farm }: { readonly farm: FarmId }) {
                   <Txt
                     variant="caption"
                     color={palette.secondary}
-                    style={{ fontSize: 12, lineHeight: 15.6 }}
+                    style={typeAt('caption', 12, 15.6, fontLocale)}
                   >
                     {item.line}
                   </Txt>

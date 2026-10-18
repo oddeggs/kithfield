@@ -18,6 +18,7 @@ import { useArt, useArtStill } from '../../ui/art/art-provider';
 import { ArtIcon, ArtStill } from '../../ui/art/art-view';
 import { lookOf } from '../../ui/art/critter-look';
 import type { Sender } from '../../ui/components/bubble';
+import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useArtVisible } from '../../ui/motion/visibility';
@@ -25,6 +26,7 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import type { ViewStyleProp } from '../../ui/style';
 import { nameOf } from '../farm/farm-copy';
+import { typeAt } from '../farm/type-at';
 import { useGuideLook } from './guide-look';
 
 /** Grey and faded: a plant the farm hasn't met yet, as a pencil sketch (`grayscale(1) opacity(.45)`). */
@@ -179,6 +181,7 @@ export function RoundButton({
   readonly glass?: boolean;
 }) {
   const { palette } = useTheme();
+  const { fontLocale } = useLocale();
   const look = useGuideLook();
   const size = sizes.circle;
   const fill = glass ? look.glassButton : palette.fillSoft;
@@ -200,7 +203,11 @@ export function RoundButton({
       {icon ? (
         <ArtIcon name={icon} size={icon === 'search' ? 22 : 20} color={palette.text} />
       ) : (
-        <Txt variant="chevron" color={palette.text} style={{ fontSize: 24, marginTop: -3 }}>
+        <Txt
+          variant="chevron"
+          color={palette.text}
+          style={{ ...typeAt('body', 24, 24, fontLocale), marginTop: -3 }}
+        >
           ‹
         </Txt>
       )}
@@ -290,7 +297,7 @@ export function BoldLine({
   variant,
   color,
   size,
-  lineHeight,
+  line,
 }: {
   readonly before: string;
   readonly bold: string;
@@ -298,13 +305,20 @@ export function BoldLine({
   readonly variant: 'body' | 'caption';
   readonly color: string;
   readonly size: number;
-  readonly lineHeight: number;
+  /** The line height, in points. */
+  readonly line: number;
 }) {
+  const { fontLocale } = useLocale();
   return (
-    <Txt variant={variant} multiline color={color} style={{ fontSize: size, lineHeight, flex: 1 }}>
+    <Txt
+      variant={variant}
+      multiline
+      color={color}
+      style={{ ...typeAt(variant, size, line, fontLocale), flex: 1 }}
+    >
       {before}
       {bold ? (
-        <Txt variant={variant} color={color} style={{ fontWeight: '600' }}>
+        <Txt variant={variant} color={color} style={typeAt('rowTitle', size, line, fontLocale)}>
           {bold}
         </Txt>
       ) : null}
@@ -326,6 +340,7 @@ export function LinkRow({
   readonly onPress: () => void;
 }) {
   const look = useGuideLook();
+  const { fontLocale } = useLocale();
   return (
     <Press
       onPress={onPress}
@@ -349,14 +364,14 @@ export function LinkRow({
         attrs={{ name: icon, ...(look.iconInk ? { color: look.iconInk } : {}) }}
       />
       <View style={{ flex: 1 }}>
-        <Txt variant="rowTitle" multiline style={{ fontSize: 15.5, lineHeight: 18.6 }}>
+        <Txt variant="rowTitle" multiline style={typeAt('rowTitle', 15.5, 18.6, fontLocale)}>
           {title}
         </Txt>
         <Txt
           variant="caption"
           multiline
           color={look.linkRow.sub}
-          style={{ fontSize: 13, lineHeight: 16.9 }}
+          style={typeAt('caption', 13, 16.9, fontLocale)}
         >
           {sub}
         </Txt>

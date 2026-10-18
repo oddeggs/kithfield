@@ -22,6 +22,7 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { say } from '../farm/farm-copy';
 import { useNow } from '../farm/use-now';
+import { typeAt } from '../farm/type-at';
 import { familyLine, plantTitle, seasonRange } from './guide-copy';
 import { useGuideLook } from './guide-look';
 import { foundCount, guideRows, rarePages, tileLook, type GuideRow } from './guide-model';
@@ -58,7 +59,7 @@ export function GuidePage({
   readonly state: FarmState | null;
   readonly view: FarmView | null;
 }) {
-  const { t, language } = useLocale();
+  const { t, language, fontLocale } = useLocale();
   const { palette } = useTheme();
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
@@ -123,7 +124,7 @@ export function GuidePage({
               variant="handS"
               color={look.found}
               numberOfLines={1}
-              style={{ fontSize: 16, lineHeight: 16 }}
+              style={typeAt('handS', 16, 16, fontLocale)}
             >
               {t('fieldGuide.whose', { farm: state.name ?? '' })}
             </Txt>
@@ -131,7 +132,7 @@ export function GuidePage({
               variant="displayL"
               accessibilityRole="header"
               numberOfLines={1}
-              style={{ fontSize: 30, lineHeight: 31.5 }}
+              style={typeAt('displayL', 30, 31.5, fontLocale)}
             >
               {t('fieldGuide.title')}
             </Txt>
@@ -152,11 +153,11 @@ export function GuidePage({
             <Txt
               variant="caption"
               color={palette.secondary}
-              style={{ fontSize: 12.5, lineHeight: 15 }}
+              style={typeAt('caption', 12.5, 15, fontLocale)}
             >
               {seasonRange(t, tab, state.hemisphere, tab === current)}
             </Txt>
-            <Txt variant="handS" color={look.growing} style={{ fontSize: 14, lineHeight: 14 }}>
+            <Txt variant="handS" color={look.growing} style={typeAt('handS', 14, 14, fontLocale)}>
               {found > 0
                 ? t('fieldGuide.found', { count: found, total: rows.length })
                 : t('fieldGuide.stillToCome')}
@@ -197,7 +198,7 @@ export function GuidePage({
                     <Txt
                       variant="rowTitle"
                       numberOfLines={1}
-                      style={{ fontSize: 15.5, lineHeight: 18.6 }}
+                      style={typeAt('rowTitle', 15.5, 18.6, fontLocale)}
                     >
                       {name}
                     </Txt>
@@ -217,7 +218,7 @@ export function GuidePage({
                         variant="caption"
                         color={palette.secondary}
                         numberOfLines={1}
-                        style={{ fontSize: 12.5, lineHeight: 15, flexShrink: 1 }}
+                        style={{ ...typeAt('caption', 12.5, 15, fontLocale), flexShrink: 1 }}
                       >
                         {line}
                       </Txt>
@@ -227,7 +228,7 @@ export function GuidePage({
                     variant="handS"
                     color={st.color}
                     numberOfLines={1}
-                    style={{ fontSize: 14, lineHeight: 14 }}
+                    style={typeAt('handS', 14, 14, fontLocale)}
                   >
                     {st.text}
                   </Txt>
@@ -238,7 +239,7 @@ export function GuidePage({
           <Txt
             variant="label"
             color={palette.secondary}
-            style={{ fontSize: 11, lineHeight: 11, marginTop: 4 }}
+            style={{ ...typeAt('label', 11, 11, fontLocale), marginTop: 4 }}
           >
             {t('fieldGuide.allYear')}
           </Txt>
@@ -307,6 +308,7 @@ function AllYearTile({
   readonly onPress: () => void;
 }) {
   const { palette } = useTheme();
+  const { fontLocale } = useLocale();
   return (
     <Press
       onPress={onPress}
@@ -319,7 +321,7 @@ function AllYearTile({
         variant="rowTitle"
         align="center"
         numberOfLines={1}
-        style={{ fontSize: 12.5, lineHeight: 13.75 }}
+        style={typeAt('rowTitle', 12.5, 13.75, fontLocale)}
       >
         {title}
       </Txt>
@@ -328,7 +330,7 @@ function AllYearTile({
         align="center"
         color={palette.secondary}
         numberOfLines={1}
-        style={{ fontSize: 11.5, lineHeight: 11.5 }}
+        style={typeAt('caption', 11.5, 11.5, fontLocale)}
       >
         {sub}
       </Txt>

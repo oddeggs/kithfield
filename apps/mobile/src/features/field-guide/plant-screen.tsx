@@ -14,6 +14,7 @@ import { Txt } from '../../ui/type/text';
 import { say } from '../farm/farm-copy';
 import { NightVeil } from '../farm/panel';
 import { useNow } from '../farm/use-now';
+import { typeAt } from '../farm/type-at';
 import { familyName, plantTitle } from './guide-copy';
 import { guideMotion, useGuideLook } from './guide-look';
 import { STRIP, entryOf, plantStatus, stripIndex, tileLook, variantArt } from './guide-model';
@@ -59,7 +60,7 @@ export function PlantPage({
   readonly plant: string;
   readonly variant: RareVariant | null;
 }) {
-  const { t, language } = useLocale();
+  const { t, language, fontLocale } = useLocale();
   const { palette } = useTheme();
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
@@ -195,7 +196,7 @@ export function PlantPage({
                 variant="displayL"
                 multiline
                 accessibilityRole="header"
-                style={{ fontSize: 30, lineHeight: 33.6 }}
+                style={typeAt('displayL', 30, 33.6, fontLocale)}
               >
                 {title}
               </Txt>
@@ -203,7 +204,7 @@ export function PlantPage({
                 variant="caption"
                 multiline
                 color={palette.secondary}
-                style={{ fontSize: 13.5, lineHeight: 17.55, marginTop: 2 }}
+                style={{ ...typeAt('caption', 13.5, 17.55, fontLocale), marginTop: 2 }}
               >
                 {subtitle}
               </Txt>
@@ -213,7 +214,7 @@ export function PlantPage({
                 variant="handS"
                 multiline
                 color={mark.color}
-                style={{ fontSize: 16, lineHeight: 17.6, marginTop: 12, maxWidth: 72 }}
+                style={{ ...typeAt('handS', 16, 17.6, fontLocale), marginTop: 12, maxWidth: 72 }}
               >
                 {mark.text}
               </Txt>
@@ -239,7 +240,7 @@ export function PlantPage({
                   variant="caption"
                   color={palette.secondary}
                   numberOfLines={1}
-                  style={{ fontSize: 10.5, lineHeight: 10.5, fontWeight: '600' }}
+                  style={typeAt('rowTitle', 10.5, 10.5, fontLocale)}
                 >
                   {say(
                     t,
@@ -273,7 +274,7 @@ export function PlantPage({
                 variant="body"
                 color={palette.creditText}
                 size={14}
-                lineHeight={19.6}
+                line={19.6}
               />
             </View>
           ) : null}
@@ -286,7 +287,7 @@ export function PlantPage({
               variant="caption"
               color={look.paragraph}
               size={13.5}
-              lineHeight={19.6}
+              line={19.6}
             />
           </View>
           {rare ? (
@@ -302,7 +303,7 @@ export function PlantPage({
                 variant="caption"
                 color={look.paragraph}
                 size={13.5}
-                lineHeight={19.6}
+                line={19.6}
               />
             </View>
           ) : null}

@@ -16,4 +16,8 @@ describe('the field guide look', () => {
   it('takes every colour and shadow from the theme', () => {
     expect(offending(/#[0-9a-f]{3,8}\b|rgba?\(|\d+px/i)).toEqual([]);
   });
+
+  it('sets text by the type ramp, in the reader’s language, never by size alone', () => {
+    expect(offending(/\b(fontSize|lineHeight)\s*:/)).toEqual([]);
+  });
 });

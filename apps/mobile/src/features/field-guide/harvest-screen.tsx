@@ -16,6 +16,7 @@ import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { listOf, say } from '../farm/farm-copy';
+import { typeAt } from '../farm/type-at';
 import { cropName, familyName } from './guide-copy';
 import { guideMotion, useGuideLook } from './guide-look';
 import { entryOf } from './guide-model';
@@ -83,7 +84,7 @@ export function HarvestPage({
   readonly me: PersonId | null;
   readonly post: (text: string) => Promise<EnqueueResult>;
 }) {
-  const { t, language } = useLocale();
+  const { t, language, fontLocale } = useLocale();
   const { palette } = useTheme();
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
@@ -137,7 +138,7 @@ export function HarvestPage({
           }}
         >
           <View style={{ gap: 4 }}>
-            <Txt variant="handL" color={look.found} style={{ fontSize: 17, lineHeight: 18.7 }}>
+            <Txt variant="handL" color={look.found} style={typeAt('handL', 17, 18.7, fontLocale)}>
               {t('fieldGuide.harvest.eyebrow', {
                 season: say(t, `fieldGuide.seasonWord.${basket.season.season}`),
               })}
@@ -146,7 +147,7 @@ export function HarvestPage({
               variant="displayM"
               multiline
               accessibilityRole="header"
-              style={{ fontSize: 28, lineHeight: 31.4 }}
+              style={typeAt('displayM', 28, 31.4, fontLocale)}
             >
               {t('fieldGuide.harvest.title')}
             </Txt>
@@ -181,7 +182,7 @@ export function HarvestPage({
                     <Txt
                       variant="rowTitle"
                       numberOfLines={1}
-                      style={{ fontSize: 15.5, lineHeight: 18.6 }}
+                      style={typeAt('rowTitle', 15.5, 18.6, fontLocale)}
                     >
                       {cropName(t, language, state, crop)}
                     </Txt>
@@ -189,7 +190,7 @@ export function HarvestPage({
                       variant="caption"
                       numberOfLines={1}
                       color={palette.secondary}
-                      style={{ fontSize: 13, lineHeight: 16.9 }}
+                      style={typeAt('caption', 13, 16.9, fontLocale)}
                     >
                       {cropLine(t, state, crop)}
                     </Txt>
@@ -210,7 +211,7 @@ export function HarvestPage({
               variant="caption"
               multiline
               color={look.note.fg}
-              style={{ fontSize: 13.5, lineHeight: 19.6 }}
+              style={typeAt('caption', 13.5, 19.6, fontLocale)}
             >
               {harvestNote(t, state, crops, me)}
             </Txt>

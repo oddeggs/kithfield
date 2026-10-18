@@ -10,6 +10,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { say } from '../farm/farm-copy';
+import { typeAt } from '../farm/type-at';
 import { seasonRange } from './guide-copy';
 import { useGuideLook } from './guide-look';
 import { RoundButton } from './parts';
@@ -22,7 +23,7 @@ const CARD_H = 240;
  * design's four-across board, laid out as one column for the phone.
  */
 export function SeasonsScreen({ farm }: { readonly farm: FarmId }) {
-  const { t } = useLocale();
+  const { t, fontLocale } = useLocale();
   const { palette } = useTheme();
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
@@ -56,14 +57,14 @@ export function SeasonsScreen({ farm }: { readonly farm: FarmId }) {
             >
               <ArtStill scene="farm" width={cardW} height={CARD_H} attrs={{ season }} t={1.2} />
             </View>
-            <Txt variant="displayS" multiline style={{ fontSize: 19, lineHeight: 20.9 }}>
+            <Txt variant="displayS" multiline style={typeAt('displayS', 19, 20.9, fontLocale)}>
               {seasonRange(t, season, hemisphere, state?.season.season === season)}
             </Txt>
             <Txt
               variant="caption"
               multiline
               color={palette.secondary}
-              style={{ fontSize: 13.5, lineHeight: 18.9 }}
+              style={typeAt('caption', 13.5, 18.9, fontLocale)}
             >
               {say(t, `fieldGuide.seasonsPage.${season}`)}
             </Txt>
@@ -85,7 +86,7 @@ export function SeasonsScreen({ farm }: { readonly farm: FarmId }) {
             variant="body"
             multiline
             color={look.paragraph}
-            style={{ flex: 1, fontSize: 14, lineHeight: 20.3 }}
+            style={{ ...typeAt('body', 14, 20.3, fontLocale), flex: 1 }}
           >
             {t('fieldGuide.seasonsPage.note')}
           </Txt>

@@ -25,6 +25,7 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { say } from '../farm/farm-copy';
 import { NightVeil } from '../farm/panel';
+import { typeAt } from '../farm/type-at';
 import { capital, variantOf } from './guide-copy';
 import { useGuideLook } from './guide-look';
 import { variantArt } from './guide-model';
@@ -90,7 +91,7 @@ export function RareBloomPage({
   readonly bloomKey: string;
   readonly people: readonly PersonId[] | null;
 }) {
-  const { t, language } = useLocale();
+  const { t, language, fontLocale } = useLocale();
   const { palette } = useTheme();
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
@@ -171,7 +172,7 @@ export function RareBloomPage({
             <Txt
               variant="handL"
               color={look.rareEyebrow}
-              style={{ fontSize: 18, lineHeight: 19.8 }}
+              style={typeAt('handL', 18, 19.8, fontLocale)}
             >
               {t('fieldGuide.rare.eyebrow')}
             </Txt>
@@ -180,7 +181,7 @@ export function RareBloomPage({
               align="center"
               multiline
               accessibilityRole="header"
-              style={{ fontSize: 28, lineHeight: 31.4 }}
+              style={typeAt('displayM', 28, 31.4, fontLocale)}
             >
               {capital(t('fieldGuide.rare.title', { rare }))}
             </Txt>
@@ -189,7 +190,7 @@ export function RareBloomPage({
               align="center"
               multiline
               color={palette.body}
-              style={{ maxWidth: 310, fontSize: 15, lineHeight: 21.75 }}
+              style={{ ...typeAt('body', 15, 21.75, fontLocale), maxWidth: 310 }}
             >
               {rareBody(t, state, me, bloom.plant, bloom.variant, people)}
             </Txt>
@@ -207,7 +208,7 @@ export function RareBloomPage({
 }
 
 function VariantCard({ variant, art }: { readonly variant: RareVariant; readonly art: string }) {
-  const { t } = useLocale();
+  const { t, fontLocale } = useLocale();
   const { palette } = useTheme();
   return (
     <View
@@ -222,7 +223,7 @@ function VariantCard({ variant, art }: { readonly variant: RareVariant; readonly
       }}
     >
       <PlantTile art={{ plant: 'poppy', stage: 3, state: art, color: palette.card }} width={64} />
-      <Txt variant="rowTitle" align="center" style={{ fontSize: 12, lineHeight: 13.2 }}>
+      <Txt variant="rowTitle" align="center" style={typeAt('rowTitle', 12, 13.2, fontLocale)}>
         {say(t, `fieldGuide.variantName.${variant}`)}
       </Txt>
       <Txt
@@ -230,7 +231,7 @@ function VariantCard({ variant, art }: { readonly variant: RareVariant; readonly
         align="center"
         multiline
         color={palette.secondary}
-        style={{ fontSize: 11, lineHeight: 13.75 }}
+        style={typeAt('caption', 11, 13.75, fontLocale)}
       >
         {say(t, `fieldGuide.variantHint.${variant}`)}
       </Txt>
