@@ -25,6 +25,7 @@ export default defineConfig(async () => {
               'kofi@example.com': 'senior',
               'sam@example.com': 'moderator',
             }),
+            MEDIA_SIGNING_KEY: `${randomUUID()}${randomUUID()}`,
           },
         },
       }),

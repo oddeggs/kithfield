@@ -9,6 +9,8 @@ import { galleryEn } from './gallery.en';
 import { gallerySameInBoth, galleryVi } from './gallery.vi';
 import { glossaryEn } from './glossary.en';
 import { glossarySameInBoth, glossaryVi } from './glossary.vi';
+import { mediaEn } from './media.en';
+import { mediaVi } from './media.vi';
 import { moderationEn } from './moderation.en';
 import { moderationSameInBoth, moderationVi } from './moderation.vi';
 import { pushEn } from './push.en';
@@ -34,6 +36,7 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'deletionScheduled', file: 'deletion-scheduled', en: deletionScheduledEn, vi: deletionScheduledVi, sameInBoth: [] },
   { name: 'gallery', file: 'gallery', en: galleryEn, vi: galleryVi, sameInBoth: gallerySameInBoth },
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
+  { name: 'media', file: 'media', en: mediaEn, vi: mediaVi, sameInBoth: [] },
   { name: 'moderation', file: 'moderation', en: moderationEn, vi: moderationVi, sameInBoth: moderationSameInBoth },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
@@ -51,6 +54,7 @@ export const en = {
   ...deletionScheduledEn,
   ...galleryEn,
   ...glossaryEn,
+  ...mediaEn,
   ...moderationEn,
   ...pushEn,
   ...shellEn,
@@ -68,6 +72,7 @@ export const vi = {
   ...deletionScheduledVi,
   ...galleryVi,
   ...glossaryVi,
+  ...mediaVi,
   ...moderationVi,
   ...pushVi,
   ...shellVi,

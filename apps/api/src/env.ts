@@ -18,6 +18,13 @@ export const secretNames = [
   'EXPORT_URL_KEY',
   // The safety desk's moderators as JSON, address → role: {"name@example.com": "senior"}.
   'MODERATORS',
+  // Signs media read URLs (and local upload-proxy PUTs); the media Worker holds the same value.
+  'MEDIA_SIGNING_KEY',
+  // R2's S3-compatible API, for presigned upload URLs: the account id and an R2 API token's
+  // access key pair with Object Read & Write on the media bucket.
+  'R2_ACCOUNT_ID',
+  'R2_ACCESS_KEY_ID',
+  'R2_SECRET_ACCESS_KEY',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -48,10 +55,22 @@ export type Bindings = Secrets & {
   readonly DB: D1Database;
   /** Photos, video, voice notes, files and export bundles. */
   readonly MEDIA: R2Bucket;
+  /** The media bucket's name, for presigned URLs on R2's S3 endpoint. */
+  readonly MEDIA_BUCKET_NAME: string;
+  /** Where the media Worker serves signed reads (`https://media.kithfield.com`). */
+  readonly MEDIA_ORIGIN: string;
+  /**
+   * Development only: the origin a phone reaches this API at, for upload-proxy URLs when
+   * `wrangler dev` rewrites requests to the route's host (`--var
+   * MEDIA_UPLOAD_PROXY_ORIGIN:http://localhost:8787`). Unset, the request's own origin.
+   */
+  readonly MEDIA_UPLOAD_PROXY_ORIGIN?: string;
   /** At most 20 sign-in nonces a minute per client address. */
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Gestures at another farm's gate, per visitor. */
   readonly GATE_LIMIT: RateLimit;
+  /** At most 60 upload URLs (and forwarding copies) a minute per person. */
+  readonly MEDIA_LIMIT: RateLimit;
   /** At most 5 waitlist sign-ups a minute per client address. */
   readonly WAITLIST_LIMIT: RateLimit;
   /** At most 5 account deletion requests or code tries a minute per client address. */

@@ -3,6 +3,7 @@ import { createApp } from './app';
 import { queueDuePurges } from './auth';
 import { expireExports } from './auth/export';
 import type { Bindings } from './env';
+import { sweepMedia } from './media';
 import { consumeQueue } from './queues';
 import { keepWaitlistTidy } from './web/waitlist-store';
 
@@ -23,5 +24,7 @@ export default {
     ctx.waitUntil(queueDuePurges(env, controller.scheduledTime));
     ctx.waitUntil(expireExports(env, controller.scheduledTime));
     ctx.waitUntil(keepModerationTidy(env.DB, controller.scheduledTime));
+    // Uploads left unfinished for a week.
+    ctx.waitUntil(sweepMedia(env, controller.scheduledTime));
   },
 } satisfies ExportedHandler<Bindings>;
