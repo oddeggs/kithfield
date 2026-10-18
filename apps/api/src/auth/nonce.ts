@@ -42,10 +42,17 @@ function insertVerification(
     .bind(crypto.randomUUID(), input.identifier, iso(input.expiresAt), iso(input.now));
 }
 
+/**
+ * Deletes a kind's expired rows. The prefix becomes a range on `identifier` (`prefix:` up to
+ * `prefix;`, the next character), so the identifier index serves it where `LIKE` would not.
+ */
 function deleteExpired(db: D1Database, prefix: string, now: number): D1PreparedStatement {
+  const upTo = `${prefix.slice(0, -1)};`;
   return db
-    .prepare('DELETE FROM verifications WHERE identifier LIKE ? AND expires_at <= ?')
-    .bind(`${prefix}%`, iso(now));
+    .prepare(
+      'DELETE FROM verifications WHERE identifier >= ? AND identifier < ? AND expires_at <= ?',
+    )
+    .bind(prefix, upTo, iso(now));
 }
 
 export async function issueSignInNonce(

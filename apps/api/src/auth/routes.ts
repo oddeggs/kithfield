@@ -48,6 +48,9 @@ export function authRoutes(): Hono<SessionEnv> {
 
   // Before Apple's or Google's sheet opens; no session needed, as a signed-out phone signs in too.
   routes.post('/v1/sign-in-nonce', async (c) => {
+    const address = c.req.header('cf-connecting-ip') ?? 'unknown';
+    const { success } = await c.env.SIGN_IN_NONCE_LIMIT.limit({ key: address });
+    if (!success) return errorResponse(c, 429, 'rate_limited');
     return c.json(await issueSignInNonce(c.env.DB, Date.now()));
   });
 

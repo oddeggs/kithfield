@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   call,
+  freshIp,
   issueNonce,
   readSignIn,
   signInAnonymously,
@@ -106,6 +107,38 @@ describe('sign-in nonces and replay', () => {
     const body = await response.json<{ nonce: string; expiresAt: number }>();
     expect(body.nonce).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(body.expiresAt).toBeGreaterThan(Date.now());
+  });
+});
+
+describe('handing out nonces', () => {
+  it('limits how many nonces one address gets in a minute', async () => {
+    const ip = freshIp();
+    for (let nonce = 0; nonce < 20; nonce += 1) {
+      expect((await call('/v1/sign-in-nonce', { method: 'POST', ip })).status).toBe(200);
+    }
+    const refused = await call('/v1/sign-in-nonce', { method: 'POST', ip });
+    expect(refused.status).toBe(429);
+    expect(await refused.json()).toEqual({ error: { code: 'rate_limited' } });
+    expect((await call('/v1/sign-in-nonce', { method: 'POST', ip: freshIp() })).status).toBe(200);
+  });
+
+  it('clears out expired nonces and token reservations as new ones arrive', async () => {
+    const past = new Date(Date.now() - 1000).toISOString();
+    for (const identifier of ['sign-in-nonce:stale', 'id-token:stale']) {
+      await env.DB.prepare(
+        `INSERT INTO verifications (id, identifier, value, expires_at, created_at, updated_at)
+         VALUES (?, ?, '1', ?, ?, ?)`,
+      )
+        .bind(crypto.randomUUID(), identifier, past, past, past)
+        .run();
+    }
+    await issueNonce();
+    const identity = await idp.sheet('google', freshSubject());
+    await readSignIn(await signInWithIdToken('google', identity));
+    const stale = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM verifications WHERE identifier IN ('sign-in-nonce:stale', 'id-token:stale')",
+    ).first();
+    expect(stale).toEqual({ n: 0 });
   });
 });
 

@@ -40,6 +40,14 @@
         },
       ],
       "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media-dev" }],
+      // Per-address limit on handing out sign-in nonces (keyed on cf-connecting-ip).
+      "ratelimits": [
+        {
+          "name": "SIGN_IN_NONCE_LIMIT",
+          "namespace_id": "1101",
+          "simple": { "limit": 20, "period": 60 },
+        },
+      ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
       "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@kithfield.com"] }],
       "queues": {
@@ -88,6 +96,14 @@
         },
       ],
       "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media" }],
+      // Per-address limit on handing out sign-in nonces (keyed on cf-connecting-ip).
+      "ratelimits": [
+        {
+          "name": "SIGN_IN_NONCE_LIMIT",
+          "namespace_id": "1102",
+          "simple": { "limit": 20, "period": 60 },
+        },
+      ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
       "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@kithfield.com"] }],
       "queues": {

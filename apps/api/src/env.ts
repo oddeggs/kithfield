@@ -29,6 +29,8 @@ export type Bindings = Secrets & {
   readonly DB: D1Database;
   /** Photos, video, voice notes, files and export bundles. */
   readonly MEDIA: R2Bucket;
+  /** At most 20 sign-in nonces a minute per client address. */
+  readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;
