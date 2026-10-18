@@ -20,6 +20,7 @@ import {
 import { localDay, seasonOf } from '@kithfield/farm';
 import { Hono } from 'hono';
 
+import { categorize } from '../admin/signals';
 import { eitherBlocked, type SessionEnv } from '../auth';
 import { roleOf } from '../farm/d1';
 import { body, type Ctx, fail, farmStub, member, signedIn } from '../farm/http';
@@ -37,6 +38,8 @@ import { webhookRoutes } from './webhooks';
 /* The shop, patrons, wishlists, gifts, chip-ins, farm themes, the printed book and the costs. */
 
 const WISHLIST_MAX = 30;
+/** The wall's names are short (the contract's own limit). */
+const WALL_NAME_MAX = 32;
 
 /** The shop's writes, per person (`SHOP_LIMIT`): false once over, and the route answers 429. */
 const withinShopLimit = async (c: Ctx) =>
@@ -125,8 +128,11 @@ const patronRoutes = (app: Hono<SessionEnv>) => {
       await c.env.DB.prepare('DELETE FROM wall_names WHERE person_id = ?').bind(person).run();
       return c.body(null, 204);
     }
-    const name = req.name.trim();
-    if (name === '') return fail(c, 400, 'bad_request', ['name']);
+    const name = req.name.trim().replace(/\s+/g, ' ').slice(0, WALL_NAME_MAX);
+    // Everyone's wall: never a name the safety desk's triage would put at the top of its queue.
+    if (name === '' || categorize(['something_else'], [name]).urgent) {
+      return fail(c, 400, 'bad_request', ['name']);
+    }
     await c.env.DB.prepare(
       `INSERT INTO wall_names (person_id, name, sort_key, at) VALUES (?, ?, ?, ?)
        ON CONFLICT (person_id) DO UPDATE SET name = excluded.name, sort_key = excluded.sort_key, at = excluded.at`,
