@@ -30,6 +30,13 @@ screens there without editing a shared file.
   `(cover)` as a full-screen modal. Don't give these groups a `_layout.tsx`: their files must stay
   direct routes of the root stack. They are for signed-in screens; onboarding's own sheets live in
   `(onboarding)`.
+- **A cover with its own stack.** A feature with several full-screen screens that push and swipe
+  back among themselves (the shop) puts them in `(cover)/<feature>/` with a `_layout.tsx` holding a
+  native `Stack`. The root stack presents the folder full screen because its route name starts with
+  `(cover)/`, so it needs no `SHEETS` entry; inside, screens push as cards. The layout sets
+  `unstable_settings = { anchor: 'index' }`, so a link straight to a deeper screen still has the
+  feature's first screen under it, and mounts its own `ToastHost`, since the app's toasts sit under a
+  cover. It may also hold the feature's data provider, so its screens load once.
 - **Sheets with their own heights.** Native sheets take their presentation and detents when they
   are created, so a route never sets `presentation` or `sheet…` options on itself
   (`<Stack.Screen options>` in its file arrives after mount: detents are ignored, and a
