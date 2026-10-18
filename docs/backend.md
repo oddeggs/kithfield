@@ -164,10 +164,15 @@ Set per environment in `apps/api/wrangler.jsonc`:
 | `AI_LIMIT` | 30 a minute | 30 a minute | Asking for a voice note's caption, per person |
 | `AI_FARM_LIMIT` | 120 a minute | 120 a minute | Asking for voice-note captions, per farm |
 | `AI` (Workers AI) | remote | remote | Voice-note captions, their translation and the Sunday letter. Always runs on Cloudflare, also from `wrangler dev`; the tests stand in for it |
+| `SHOP_LIMIT` | 10 a minute | 10 a minute | The shop's writes, per person: purchase syncs, gifts, chip-ins and wall names (namespaces 1261 dev, 1262 prd) |
+| `FIRE_LIMIT` | 12 a minute | 12 a minute | Pieces of a speaker's voice sent for live captions, per person, about one every five seconds (namespaces 1263 dev, 1264 prd) |
+| `APNS_KEY_ID`, `APNS_TEAM_ID` (vars), `APNS_KEY_P8` (secret) | key `4QN5TUP479`, team `YFND2EEW8S` | the same | The team's APNs key, for Live Activity pushes sent straight to Apple (start, move and end the plan's day). Without the secret, Live Activities move only while the app runs |
+| `APNS_HOST` (var) | `api.sandbox.push.apple.com,api.push.apple.com` | `api.push.apple.com` | The APNs hosts, in order; the next is tried only for a token the last called a bad device token (a TestFlight build of Kithfield Dev runs on production) |
+| `LIVEKIT_URL` (var), `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` (secrets) | `wss://kithfield-cvm2v8ac.livekit.cloud` | the same project | The fire room's LiveKit project: the key pair mints room tokens and checks LiveKit's webhook. Locally, `livekit-server --dev` (devkey / secret) and `--var LIVEKIT_URL:ws://localhost:7880` |
 
 Two crons (`triggers.crons`, UTC), told apart in `src/index.ts` by `controller.cron`:
 
-- **Daily, `17 3 * * *`**: the waitlist's retention, expired keepsakes exports, the safety desk's retention, the media sweep, and accounts whose 30 days are over go on the `deletion` queue.
+- **Daily, `17 3 * * *`**: the waitlist's retention, expired keepsakes exports, the safety desk's retention, the media sweep, chip-ins past their close (promises released, anything paid becomes the payer's credit), and accounts whose 30 days are over go on the `deletion` queue.
 - **Hourly, `7 * * * *`**: each farm whose Sunday letter is due goes on the `ai` queue (a `recap` job once Sunday 09:00 has passed in the farm's time zone, late runs included), and the AI's words owed a delete are swept from R2.
 
 The api consumes every queue (`src/queues.ts`), each with a dead-letter queue after 3 retries; `push`, `deletion` and `ai` have handlers, and a batch with none (`media`, so far) is retried rather than acked. The `ai` queue carries `AiJob`s (`recap`, `voice_caption`); its consumer reads consent again before sending anything to Workers AI.

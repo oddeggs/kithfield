@@ -47,9 +47,9 @@ screens there without editing a shared file.
 
   | `SHEETS` entry | What it gives | Used by |
   |---|---|---|
-  | `{ kind: 'detents', tops: [286, 150], grabber: true, undimmedUpTo: 0 }` | A `formSheet` resting with its top at each distance from the screen's top, as the design measures it (`(screenH - top) / screenH`, smallest first); the screen behind stays lit and touchable up to detent `undimmedUpTo` | `(modal)/farm-critter`, `(modal)/plans-remember` (`tops: [214]`) |
+  | `{ kind: 'detents', tops: [286, 150], grabber: true, undimmedUpTo: 0 }` | A `formSheet` resting with its top at each distance from the screen's top, as the design measures it (`(screenH - top) / screenH`, smallest first); the screen behind stays lit and touchable up to detent `undimmedUpTo` | `(modal)/farm-critter`, `(modal)/stickers-picker` (`tops: [494, 110]`), `(modal)/plans-remember` (`tops: [214]`), `(modal)/surfaces-mic` and `(modal)/surfaces-camera` (`tops: [190]`) |
   | `{ kind: 'fractions', detents: [0.82, 1], grabber: true }` | A `formSheet` at fractions of the screen | `(modal)/farm-new` |
-  | `{ kind: 'fit' }` | A `formSheet` as tall as what it holds (`fitToContents`), with the grabber | The safety and settings sheets, `(dev)/sheet-lab` |
+  | `{ kind: 'fit' }` | A `formSheet` as tall as what it holds (`fitToContents`), with the grabber | The safety and settings sheets, `(modal)/surfaces-sound`, `(dev)/sheet-lab` |
   | `{ kind: 'overlay' }` | `transparentModal`, no transition and no dimming: the screen draws its own scrim and sheet on the UI thread | The gesture tray, message menu, reactions, attach |
   | `{ kind: 'cover' }` | `fullScreenModal`, rising from the bottom | The gesture scenes (firefly, knock, weather, slow post, forward, Quick Tend) |
 
