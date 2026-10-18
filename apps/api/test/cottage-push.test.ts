@@ -2,6 +2,7 @@ import type { CottageDelivery, PushJob } from '@kithfield/contracts';
 import { runDurableObjectAlarm } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { DEFAULT_KNOCK_FOR } from '../src/cottage/chats';
 import { cottageClock } from '../src/cottage/clock';
 import { pushQueue } from '../src/push/queue';
 import {
@@ -55,12 +56,81 @@ describe('the cottage decides on pushes', () => {
     const queue = recordPushQueue();
     const person = freshPerson();
     const cottage = await cottageWithFarm(person, 'farm-a');
-    await cottage.muteFarm('farm-a', cottageClock.now() + 3_600_000);
+    await cottage.setFarmNotifications('farm-a', {
+      mutedUntil: cottageClock.now() + 3_600_000,
+      knockFor: DEFAULT_KNOCK_FOR,
+    });
     await cottage.deliver(delivery({ farm: 'farm-a', seq: 2 }));
     expect(queue.jobs()).toEqual([]);
     expect(await ledgerOf(person)).toEqual([
       expect.objectContaining({ decision: 'skipped', reason: 'muted' }),
     ]);
+  });
+
+  it('keeps a farm muted "always" until it is turned back on, as the farm writes it', async () => {
+    const queue = recordPushQueue();
+    const person = freshPerson();
+    const cottage = await cottageWithFarm(person, 'farm-a');
+    await cottage.setFarmNotifications('farm-a', {
+      mutedUntil: 'always',
+      knockFor: DEFAULT_KNOCK_FOR,
+    });
+    await cottage.deliver(delivery({ farm: 'farm-a', seq: 2 }));
+    expect((await cottage.chatList())[0]).toMatchObject({ muted: true });
+    // D1's "always" is Number.MAX_SAFE_INTEGER; the farm may pass that on as it is.
+    await cottage.setFarmNotifications('farm-a', {
+      mutedUntil: Number.MAX_SAFE_INTEGER,
+      knockFor: DEFAULT_KNOCK_FOR,
+    });
+    await cottage.deliver(delivery({ farm: 'farm-a', seq: 3 }));
+    await cottage.setFarmNotifications('farm-a', { mutedUntil: null, knockFor: DEFAULT_KNOCK_FOR });
+    await cottage.deliver(delivery({ farm: 'farm-a', seq: 4 }));
+    expect((await ledgerOf(person)).map((r) => [r['seq'], r['reason'] ?? r['decision']])).toEqual([
+      [2, 'muted'],
+      [3, 'muted'],
+      [4, 'queued'],
+    ]);
+    expect(queue.jobs()).toHaveLength(1);
+  });
+
+  it('follows the farm’s "Knock for" toggles', async () => {
+    const queue = recordPushQueue();
+    const person = freshPerson();
+    const cottage = await cottageWithFarm(person, 'farm-a');
+    await cottage.setFarmNotifications('farm-a', {
+      mutedUntil: null,
+      knockFor: { plans: true, doorstep: false, mentions: false, messages: true },
+    });
+    // The doorstep and mentions are off.
+    await cottage.deliver(delivery({ farm: 'farm-a', seq: 2, kind: 'firefly', forYou: true }));
+    await cottage.deliver(
+      delivery({ farm: 'farm-a', seq: 3, kind: 'message', preview: 'hi @june', forYou: true }),
+    );
+    // Every message is on: a message for everyone pushes.
+    await cottage.deliver(
+      delivery({ farm: 'farm-a', seq: 4, kind: 'message', preview: 'picnic?' }),
+    );
+    expect(queue.jobs().map((j) => [j.seq, j.copy.key, j.copy.params['preview']])).toEqual([
+      [4, 'push.mention', 'picnic?'],
+    ]);
+    expect((await ledgerOf(person)).map((r) => r['reason'] ?? r['decision'])).toEqual([
+      'knock_off',
+      'knock_off',
+      'queued',
+    ]);
+
+    // Turned off after it was queued: the last check before sending skips it.
+    await cottage.setFarmNotifications('farm-a', { mutedUntil: null, knockFor: DEFAULT_KNOCK_FOR });
+    expect(await cottage.claim(queue.jobs()[0]!)).toEqual({ action: 'skip', reason: 'knock_off' });
+  });
+
+  it('pushes no message for everyone by default', async () => {
+    const queue = recordPushQueue();
+    const person = freshPerson();
+    const cottage = await cottageWithFarm(person, 'farm-a');
+    await cottage.deliver(delivery({ farm: 'farm-a', seq: 2, kind: 'message', preview: 'hi' }));
+    expect(queue.jobs()).toEqual([]);
+    expect(await ledgerOf(person)).toEqual([]);
   });
 
   it('skips a hibernating person', async () => {

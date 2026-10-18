@@ -11,6 +11,8 @@ export const CottageProfile = z.object({
   nudgesSinceBack: z.int().min(0),
   /** A note from the safety team waits to be fetched. */
   safetyNote: z.boolean(),
+  /** The app has sent the person's time zone; until then `settings.timeZone` is only UTC. */
+  zoneKnown: z.boolean().default(false),
 });
 export type CottageProfile = z.infer<typeof CottageProfile>;
 
@@ -36,6 +38,7 @@ const DEFAULT_PROFILE: CottageProfile = {
   hibernating: false,
   nudgesSinceBack: 0,
   safetyNote: false,
+  zoneKnown: false,
 };
 
 export function readProfile(sql: SqlStorage): CottageProfile {
@@ -73,5 +76,5 @@ export function quietOf(profile: CottageProfile): QuietWindow[] {
 export function applySettings(profile: CottageProfile, update: MeSettingsUpdate): CottageProfile {
   const given = Object.entries(update).filter(([, value]) => value !== undefined);
   const settings = MeSettings.parse({ ...profile.settings, ...Object.fromEntries(given) });
-  return { ...profile, settings };
+  return { ...profile, settings, zoneKnown: profile.zoneKnown || update.timeZone !== undefined };
 }

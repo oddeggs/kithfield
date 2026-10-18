@@ -96,6 +96,10 @@ describe('merging two people’s cottages', () => {
       nudgeAt: cottageClock.now() + 86_400_000,
     });
     await anon.updateSettings({ lang: 'vi', timeZone: 'Asia/Ho_Chi_Minh' });
+    await anon.setFarmNotifications('farm-b', {
+      mutedUntil: null,
+      knockFor: { plans: true, doorstep: false, mentions: true, messages: false },
+    });
 
     const job = { kind: 'person_merged' as const, from, into, at: cottageClock.now() };
     await handlePersonMerged(env, job);
@@ -108,6 +112,7 @@ describe('merging two people’s cottages', () => {
     ]);
     expect(await kept.waiting()).toHaveLength(1);
     expect((await kept.listSeeds()).map((s) => s.id)).toEqual([seed]);
+    expect((await kept.settings()).zoneKnown).toBe(true);
     expect((await kept.settings()).settings).toMatchObject({
       lang: 'vi',
       timeZone: 'Asia/Ho_Chi_Minh',
@@ -121,6 +126,13 @@ describe('merging two people’s cottages', () => {
     // The anonymous phone's action key now speaks for the kept person.
     const who = await keyed.request('/who', { headers: { [ACTION_KEY_HEADER]: anonKey } }, env);
     expect(await who.json()).toEqual({ person: into });
+
+    // farm-b's "Knock for" came over: the doorstep there stays quiet.
+    const queue = recordPushQueue();
+    await kept.deliver(
+      delivery({ farm: 'farm-b', seq: 9, kind: 'gift', preview: null, forYou: true }),
+    );
+    expect(queue.jobs()).toEqual([]);
 
     // The merged cottage is empty.
     expect(await anon.chatList()).toEqual([]);
