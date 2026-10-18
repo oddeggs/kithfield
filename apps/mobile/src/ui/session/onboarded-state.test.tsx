@@ -41,8 +41,16 @@ function server() {
   return {
     me,
     calls,
-    answer: (value: Me) => act(async () => answer?.(value)),
-    fail: () => act(async () => fail?.(new Error('offline'))),
+    answer: (value: Me) =>
+      act(async () => {
+        answer?.(value);
+        await Promise.resolve();
+      }),
+    fail: () =>
+      act(async () => {
+        fail?.(new Error('offline'));
+        await Promise.resolve();
+      }),
   };
 }
 
