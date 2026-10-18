@@ -12,5 +12,6 @@ export * from './rhythm';
 export * from './settings';
 export * from './shop';
 export * from './space';
+export * from './stickers';
 export * from './transitions';
 export * from './type';

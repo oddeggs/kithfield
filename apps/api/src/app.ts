@@ -11,6 +11,7 @@ import { farmApi } from './farm/routes';
 import { mediaRoutes } from './media';
 import { purchasesRoutes } from './purchases';
 import { rhythmRoutes } from './rhythm/routes';
+import { stickersRoutes } from './stickers/routes';
 import { waitlistRoutes } from './web/waitlist';
 
 /** The API. The Worker owns `<host>/api/*`; the website serves everything else on the host. */
@@ -35,6 +36,7 @@ export function createApp(): Hono<AppEnv> {
   app.route('/v1', voiceCaptionRoutes());
   app.route('/v1', purchasesRoutes());
   app.route('/v1', callsRoutes());
+  app.route('/v1', stickersRoutes());
 
   app.notFound((c) => c.json({ error: { code: 'not_found' } }, 404));
 

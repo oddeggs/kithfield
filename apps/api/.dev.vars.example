@@ -40,3 +40,5 @@ APNS_KEY_P8=
 # `wrangler dev --var LIVEKIT_URL:ws://localhost:7880` points the API at it.
 LIVEKIT_API_KEY=
 LIVEKIT_API_SECRET=
+# Kithfield's Telegram bot token (from @BotFather), for sticker sets made through the Bot API.
+TELEGRAM_BOT_TOKEN=

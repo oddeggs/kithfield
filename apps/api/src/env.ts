@@ -40,6 +40,9 @@ export const secretNames = [
   // LiveKit's webhook signatures (`livekit-server --dev` uses devkey / secret locally).
   'LIVEKIT_API_KEY',
   'LIVEKIT_API_SECRET',
+  // Kithfield's Telegram bot (from @BotFather): makes a person's sticker set with the Bot API
+  // once they confirm in Telegram. Not used until the Telegram export routes exist.
+  'TELEGRAM_BOT_TOKEN',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
