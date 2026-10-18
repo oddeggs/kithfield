@@ -54,13 +54,13 @@ export type PorchPotId = (typeof PORCH_POT)[Season];
 /**
  * The signature crop pool: one fruit per farm, named after the farm ("the Thursday plum"),
  * grown from all care combined and tradeable on visits. `fruit` is the farm scene's `fruit`
- * attribute; `plant` is the field-guide drawing, where the art has one.
+ * attribute; `plant` is its field-guide drawing.
  */
 export const SIGNATURE_POOL = [
   { id: 'plum', fruit: 'plum', plant: 'plum' },
-  { id: 'persimmon', fruit: 'persimmon', plant: null },
-  { id: 'lemon', fruit: 'lemon', plant: null },
-  { id: 'fig', fruit: 'fig', plant: null },
+  { id: 'persimmon', fruit: 'persimmon', plant: 'persimmon' },
+  { id: 'lemon', fruit: 'lemon', plant: 'lemon' },
+  { id: 'fig', fruit: 'fig', plant: 'fig' },
 ] as const;
 
 export type SignatureId = (typeof SIGNATURE_POOL)[number]['id'];

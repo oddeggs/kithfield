@@ -85,10 +85,12 @@ describe('plant catalogue', () => {
     expect(artPlants.get(ROSE.id)).toBe('any');
   });
 
-  it('draws every signature crop as a farm fruit tree', () => {
+  it('draws every signature crop as a farm fruit tree and in the field guide', () => {
+    expect(SIGNATURE_POOL.map((s) => s.id)).toEqual(['plum', 'persimmon', 'lemon', 'fig']);
     for (const s of SIGNATURE_POOL) {
       expect(artFruits.has(s.fruit), s.fruit).toBe(true);
-      if (s.plant !== null) expect(artPlants.get(s.plant), s.plant).toBe('farm');
+      expect(s.plant, s.id).toBe(s.id);
+      expect(artPlants.get(s.plant), s.plant).toBe('farm');
       expect(Object.values(FAMILY_PLANTS).flat()).not.toContain(s.id);
     }
   });
