@@ -1,0 +1,767 @@
+{
+  "identifier": "6C2D9C0E-4B7A-4F0B-9F3E-0A1B2C3D4E5F",
+  "nonRenewingSubscriptions": [],
+  "products": [
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "60000001",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Windmill",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.windmill",
+      "referenceName": "Cottage: windmill",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "60000002",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Treehouse",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.treehouse",
+      "referenceName": "Cottage: treehouse",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "60000003",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Houseboat",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.houseboat",
+      "referenceName": "Cottage: houseboat",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "60000004",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Lighthouse",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.lighthouse",
+      "referenceName": "Cottage: lighthouse",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "60000005",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Train carriage",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.carriage",
+      "referenceName": "Cottage: train carriage",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "60000006",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Beehive skep",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.skep",
+      "referenceName": "Cottage: beehive skep",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "60000007",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Teapot cottage",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.teapot",
+      "referenceName": "Cottage: teapot cottage",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "3.99",
+      "familyShareable": false,
+      "internalID": "60000008",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Igloo",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.igloo",
+      "referenceName": "Cottage: igloo",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "2.99",
+      "familyShareable": false,
+      "internalID": "60000009",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Duckling",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.duckling",
+      "referenceName": "Companion: duckling",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "2.99",
+      "familyShareable": false,
+      "internalID": "60000010",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Shoulder snail",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.snail",
+      "referenceName": "Companion: shoulder snail",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "2.99",
+      "familyShareable": false,
+      "internalID": "60000011",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Lantern moth",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.moth",
+      "referenceName": "Companion: lantern moth",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "2.99",
+      "familyShareable": false,
+      "internalID": "60000012",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Marmalade butterfly",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.butterfly",
+      "referenceName": "Companion: marmalade butterfly",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "2.99",
+      "familyShareable": false,
+      "internalID": "60000013",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Bumblebee",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.bee",
+      "referenceName": "Companion: bumblebee",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "2.99",
+      "familyShareable": false,
+      "internalID": "60000014",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Ladybird",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.ladybird",
+      "referenceName": "Companion: ladybird",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000015",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Calico coat",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.calico",
+      "referenceName": "Coat: calico",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000016",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Golden coat",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.golden",
+      "referenceName": "Coat: golden",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000017",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "First frost coat",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.frost",
+      "referenceName": "Coat: first frost",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000018",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Aurora coat",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.aurora",
+      "referenceName": "Coat: aurora",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000019",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Ember coat",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.ember",
+      "referenceName": "Coat: ember",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000020",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Cloud coat",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.cloud",
+      "referenceName": "Coat: cloud",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000021",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Blossom coat",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.blossom",
+      "referenceName": "Coat: blossom",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000022",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Mossy coat",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.mossy",
+      "referenceName": "Coat: mossy",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000023",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Wind chime",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.chime",
+      "referenceName": "Little thing: wind chime",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000024",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Breezy scarf",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.scarf",
+      "referenceName": "Little thing: breezy scarf",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000025",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Fireside teacup",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.teacup",
+      "referenceName": "Little thing: fireside teacup",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000026",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Rain umbrella",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.umbrella",
+      "referenceName": "Little thing: rain umbrella",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000027",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Pinwheel",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.pinwheel",
+      "referenceName": "Little thing: pinwheel",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000028",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Friend lights",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.lights",
+      "referenceName": "Little thing: friend lights",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000029",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Weathervane",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.vane",
+      "referenceName": "Little thing: weathervane",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "0.99",
+      "familyShareable": false,
+      "internalID": "60000030",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Out & About stickers",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.out_and_about",
+      "referenceName": "Stickers: Out & About",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "1.49",
+      "familyShareable": false,
+      "internalID": "60000031",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Big Feelings stickers",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.big_feelings",
+      "referenceName": "Stickers: Big Feelings",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "0.99",
+      "familyShareable": false,
+      "internalID": "60000032",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Cosy Weather stickers",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.cosy_weather",
+      "referenceName": "Stickers: Cosy Weather",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "0.99",
+      "familyShareable": false,
+      "internalID": "60000033",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Birthday Bloom stickers",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.birthday_bloom",
+      "referenceName": "Stickers: Birthday Bloom",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "0.99",
+      "familyShareable": false,
+      "internalID": "60000034",
+      "localizations": [
+        {
+          "description": "Yours to keep on Kithfield",
+          "displayName": "Good Luck stickers",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.item.good_luck",
+      "referenceName": "Stickers: Good Luck",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "99.00",
+      "familyShareable": false,
+      "internalID": "60000035",
+      "localizations": [
+        {
+          "description": "A lifetime patron, offered in the launch season only",
+          "displayName": "Founding Farmer",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.founding",
+      "referenceName": "Founding Farmer",
+      "type": "NonConsumable"
+    },
+    {
+      "displayPrice": "0.99",
+      "familyShareable": false,
+      "internalID": "60000036",
+      "localizations": [
+        {
+          "description": "A gift for a friend on Kithfield",
+          "displayName": "A gift",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.gift.099",
+      "referenceName": "Gift, 0.99",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "1.49",
+      "familyShareable": false,
+      "internalID": "60000037",
+      "localizations": [
+        {
+          "description": "A gift for a friend on Kithfield",
+          "displayName": "A gift",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.gift.149",
+      "referenceName": "Gift, 1.49",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "1.99",
+      "familyShareable": false,
+      "internalID": "60000038",
+      "localizations": [
+        {
+          "description": "A gift for a friend on Kithfield",
+          "displayName": "A gift",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.gift.199",
+      "referenceName": "Gift, 1.99",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "2.99",
+      "familyShareable": false,
+      "internalID": "60000039",
+      "localizations": [
+        {
+          "description": "A gift for a friend on Kithfield",
+          "displayName": "A gift",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.gift.299",
+      "referenceName": "Gift, 2.99",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "3.99",
+      "familyShareable": false,
+      "internalID": "60000040",
+      "localizations": [
+        {
+          "description": "A gift for a friend on Kithfield",
+          "displayName": "A gift",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.gift.399",
+      "referenceName": "Gift, 3.99",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "4.99",
+      "familyShareable": false,
+      "internalID": "60000041",
+      "localizations": [
+        {
+          "description": "A gift for a friend on Kithfield",
+          "displayName": "A gift",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.gift.499",
+      "referenceName": "Gift, 4.99",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "1.00",
+      "familyShareable": false,
+      "internalID": "60000042",
+      "localizations": [
+        {
+          "description": "Your share of a gift friends give together",
+          "displayName": "A chip-in",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.chipin.100",
+      "referenceName": "Chip-in, 1",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "2.00",
+      "familyShareable": false,
+      "internalID": "60000043",
+      "localizations": [
+        {
+          "description": "Your share of a gift friends give together",
+          "displayName": "A chip-in",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.chipin.200",
+      "referenceName": "Chip-in, 2",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "3.00",
+      "familyShareable": false,
+      "internalID": "60000044",
+      "localizations": [
+        {
+          "description": "Your share of a gift friends give together",
+          "displayName": "A chip-in",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.chipin.300",
+      "referenceName": "Chip-in, 3",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "5.00",
+      "familyShareable": false,
+      "internalID": "60000045",
+      "localizations": [
+        {
+          "description": "Your share of a gift friends give together",
+          "displayName": "A chip-in",
+          "locale": "en_GB"
+        }
+      ],
+      "productID": "kf.chipin.500",
+      "referenceName": "Chip-in, 5",
+      "type": "Consumable"
+    }
+  ],
+  "settings": {
+    "_developerTeamID": "YFND2EEW8S",
+    "_failTransactionsEnabled": false,
+    "_locale": "en_GB",
+    "_storefront": "GBR",
+    "_storeKitErrors": []
+  },
+  "subscriptionGroups": [
+    {
+      "id": "60000046",
+      "localizations": [],
+      "name": "Kithfield patrons",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "8.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "60000047",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Patron perks for your whole farm, up to 8 critters",
+              "displayName": "Farm Plus",
+              "locale": "en_GB"
+            }
+          ],
+          "productID": "kf.farmplus.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Farm Plus monthly",
+          "subscriptionGroupID": "60000046",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "34.99",
+          "familyShareable": false,
+          "groupNumber": 2,
+          "internalID": "60000048",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Every patron perk, for you, for a year",
+              "displayName": "Patron, yearly",
+              "locale": "en_GB"
+            }
+          ],
+          "productID": "kf.patron.yearly",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "Patron yearly",
+          "subscriptionGroupID": "60000046",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "3.99",
+          "familyShareable": false,
+          "groupNumber": 2,
+          "internalID": "60000049",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Every patron perk, for you, month by month",
+              "displayName": "Patron, monthly",
+              "locale": "en_GB"
+            }
+          ],
+          "productID": "kf.patron.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Patron monthly",
+          "subscriptionGroupID": "60000046",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 4,
+    "minor": 0
+  }
+}
