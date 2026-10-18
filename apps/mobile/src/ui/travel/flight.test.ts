@@ -39,6 +39,9 @@ const startGeom = {
   landedAt: 0,
   hid: false,
   holdMs: 0,
+  hops: 0,
+  hopHeight: 0,
+  fade: 0,
 };
 
 function makeFlight(from: Anchor | null = anchor(), driven = false) {
@@ -72,6 +75,9 @@ const plan = {
   outMs: 480,
   delayMs: 0,
   holdMs: 0,
+  hops: 0,
+  hopHeight: 0,
+  fade: 0,
 };
 
 /** Steps the flight a frame at a time until it ends, answering what it said along the way. */

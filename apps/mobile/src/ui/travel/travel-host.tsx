@@ -34,7 +34,7 @@ import {
 } from './flight';
 import { FlightView } from './flight-view';
 import { SHEET_SETTLE_MS, type Box } from './geometry';
-import { PHASE, type FlightGeom } from './pose';
+import { FADE, PHASE, type FlightGeom } from './pose';
 import { AnchorRegistry, type AnchorEntry, type AnchorId } from './registry';
 import { spriteOf, type Sprite, type SpriteSpec } from './sprite';
 
@@ -77,6 +77,10 @@ export interface FlightOptions {
   readonly delayMs?: number;
   /** Stays on the target this long after landing, dimmed to a slow pulse, before handing over. */
   readonly holdMs?: number;
+  /** Hops along the way, each this high in points (a critter walking, a parcel bouncing). */
+  readonly hops?: { readonly count: number; readonly height: number };
+  /** Fades out along the way (a ripple spreading) or in (a sprout appearing). */
+  readonly fade?: 'out' | 'in';
   /** Its copy shows and the source's own drawing hides: the moment to close what it left. */
   readonly onStart?: () => void;
   /** It touches down on the target: the moment to start what comes next (a card rising). */
@@ -153,6 +157,9 @@ const startGeom: FlightGeom = {
   landedAt: 0,
   hid: false,
   holdMs: 0,
+  hops: 0,
+  hopHeight: 0,
+  fade: 0,
 };
 
 /** Where `ref` is on the window, measured on the JS side; null if it doesn't answer quickly. */
@@ -341,6 +348,9 @@ export function TravelHost({ children }: { readonly children: ReactNode }) {
         outMs,
         delayMs: options.delayMs ?? 0,
         holdMs: options.holdMs ?? 0,
+        hops: options.hops?.count ?? 0,
+        hopHeight: options.hops?.height ?? 0,
+        fade: options.fade === 'out' ? FADE.out : options.fade === 'in' ? FADE.in : FADE.none,
       };
       const flight: Flight = {
         key: next.current++,

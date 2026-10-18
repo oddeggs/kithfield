@@ -14,7 +14,7 @@ import {
   tangentAt,
   wobbleAt,
 } from './geometry';
-import { PHASE, poseAt, type FlightGeom } from './pose';
+import { FADE, PHASE, poseAt, type FlightGeom } from './pose';
 
 const from = { x: 37, y: 319 };
 const to = { x: 192, y: 258 };
@@ -136,6 +136,9 @@ describe('the sprite along a flight', () => {
     landedAt: 0,
     hid: true,
     holdMs: 0,
+    hops: 0,
+    hopHeight: 0,
+    fade: 0,
   };
 
   it('shows nothing before it is measured or once it has handed over', () => {
@@ -170,6 +173,19 @@ describe('the sprite along a flight', () => {
     const leftward = { ...geom, path: arcPath(to, from, 80) };
     expect(poseAt(leftward, 0.3, 0, false, 1).rotate).toBeCloseTo(-wobbleAt(0.3), 9);
     expect(poseAt({ ...geom, phase: PHASE.settling }, 1, 0, false, 1).rotate).toBe(0);
+  });
+
+  it('hops along the way, touching the path between hops', () => {
+    const hopping = { ...geom, hops: 3, hopHeight: 20 };
+    const onPath = pointAt(geom.path, 1 / 3);
+    expect(poseAt(hopping, 1 / 3, 0, false, 1).y).toBeCloseTo(onPath.y, 6);
+    expect(poseAt(hopping, 1 / 6, 0, false, 1).y).toBeCloseTo(pointAt(geom.path, 1 / 6).y - 20, 6);
+  });
+
+  it('fades out as a ripple spreads, or in as something appears', () => {
+    expect(poseAt({ ...geom, fade: FADE.out }, 0.5, 0, false, 1).opacity).toBeCloseTo(0.5, 9);
+    expect(poseAt({ ...geom, fade: FADE.in }, 0.25, 0, false, 1).opacity).toBeCloseTo(0.5, 9);
+    expect(poseAt({ ...geom, fade: FADE.in }, 0.8, 0, false, 1).opacity).toBe(1);
   });
 
   it('dims to a slow pulse while it holds on the target', () => {

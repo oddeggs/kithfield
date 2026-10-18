@@ -1,4 +1,4 @@
-import { Circle, Group, Image, RadialGradient, Skia, vec } from '@shopify/react-native-skia';
+import { Circle, Group, Image, Oval, RadialGradient, Skia, vec } from '@shopify/react-native-skia';
 import { useCallback, useEffect } from 'react';
 import type { View } from 'react-native';
 import {
@@ -65,6 +65,17 @@ function SpriteDrawings({
         <Circle cx={cx} cy={cy} r={sprite.width}>
           <RadialGradient c={vec(cx, cy)} r={sprite.width} colors={[sprite.halo, 'transparent']} />
         </Circle>
+      ) : null}
+      {sprite.ring ? (
+        <Oval
+          x={sprite.ring.stroke / 2}
+          y={sprite.ring.stroke / 2}
+          width={sprite.width - sprite.ring.stroke}
+          height={sprite.height - sprite.ring.stroke}
+          color={sprite.ring.color}
+          style="stroke"
+          strokeWidth={sprite.ring.stroke}
+        />
       ) : null}
       {sprite.drawings.map((_, i) => (
         <Drawing key={i} sprite={sprite} index={i} current={current} />

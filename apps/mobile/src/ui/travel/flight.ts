@@ -97,6 +97,9 @@ export interface FlightPlan {
   readonly delayMs: number;
   /** How long it stays on the target, dimmed to a slow pulse, before handing over. */
   readonly holdMs: number;
+  readonly hops: number;
+  readonly hopHeight: number;
+  readonly fade: number;
 }
 
 /** What each frame needs that can change while the flight is in the air. */
@@ -182,6 +185,9 @@ export function startFlight(
     landedAt: 0,
     hid: false,
     holdMs: plan.holdMs,
+    hops: plan.hops,
+    hopHeight: plan.hopHeight,
+    fade: plan.fade,
   });
   v.goal.set(1);
   if (order === ORDER.finish) {

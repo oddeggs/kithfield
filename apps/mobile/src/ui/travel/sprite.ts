@@ -1,4 +1,4 @@
-import type { CritterLook, SceneAttrs } from '@kithfield/art';
+import { fireLoop, type CritterLook, type SceneAttrs } from '@kithfield/art';
 import { motion } from '@kithfield/theme';
 import type { SkImage } from '@shopify/react-native-skia';
 
@@ -25,6 +25,8 @@ export interface Sprite {
   readonly disc?: string;
   /** A soft glow of this colour around it, a sprite's width across each way (a firefly). */
   readonly halo?: string;
+  /** A pencil ring instead of art: the ripple a dewdrop leaves, in this colour and stroke. */
+  readonly ring?: { readonly color: string; readonly stroke: number };
 }
 
 /**
@@ -41,6 +43,8 @@ export type SpriteSpec =
       readonly drawings?: number;
       /** A soft glow around it as it flies. */
       readonly halo?: string;
+      /** The scene time its first drawing is taken at (a parcel still shut), in seconds. */
+      readonly at?: number;
     }
   | { readonly avatar: string; readonly look?: CritterLook; readonly size: number }
   | {
@@ -49,6 +53,17 @@ export type SpriteSpec =
       /** The box it stands in, as the `pose` scene fits it. */
       readonly size: number;
       readonly asleep?: boolean;
+    }
+  | {
+      /** The fire alone, flame and sparks on nothing, as the campfire draws it, this wide. */
+      readonly fire: number;
+    }
+  | {
+      /** A ripple: an oval line, as the storyboard draws a dewdrop's. */
+      readonly ring: string;
+      readonly width: number;
+      readonly height: number;
+      readonly stroke?: number;
     }
   | { readonly sprite: Sprite };
 
@@ -64,12 +79,13 @@ function sceneSprite(
   width: number,
   height: number,
   count: number,
+  at = STILL_T,
 ): Sprite {
   const n = Math.max(1, Math.min(MAX_DRAWINGS, Math.round(count)));
   const req = { scene, width, height, ...(attrs ? { attrs } : {}) };
   const drawings = Array.from({ length: n }, (_, i) => [
     {
-      image: store.still(req, STILL_T + (i * motion.twos.frameMs) / 1000),
+      image: store.still(req, at + (i * motion.twos.frameMs) / 1000),
       x: 0,
       y: 0,
       w: width,
@@ -125,6 +141,29 @@ function critterSprite(
 /** The sprite a spec describes, drawn from the art's caches (bake time: the JS thread). */
 export function spriteOf(store: ArtStore, spec: SpriteSpec): Sprite {
   if ('sprite' in spec) return spec.sprite;
+  if ('fire' in spec) {
+    // The art's fire loop, three of its drawings a frame on twos apart.
+    const loop = fireLoop(store.art, spec.fire, store.dpr);
+    const step = Math.max(1, Math.round(loop.fps / motion.twos.fps));
+    const drawings = [0, 1, 2].map((i) => [
+      {
+        image: loop.frames[(i * step) % loop.frames.length] ?? null,
+        x: 0,
+        y: 0,
+        w: spec.fire,
+        h: spec.fire,
+      },
+    ]);
+    return { width: spec.fire, height: spec.fire, drawings };
+  }
+  if ('ring' in spec) {
+    return {
+      width: spec.width,
+      height: spec.height,
+      drawings: [],
+      ring: { color: spec.ring, stroke: spec.stroke ?? 2 },
+    };
+  }
   if ('scene' in spec) {
     const drawn = sceneSprite(
       store,
@@ -133,6 +172,7 @@ export function spriteOf(store: ArtStore, spec: SpriteSpec): Sprite {
       spec.width,
       spec.height,
       spec.drawings ?? 1,
+      spec.at,
     );
     return spec.halo ? { ...drawn, halo: spec.halo } : drawn;
   }

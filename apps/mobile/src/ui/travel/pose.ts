@@ -31,7 +31,15 @@ export interface FlightGeom {
   readonly hid: boolean;
   /** How long it stays on the target after settling, dimmed to a slow pulse, before handing over. */
   readonly holdMs: number;
+  /** Hops along the way (a critter walking, a parcel bouncing down a path), and how high. */
+  readonly hops: number;
+  readonly hopHeight: number;
+  /** It fades out along the way (a ripple spreading), in (a sprout), or neither. */
+  readonly fade: number;
 }
+
+/** How a flight's opacity runs along it. */
+export const FADE = { none: 0, out: 1, in: 2 } as const;
 
 export interface SpritePose {
   readonly x: number;
@@ -74,7 +82,13 @@ export function poseAt(
   drawings: number,
 ): SpritePose {
   'worklet';
-  const at = pointAt(geom.path, p);
+  const along = pointAt(geom.path, p);
+  const clamped = Math.min(1, Math.max(0, p));
+  // Each hop lifts it off the path and sets it down again.
+  const hop = geom.hops > 0 ? Math.abs(Math.sin(Math.PI * geom.hops * clamped)) : 0;
+  const at = { x: along.x, y: along.y - geom.hopHeight * hop };
+  const fading =
+    geom.fade === FADE.out ? 1 - clamped : geom.fade === FADE.in ? Math.min(1, clamped * 2) : 1;
   const scale = scaleAt(geom.s0, geom.s1, geom.grow, p);
   const since = ms - geom.landedAt;
   const settle = geom.phase === PHASE.settling ? settleAt(since) : null;
@@ -87,7 +101,7 @@ export function poseAt(
   const holding = geom.phase === PHASE.settling && since >= SETTLE_MS;
   const pulse = holding ? 0.7 + 0.2 * Math.cos((2 * Math.PI * (since - SETTLE_MS)) / PULSE_MS) : 1;
   const leftward = geom.path.p3.x < geom.path.p0.x ? -1 : 1;
-  const opacity = (morph ? 1 - ramp(p, 0.85, 1) : 1) * pulse;
+  const opacity = (morph ? 1 - ramp(p, 0.85, 1) : 1) * pulse * fading;
   return {
     x: at.x,
     y: at.y,
