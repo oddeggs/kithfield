@@ -130,13 +130,13 @@ describe('app variants', () => {
     expect(config.ios?.infoPlist?.['NSSupportsLiveActivities']).toBe(true);
   });
 
-  it('hands the app RevenueCat’s public key when REVENUECAT_IOS_KEY is set, and null otherwise', () => {
+  it('hands the app RevenueCat’s public key when REVENUECAT_IOS_KEY is set, and leaves it out otherwise', () => {
     const keyed = buildConfig({}, 'prd', { ...unset, revenueCatIosKey: 'appl_public' });
     expect(keyed.extra?.['revenueCatIosKey']).toBe('appl_public');
-    expect(buildConfig({}, 'prd', unset).extra?.['revenueCatIosKey']).toBeNull();
-    expect(
-      buildConfig({}, 'dev', { ...unset, revenueCatIosKey: '' }).extra?.['revenueCatIosKey'],
-    ).toBeNull();
+    expect(buildConfig({}, 'prd', unset).extra).not.toHaveProperty('revenueCatIosKey');
+    expect(buildConfig({}, 'dev', { ...unset, revenueCatIosKey: '' }).extra).not.toHaveProperty(
+      'revenueCatIosKey',
+    );
   });
 
   it('takes every permission reason from the copy catalogue, in English and Vietnamese', () => {

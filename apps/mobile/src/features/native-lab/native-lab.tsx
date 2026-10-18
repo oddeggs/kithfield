@@ -36,7 +36,7 @@ const STATES = {
 
 interface Extra {
   readonly appGroup: string;
-  readonly revenueCatIosKey: string | null;
+  readonly revenueCatIosKey?: string;
 }
 
 let globalsRegistered = false;
@@ -95,7 +95,7 @@ export function NativeLab() {
     surfaces === null ? 'missing' : surfaces.activitiesEnabled() ? 'on' : 'off';
   const widgets = requireOptionalNativeModule('ExtensionStorage') !== null;
   const shown = (state: string) => (state in STATES ? t(STATES[state as State]) : state);
-  const key: State = extra.revenueCatIosKey ? 'set' : 'unset';
+  const key: State = typeof extra.revenueCatIosKey === 'string' ? 'set' : 'unset';
 
   const rows = [
     t('nativeLab.calls', { state: shown(calls) }),

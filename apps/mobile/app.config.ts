@@ -261,8 +261,9 @@ export function buildConfig(
       apiBase: isSet(apiBase) ? apiBase : `https://${variant.host}/api`,
       appGroup: variant.appGroup,
       googleIosClientId: variant.googleIosClientId,
-      // A public key, read at runtime; unset means purchases are unavailable in this build.
-      revenueCatIosKey: isSet(revenueCatIosKey) ? revenueCatIosKey : null,
+      // A public key, read at runtime; left out when unset (purchases are unavailable). Not null:
+      // the dev manifest turns a null into `{}`.
+      ...(isSet(revenueCatIosKey) ? { revenueCatIosKey } : {}),
       eas: { projectId: EAS_PROJECT_ID },
     },
   };
