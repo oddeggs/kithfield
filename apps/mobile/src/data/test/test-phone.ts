@@ -13,7 +13,8 @@ import type { SyncReport } from '../farm-replica';
 import { createOpIdMaker } from '../op-id';
 import { createRtTokens } from '../rt-tokens';
 import type { FarmTestServer } from './farm-test-server';
-import { testFarmRules, type TestFarmView } from './test-farm-rules';
+import type { FarmView } from '@kithfield/farm';
+import { kithfieldRules } from '../farm-rules';
 
 /*
  * A phone for the sync tests: a real SQLite file (Node's own module), the real data client, and
@@ -76,7 +77,7 @@ export const FAST = {
 };
 
 export class TestPhone {
-  client!: DataClient<TestFarmView>;
+  client!: DataClient<FarmView>;
   db!: FileDb;
   readonly appState = testAppState();
   readonly reports: SyncReport[] = [];
@@ -107,7 +108,7 @@ export class TestPhone {
     });
     this.client = await createDataClient({
       db: this.db,
-      rules: testFarmRules,
+      rules: kithfieldRules,
       api,
       tokens: createRtTokens((farm) => api.rtToken(farm), this.server.now),
       socketBase: 'wss://test.kithfield.invalid/api',

@@ -1,4 +1,10 @@
-import { FarmEvent, type FarmCommand, type FarmState } from '@kithfield/contracts';
+import {
+  FarmEvent,
+  isTombstone,
+  tombstoneOf,
+  type FarmCommand,
+  type FarmState,
+} from '@kithfield/contracts';
 
 import type { FarmRules } from '../farm-rules';
 import type { ServerEnd } from './test-sockets';
@@ -13,6 +19,8 @@ export interface TestFarm {
   rulesVersion: number;
   readonly members: Set<string>;
   readonly outcomes: Map<string, { seq: number } | { reason: string }>;
+  /** Events an unsend tombstoned, kept so a restore can bring them back. */
+  readonly originals: Map<number, FarmEvent>;
 }
 
 /** One socket on the test server. */
@@ -81,6 +89,7 @@ export function seedFarm(
     rulesVersion: rules.RULES_VERSION,
     members: new Set(),
     outcomes: new Map(),
+    originals: new Map(),
   };
 }
 
@@ -91,4 +100,24 @@ export function writtenPayload(cmd: FarmCommand, now: number): unknown {
   if (cmd.kind === 'removed') return { ...cmd.payload, by: 'keeper' };
   if (cmd.kind === 'slow_post') return { ...cmd.payload, deliverAt: now + 3_600_000 };
   return cmd.payload;
+}
+
+/** A strictly valid event of a test farm's log by seq. */
+export function eventAt(f: TestFarm, seq: number): FarmEvent | undefined {
+  const parsed = FarmEvent.safeParse(f.log[seq - 1]);
+  return parsed.success ? parsed.data : undefined;
+}
+
+/** Like the farm: an unsend tombstones its target in the log, and a restore brings it back. */
+export function followLog(f: TestFarm, event: FarmEvent): void {
+  if (event.kind === 'unsend' && !isTombstone(event.payload)) {
+    const target = eventAt(f, event.payload.target);
+    if (!target) return;
+    f.originals.set(target.seq, target);
+    const kind = event.payload.by === 'safety' ? 'removed' : 'unsent';
+    f.log[target.seq - 1] = { ...target, payload: tombstoneOf(target, kind) };
+  } else if (event.kind === 'restored') {
+    const original = f.originals.get(event.payload.target);
+    if (original) f.log[original.seq - 1] = original;
+  }
 }

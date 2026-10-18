@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from '@jest/globals';
 import type { ChatListItem } from '@kithfield/contracts';
 
 import { FarmTestServer } from './test/farm-test-server';
-import { testFarmRules } from './test/test-farm-rules';
+import { kithfieldRules } from './farm-rules';
 import { TestPhone, until } from './test/test-phone';
 
 const PIP = 'p_pip';
@@ -30,7 +30,7 @@ afterEach(() => {
 
 describe('the cottage socket', () => {
   it('keeps the chat list in SQLite, newest first, and updates it one row at a time', async () => {
-    const server = new FarmTestServer(testFarmRules);
+    const server = new FarmTestServer(kithfieldRules);
     server.people.add(PIP);
     server.chats.set(PIP, [row('f_lot', 100, 'see you there'), row('f_book', 200, 'chapter 4?')]);
     const pip = await TestPhone.start(server, PIP);
@@ -57,7 +57,7 @@ describe('the cottage socket', () => {
   });
 
   it('closes in the background and opens again in the foreground', async () => {
-    const server = new FarmTestServer(testFarmRules);
+    const server = new FarmTestServer(kithfieldRules);
     server.people.add(PIP);
     const pip = await TestPhone.start(server, PIP);
     phones.push(pip);

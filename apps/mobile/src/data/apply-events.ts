@@ -9,7 +9,7 @@ import {
   type Tombstone,
 } from '@kithfield/contracts';
 
-import type { FarmRules } from './farm-rules';
+import type { EventFinder, FarmRules } from './farm-rules';
 import type { StoredEvent, SyncStore } from './sync-store';
 
 /** Problems the sync engine reports. They carry kinds, seqs and paths, never content. */
@@ -57,8 +57,11 @@ export interface BatchOutcome {
   readonly resync?: 'from_last' | 'snapshot';
   /** An event under farm rules newer than this app: the app needs an update. */
   readonly rulesOutdated?: boolean;
-  /** Events an appeal restored, to page back in. */
-  readonly restored?: readonly number[];
+  /**
+   * A `restored` arrived whose target the phone holds only as a tombstone: page these seqs back
+   * in, then say `hello` again; the reducer applies the restore with the target back.
+   */
+  readonly restore?: readonly number[];
 }
 
 export interface ReplicaRecord {
@@ -73,7 +76,17 @@ interface Context {
   readonly rules: FarmRules<unknown>;
   readonly report: (report: SyncReport) => void;
   readonly now: () => number;
+  /** Recent events of the farm by seq, from the replica's memory. */
+  readonly find: EventFinder;
+  /** Keeps an event in that memory. */
+  readonly remember: (event: FarmEvent) => void;
+  /** Restore targets already paged in once: a restore of one still missing goes ahead without. */
+  readonly tried: ReadonlySet<number>;
 }
+
+/** The target's payload is back, so the reducer can apply its restore. */
+const usable = (event: FarmEvent | undefined): event is FarmEvent =>
+  event !== undefined && !isTombstone(event.payload);
 
 /** Replaces a cached event's payload with its tombstone, keeping the facts the reducer reads. */
 async function tombstone(ctx: Context, e: StoredEvent, kind: Tombstone['tombstone']) {
@@ -81,10 +94,11 @@ async function tombstone(ctx: Context, e: StoredEvent, kind: Tombstone['tombston
   const parsed = FarmEvent.safeParse(e);
   const payload: Tombstone = parsed.success ? tombstoneOf(parsed.data, kind) : { tombstone: kind };
   await ctx.store.setPayload(ctx.farm, e.seq, payload);
+  if (parsed.success) ctx.remember({ ...parsed.data, payload } as FarmEvent);
 }
 
 /** What an event does to the cached log besides being stored: unsends and deleted accounts. */
-async function cacheEffects(ctx: Context, event: FarmEvent, restored: number[]) {
+async function cacheEffects(ctx: Context, event: FarmEvent) {
   if (isTombstone(event.payload)) return;
   if (event.kind === 'unsend') {
     const target = await ctx.store.event(ctx.farm, event.payload.target);
@@ -93,8 +107,6 @@ async function cacheEffects(ctx: Context, event: FarmEvent, restored: number[]) 
     for (const e of await ctx.store.eventsBy(ctx.farm, event.actor)) {
       if (e.seq < event.seq) await tombstone(ctx, e, 'author_deleted');
     }
-  } else if (event.kind === 'restored') {
-    restored.push(event.payload.target);
   }
 }
 
@@ -113,7 +125,9 @@ export async function applyEnvelopes(
 ): Promise<{ record: ReplicaRecord; outcome: BatchOutcome; seen: Set<string> }> {
   let { lastSeq, state, needsSnapshot } = start;
   const seen = new Set<string>();
-  const restored: number[] = [];
+  const restore: number[] = [];
+  const batch = new Map<number, FarmEvent>();
+  const lookup = { event: (seq: number) => batch.get(seq) ?? ctx.find(seq) };
   let resync: BatchOutcome['resync'];
   let rulesOutdated = false;
   const wantSnapshot = () => {
@@ -158,8 +172,15 @@ export async function applyEnvelopes(
       rulesOutdated = true;
       break;
     }
+    if (known.kind === 'restored' && !isTombstone(known.payload)) {
+      const target = known.payload.target;
+      if (!usable(lookup.event(target)) && !ctx.tried.has(target)) {
+        restore.push(target);
+        break;
+      }
+    }
     try {
-      if (state) state = ctx.rules.applyEvent(state, known);
+      if (state) state = ctx.rules.applyEvent(state, known, lookup);
       else if (known.kind === 'farm_created') state = ctx.rules.createFarm(known);
       else wantSnapshot();
     } catch {
@@ -169,7 +190,9 @@ export async function applyEnvelopes(
       break;
     }
     await ctx.store.putEvent(ctx.farm, { ...known, known: true });
-    await cacheEffects(ctx, known, restored);
+    await cacheEffects(ctx, known);
+    batch.set(known.seq, known);
+    ctx.remember(known);
     if (pendingOps.has(known.opId)) seen.add(known.opId);
     lastSeq = known.seq;
   }
@@ -179,7 +202,7 @@ export async function applyEnvelopes(
     outcome: {
       ...(resync ? { resync } : {}),
       ...(rulesOutdated ? { rulesOutdated } : {}),
-      ...(restored.length > 0 ? { restored } : {}),
+      ...(restore.length > 0 ? { restore } : {}),
     },
     seen,
   };
@@ -187,28 +210,23 @@ export async function applyEnvelopes(
 
 /**
  * Stores a history page (events behind `lastSeq`), sorted like live events but without the
- * reducer. Events an appeal restored also go through the rules' `applyRestored`; answers the
- * farm after them.
+ * reducer: what it holds is already in the farm, or (a restore's target) is applied with the
+ * `restored` that comes next.
  */
 export async function storeHistory(
   ctx: Context,
-  record: ReplicaRecord,
+  lastSeq: number,
   events: readonly unknown[],
-  restored: boolean,
-): Promise<FarmState | null> {
-  let state = record.state;
+): Promise<void> {
   for (const raw of events) {
     const parsed = parseEvent(raw);
     const seq = parsed.status === 'invalid' ? parsed.seq : parsed.event.seq;
-    if (seq === null || seq > record.lastSeq) continue;
+    if (seq === null || seq > lastSeq) continue;
     if (parsed.status === 'invalid') {
       await ctx.store.putInvalid(ctx.farm, parsed, ctx.now());
       continue;
     }
     await ctx.store.putEvent(ctx.farm, { ...parsed.event, known: parsed.status === 'known' });
-    if (restored && state && parsed.status === 'known') {
-      state = ctx.rules.applyRestored(state, parsed.event);
-    }
+    if (parsed.status === 'known') ctx.remember(parsed.event);
   }
-  return state;
 }

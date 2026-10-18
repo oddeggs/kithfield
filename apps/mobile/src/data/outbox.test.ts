@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from '@jest/globals';
 
 import { FarmTestServer } from './test/farm-test-server';
-import { testFarmRules } from './test/test-farm-rules';
+import { kithfieldRules } from './farm-rules';
 import { TestPhone, until } from './test/test-phone';
 
 const FARM = 'f_lot';
@@ -11,7 +11,7 @@ const PIP = 'p_pip';
 const phones: TestPhone[] = [];
 
 function setup() {
-  const server = new FarmTestServer(testFarmRules);
+  const server = new FarmTestServer(kithfieldRules);
   server.createFarm(FARM, BEA, 'The Lot');
   server.join(FARM, PIP);
   const start = async (person: string) => {

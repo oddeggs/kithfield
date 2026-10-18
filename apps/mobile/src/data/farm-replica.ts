@@ -9,6 +9,7 @@ import {
 
 import { createSerialQueue } from '../db/sql';
 import { applyEnvelopes, storeHistory, type BatchOutcome } from './apply-events';
+import { createEventMemory } from './event-memory';
 import { createPresenceStore } from './presence-store';
 import { viewOf } from './provisional';
 import type {
@@ -21,6 +22,7 @@ import type {
 import type { OutboxEntry, StoredRejection } from './sync-store';
 
 export type { SyncReport } from './apply-events';
+
 export type * from './replica-types';
 
 /**
@@ -36,6 +38,7 @@ export class FarmReplica<View = unknown> {
   private current: FarmReplicaState;
   private readonly listeners = new Set<() => void>();
   private readonly serial = createSerialQueue();
+  private readonly memory = createEventMemory();
   /** Who is here and writing, apart from the farm so it never re-renders what reads the farm. */
   readonly presence = createPresenceStore();
 
@@ -52,6 +55,7 @@ export class FarmReplica<View = unknown> {
   /** Reads the farm and its outbox back from the store. */
   private async reload(): Promise<void> {
     const { record, pending } = await this.deps.store.openFarm(this.deps.farm);
+    await this.memory.load(this.deps.store, this.deps.farm);
     this.lastSeq = record.lastSeq;
     this.confirmed = record.state;
     this.needsSnapshot = record.needsSnapshot;
@@ -116,28 +120,13 @@ export class FarmReplica<View = unknown> {
 
   /**
    * Puts a history page into the cache, sorted like live events but without the reducer (it is
-   * behind `lastSeq`). Events an appeal restored also go through the rules' `applyRestored`.
+   * behind `lastSeq`). `restoreTargets` are the restore targets this page brings back.
    */
-  cacheHistory(events: readonly unknown[], restored = false): Promise<void> {
+  cacheHistory(events: readonly unknown[], restoreTargets: readonly number[] = []): Promise<void> {
     return this.serial(async () => {
-      const { store, farm, now, rules, report } = this.deps;
-      const record = {
-        lastSeq: this.lastSeq,
-        state: this.confirmed,
-        needsSnapshot: this.needsSnapshot,
-      };
-      await store.transaction(async () => {
-        const state = await storeHistory(
-          { store, farm, rules, report, now },
-          record,
-          events,
-          restored,
-        );
-        if (state === this.confirmed) return;
-        await store.saveFarm({ farm, ...record, state }, now());
-        this.confirmed = state;
-      });
-      this.refresh();
+      const { store } = this.deps;
+      await store.transaction(() => storeHistory(this.context(), this.lastSeq, events));
+      for (const seq of restoreTargets) this.memory.tried.add(seq);
     });
   }
 
@@ -170,8 +159,10 @@ export class FarmReplica<View = unknown> {
       const cmd = parsed.data;
       const at = now();
       if (this.current.state) {
-        const reason = rules.checkCommand(this.current.state, cmd, actor, at);
-        if (reason !== null) return { status: 'refused', reason };
+        const check = rules.checkCommand(this.current.state, cmd, actor, at, {
+          event: this.memory.find,
+        });
+        if (!check.ok) return { status: 'refused', reason: check.reason };
       }
       const entry: OutboxEntry = {
         opId: cmd.opId,
@@ -201,7 +192,10 @@ export class FarmReplica<View = unknown> {
     const { store, farm, now } = this.deps;
     const jumped = seq > this.lastSeq + 1;
     await store.transaction(async () => {
-      if (jumped) await store.clearEvents(farm);
+      if (jumped) {
+        await store.clearEvents(farm);
+        this.memory.clear();
+      }
       await store.saveFarm({ farm, lastSeq: seq, state, needsSnapshot: false }, now());
       await this.dropSettled(seq, new Set());
     });
@@ -213,11 +207,11 @@ export class FarmReplica<View = unknown> {
   }
 
   private async applyBatch(events: readonly unknown[]): Promise<BatchOutcome> {
-    const { store, farm, rules, now, report } = this.deps;
+    const { store, farm, now } = this.deps;
     const pendingOps = new Set(this.pending.map((e) => e.opId));
     const result = await store.transaction(async () => {
       const applied = await applyEnvelopes(
-        { store, farm, rules, report, now },
+        this.context(),
         { lastSeq: this.lastSeq, state: this.confirmed, needsSnapshot: this.needsSnapshot },
         events,
         pendingOps,
@@ -272,6 +266,12 @@ export class FarmReplica<View = unknown> {
     this.pending = this.pending.filter((e) => !entries.includes(e));
     this.refresh();
     for (const r of rejections) onRejected(r);
+  }
+
+  private context() {
+    const { store, farm, rules, report, now } = this.deps;
+    const { remember, tried, find } = this.memory;
+    return { store, farm, rules, report, now, remember, tried, find };
   }
 
   private drawnFrom: readonly OutboxEntry[] | null = null;

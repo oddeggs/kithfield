@@ -73,6 +73,22 @@ export async function catchUpOverHttp(replica: FarmReplica, api: ApiClient): Pro
       limit: 200,
     });
     const outcome = await replica.applyPage(page.events);
+    if (outcome.restore) {
+      await pageInRestored(replica, api, outcome.restore);
+      continue;
+    }
     if (!page.more || outcome.resync || outcome.rulesOutdated) return;
+  }
+}
+
+/** Pages an appeal's restored targets back in, with their payloads, before the restore applies. */
+export async function pageInRestored(
+  replica: FarmReplica,
+  api: ApiClient,
+  seqs: readonly number[],
+): Promise<void> {
+  for (const seq of seqs) {
+    const page = await api.events(replica.farm, { after: seq - 1, limit: 1 });
+    await replica.cacheHistory(page.events, [seq]);
   }
 }

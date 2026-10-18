@@ -19,7 +19,9 @@ import { connectPair, type ServerEnd } from './test-sockets';
 import {
   TEST_CRITTER,
   farmDay,
+  eventAt,
   farmOpId,
+  followLog,
   seedFarm,
   writtenPayload,
   type Session,
@@ -91,8 +93,9 @@ export class FarmTestServer {
       kind,
       payload,
     });
+    followLog(f, event);
     f.log.push(event);
-    f.state = this.rules.applyEvent(f.state, event);
+    f.state = this.rules.applyEvent(f.state, event, { event: (seq) => eventAt(f, seq) });
     this.broadcast(farm, { type: 'event', event });
     return event;
   }
@@ -131,10 +134,9 @@ export class FarmTestServer {
 
   /** Every open socket drops, as when the network goes away. */
   dropAll(): void {
-    for (const s of [...this.sessions]) {
-      this.sessions.delete(s);
-      s.end.close();
-    }
+    const open = [...this.sessions];
+    this.sessions.clear();
+    for (const s of open) s.end.close();
   }
 
   command(farm: string, person: string, cmd: FarmCommand): CommandResult {
@@ -145,12 +147,11 @@ export class FarmTestServer {
         ? { result: 'ack', opId: cmd.opId, seq: earlier.seq }
         : { result: 'rejected', opId: cmd.opId, reason: earlier.reason as never };
     }
-    const reason = f.members.has(person)
-      ? this.rules.checkCommand(f.state, cmd, person, this.now())
-      : 'not_member';
-    if (reason !== null) {
-      f.outcomes.set(cmd.opId, { reason });
-      return { result: 'rejected', opId: cmd.opId, reason };
+    const find = { event: (seq: number) => eventAt(f, seq) };
+    const check = this.rules.checkCommand(f.state, cmd, person, this.now(), find);
+    if (!check.ok) {
+      f.outcomes.set(cmd.opId, { reason: check.reason });
+      return { result: 'rejected', opId: cmd.opId, reason: check.reason };
     }
     const event = this.write(farm, person, cmd.kind, writtenPayload(cmd, this.now()), cmd.opId);
     f.outcomes.set(cmd.opId, { seq: event.seq });

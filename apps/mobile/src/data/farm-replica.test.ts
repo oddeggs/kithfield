@@ -6,7 +6,8 @@ import { MIGRATIONS } from '../db/migrations';
 import { FarmReplica, type SyncReport } from './farm-replica';
 import type { FarmRules } from './farm-rules';
 import { createSyncStore, type StoredRejection } from './sync-store';
-import { testFarmRules, type TestFarmView } from './test/test-farm-rules';
+import type { FarmView } from '@kithfield/farm';
+import { kithfieldRules } from './farm-rules';
 import { openFileDb, type FileDb } from './test/test-phone';
 
 const FARM = 'f_lot';
@@ -58,7 +59,7 @@ let db: FileDb;
 let reports: SyncReport[];
 let rejections: StoredRejection[];
 
-async function replica(rules: FarmRules<TestFarmView> = testFarmRules) {
+async function replica(rules: FarmRules<FarmView> = kithfieldRules) {
   return FarmReplica.open({
     farm: FARM,
     store: createSyncStore(db),
@@ -108,11 +109,11 @@ describe('applying events', () => {
   });
 
   it('reports a reducer failure and asks for the snapshot', async () => {
-    const failing: FarmRules<TestFarmView> = {
-      ...testFarmRules,
+    const failing: FarmRules<FarmView> = {
+      ...kithfieldRules,
       applyEvent: (state, e) => {
         if (e.kind === 'wave') throw new Error('boom');
-        return testFarmRules.applyEvent(state, e);
+        return kithfieldRules.applyEvent(state, e);
       },
     };
     const r = await replica(failing);
@@ -150,32 +151,36 @@ describe('applying events', () => {
     });
     expect((await store.event(FARM, 5))?.payload).toEqual({ how: 'account_deleted' });
   });
-
-  it('asks for events an appeal restored', async () => {
-    const r = await replica();
-    await r.handle({ type: 'events', events: opening, more: false });
-    expect(
-      await r.handle({ type: 'event', event: event(3, null, 'restored', { target: 2 }) }),
-    ).toEqual({
-      restored: [2],
-    });
-  });
 });
 
 describe('restored events', () => {
-  it('applies a restored event through the rules and keeps the result', async () => {
+  it('pages a restored target in first, then applies the restore with it', async () => {
     const r = await replica();
-    const pin = event(3, BEA, 'pin', { target: 2, on: true });
-    await r.handle({
-      type: 'events',
-      events: [...opening, { ...pin, payload: { tombstone: 'removed' } }],
-      more: false,
-    });
-    expect(r.getState().confirmed?.pins).toEqual([]);
+    const plan = {
+      title: 'Picnic',
+      days: [{ date: '2026-10-24' }],
+      place: null,
+      yeses: 'most',
+      someday: false,
+    };
+    const seed = event(3, BEA, 'seed_planted', plan);
+    const removed = { ...seed, payload: { tombstone: 'removed' } };
+    await r.handle({ type: 'events', events: [...opening, removed], more: false });
+    expect(r.getState().confirmed?.seeds).toEqual([
+      expect.objectContaining({ seq: 3, unsent: true }),
+    ]);
 
-    await r.cacheHistory([pin], true);
-    expect(r.getState().confirmed?.pins).toEqual([2]);
-    expect((await replica()).getState().confirmed?.pins).toEqual([2]);
+    // The restore waits for its target.
+    const restored = event(4, null, 'restored', { target: 3 });
+    expect(await r.handle({ type: 'event', event: restored })).toEqual({ restore: [3] });
+    expect(r.getState().lastSeq).toBe(3);
+
+    await r.cacheHistory([seed], [3]);
+    expect(await r.handle({ type: 'event', event: restored })).toEqual({});
+    expect(r.getState().confirmed?.seeds).toEqual([
+      expect.objectContaining({ seq: 3, unsent: false, title: 'Picnic' }),
+    ]);
+    expect((await replica()).getState().confirmed?.seeds[0]?.title).toBe('Picnic');
   });
 });
 

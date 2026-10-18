@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from '@jest/globals';
 
 import { FarmTestServer } from './test/farm-test-server';
-import { testFarmRules } from './test/test-farm-rules';
+import { kithfieldRules } from './farm-rules';
 import { TestPhone } from './test/test-phone';
 
 const phones: TestPhone[] = [];
@@ -13,7 +13,7 @@ afterEach(() => {
 describe('what the hooks read', () => {
   // useSyncExternalStore re-renders forever when a snapshot is a new object on every read.
   it('answers the same object until something changes', async () => {
-    const server = new FarmTestServer(testFarmRules);
+    const server = new FarmTestServer(kithfieldRules);
     server.createFarm('f_lot', 'p_bea', 'The Lot');
     const bea = await TestPhone.start(server, 'p_bea');
     phones.push(bea);

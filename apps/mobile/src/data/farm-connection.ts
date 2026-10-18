@@ -12,7 +12,7 @@ import { ApiError, type ApiClient } from './api-client';
 import { failure, type SyncReport } from './apply-events';
 import { SOCKET_BACKOFF, type BackoffOptions } from './backoff';
 import type { FarmReplica, FrameOutcome, ReceivedFrame } from './farm-replica';
-import { drainOverHttp, type DrainOutcome } from './http-drain';
+import { drainOverHttp, pageInRestored, type DrainOutcome } from './http-drain';
 import type { RtTokens } from './rt-tokens';
 import {
   KEEP_ALIVE,
@@ -210,10 +210,8 @@ export function createFarmConnection(deps: FarmConnectionDeps) {
       resyncing = true;
       return socket.reconnect();
     }
-    if (outcome.jumped) guard('farm.page_in', pageIn(api.events(farm, { limit: 50 }), false));
-    for (const seq of outcome.restored ?? []) {
-      guard('farm.restore', pageIn(api.events(farm, { after: seq - 1, limit: 1 }), true));
-    }
+    if (outcome.restore) return guard('farm.restore', restoreFirst(outcome.restore));
+    if (outcome.jumped) guard('farm.page_in', pageIn());
     if (outcome.caughtUp && link.status !== 'blocked') {
       resyncing = false;
       setLink({ status: 'live' });
@@ -235,9 +233,20 @@ export function createFarmConnection(deps: FarmConnectionDeps) {
     if (fresh.length > 0) guard('farm.count', replica.countAttempts(fresh.map((e) => e.opId)));
   }
 
-  /** Pages events into the cache: the newest after a snapshot jump, or a restored one. */
-  async function pageIn(page: ReturnType<ApiClient['events']>, restored: boolean) {
-    await replica.cacheHistory((await page).events, restored);
+  /** Pages the newest events into the cache after a snapshot jump. */
+  async function pageIn() {
+    await replica.cacheHistory((await api.events(farm, { limit: 50 })).events);
+  }
+
+  /** Pages restored targets back in, then says hello again so the restore applies with them. */
+  async function restoreFirst(seqs: readonly number[]) {
+    try {
+      await pageInRestored(replica, api, seqs);
+      socket.reconnect();
+    } catch (error) {
+      socket.drop();
+      throw error;
+    }
   }
 
   async function drain(): Promise<DrainOutcome | null> {
