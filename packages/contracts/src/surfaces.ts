@@ -202,12 +202,23 @@ export const NOTIFICATION_ACTIONS = {
   tend: ['dewdrop'],
 } as const satisfies Record<NotificationCategory, readonly NotificationAction[]>;
 
+/** What a dewdrop can sit on: something said in the chat (the farm's own rule, `checkTargets`). */
+export const DEWDROP_TARGET_KINDS: ReadonlySet<string> = new Set([
+  'message',
+  'sticker',
+  'media',
+  'voice',
+  'link',
+  'quiet_note',
+]);
+
 /**
  * The write a notification action sends, without opening the app: `POST /v1/farms/:farm/cmd` with
  * the device's action key (`Kithfield-Action-Key`). `category` is the notification's category, and
  * `data` its `PushData` (a `PlanPushData` for a plan). "I'm in" and "Can't this time" answer the
- * plan (`rsvp in` or `out`); "Leave a dewdrop" puts one on the plan, or on the event the push was
- * about. Null when the push can't take that action.
+ * plan (`rsvp in` or `out`). "Leave a dewdrop" puts one on the event the push was about when that
+ * is something said in the chat, and otherwise (a plan, a gift on the doorstep) leaves it on the
+ * farm. Null when the push can't take that action.
  */
 export const actionCommand = (
   action: NotificationAction,
@@ -222,10 +233,9 @@ export const actionCommand = (
     return null;
   }
   if (action === 'dewdrop') {
-    const target = seed ?? data.seq;
-    return target === null
-      ? null
-      : { farm, command: { opId, kind: 'dewdrop', payload: { target } } };
+    const said = category === 'tend' && data.seq !== null && DEWDROP_TARGET_KINDS.has(data.kind);
+    const payload = said && data.seq !== null ? { target: data.seq } : {};
+    return { farm, command: { opId, kind: 'dewdrop', payload } };
   }
   if (seed === null) return null;
   const answer = action === 'im_in' ? 'in' : 'out';

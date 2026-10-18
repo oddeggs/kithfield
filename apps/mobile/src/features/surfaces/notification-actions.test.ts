@@ -29,9 +29,12 @@ describe('answering a push from the lock screen', () => {
     });
   });
 
-  it('leaves a dewdrop on the plan, or on what the push was about', () => {
-    expect(readResponse('dewdrop', 'plan', plan, opId)).toMatchObject({
-      command: { kind: 'dewdrop', payload: { target: 40 } },
+  it('leaves a dewdrop on the farm for a plan, or on the message the push was about', () => {
+    const toFarm = readResponse('dewdrop', 'plan', plan, opId);
+    expect(toFarm.kind === 'command' && toFarm.command).toEqual({
+      opId: opId(),
+      kind: 'dewdrop',
+      payload: {},
     });
     expect(readResponse('dewdrop', 'tend', mention, opId)).toMatchObject({
       farm: 'f_lot',
