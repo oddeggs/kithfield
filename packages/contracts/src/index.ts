@@ -10,6 +10,7 @@ export * from './snapshot';
 export * from './cottage';
 export * from './frames';
 export * from './queues';
+export * from './surfaces';
 export * from './http/farms';
 export * from './http/account';
 export * from './http/me';

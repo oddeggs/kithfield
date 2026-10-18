@@ -27,11 +27,13 @@ only through the contracts owner.
 - **`actor`** is a person id. It is null only for the farm's own kinds (`farm_created`, `weather`,
   `shared_rain`, `season_rolled`, `harvested`, `rules_changed`, `restored`) and for what the farm or
   the safety team writes on `unsend` (`by: safety`), `removed` (`by: safety`), `settings_changed`
-  (`frozen`, `paused`, and the keeper handover `role: keeper` when the last keeper leaves or is
-  removed, given to the longest-standing remaining member) and `fire` (`out`).
+  (`frozen`, `paused`, the keeper handover `role: keeper` when the last keeper leaves or is
+  removed, given to the longest-standing remaining member, and a `theme` friends' chip-in covered)
+  and `fire` (`out`).
 - The farm writes `ON_BEHALF_KINDS` on a person's behalf, with that person as actor: `joined`,
-  `farm_opened`, `hibernate`, `gate`, `traded`, and `critter_changed`, `status` and `seed_changed`
-  (also phone commands). After a safety removal of a `critter_changed`, `status` or `seed_changed`,
+  `farm_opened`, `hibernate`, `gate`, `traded`, and `critter_changed`, `status`, `seed_changed` and
+  `gift` (also phone commands). A chip-in gift is written once covered, on behalf of whoever started
+  it. After a safety removal of a `critter_changed`, `status` or `seed_changed`,
   the farm writes a follow-up of the same kind restoring the previous values. For a plan edit that
   changed its title, days or place, the follow-up restores the planter's plan, with the editor of
   the removed edit as actor.
@@ -123,7 +125,35 @@ only through the contracts owner.
   they return, the server stores and compares only `HMAC(server pepper, SHA-256 hash)` and
   rate-limits matching.
 
+## The shop, the fire, AI and the native surfaces
+
+- **Purchases**: `http/shop.ts` (the catalogue, the cart, the collection, `Entitlements`,
+  wishlists, farm themes, patrons) and `http/gifts.ts` (gifts, chip-ins, the printed book). Store
+  prices are never on the wire: the app shows the store's own. Chip-ins show who chipped in and how
+  full they are, never amounts, and the friend a gift is for never sees it.
+- **Webhooks** keep their senders' key names (`http/webhooks.ts`): `RevenueCatWebhook`,
+  `StripeWebhook` and `LiveKitWebhook`. Each is checked for its sender first; unknown event types
+  are acknowledged, never errors.
+- **The fire** (`http/fire.ts`): the room is `fireRoomOf(farm)`, identities are person ids, and
+  `FireAttributes` carry join or listen, the speaker's caption consent, captions wanted and the
+  lantern. Who is by the fire reaches phones in the farm socket's `presence` frame (`fire`).
+  Caption lines go on the room's `captions` data topic and are never stored.
+- **AI** (`http/ai.ts`, `AiJob` in `queues.ts`): every feature is behind the person's consent
+  (`AiFeature`: `captions`, `recap`, `voice_notes`); the provider is Cloudflare Workers AI.
+- **Rhythm** (`http/rhythm.ts`): the scrapbook with its kept items, the Sunday `WeeklyRecap` and
+  the weather's attribution. The restoration project is `FarmState.restoration`, from
+  `RESTORATION_RULES_VERSION`; snapshots written before it lack the key.
+- **Native surfaces** (`surfaces.ts`): what the app writes into the App Group for widgets, Live
+  Activities and the share extension, the notification actions, and `actionCommand`, which turns a
+  notification action into the command it sends.
+- **Forward compatibility**: new snapshot fields are optional, so a stored older snapshot still
+  reads; new payload fields are optional too, and display-only names (`PollinatorReason`, sticker
+  packs and poses) are open.
+
 ## House rules in the schemas
 
 No streaks, no counts of care, no read receipts. `dew` and `today` in the snapshot are inputs for
-the shared reducer and are never drawn as numbers; credits carry people and kinds of care only.
+the shared reducer and are never drawn as numbers; credits carry people and kinds of care only. The
+Sunday recap thanks people by the kinds of care they gave, and its best pollinator rotates and is
+named for a kind of care, never a count. A together-sticker ask never tells the asker who said no,
+and a gift shows "opened", never when.
