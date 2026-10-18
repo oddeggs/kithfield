@@ -5,6 +5,8 @@ import { galleryEn } from './gallery.en';
 import { gallerySameInBoth, galleryVi } from './gallery.vi';
 import { glossaryEn } from './glossary.en';
 import { glossarySameInBoth, glossaryVi } from './glossary.vi';
+import { moderationEn } from './moderation.en';
+import { moderationSameInBoth, moderationVi } from './moderation.vi';
 import { pushEn } from './push.en';
 import { pushSameInBoth, pushVi } from './push.vi';
 import { shellEn } from './shell.en';
@@ -24,6 +26,7 @@ import { websitePagesSameInBoth, websitePagesVi } from './website-pages.vi';
 export const features: readonly FeatureCatalogues[] = [
   { name: 'gallery', file: 'gallery', en: galleryEn, vi: galleryVi, sameInBoth: gallerySameInBoth },
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
+  { name: 'moderation', file: 'moderation', en: moderationEn, vi: moderationVi, sameInBoth: moderationSameInBoth },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
@@ -37,6 +40,7 @@ export const features: readonly FeatureCatalogues[] = [
 export const en = {
   ...galleryEn,
   ...glossaryEn,
+  ...moderationEn,
   ...pushEn,
   ...shellEn,
   ...signInCodeEn,
@@ -50,6 +54,7 @@ export const en = {
 export const vi = {
   ...galleryVi,
   ...glossaryVi,
+  ...moderationVi,
   ...pushVi,
   ...shellVi,
   ...signInCodeVi,
