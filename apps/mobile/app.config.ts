@@ -13,6 +13,8 @@ export interface VariantConfig {
   host: string;
 }
 
+/** The `kithfield` project on the `kithfield` Expo account: https://expo.dev/accounts/kithfield/projects/kithfield */
+export const EAS_PROJECT_ID = 'cb527a7c-d45c-4e14-98ca-5ecc3c3affaa';
 const IOS_DEPLOYMENT_TARGET = '17.0';
 
 /** Bundle ids are placeholders until the Apple developer team registers them. */
@@ -42,8 +44,6 @@ export function resolveVariant(raw: string | undefined): AppVariant {
 
 /** Settings read from the environment; unset or empty means the variant's default. */
 export interface BuildEnv {
-  /** The EAS project id. Without it the build is not linked to EAS and takes no updates. */
-  easProjectId: string | undefined;
   /** Points the app at another API, such as `wrangler dev` on this Mac. */
   apiBase: string | undefined;
 }
@@ -54,24 +54,21 @@ const isSet = (value: string | undefined): value is string => value !== undefine
 export function buildConfig(
   config: ConfigContext['config'],
   appVariant: AppVariant,
-  { easProjectId, apiBase }: BuildEnv,
+  { apiBase }: BuildEnv,
 ): ExpoConfig {
   const variant = VARIANTS[appVariant];
-  const linked = isSet(easProjectId);
   return {
     ...config,
     name: variant.name,
+    owner: 'kithfield',
     slug: 'kithfield',
     scheme: variant.scheme,
     version: '0.1.0',
     orientation: 'portrait',
     userInterfaceStyle: 'automatic',
-    ...(linked
-      ? {
-          runtimeVersion: { policy: 'fingerprint' },
-          updates: { url: `https://u.expo.dev/${easProjectId}` },
-        }
-      : { updates: { enabled: false, checkAutomatically: 'NEVER' } }),
+    // A build only takes updates made from the same native code.
+    runtimeVersion: { policy: 'fingerprint' },
+    updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
     ios: {
       bundleIdentifier: variant.bundleIdentifier,
       deploymentTarget: IOS_DEPLOYMENT_TARGET,
@@ -98,7 +95,7 @@ export function buildConfig(
       appVariant,
       apiBase: isSet(apiBase) ? apiBase : `https://${variant.host}/api`,
       appGroup: variant.appGroup,
-      ...(linked ? { eas: { projectId: easProjectId } } : {}),
+      eas: { projectId: EAS_PROJECT_ID },
     },
   };
 }
@@ -107,7 +104,4 @@ export function buildConfig(
 const env = process.env as Partial<Record<string, string>>;
 
 export default ({ config }: ConfigContext): ExpoConfig =>
-  buildConfig(config, resolveVariant(env['APP_VARIANT']), {
-    easProjectId: env['EAS_PROJECT_ID'],
-    apiBase: env['API_BASE'],
-  });
+  buildConfig(config, resolveVariant(env['APP_VARIANT']), { apiBase: env['API_BASE'] });

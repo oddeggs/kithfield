@@ -1,8 +1,8 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { buildConfig, resolveVariant } from '../app.config';
+import { EAS_PROJECT_ID, buildConfig, resolveVariant } from '../app.config';
 
-const unset = { easProjectId: undefined, apiBase: undefined };
+const unset = { apiBase: undefined };
 
 describe('app variants', () => {
   it('defaults to dev when APP_VARIANT is unset or empty', () => {
@@ -25,15 +25,14 @@ describe('app variants', () => {
     expect(prd.extra?.['apiBase']).toBe('https://kithfield.com/api');
   });
 
-  it('turns updates off and leaves EAS unlinked until a project id is given', () => {
-    const unlinked = buildConfig({}, 'prd', unset);
-    expect(unlinked.updates?.enabled).toBe(false);
-    expect(unlinked.extra?.['eas']).toBeUndefined();
-
-    const id = '00000000-0000-4000-8000-000000000000';
-    const linked = buildConfig({}, 'prd', { ...unset, easProjectId: id });
-    expect(linked.updates?.url).toBe(`https://u.expo.dev/${id}`);
-    expect(linked.extra?.['eas']).toEqual({ projectId: id });
+  it('links every variant to the EAS project and its update channel', () => {
+    for (const variant of ['dev', 'prd'] as const) {
+      const config = buildConfig({}, variant, unset);
+      expect(config.owner).toBe('kithfield');
+      expect(config.slug).toBe('kithfield');
+      expect(config.extra?.['eas']).toEqual({ projectId: EAS_PROJECT_ID });
+      expect(config.updates?.url).toBe(`https://u.expo.dev/${EAS_PROJECT_ID}`);
+    }
   });
 
   it('points at another API when API_BASE is set, and at the variant host when it is empty', () => {
