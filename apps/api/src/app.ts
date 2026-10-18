@@ -7,6 +7,7 @@ import { cottageRoutes } from './cottage/routes';
 import type { AppEnv } from './env';
 import { farmApi } from './farm/routes';
 import { mediaRoutes } from './media';
+import { stickersRoutes } from './stickers/routes';
 import { waitlistRoutes } from './web/waitlist';
 
 /** The API. The Worker owns `<host>/api/*`; the website serves everything else on the host. */
@@ -27,6 +28,7 @@ export function createApp(): Hono<AppEnv> {
 
   app.route('/v1', farmApi());
   app.route('/v1', mediaRoutes());
+  app.route('/v1', stickersRoutes());
 
   app.notFound((c) => c.json({ error: { code: 'not_found' } }, 404));
 
