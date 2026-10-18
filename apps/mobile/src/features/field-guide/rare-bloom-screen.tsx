@@ -27,7 +27,7 @@ import { say } from '../farm/farm-copy';
 import { NightVeil } from '../farm/panel';
 import { typeAt } from '../farm/type-at';
 import { capital, variantOf } from './guide-copy';
-import { useGuideLook } from './guide-look';
+import { guideMotion, useGuideLook } from './guide-look';
 import { variantArt } from './guide-model';
 import { rareBloomByKey } from './moments';
 import { rareBody } from './page-copy';
@@ -36,8 +36,6 @@ import { fieldGuideRoutes } from './routes';
 import { useMarkRareSeen } from './use-moments';
 
 const W = 393;
-/** Each of the bloom's three held drawings, on twos. */
-const HOLD_MS = 250;
 
 /** Who was on the farm in the shared rain that rolled this bloom, if the phone holds that day. */
 function useSharedRainPeople(farm: FarmId, day: string | null): readonly PersonId[] | null {
@@ -106,7 +104,13 @@ export function RareBloomPage({
       return;
     }
     const at = (n: number) => withTiming(n, { duration: 0, reduceMotion: ReduceMotion.Never });
-    step.set(withSequence(at(0), withDelay(HOLD_MS, at(1)), withDelay(HOLD_MS, at(2))));
+    step.set(
+      withSequence(
+        at(0),
+        withDelay(guideMotion.bloomHoldMs, at(1)),
+        withDelay(guideMotion.bloomHoldMs, at(2)),
+      ),
+    );
   }, [reduce, step]);
   const bud = useAnimatedStyle(() => ({ opacity: step.get() === 0 ? 1 : 0 }));
   const opening = useAnimatedStyle(() => ({ opacity: step.get() === 1 ? 1 : 0 }));

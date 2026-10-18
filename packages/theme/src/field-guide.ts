@@ -121,3 +121,12 @@ export const fieldGuideWashes = {
     sun_gold: '#f6ecd2',
   },
 } as const;
+
+/** The guide's motion, from the design's developer notes. */
+export const fieldGuideMotion = {
+  /** The hero plant sways ±2° on a 4-second loop; the porch pot ±1° on the same breeze. */
+  sway: { degrees: 2, periodMs: 4000 },
+  potSway: { degrees: 1 },
+  /** The harvest basket fills one crop at a time, this far apart. */
+  basketStepMs: 150,
+} as const;

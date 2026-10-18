@@ -1,4 +1,9 @@
-import { fieldGuideColours, motion, type FieldGuideColours } from '@kithfield/theme';
+import {
+  fieldGuideColours,
+  fieldGuideMotion,
+  motion,
+  type FieldGuideColours,
+} from '@kithfield/theme';
 
 import { useTheme } from '../../ui/theme/theme-provider';
 
@@ -9,15 +14,15 @@ export function useGuideLook(): GuideLook {
   return fieldGuideColours[useTheme().appearance];
 }
 
-/** The guide's motion, from the design's developer notes and the theme's breathing. */
+/** The guide's motion, from the theme: the design's notes, the cross-fade and the twos. */
 export const guideMotion = {
-  /** A season tab cross-fades the rows; the tiles hold still. */
-  rowsFadeMs: 160,
-  /** The hero plant sways ±2° on a 4-second loop; the porch pot ±1°. */
-  sway: { degrees: 2, periodMs: 4000 },
-  potSway: { degrees: 1 },
+  ...fieldGuideMotion,
+  /** A season tab cross-fades the rows (the design asks 160 ms; the theme's swap cross-fade). */
+  rowsFade: motion.cross,
   /** A sleepy plant breathes slower, as a sleeping critter does. */
-  sleepyPeriodMs: Math.round((4000 * motion.breath.asleepMs) / motion.breath.awakeMs),
-  /** The basket fills one crop at a time. */
-  basketStepMs: 150,
+  sleepyPeriodMs: Math.round(
+    (fieldGuideMotion.sway.periodMs * motion.breath.asleepMs) / motion.breath.awakeMs,
+  ),
+  /** Each of a rare bloom's three drawings is held three frames on twos. */
+  bloomHoldMs: 3 * motion.twos.frameMs,
 } as const;
