@@ -12,7 +12,7 @@ import { Txt } from '../../ui/type/text';
 import { say } from '../farm/farm-copy';
 import { typeAt } from '../farm/type-at';
 import { dateOf, monthLong, plantTitle } from './guide-copy';
-import { useGuideLook } from './guide-look';
+import { scrapCard, scrapCardHeight, useGuideLook } from './guide-look';
 import { porchNames } from './page-copy';
 import { BookPage, PlantTile, RoundButton, sendersOf } from './parts';
 import { otherOnPorch, scrapbookCards, type ScrapbookCard } from './porch-model';
@@ -120,16 +120,17 @@ export function ScrapbookPage({
                   style={{
                     width: '47.5%',
                     flexGrow: 1,
+                    minHeight: pressed ? scrapCardHeight.pressed : scrapCardHeight.waiting,
                     alignItems: 'center',
-                    gap: 6,
-                    paddingTop: 10,
-                    paddingHorizontal: 10,
-                    paddingBottom: 12,
+                    gap: scrapCard.gap,
+                    paddingTop: scrapCard.padTop,
+                    paddingHorizontal: scrapCard.padX,
+                    paddingBottom: scrapCard.padBottom,
                     borderRadius: 6,
                     ...(pressed
                       ? { backgroundColor: look.scrap.card, boxShadow: look.scrap.shadow }
                       : {
-                          borderWidth: 1.5,
+                          borderWidth: scrapCard.border,
                           borderStyle: 'dashed',
                           borderColor: look.scrap.dashed,
                         }),
@@ -150,12 +151,12 @@ export function ScrapbookPage({
                   <PlantTile
                     art={{ plant: card.plant, stage: pressed ? 3 : 1, color: 'none' }}
                     sketch={!pressed}
-                    width={110}
+                    width={scrapCard.art}
                   />
                   <Txt
                     variant="handS"
                     color={palette.text}
-                    style={typeAt('handS', 15, 15, fontLocale)}
+                    style={typeAt('handS', scrapCard.season, scrapCard.season, fontLocale)}
                   >
                     {season}
                   </Txt>
@@ -164,7 +165,7 @@ export function ScrapbookPage({
                     align="center"
                     multiline
                     color={palette.secondary}
-                    style={typeAt('caption', 12, 16.2, fontLocale)}
+                    style={typeAt('caption', scrapCard.note.size, scrapCard.note.line, fontLocale)}
                   >
                     {text}
                   </Txt>
@@ -172,7 +173,7 @@ export function ScrapbookPage({
                     <Txt
                       variant="caption"
                       color={look.scrap.date}
-                      style={typeAt('rowTitle', 11, 11, fontLocale)}
+                      style={typeAt('rowTitle', scrapCard.date, scrapCard.date, fontLocale)}
                     >
                       {t('fieldGuide.scrapbook.pressedOn', {
                         date: dateOf(t, state, card.pressedAt),

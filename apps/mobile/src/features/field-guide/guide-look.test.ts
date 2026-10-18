@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { motion } from '@kithfield/theme';
 
-import { guideMotion } from './guide-look';
+import { guideMotion, scrapCardHeight } from './guide-look';
 
 /** The guide's own source files, tests left out. */
 const sources = readdirSync(__dirname)
@@ -38,5 +38,11 @@ describe('the field guide look', () => {
 
   it('holds each of a rare bloom’s drawings for three frames on twos', () => {
     expect(guideMotion.bloomHoldMs).toBe(3 * motion.twos.frameMs);
+  });
+
+  it('stands a scrapbook card as tall as the design lays it out', () => {
+    // Measured in the design: a pressed card with a three-line note, a dashed one with two.
+    expect(scrapCardHeight.pressed).toBeCloseTo(224.56, 1);
+    expect(scrapCardHeight.waiting).toBeCloseTo(194.38, 1);
   });
 });
