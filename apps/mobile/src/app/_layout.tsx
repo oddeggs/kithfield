@@ -11,6 +11,7 @@ import type { HeldElsewhere } from '../data';
 import { clearMediaForSignOut, MediaUploads, pendingUploadCount } from '../features/media';
 import { useStoredLanguage } from '../features/settings/device-prefs';
 import { StickerPurchases } from '../features/shop/store/sticker-purchases';
+import { clearStickersForSignOut } from '../features/stickers/local-files';
 import { clearSurfacesForSignOut, SurfacesHost } from '../features/surfaces';
 import { ArtProvider, createArtStore } from '../ui/art/art-provider';
 import { ToastHost } from '../ui/components/toast';
@@ -30,13 +31,18 @@ void SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ duration: 200, fade: true });
 
 /**
- * The media queue, counted before signing out; it and the native surfaces (widgets, Live
- * Activities, unsent shares) are cleared with the data layer's tables.
+ * The media queue, counted before signing out; it, the native surfaces (widgets, Live
+ * Activities, unsent shares) and the person's sticker files are cleared with the data layer's
+ * tables.
  */
-const mediaQueue: HeldElsewhere = {
+const heldElsewhere: HeldElsewhere = {
   pendingCount: pendingUploadCount,
   clear: () =>
-    Promise.all([clearMediaForSignOut(), clearSurfacesForSignOut()]).then(() => undefined),
+    Promise.all([
+      clearMediaForSignOut(),
+      clearSurfacesForSignOut(),
+      Promise.resolve().then(clearStickersForSignOut),
+    ]).then(() => undefined),
 };
 
 function Screens() {
@@ -110,7 +116,7 @@ export default function RootLayout() {
                     <TabActivityProvider>
                       <ToastHost>
                         {/* The data layer and its session; the splash stays up while it starts. */}
-                        <DataSlot heldElsewhere={mediaQueue}>
+                        <DataSlot heldElsewhere={heldElsewhere}>
                           {/* Resumes the media uploads at launch, not only when a chat opens. */}
                           <MediaUploads />
                           {/* Widgets, Live Activities, lock-screen answers and shares. */}
