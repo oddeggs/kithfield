@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 
 import { authRoutes } from './auth';
+import { exportRoutes } from './auth/export-routes';
 import { cottageRoutes } from './cottage/routes';
 import type { AppEnv } from './env';
 import { farmApi } from './farm/routes';
@@ -14,6 +15,7 @@ export function createApp(): Hono<AppEnv> {
     c.json({ status: 'ok', environment: c.env.ENVIRONMENT, commit: c.env.COMMIT_SHA }),
   );
   app.route('/', authRoutes());
+  app.route('/', exportRoutes());
 
   app.route('/', cottageRoutes());
   app.route('/', waitlistRoutes());

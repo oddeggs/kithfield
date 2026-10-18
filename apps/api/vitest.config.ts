@@ -18,6 +18,7 @@ export default defineConfig(async () => {
             TEST_MIGRATIONS: migrations,
             BETTER_AUTH_SECRET: `${randomUUID()}${randomUUID()}`,
             INVITE_CODE_KEY: `${randomUUID()}${randomUUID()}`,
+            EXPORT_URL_KEY: `${randomUUID()}${randomUUID()}`,
           },
         },
       }),

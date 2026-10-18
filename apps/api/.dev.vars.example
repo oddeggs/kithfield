@@ -9,3 +9,5 @@ EXPO_ACCESS_TOKEN=
 WAITLIST_EMAIL_KEY=
 # Seals each farm's current invite code (AES-GCM); at least 32 random characters (`openssl rand -base64 32`).
 INVITE_CODE_KEY=
+# Signs the keepsakes export's download links; at least 32 random characters (`openssl rand -base64 32`).
+EXPORT_URL_KEY=

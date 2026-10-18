@@ -16,8 +16,8 @@
     "dev": {
       "name": "kithfield-api-dev",
       "routes": [{ "pattern": "dev.kithfield.com/api/*", "zone_name": "kithfield.com" }],
-      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses) and
-      // the purge of accounts whose 30 days are over.
+      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses),
+      // expired keepsakes exports, and the purge of accounts whose 30 days are over.
       "triggers": { "crons": ["17 3 * * *"] },
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
       // Sign-in identity token audiences (public ids, not secrets).
@@ -94,8 +94,8 @@
     "prd": {
       "name": "kithfield-api",
       "routes": [{ "pattern": "kithfield.com/api/*", "zone_name": "kithfield.com" }],
-      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses) and
-      // the purge of accounts whose 30 days are over.
+      // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses),
+      // expired keepsakes exports, and the purge of accounts whose 30 days are over.
       "triggers": { "crons": ["17 3 * * *"] },
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
       // Sign-in identity token audiences (public ids, not secrets).

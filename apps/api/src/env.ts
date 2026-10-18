@@ -14,6 +14,8 @@ export const secretNames = [
   'WAITLIST_EMAIL_KEY',
   // Seals each farm's current invite code (AES-GCM), so keepers can read their link again.
   'INVITE_CODE_KEY',
+  // Signs the keepsakes export's short-lived download links (HMAC-SHA256).
+  'EXPORT_URL_KEY',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
