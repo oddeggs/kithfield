@@ -1,17 +1,11 @@
 import type { Me } from '@kithfield/contracts';
-import * as SecureStore from 'expo-secure-store';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
 
 import type { DataRuntime, SignIn } from '../../data';
-import { isOnboarded, readOnboarded, writeOnboarded, type OnboardedStore } from './onboarded';
+import { forgetPerson } from './forget';
+import { useOnboardedState } from './onboarded-state';
+import { keychain, pushDeps } from './push-registration';
+import { syncPush } from './push-sync';
 
 /** What the way in needs from the data layer beyond the hooks: signing in and the person. */
 export interface Account {
@@ -23,6 +17,8 @@ export interface Account {
   readonly recheck: () => Promise<Me>;
   /** Forgets this phone's person and wipes its tables, as when the age check refuses. */
   readonly forget: () => Promise<void>;
+  /** Sends the push token and time zone now, as right after notifications are allowed. */
+  readonly registerPush: () => Promise<void>;
 }
 
 const AccountContext = createContext<Account | null>(null);
@@ -43,73 +39,37 @@ export function useAccount(): Account {
   return account;
 }
 
-// The same Keychain class as the session itself, so both survive a restore together.
-const keychain: OnboardedStore = {
-  getItem: (key) =>
-    SecureStore.getItem(key, { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK }),
-  setItemAsync: (key, value) =>
-    SecureStore.setItemAsync(key, value, { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK }),
-};
-
-type Known = { readonly person: string; readonly onboarded: boolean };
-
-/**
- * Whether `person` is onboarded: at once from what the phone remembers, then checked with
- * `GET /v1/me` in the background (new Terms send them back to accept). A person this phone
- * hasn't seen onboarded waits for that one read, under the splash. Null while unknown.
- */
-export function useOnboarded(
-  runtime: DataRuntime<unknown>,
-  person: string | null,
-): { readonly onboarded: boolean | null; readonly recheck: () => Promise<Me> } {
-  const [known, setKnown] = useState<Known | null>(null);
-
-  const settle = useCallback(async (who: string, me: Me) => {
-    const onboarded = isOnboarded(me);
-    setKnown({ person: who, onboarded });
-    await writeOnboarded(keychain, who, onboarded).catch(() => undefined);
-  }, []);
-
-  useEffect(() => {
-    if (person === null) return;
-    let live = true;
-    const remembered = readOnboarded(keychain, person);
-    setKnown(remembered ? { person, onboarded: true } : null);
-    runtime.client.api.me().then(
-      (me) => live && void settle(person, me),
-      // Offline or refused: someone remembered stays in; anyone else starts at the way in.
-      () => live && !remembered && setKnown({ person, onboarded: false }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [runtime, person, settle]);
-
-  const recheck = useCallback(async () => {
-    const me = await runtime.client.api.me();
-    await settle(me.person, me);
-    return me;
-  }, [runtime, settle]);
-
-  const onboarded = known !== null && known.person === person ? known.onboarded : null;
-  return { onboarded, recheck };
+/** Whether the person is onboarded, answered on the first render (see `useOnboardedState`). */
+export function useOnboarded(runtime: DataRuntime<unknown>, person: string | null) {
+  const me = useCallback(() => runtime.client.api.me(), [runtime]);
+  const deps = useMemo(() => ({ store: keychain, me }), [me]);
+  return useOnboardedState(person, deps);
 }
 
 /** The account for the screens, from the data layer's runtime. */
 export function useRuntimeAccount(
   runtime: DataRuntime<unknown>,
+  person: string | null,
   recheck: () => Promise<Me>,
+  dropped: () => void,
 ): Account {
+  const push = useMemo(() => pushDeps(runtime), [runtime]);
   return useMemo(
     () => ({
       signIn: runtime.signIn,
       authHeaders: () => runtime.session.headers(),
       recheck,
-      forget: async () => {
-        await runtime.client.signOut({ force: true });
-        await runtime.session.signOut();
+      forget: () =>
+        forgetPerson({
+          wipe: () => runtime.client.signOut({ force: true }),
+          signOut: () => runtime.session.signOut(),
+          store: keychain,
+          dropped,
+        }),
+      registerPush: async () => {
+        if (person !== null) await syncPush(person, push).catch(() => undefined);
       },
     }),
-    [runtime, recheck],
+    [runtime, person, recheck, dropped, push],
   );
 }

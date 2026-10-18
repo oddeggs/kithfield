@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { Share } from 'react-native';
 
 import { useLocale } from '../../../ui/locale/locale-provider';
+import { useAccount } from '../../../ui/session/account';
 import { AskScreen } from '../ask-screen';
 import { afterNotifications, routes } from '../flow';
 import { useFlow } from '../flow-state';
@@ -16,6 +17,7 @@ import { useFarmMessage } from './plant-screen';
 export function NotificationsScreen() {
   const router = useRouter();
   const { t } = useLocale();
+  const account = useAccount();
   const { state } = useFlow();
   const progress = useProgress();
   const next = () => void progress.go(afterNotifications(state.path));
@@ -34,9 +36,11 @@ export function NotificationsScreen() {
       yes={t('onboarding.notifications.yes')}
       no={t('onboarding.notifications.no')}
       onYes={async () => {
-        await Notifications.requestPermissionsAsync({
+        const answer = await Notifications.requestPermissionsAsync({
           ios: { allowAlert: true, allowSound: true, allowBadge: false },
-        }).catch(() => undefined);
+        }).catch(() => null);
+        // Allowed: the server hears where to knock at once, not on the next launch.
+        if (answer?.granted) await account.registerPush();
         next();
       }}
       onNo={next}

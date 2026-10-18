@@ -14,6 +14,7 @@ import { ArtStill } from '../art/art-view';
 import { ErrorState } from '../components/state-shell';
 import { useLocale } from '../locale/locale-provider';
 import { AccountProvider, useOnboarded, useRuntimeAccount } from './account';
+import { PushRegistration, pushDeps } from './push-registration';
 import { SessionProvider, signedOut, type Session } from './session';
 
 type Runtime = DataRuntime<unknown>;
@@ -50,7 +51,10 @@ function SessionBridge({
   }, [runtime]);
   const id = sessionEnded || person === null ? null : person.person;
   const { onboarded, recheck } = useOnboarded(runtime, id);
-  const account = useRuntimeAccount(runtime, recheck);
+  // A person the server removed (the age check) is dropped here too, so nothing acts as them.
+  const dropped = useCallback(() => setPerson(null), []);
+  const account = useRuntimeAccount(runtime, id, recheck, dropped);
+  const push = useMemo(() => pushDeps(runtime), [runtime]);
   const session = useMemo<Session>(() => {
     if (id === null) return signedOut;
     if (onboarded === null) return { status: 'loading', person: { id }, onboarded: false };
@@ -58,6 +62,7 @@ function SessionBridge({
   }, [id, onboarded]);
   return (
     <AccountProvider account={account}>
+      <PushRegistration person={onboarded ? id : null} deps={push} />
       <SessionProvider session={session}>{children}</SessionProvider>
     </AccountProvider>
   );
