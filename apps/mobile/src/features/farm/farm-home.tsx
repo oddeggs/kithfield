@@ -64,7 +64,11 @@ function useMoments(farm: FarmId, me: string | null) {
       const thisVisit = openedAt.current - 60_000;
       let lastVisit: number | null | undefined;
       if (first && self?.lastOpenedAt != null && self.lastOpenedAt >= thisVisit) {
-        await client.pageHistory(farm, current.lastSeq + 1, 200).catch(() => false);
+        // The log's newest page, if the server answers soon; what the phone holds otherwise.
+        await Promise.race([
+          client.pageHistory(farm, current.lastSeq + 1, 200).catch(() => false),
+          new Promise((resolve) => setTimeout(resolve, 3000)),
+        ]);
         lastVisit = visitBefore(await client.events(farm, { limit: 200 }), me, thisVisit);
       }
       if (!live) return;
