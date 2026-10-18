@@ -25,6 +25,11 @@ export interface FarmRules<View = unknown> {
     actor: PersonId,
     now: number,
   ): RejectReason | null;
+  /**
+   * The farm after an appeal brought a removed event back: `restored` is the target as paged in
+   * again, applied where the reducer's rules say (never growing anything twice).
+   */
+  applyRestored(state: FarmState, restored: FarmEvent): FarmState;
   /** What the farm looks like at `now`: sleepy, misty and the rest are computed, never stored. */
   farmView(state: FarmState, now: number): View;
 }

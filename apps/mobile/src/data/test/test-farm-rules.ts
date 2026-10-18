@@ -131,6 +131,10 @@ export const testFarmRules: FarmRules<TestFarmView> = {
     };
   },
 
+  applyRestored(state, restored) {
+    return restored.kind === 'pin' ? testFarmRules.applyEvent(state, restored) : state;
+  },
+
   checkCommand(state, _cmd, actor) {
     if (state.frozen) return 'farm_frozen';
     if (!state.members.some((m) => m.person === actor)) return 'not_member';

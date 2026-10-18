@@ -26,7 +26,27 @@ export type SyncReport =
       readonly farm: FarmId;
       readonly seq: number;
       readonly kind: string;
-    };
+    }
+  /** A frame of a known type that failed its schema; the socket was dropped. */
+  | {
+      readonly type: 'bad_frame';
+      readonly socket: 'farm' | 'cottage';
+      readonly frame: string;
+      readonly issues: readonly EventIssuePath[];
+    }
+  /** The local store was emptied: its key was gone, or the file wasn't a database. */
+  | { readonly type: 'store_reset'; readonly reason: 'key_missing' | 'not_a_database' }
+  /** Writes still waiting when the person signed out. */
+  | { readonly type: 'unsent_at_sign_out'; readonly count: number }
+  /** Background work that failed; `where` names it, `error` is the error's name only. */
+  | { readonly type: 'failed'; readonly where: string; readonly error: string };
+
+/** A report for a failure caught in background work: the error's name, never its message. */
+export const failure = (where: string, error: unknown): SyncReport => ({
+  type: 'failed',
+  where,
+  error: error instanceof Error ? error.name : typeof error,
+});
 
 export interface BatchOutcome {
   /**
@@ -142,8 +162,10 @@ export async function applyEnvelopes(
       else if (known.kind === 'farm_created') state = ctx.rules.createFarm(known);
       else wantSnapshot();
     } catch {
+      // The farm here can't be trusted past this event: stop, and take the snapshot.
       ctx.report({ type: 'reducer_failed', farm: ctx.farm, seq: known.seq, kind: known.kind });
       wantSnapshot();
+      break;
     }
     await ctx.store.putEvent(ctx.farm, { ...known, known: true });
     await cacheEffects(ctx, known, restored);
@@ -160,4 +182,32 @@ export async function applyEnvelopes(
     },
     seen,
   };
+}
+
+/**
+ * Stores a history page (events behind `lastSeq`), sorted like live events but without the
+ * reducer. Events an appeal restored also go through the rules' `applyRestored`; answers the
+ * farm after them.
+ */
+export async function storeHistory(
+  ctx: Context,
+  record: ReplicaRecord,
+  events: readonly unknown[],
+  restored: boolean,
+): Promise<FarmState | null> {
+  let state = record.state;
+  for (const raw of events) {
+    const parsed = parseEvent(raw);
+    const seq = parsed.status === 'invalid' ? parsed.seq : parsed.event.seq;
+    if (seq === null || seq > record.lastSeq) continue;
+    if (parsed.status === 'invalid') {
+      await ctx.store.putInvalid(ctx.farm, parsed, ctx.now());
+      continue;
+    }
+    await ctx.store.putEvent(ctx.farm, { ...parsed.event, known: parsed.status === 'known' });
+    if (restored && state && parsed.status === 'known') {
+      state = ctx.rules.applyRestored(state, parsed.event);
+    }
+  }
+  return state;
 }

@@ -26,6 +26,7 @@ export async function handleHttp(
   const headers = new Headers(init?.headers);
   const person = /^Bearer (.+)$/.exec(headers.get('authorization') ?? '')?.[1];
   if (!person || !server.people.has(person)) return error(401, 'unauthorized');
+  if (server.banned.has(person)) return error(403, 'banned');
   const body: unknown = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
 
   if (method === 'POST' && path === '/v1/rt-token') {
@@ -42,6 +43,7 @@ export async function handleHttp(
   if (!farm) return error(404, 'not_found');
 
   if (method === 'POST' && farmPath[2] === 'cmd') {
+    if (!farm.members.has(person)) return error(403, 'forbidden');
     const cmd = FarmCommand.safeParse(body);
     if (!cmd.success) return error(400, 'bad_request');
     server.httpCommands.push(cmd.data.opId);

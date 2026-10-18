@@ -1,9 +1,9 @@
-import { FarmState, type FarmId, type OpId } from '@kithfield/contracts';
+import { FarmState, type FarmId } from '@kithfield/contracts';
 
 import { createSerialQueue, type SqlDatabase, type SqlValue } from '../db/sql';
-import { json, localTables, parse, type Row } from './local-tables';
+import { json, localTables, parse, type OutboxEntry, type Row } from './local-tables';
 
-export type { StoredRejection } from './local-tables';
+export type { OutboxEntry, StoredRejection } from './local-tables';
 
 /** What the phone holds for one farm: the state the reducer left at `lastSeq`. */
 export interface FarmRecord {
@@ -28,18 +28,6 @@ export interface StoredEvent {
   readonly known: boolean;
 }
 
-export interface OutboxEntry {
-  readonly opId: OpId;
-  readonly farm: FarmId;
-  readonly actor: string;
-  readonly kind: string;
-  readonly payload: unknown;
-  readonly createdAt: number;
-  readonly attempts: number;
-  /** Set once the farm acknowledged it; the row goes once the phone holds that seq. */
-  readonly ackedSeq: number | null;
-}
-
 export interface InvalidEvent {
   readonly seq: number | null;
   readonly kind: string | null;
@@ -57,17 +45,6 @@ const eventOf = (r: Row): StoredEvent => ({
   payload: parse(r['payload']),
   rulesVersion: Number(r['rules_version']),
   known: r['known'] === 1,
-});
-
-const outboxOf = (r: Row): OutboxEntry => ({
-  opId: String(r['op_id']),
-  farm: String(r['farm']),
-  actor: String(r['actor']),
-  kind: String(r['kind']),
-  payload: parse(r['payload']),
-  createdAt: Number(r['created_at']),
-  attempts: Number(r['attempts']),
-  ackedSeq: r['acked_seq'] === null ? null : Number(r['acked_seq']),
 });
 
 const EVENT_COLUMNS = 'seq, op_id, at, day, actor, kind, payload, rules_version, known';
@@ -145,10 +122,23 @@ export function createSyncStore(db: SqlDatabase) {
       );
     },
 
+    /** Keeps an invalid event once per seq (a page may bring it again). */
     putInvalid(farm: FarmId, invalid: InvalidEvent, now: number) {
       return run(
-        'INSERT INTO invalid_events (farm, seq, kind, raw, issues, received_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [farm, invalid.seq, invalid.kind, json(invalid.raw), json(invalid.issues), now],
+        `INSERT INTO invalid_events (farm, seq, kind, raw, issues, received_at)
+         SELECT ?, ?, ?, ?, ?, ? WHERE ? IS NULL
+           OR NOT EXISTS (SELECT 1 FROM invalid_events WHERE farm = ? AND seq = ?)`,
+        [
+          farm,
+          invalid.seq,
+          invalid.kind,
+          json(invalid.raw),
+          json(invalid.issues),
+          now,
+          invalid.seq,
+          farm,
+          invalid.seq,
+        ],
       );
     },
 
@@ -188,6 +178,26 @@ export function createSyncStore(db: SqlDatabase) {
       return rows.map(eventOf).reverse();
     },
 
+    /** Empties a farm's cached log, after a snapshot skipped past part of it. */
+    clearEvents(farm: FarmId) {
+      return run('DELETE FROM events WHERE farm = ?', [farm]);
+    },
+
+    /** Everything this person's phone holds, for signing out. */
+    async wipe() {
+      for (const table of [
+        'farms',
+        'events',
+        'invalid_events',
+        'outbox',
+        'rejections',
+        'chats',
+        'meta',
+      ]) {
+        await run(`DELETE FROM ${table}`, []);
+      }
+    },
+
     async invalidEvents(farm: FarmId): Promise<InvalidEvent[]> {
       const rows = await all(
         'SELECT seq, kind, raw, issues FROM invalid_events WHERE farm = ? ORDER BY id',
@@ -211,44 +221,26 @@ export function createSyncStore(db: SqlDatabase) {
       return new Set(rows.map((r) => String(r['op_id'])));
     },
 
-    /* Outbox */
-
-    addOutbox(entry: OutboxEntry) {
-      return run(
-        'INSERT INTO outbox (op_id, farm, actor, kind, payload, created_at, attempts, acked_seq) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          entry.opId,
-          entry.farm,
-          entry.actor,
-          entry.kind,
-          json(entry.payload),
-          entry.createdAt,
-          entry.attempts,
-          entry.ackedSeq,
-        ],
+    /**
+     * A farm and its outbox as the phone holds them. A write whose event already landed is
+     * settled, whether or not its ack arrived, and leaves the outbox here.
+     */
+    async openFarm(farm: FarmId): Promise<{ record: FarmRecord; pending: OutboxEntry[] }> {
+      const record = await this.farm(farm);
+      const outbox = await this.outbox(farm);
+      const seen = await this.seenOps(
+        farm,
+        outbox.map((e) => e.opId),
       );
-    },
-
-    async outbox(farm: FarmId): Promise<OutboxEntry[]> {
-      const rows = await all('SELECT * FROM outbox WHERE farm = ? ORDER BY n', [farm]);
-      return rows.map(outboxOf);
-    },
-
-    async outboxFarms(): Promise<FarmId[]> {
-      const rows = await all('SELECT DISTINCT farm FROM outbox WHERE acked_seq IS NULL', []);
-      return rows.map((r) => String(r['farm']));
-    },
-
-    ackOutbox(opId: string, seq: number) {
-      return run('UPDATE outbox SET acked_seq = ? WHERE op_id = ?', [seq, opId]);
-    },
-
-    countAttempt(opId: string) {
-      return run('UPDATE outbox SET attempts = attempts + 1 WHERE op_id = ?', [opId]);
-    },
-
-    removeOutbox(opId: string) {
-      return run('DELETE FROM outbox WHERE op_id = ?', [opId]);
+      const settled = outbox.filter(
+        (e) => seen.has(e.opId) || (e.ackedSeq ?? Infinity) <= record.lastSeq,
+      );
+      if (settled.length > 0) {
+        await this.transaction(async () => {
+          for (const e of settled) await run('DELETE FROM outbox WHERE op_id = ?', [e.opId]);
+        });
+      }
+      return { record, pending: outbox.filter((e) => !settled.includes(e)) };
     },
 
     ...localTables(run, all),

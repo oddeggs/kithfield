@@ -1,4 +1,4 @@
-import type { FarmId, FarmState, OpId, PersonId, RejectReason } from '@kithfield/contracts';
+import type { FarmId, FarmServerFrame, FarmState, OpId, RejectReason } from '@kithfield/contracts';
 
 import type { BatchOutcome, SyncReport } from './apply-events';
 import type { FarmRules } from './farm-rules';
@@ -8,7 +8,18 @@ import type { StoredRejection, SyncStore } from './sync-store';
 export interface FrameOutcome extends Partial<BatchOutcome> {
   /** The last catch-up batch has landed: the phone is up to date. */
   readonly caughtUp?: boolean;
+  /** A snapshot skipped past events: the cache was emptied, page the newest ones back in. */
+  readonly jumped?: boolean;
 }
+
+/**
+ * A farm frame as the replica takes it. Event batches arrive as raw items, so one broken envelope
+ * is sorted with the rest (as invalid) instead of failing the whole frame.
+ */
+export type ReceivedFrame =
+  | Exclude<FarmServerFrame, { type: 'events' } | { type: 'event' }>
+  | { readonly type: 'events'; readonly events: readonly unknown[]; readonly more: boolean }
+  | { readonly type: 'event'; readonly event: unknown };
 
 /** A write the phone has made and the farm has not yet answered or shown back. */
 export interface PendingWrite {
@@ -30,9 +41,6 @@ export interface FarmReplicaState {
   /** The farm as the server has confirmed it, up to `lastSeq`. */
   readonly confirmed: FarmState | null;
   readonly pending: readonly PendingWrite[];
-  /** Whose farm is open right now and who is writing. Never stored. */
-  readonly presence: readonly PersonId[];
-  readonly typing: readonly PersonId[];
 }
 
 export type EnqueueResult =

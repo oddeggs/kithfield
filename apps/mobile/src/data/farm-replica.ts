@@ -1,9 +1,6 @@
 import {
   FarmCommand,
-  parseEvent,
-  type EventEnvelope,
   type FarmId,
-  type FarmServerFrame,
   type FarmState,
   type OpId,
   type PersonId,
@@ -11,13 +8,15 @@ import {
 } from '@kithfield/contracts';
 
 import { createSerialQueue } from '../db/sql';
-import { applyEnvelopes, type BatchOutcome } from './apply-events';
-import { drawPending } from './provisional';
+import { applyEnvelopes, storeHistory, type BatchOutcome } from './apply-events';
+import { createPresenceStore } from './presence-store';
+import { viewOf } from './provisional';
 import type {
   EnqueueResult,
   FarmReplicaDeps,
   FarmReplicaState,
   FrameOutcome,
+  ReceivedFrame,
 } from './replica-types';
 import type { OutboxEntry, StoredRejection } from './sync-store';
 
@@ -33,15 +32,15 @@ export class FarmReplica<View = unknown> {
   private lastSeq = 0;
   private confirmed: FarmState | null = null;
   private needsSnapshot = false;
-  private pending: OutboxEntry[] = [];
-  private presence: readonly PersonId[] = [];
-  private typing: readonly PersonId[] = [];
+  private pending: readonly OutboxEntry[] = [];
   private current: FarmReplicaState;
   private readonly listeners = new Set<() => void>();
   private readonly serial = createSerialQueue();
+  /** Who is here and writing, apart from the farm so it never re-renders what reads the farm. */
+  readonly presence = createPresenceStore();
 
   private constructor(private readonly deps: FarmReplicaDeps<View>) {
-    this.current = this.build();
+    this.current = viewOf(deps.rules, deps.farm, 0, null, [], undefined);
   }
 
   static async open<View>(deps: FarmReplicaDeps<View>): Promise<FarmReplica<View>> {
@@ -52,26 +51,11 @@ export class FarmReplica<View = unknown> {
 
   /** Reads the farm and its outbox back from the store. */
   private async reload(): Promise<void> {
-    const { store, farm } = this.deps;
-    const record = await store.farm(farm);
+    const { record, pending } = await this.deps.store.openFarm(this.deps.farm);
     this.lastSeq = record.lastSeq;
     this.confirmed = record.state;
     this.needsSnapshot = record.needsSnapshot;
-    const outbox = await store.outbox(farm);
-    // A write whose event already landed is settled, whether or not its ack arrived.
-    const seen = await store.seenOps(
-      farm,
-      outbox.map((e) => e.opId),
-    );
-    const settled = outbox.filter(
-      (e) => seen.has(e.opId) || (e.ackedSeq ?? Infinity) <= record.lastSeq,
-    );
-    if (settled.length > 0) {
-      await store.transaction(async () => {
-        for (const e of settled) await store.removeOutbox(e.opId);
-      });
-    }
-    this.pending = outbox.filter((e) => !settled.includes(e));
+    this.pending = pending;
     this.refresh();
   }
 
@@ -97,31 +81,26 @@ export class FarmReplica<View = unknown> {
   };
 
   /** Applies one frame from the farm socket. */
-  handle(frame: FarmServerFrame): Promise<FrameOutcome> {
-    return this.serial(async () => {
+  handle(frame: ReceivedFrame): Promise<FrameOutcome> {
+    return this.serial(async (): Promise<FrameOutcome> => {
       switch (frame.type) {
         case 'snapshot':
-          await this.takeSnapshot(frame.seq, frame.state);
-          return {};
-        case 'events': {
-          const outcome = await this.applyBatch(frame.events);
-          return { ...outcome, caughtUp: !frame.more };
-        }
+          return this.takeSnapshot(frame.seq, frame.state);
+        case 'events':
+          return { ...(await this.applyBatch(frame.events)), caughtUp: !frame.more };
         case 'event':
           return this.applyBatch([frame.event]);
         case 'ack':
           await this.acked(frame.opId, frame.seq);
           return {};
         case 'rejected':
-          await this.rejected(frame.opId, frame.reason);
+          await this.reject([frame.opId], frame.reason);
           return {};
         case 'presence':
-          this.presence = frame.here;
-          this.refresh();
+          this.presence.here(frame.here);
           return {};
         case 'typing':
-          this.typing = frame.people;
-          this.refresh();
+          this.presence.typing(frame.people);
           return {};
         case 'error':
         case 'unknown':
@@ -131,30 +110,54 @@ export class FarmReplica<View = unknown> {
   }
 
   /** Applies a page of events fetched over HTTP, as if they came on the socket. */
-  applyPage(events: readonly EventEnvelope[]): Promise<BatchOutcome> {
+  applyPage(events: readonly unknown[]): Promise<BatchOutcome> {
     return this.serial(() => this.applyBatch(events));
   }
 
-  /** Puts a history page into the cache without running the reducer (it is behind `lastSeq`). */
-  cacheHistory(events: readonly EventEnvelope[]): Promise<void> {
+  /**
+   * Puts a history page into the cache, sorted like live events but without the reducer (it is
+   * behind `lastSeq`). Events an appeal restored also go through the rules' `applyRestored`.
+   */
+  cacheHistory(events: readonly unknown[], restored = false): Promise<void> {
     return this.serial(async () => {
-      const { store, farm, now } = this.deps;
+      const { store, farm, now, rules, report } = this.deps;
+      const record = {
+        lastSeq: this.lastSeq,
+        state: this.confirmed,
+        needsSnapshot: this.needsSnapshot,
+      };
       await store.transaction(async () => {
-        for (const raw of events) {
-          if (raw.seq > this.lastSeq) continue;
-          const parsed = parseEvent(raw);
-          if (parsed.status === 'invalid') await store.putInvalid(farm, parsed, now());
-          else await store.putEvent(farm, { ...parsed.event, known: parsed.status === 'known' });
-        }
+        const state = await storeHistory(
+          { store, farm, rules, report, now },
+          record,
+          events,
+          restored,
+        );
+        if (state === this.confirmed) return;
+        await store.saveFarm({ farm, ...record, state }, now());
+        this.confirmed = state;
       });
+      this.refresh();
     });
   }
 
   /** The HTTP answer to a write, with the same meaning as the socket's `ack` and `rejected`. */
   settle(opId: OpId, outcome: { seq: number } | { reason: RejectReason }): Promise<void> {
     return this.serial(() =>
-      'seq' in outcome ? this.acked(opId, outcome.seq) : this.rejected(opId, outcome.reason),
+      'seq' in outcome ? this.acked(opId, outcome.seq) : this.reject([opId], outcome.reason),
     );
+  }
+
+  /**
+   * The farm can never take these writes (the person left or was removed, the farm is gone): every
+   * unsent one becomes a rejection with `reason`, in one transaction, so the outbox never blocks.
+   */
+  rejectAll(reason: RejectReason): Promise<number> {
+    return this.serial(async () => {
+      const ids = this.unsent().map((e) => e.opId);
+      await this.reject(ids, reason);
+      return ids.length;
+    });
   }
 
   /** Queues a write and draws it at once. The connection sends it. */
@@ -188,15 +191,17 @@ export class FarmReplica<View = unknown> {
   }
 
   /** Counts a send of these writes, for diagnosing a stuck outbox. */
-  countAttempts(opIds: readonly string[]): Promise<void> {
-    return this.deps.store.transaction(async () => {
-      for (const opId of opIds) await this.deps.store.countAttempt(opId);
-    });
-  }
+  countAttempts = (opIds: readonly string[]): Promise<unknown> =>
+    this.deps.store.transaction(() =>
+      Promise.all(opIds.map((id) => this.deps.store.countAttempt(id))),
+    );
 
-  private async takeSnapshot(seq: number, state: FarmState): Promise<void> {
+  /** Takes the farm's snapshot. Past a gap the cached log is emptied: its tombstones may be stale. */
+  private async takeSnapshot(seq: number, state: FarmState): Promise<FrameOutcome> {
     const { store, farm, now } = this.deps;
+    const jumped = seq > this.lastSeq + 1;
     await store.transaction(async () => {
+      if (jumped) await store.clearEvents(farm);
       await store.saveFarm({ farm, lastSeq: seq, state, needsSnapshot: false }, now());
       await this.dropSettled(seq, new Set());
     });
@@ -204,6 +209,7 @@ export class FarmReplica<View = unknown> {
     this.confirmed = state;
     this.needsSnapshot = false;
     this.refresh();
+    return jumped ? { jumped } : {};
   }
 
   private async applyBatch(events: readonly unknown[]): Promise<BatchOutcome> {
@@ -233,13 +239,11 @@ export class FarmReplica<View = unknown> {
       (e) => seen.has(e.opId) || (e.ackedSeq !== null && e.ackedSeq <= lastSeq),
     );
     for (const e of settled) await this.deps.store.removeOutbox(e.opId);
-    const gone = new Set(settled.map((e) => e.opId));
-    this.pending = this.pending.filter((e) => !gone.has(e.opId));
+    this.pending = this.pending.filter((e) => !settled.includes(e));
   }
 
   private async acked(opId: OpId, seq: number): Promise<void> {
-    const entry = this.pending.find((e) => e.opId === opId);
-    if (!entry) return;
+    if (!this.pending.some((e) => e.opId === opId)) return;
     const { store } = this.deps;
     if (seq <= this.lastSeq) {
       await store.transaction(() => store.removeOutbox(opId));
@@ -251,50 +255,46 @@ export class FarmReplica<View = unknown> {
     this.refresh();
   }
 
-  private async rejected(opId: OpId, reason: RejectReason): Promise<void> {
-    const entry = this.pending.find((e) => e.opId === opId);
-    if (!entry) return;
+  /** Final refusals: out of the outbox and into the rejections the UI explains, together. */
+  private async reject(opIds: readonly OpId[], reason: RejectReason): Promise<void> {
     const { store, farm, now, onRejected } = this.deps;
-    const rejection: StoredRejection = {
-      opId,
+    const entries = this.pending.filter((e) => opIds.includes(e.opId));
+    if (entries.length === 0) return;
+    const rejections = entries.map((e): StoredRejection => ({
+      opId: e.opId,
       farm,
-      kind: entry.kind,
-      payload: entry.payload,
+      kind: e.kind,
+      payload: e.payload,
       reason,
       at: now(),
-    };
-    await store.transaction(async () => {
-      await store.removeOutbox(opId);
-      await store.addRejection(rejection);
-    });
-    this.pending = this.pending.filter((e) => e.opId !== opId);
+    }));
+    await store.transaction(() => store.moveToRejections(rejections));
+    this.pending = this.pending.filter((e) => !entries.includes(e));
     this.refresh();
-    onRejected(rejection);
+    for (const r of rejections) onRejected(r);
   }
 
-  /** The confirmed farm with every pending write drawn on top, in the order they were made. */
-  private build(): FarmReplicaState {
-    const { rules } = this.deps;
-    const state = drawPending(rules, this.confirmed, this.lastSeq, this.pending);
-    return {
-      farm: this.deps.farm,
-      lastSeq: this.lastSeq,
-      state,
-      confirmed: this.confirmed,
-      pending: this.pending.map((e) => ({
-        opId: e.opId,
-        kind: e.kind,
-        payload: e.payload,
-        createdAt: e.createdAt,
-        acked: e.ackedSeq !== null,
-      })),
-      presence: this.presence,
-      typing: this.typing,
-    };
-  }
+  private drawnFrom: readonly OutboxEntry[] | null = null;
 
+  /**
+   * Rebuilds what the UI reads and tells listeners, only when something changed. The drawn farm
+   * is recomputed only when the confirmed farm or the pending writes changed.
+   */
   private refresh(): void {
-    this.current = this.build();
+    const before = this.current as FarmReplicaState | undefined;
+    const reuse = before?.confirmed === this.confirmed && this.drawnFrom === this.pending;
+    this.drawnFrom = this.pending;
+    if (reuse && before.lastSeq === this.lastSeq) return;
+    const { rules, farm } = this.deps;
+    const view = viewOf(
+      rules,
+      farm,
+      this.lastSeq,
+      this.confirmed,
+      this.pending,
+      reuse ? before : undefined,
+    );
+    this.current = view;
     for (const listener of this.listeners) listener();
   }
 }

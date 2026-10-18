@@ -114,7 +114,7 @@ describe('sorting received events', () => {
 });
 
 describe('history', () => {
-  it('pages older events into the cache after a snapshot, sorted like live ones', async () => {
+  it('pages the newest events in after a snapshot, sorted like live ones', async () => {
     const { server, start } = setup();
     server.write(FARM, BEA, 'message', { text: 'first light' });
     server.writeRaw(FARM, { kind: 'lantern_song', actor: BEA, payload: {} });
@@ -122,15 +122,34 @@ describe('history', () => {
     const pip = await start(PIP);
     pip.client.hold(FARM);
     await until(live(pip));
-    expect(await pip.client.events(FARM, { limit: 10 })).toEqual([]);
+    await until(async () => (await pip.client.events(FARM, { limit: 10 })).length === head(server));
 
-    expect(await pip.client.pageHistory(FARM, head(server) + 1, 3)).toBe(true);
-    const page = await pip.client.events(FARM, { limit: 10 });
+    const page = await pip.client.events(FARM, { limit: 3 });
     expect(page.map((e) => [e.kind, e.known])).toEqual([
       ['message', true],
       ['lantern_song', false],
       ['message', true],
     ]);
+    expect(await pip.client.pageHistory(FARM, 2, 1)).toBe(false);
+  });
+
+  it('empties its cached log when a snapshot skips past events', async () => {
+    const { server, start } = setup();
+    const pip = await start(PIP);
+    pip.client.hold(FARM);
+    await until(live(pip));
+    const early = server.write(FARM, BEA, 'message', { text: 'before the gap' });
+    await until(async () => (await pip.client.store.event(FARM, early.seq)) !== null);
+
+    pip.appState.set('background');
+    for (let i = 0; i < 560; i += 1) server.write(FARM, BEA, 'dewdrop', {});
+    pip.appState.set('active');
+    await until(async () => (await pip.state(FARM)).lastSeq === head(server));
+    await until(async () => (await pip.client.events(FARM, { limit: 60 })).length === 50);
+
+    expect(await pip.client.store.event(FARM, early.seq)).toBeNull();
+    const cached = await pip.client.events(FARM, { limit: 60 });
+    expect(cached.at(-1)?.seq).toBe(head(server));
   });
 
   it('brings back an event an appeal restored', async () => {

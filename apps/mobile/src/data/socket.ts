@@ -33,8 +33,13 @@ export interface ReconnectingSocketOptions {
   readonly keepAlive: KeepAlive;
   /** The first frame, made fresh for each connection (it carries a new token). */
   readonly hello: () => Promise<string>;
-  /** Every text message except `pong`. */
-  readonly onText: (text: string) => void;
+  /**
+   * Making the hello failed (no token). Answer `stop` when retrying can't help (the session ended,
+   * the person is banned); anything else retries with back-off.
+   */
+  readonly onHelloError?: (error: unknown) => 'retry' | 'stop';
+  /** Every text message except `pong`, with the number of the connection it came on. */
+  readonly onText: (text: string, connection: number) => void;
   readonly onPhase: (phase: SocketPhase) => void;
   /** After a failed or dropped connection, with how many failures in a row. */
   readonly onRetry?: (attempt: number) => void;
@@ -56,6 +61,7 @@ export function createReconnectingSocket(options: ReconnectingSocketOptions) {
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
   let pingTimer: ReturnType<typeof setTimeout> | undefined;
   let deadline: ReturnType<typeof setTimeout> | undefined;
+  let helloDeadline: ReturnType<typeof setTimeout> | undefined;
 
   const setPhase = (next: SocketPhase) => {
     phase = next;
@@ -66,6 +72,7 @@ export function createReconnectingSocket(options: ReconnectingSocketOptions) {
     clearTimeout(retryTimer);
     clearTimeout(pingTimer);
     clearTimeout(deadline);
+    clearTimeout(helloDeadline);
   };
 
   /** Lets go of the current socket without hearing from it again. */
@@ -119,34 +126,57 @@ export function createReconnectingSocket(options: ReconnectingSocketOptions) {
     let hello: string;
     try {
       hello = await options.hello();
-    } catch {
-      if (mine === attempt && phase === 'connecting') scheduleRetry();
-      return;
+    } catch (error) {
+      if (mine !== attempt || phase !== 'connecting') return;
+      if (options.onHelloError?.(error) === 'stop') return stop();
+      return scheduleRetry();
     }
     if (mine !== attempt || phase !== 'connecting') return;
 
-    const next = options.openSocket(options.url());
+    let next: WebSocketLike;
+    try {
+      next = options.openSocket(options.url());
+    } catch {
+      return scheduleRetry();
+    }
     socket = next;
     next.onopen = () => {
       if (socket !== next) return;
-      next.send(hello);
+      try {
+        next.send(hello);
+      } catch {
+        return scheduleRetry();
+      }
       setPhase('open');
       schedulePing();
+      // A farm that never answers the hello is as dead as one that stops answering pings.
+      helloDeadline = setTimeout(scheduleRetry, options.keepAlive.timeoutMs);
     };
     next.onmessage = (event) => {
       if (socket !== next) return;
       heard();
       if (typeof event.data !== 'string' || event.data === PONG) return;
-      options.onText(event.data);
+      clearTimeout(helloDeadline);
+      options.onText(event.data, mine);
     };
     next.onclose = next.onerror = () => {
       if (socket === next) scheduleRetry();
     };
   }
 
+  function stop(): void {
+    attempt += 1;
+    detach();
+    setPhase('stopped');
+  }
+
   return {
     get phase(): SocketPhase {
       return phase;
+    },
+    /** The number of the current connection; frames tagged with an older one are stale. */
+    get connection(): number {
+      return attempt;
     },
     start(): void {
       if (phase === 'stopped' || phase === 'paused') void connect();
@@ -188,11 +218,7 @@ export function createReconnectingSocket(options: ReconnectingSocketOptions) {
       failures = 0;
       void connect();
     },
-    stop(): void {
-      attempt += 1;
-      detach();
-      setPhase('stopped');
-    },
+    stop,
   };
 }
 

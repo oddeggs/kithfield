@@ -148,10 +148,14 @@ describe('two phones chatting', () => {
     pip.client.hold(FARM);
     await until(live(bea));
     await until(live(pip));
-    await until(async () => (await bea.state(FARM)).presence.includes(PIP));
+    await until(async () =>
+      (await bea.client.replica(FARM)).presence.getState().here.includes(PIP),
+    );
 
     const pipConnection = pip.client;
     pipConnection.typing(FARM, true);
-    await until(async () => (await bea.state(FARM)).typing.includes(PIP));
+    await until(async () =>
+      (await bea.client.replica(FARM)).presence.getState().typing.includes(PIP),
+    );
   });
 });

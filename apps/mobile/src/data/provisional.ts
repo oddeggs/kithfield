@@ -1,6 +1,7 @@
 import { FarmCommand, FarmEvent, type FarmState, type PersonId } from '@kithfield/contracts';
 
 import type { FarmRules } from './farm-rules';
+import type { FarmReplicaState } from './replica-types';
 import type { OutboxEntry } from './sync-store';
 
 /** What the farm adds to a command's payload when it writes the event, where the phone knows it. */
@@ -96,4 +97,33 @@ export function drawPending(
     }
   }
   return state;
+}
+
+/**
+ * A farm as the UI reads it. `reuse` is the previous view when neither the confirmed farm nor the
+ * pending writes changed, so the drawn farm and the pending list keep their identity.
+ */
+export function viewOf(
+  rules: FarmRules<unknown>,
+  farm: string,
+  lastSeq: number,
+  confirmed: FarmState | null,
+  pending: readonly OutboxEntry[],
+  reuse: FarmReplicaState | undefined,
+): FarmReplicaState {
+  return {
+    farm,
+    lastSeq,
+    confirmed,
+    state: reuse ? reuse.state : drawPending(rules, confirmed, lastSeq, pending),
+    pending: reuse
+      ? reuse.pending
+      : pending.map((e) => ({
+          opId: e.opId,
+          kind: e.kind,
+          payload: e.payload,
+          createdAt: e.createdAt,
+          acked: e.ackedSeq !== null,
+        })),
+  };
 }

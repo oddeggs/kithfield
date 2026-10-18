@@ -84,7 +84,8 @@ export class TestPhone {
 
   private constructor(
     readonly server: FarmTestServer,
-    readonly person: string,
+    /** Who the phone signs in as; a test may change it, as a merge does. */
+    public person: string,
     readonly tuning: typeof FAST,
   ) {
     this.path = join(mkdtempSync(join(tmpdir(), 'kithfield-sync-')), 'phone.db');

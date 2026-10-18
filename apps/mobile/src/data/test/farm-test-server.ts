@@ -49,6 +49,10 @@ export class FarmTestServer {
   /** False: sockets fail to connect while HTTP still answers. */
   acceptSockets = true;
   answerPings = true;
+  /** True: hellos are heard but never answered. */
+  silentHellos = false;
+  /** People the API refuses with `403 banned`. */
+  readonly banned = new Set<string>();
   /** True: the farm applies each socket write, then the connection drops before any answer. */
   loseAnswers = false;
   readonly sessions = new Set<Session>();
@@ -99,7 +103,10 @@ export class FarmTestServer {
   }
 
   /** Appends an envelope no real farm would write (an unknown kind, a broken payload). */
-  writeRaw(farm: string, fields: { kind: string; actor: string | null; payload: unknown }) {
+  writeRaw(
+    farm: string,
+    fields: { kind: string; actor: string | null; payload: unknown; opId?: string },
+  ) {
     const f = this.farmOf(farm);
     const event = {
       seq: f.log.length + 1,
@@ -240,6 +247,7 @@ export class FarmTestServer {
 
   private hello(session: Session, hello: FarmClientFrame & { type: 'hello' }) {
     this.hellos.push({ ...hello, farm: session.farm });
+    if (this.silentHellos) return;
     const farm = this.farmOf(session.farm ?? '');
     const token = this.tokens.get(hello.token);
     if (hello.protocol !== PROTOCOL_VERSION) return this.fail(session, 'protocol_unsupported');

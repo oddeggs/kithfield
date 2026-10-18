@@ -117,10 +117,16 @@ describe('applying events', () => {
     };
     const r = await replica(failing);
     await r.handle({ type: 'events', events: opening, more: false });
-    expect(await r.handle({ type: 'event', event: event(3, BEA, 'wave', {}) })).toEqual({
+    const batch = [event(3, BEA, 'wave', {}), event(4, BEA, 'dewdrop', {})];
+    expect(await r.handle({ type: 'events', events: batch, more: false })).toEqual({
       resync: 'snapshot',
+      caughtUp: true,
     });
     expect(reports).toEqual([{ type: 'reducer_failed', farm: FARM, seq: 3, kind: 'wave' }]);
+    // Nothing past the failure is applied or stored; the snapshot sets the place.
+    expect(r.getState().lastSeq).toBe(2);
+    expect(r.getState().confirmed?.familyTendedAt.dew).toBeNull();
+    expect(await createSyncStore(db).event(FARM, 4)).toBeNull();
     expect(r.helloSeq()).toBe(0);
   });
 
@@ -153,6 +159,23 @@ describe('applying events', () => {
     ).toEqual({
       restored: [2],
     });
+  });
+});
+
+describe('restored events', () => {
+  it('applies a restored event through the rules and keeps the result', async () => {
+    const r = await replica();
+    const pin = event(3, BEA, 'pin', { target: 2, on: true });
+    await r.handle({
+      type: 'events',
+      events: [...opening, { ...pin, payload: { tombstone: 'removed' } }],
+      more: false,
+    });
+    expect(r.getState().confirmed?.pins).toEqual([]);
+
+    await r.cacheHistory([pin], true);
+    expect(r.getState().confirmed?.pins).toEqual([2]);
+    expect((await replica()).getState().confirmed?.pins).toEqual([2]);
   });
 });
 

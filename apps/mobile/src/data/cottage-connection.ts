@@ -1,6 +1,8 @@
 import { CottageServerFrame, PROTOCOL_VERSION, type ChatListItem } from '@kithfield/contracts';
 
 import { SOCKET_BACKOFF, type BackoffOptions } from './backoff';
+import { ApiError } from './api-client';
+import { failure, type SyncReport } from './apply-events';
 import type { BlockedCode } from './farm-connection';
 import type { RtTokens } from './rt-tokens';
 import { KEEP_ALIVE, createReconnectingSocket, type KeepAlive, type OpenSocket } from './socket';
@@ -28,6 +30,11 @@ export interface CottageConnectionDeps {
   readonly backoff?: BackoffOptions;
   readonly keepAlive?: KeepAlive;
   readonly random?: () => number;
+  /** The session is gone (401 for a token): the app offers sign-in. */
+  readonly onSessionEnded: () => void;
+  /** The person is banned: every socket stops. */
+  readonly onBanned: () => void;
+  readonly report: (report: SyncReport) => void;
 }
 
 const SAFETY_NOTE = 'safety_note';
@@ -58,7 +65,21 @@ export async function createCottageConnection(deps: CottageConnectionDeps) {
     ...(deps.random ? { random: deps.random } : {}),
     hello: async () =>
       JSON.stringify({ type: 'hello', protocol: PROTOCOL_VERSION, token: await tokens.get() }),
-    onText: (text) => void receive(text),
+    onHelloError: (error) => {
+      if (!(error instanceof ApiError)) return 'retry';
+      if (error.status === 401) {
+        deps.onSessionEnded();
+        return 'stop';
+      }
+      if (error.status === 403 && error.code === 'banned') {
+        block('banned');
+        return 'stop';
+      }
+      return 'retry';
+    },
+    onText: (text) => {
+      receive(text).catch((error: unknown) => deps.report(failure('cottage.receive', error)));
+    },
     onPhase: (phase) => {
       if (state.link.status === 'blocked') return;
       if (phase === 'connecting') update({ link: { status: 'connecting' } });
@@ -67,21 +88,42 @@ export async function createCottageConnection(deps: CottageConnectionDeps) {
     },
   });
 
+  function block(code: BlockedCode) {
+    update({ link: { status: 'blocked', code } });
+    socket.stop();
+    if (code === 'banned') deps.onBanned();
+  }
+
+  function badFrame(frame: string, issues: readonly (readonly (string | number)[])[]) {
+    deps.report({ type: 'bad_frame', socket: 'cottage', frame, issues });
+    socket.drop();
+  }
+
   async function receive(text: string): Promise<void> {
     let data: unknown;
     try {
       data = JSON.parse(text);
     } catch {
-      return;
+      return badFrame('not_json', []);
     }
     const parsed = CottageServerFrame.safeParse(data);
-    if (!parsed.success) return;
+    if (!parsed.success) {
+      const type = (data as { type?: unknown } | null)?.type;
+      return badFrame(
+        typeof type === 'string' ? type : 'untyped',
+        parsed.error.issues.map((i) => i.path.map(String)),
+      );
+    }
     const frame = parsed.data;
     switch (frame.type) {
       case 'chats':
-        await store.transaction(() => store.replaceChats(frame.chats));
+        // The whole list after hello; a note still waiting is announced again after it.
+        await store.transaction(async () => {
+          await store.replaceChats(frame.chats);
+          await store.setMeta(SAFETY_NOTE, null);
+        });
         socket.healthy();
-        update({ chats: await store.chats(), link: { status: 'live' } });
+        update({ chats: await store.chats(), safetyNote: false, link: { status: 'live' } });
         return;
       case 'chat':
         await store.transaction(() => store.putChat(frame.chat));
@@ -95,8 +137,7 @@ export async function createCottageConnection(deps: CottageConnectionDeps) {
         if (frame.code === 'unauthorized') {
           tokens.invalidate();
         } else {
-          update({ link: { status: 'blocked', code: frame.code } });
-          socket.stop();
+          block(frame.code);
         }
         return;
       case 'unknown':
@@ -114,6 +155,18 @@ export async function createCottageConnection(deps: CottageConnectionDeps) {
     pause: () => socket.pause(),
     resume: () => socket.resume(),
     stop: () => socket.stop(),
+    /** Stops for good, as for a ban another socket heard about. */
+    block: (code: BlockedCode) => {
+      if (state.link.status !== 'blocked') update({ link: { status: 'blocked', code } });
+      socket.stop();
+    },
+    /** Reconnects now with a fresh token, as a new person after a merge. */
+    restart: () => {
+      tokens.invalidate();
+      if (state.link.status === 'blocked') return;
+      socket.stop();
+      socket.start();
+    },
     /** The note was fetched and shown. */
     async clearSafetyNote(): Promise<void> {
       await store.transaction(() => store.setMeta(SAFETY_NOTE, null));
