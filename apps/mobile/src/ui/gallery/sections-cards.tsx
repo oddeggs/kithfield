@@ -25,9 +25,9 @@ export function CardsSection() {
         />
         <CreditCard
           friends={[
-            { name: 'Fig', kind: 'frog' },
-            { name: 'Bea', kind: 'sheep' },
-            { name: 'Mo', kind: 'mole' },
+            { name: t('gallery.name.fig'), kind: 'frog' },
+            { name: t('gallery.bubble.name'), kind: 'sheep' },
+            { name: t('gallery.bubble.quietName'), kind: 'mole' },
           ]}
           lead={t('gallery.card.creditTitle')}
           rest={t('gallery.card.creditBody')}
@@ -41,7 +41,7 @@ export function CardsSection() {
             onPress={noop}
           />
           <ListRow
-            critter={{ name: 'Otis', kind: 'owl' }}
+            critter={{ name: t('gallery.name.otis'), kind: 'owl' }}
             title={t('gallery.card.memberTitle')}
             subtitle={t('gallery.card.memberSubtitle')}
             trailing={<Chip label={t('gallery.card.invite')} kind="ink" onPress={noop} />}

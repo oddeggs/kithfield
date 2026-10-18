@@ -7,7 +7,7 @@ import { Sheet } from '../components/sheet';
 import { EmptyState, ErrorState } from '../components/state-shell';
 import { useToast } from '../components/toast';
 import { useLocale } from '../locale/locale-provider';
-import type { TabName } from '../tab-bar/tab-activity';
+import type { TabName } from '../tab-bar/tabs';
 import { TabBarView } from '../tab-bar/tab-bar-view';
 import { ThemeScope, useTheme } from '../theme/theme-provider';
 import { Txt } from '../type/text';
@@ -95,7 +95,7 @@ export function ShellsSection() {
           art={<ArtStill scene="spot" width={300} height={216} attrs={{ name: 'error' }} />}
           title={t('gallery.error.title')}
           body={t('gallery.error.body')}
-          code="KF-503"
+          code={t('gallery.error.code')}
           action={{ label: t('gallery.error.action'), onPress: noop }}
         />
       </View>
