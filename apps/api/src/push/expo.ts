@@ -1,3 +1,4 @@
+import type { NotificationCategory } from '@kithfield/contracts';
 import { z } from 'zod';
 
 /*
@@ -28,6 +29,23 @@ export interface ExpoMessage {
   readonly interruptionLevel: 'active' | 'passive';
   readonly priority: 'high' | 'normal';
   /** Seconds the push may wait for an offline phone. */
+  readonly ttl: number;
+  /** The `NotificationCategory` whose actions a long-press offers; omitted for none. */
+  readonly categoryId?: NotificationCategory;
+  /** Lets the notification service extension attach the farm's or seed's still. */
+  readonly mutableContent?: true;
+}
+
+/**
+ * A silent push: no alert, no sound, no badge. iOS wakes the app in the background with `data`,
+ * at a rate it decides itself.
+ */
+export interface ExpoSilentMessage {
+  readonly to: string;
+  readonly data: Readonly<Record<string, string | number | null>>;
+  readonly _contentAvailable: true;
+  readonly priority: 'normal';
+  readonly collapseId: string;
   readonly ttl: number;
 }
 
@@ -95,7 +113,7 @@ async function post<T>(
 /** Sends up to 100 messages; the tickets come back in the same order. */
 export function sendToExpo(
   fetcher: typeof fetch,
-  messages: readonly ExpoMessage[],
+  messages: readonly (ExpoMessage | ExpoSilentMessage)[],
   accessToken?: string,
 ): Promise<ExpoResult<ExpoTicket[]>> {
   return post(fetcher, EXPO_SEND_URL, messages, accessToken, (json) => {
