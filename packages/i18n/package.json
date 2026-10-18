@@ -1,0 +1,16 @@
+{
+  "name": "@kithfield/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "English and Vietnamese copy: per-feature catalogues, the glossary, lookup and the completeness test",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "gen": "node scripts/generate-catalogues.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  }
+}
