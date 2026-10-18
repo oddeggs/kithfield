@@ -4,13 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 
 import { useFarm, useFarmEvents, useOpenFarm, useSend } from '../../data';
+import { announcePolitely } from '../../ui/announce';
 import { ArtIcon } from '../../ui/art/art-view';
 import { lookOf } from '../../ui/art/critter-look';
 import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics } from '../../ui/motion/haptics';
 import { useSession } from '../../ui/session/session';
-import { Txt } from '../../ui/type/text';
 import { useGestureSend } from '../gestures/send';
 import { CAPTION_LANGS, CaptionsCard, CaptionsSheet } from './captions';
 import { CircleOverlay, FLOAT_MS, type CirclePerson, type Float } from './circle-overlay';
@@ -26,15 +26,20 @@ import {
 } from './fire-dock';
 import { FireScene } from './fire-scene';
 import { Lanterns, ShareCard, type LanternPerson } from './lanterns';
+import { FireTxt } from './fire-text';
 import { fireLook } from './look';
 import {
+  critterFor,
   dockStateOf,
   gestureTarget,
   headerLine,
   layoutOf,
+  phaseAfter,
+  speakerToAnnounce,
   weakOne,
   type FireMode,
   type FirePerson,
+  type Phase,
 } from './room-model';
 import { DRAWN_SEATS } from './seats';
 import { useCast } from './use-cast';
@@ -46,8 +51,6 @@ import { memberOf, useFireCircle, useFireRoom } from './use-fire-room';
  * never rings anyone; nobody is told who listened or that anyone left; time by the fire grows the
  * farm's Voices once per sitting (`fire {sat}`).
  */
-
-type Phase = 'unlit' | 'joining' | 'room' | 'leaving' | 'walking' | 'quiet';
 
 /** Your critter waves three times and walks up the path before the room closes behind you. */
 const WALK_HOME_MS = 3900;
@@ -96,9 +99,9 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
   const lit = state ? state.fireLitAt !== null : null;
   useEffect(() => {
     if (lit === null) return;
-    if (phase === null) setPhase(lit ? 'joining' : 'unlit');
-    // Someone else lit it while you were deciding.
-    else if (phase === 'unlit' && lit) setPhase('joining');
+    // Someone else lit it while you were deciding, or it went out while you pulled up a log.
+    const next = phaseAfter(phase, lit);
+    if (next !== phase) setPhase(next);
   }, [lit, phase]);
   const [busy, setBusy] = useState(false);
   // A sitting that drops for good (not just reconnecting) takes you back to pull up a log again.
@@ -132,13 +135,13 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
     sitting || phase === 'walking'
       ? roomPeople.map((p) => ({
           id: p.id,
-          critter: memberOf(state, p.id)?.critter ?? null,
+          critter: critterFor(state, p.id),
           speaking: p.speaking && p.mic,
           weak: p.weak,
         }))
       : before.map((id) => ({
           id,
-          critter: memberOf(state, id)?.critter ?? null,
+          critter: critterFor(state, id),
           speaking: false,
           weak: false,
         }));
@@ -203,6 +206,16 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
     );
     return () => clearTimeout(timer);
   }, [events, me, openedAt]);
+  // VoiceOver hears who is talking as it changes, politely and not too often.
+  const speakingNow = roomPeople.find((p) => p.speaking && p.mic && !p.you)?.id ?? null;
+  const announced = useRef<{ id: string; at: number } | null>(null);
+  useEffect(() => {
+    const now = Date.now();
+    const who = speakerToAnnounce(announced.current, speakingNow, now);
+    if (who === null) return;
+    announced.current = { id: who, at: now };
+    announcePolitely(t('fire.chip.talking', { name: nameOf(who) }));
+  }, [speakingNow, nameOf, t]);
   const [picked, setPicked] = useState<string | null>(null);
   const target = gestureTarget(roomPeople, picked, snap.lastSpeaker);
 
@@ -333,7 +346,7 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
     id: p.id,
     name: p.you ? yourName : nameOf(p.id),
     you: p.you,
-    critter: memberOf(state, p.id)?.critter ?? null,
+    critter: critterFor(state, p.id),
     lantern: p.lantern,
     mic: p.mic,
     speaking: p.speaking && p.mic,
@@ -344,28 +357,27 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
     layout.kind === 'share' ? (session.room.remoteParticipants.get(layout.by) ?? null) : null;
   const compact = layout.kind !== 'circle';
 
+  // Captions show only where they can be had at all; until then there is no CC button.
   const right =
-    phase === 'room' ? (
-      compact ? (
-        <GlassRound label={t('fire.dock.share')} onPress={() => toast.show(t('fire.error.share'))}>
-          <ArtIcon name="share" size={20} color={fireLook.text} />
-        </GlassRound>
-      ) : (
-        <GlassRound
-          label={t('fire.captions.button')}
-          fill={captionsOn ? fireLook.text : fireLook.glass}
-          onPress={() => (perks ? void turnCaptions(!captionsOn) : setSheet(true))}
-          testID="fire-captions"
+    phase !== 'room' ? undefined : compact ? (
+      <GlassRound label={t('fire.dock.share')} onPress={() => toast.show(t('fire.error.share'))}>
+        <ArtIcon name="share" size={20} color={fireLook.text} />
+      </GlassRound>
+    ) : snap.captionsAvailable ? (
+      <GlassRound
+        label={t('fire.captions.button')}
+        fill={captionsOn ? fireLook.text : fireLook.glass}
+        onPress={() => (perks ? void turnCaptions(!captionsOn) : setSheet(true))}
+        testID="fire-captions"
+      >
+        <FireTxt
+          variant="buttonSmall"
+          color={captionsOn ? fireLook.primaryInk : fireLook.text}
+          style={{ fontSize: 13, lineHeight: 15, fontWeight: '700', letterSpacing: 0.26 }}
         >
-          <Txt
-            variant="buttonSmall"
-            color={captionsOn ? fireLook.primaryInk : fireLook.text}
-            style={{ fontSize: 13, lineHeight: 15, fontWeight: '700', letterSpacing: 0.26 }}
-          >
-            {t('fire.captions.cc')}
-          </Txt>
-        </GlassRound>
-      )
+          {t('fire.captions.cc')}
+        </FireTxt>
+      </GlassRound>
     ) : undefined;
 
   return (
@@ -409,7 +421,7 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
           lang={lang}
           original={original}
           top={headerTop + 64}
-          whoIs={(id) => ({ name: nameOf(id), critter: memberOf(state, id)?.critter ?? null })}
+          whoIs={(id) => ({ name: nameOf(id), critter: critterFor(state, id) })}
           onSettings={() => setSheet(true)}
         />
       ) : null}

@@ -10,7 +10,7 @@ import { Glass } from '../../ui/components/glass';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import type { ViewStyleProp } from '../../ui/style';
-import { Txt } from '../../ui/type/text';
+import { FireTxt } from './fire-text';
 import { fireLook, fireSize } from './look';
 
 /*
@@ -97,14 +97,14 @@ export function FireHeader({
       }}
     >
       <GlassRound label={t('fire.back')} onPress={leaveRoom} testID="fire-back">
-        <Txt
+        <FireTxt
           variant="body"
           color={fireLook.text}
           importantForAccessibility="no"
           style={{ fontSize: 26, lineHeight: 30, marginTop: -3 }}
         >
           ‹
-        </Txt>
+        </FireTxt>
       </GlassRound>
       <Glass
         radius={22}
@@ -119,15 +119,15 @@ export function FireHeader({
         }}
       >
         <View accessible accessibilityRole="header" accessibilityLabel={`${title}, ${line}`}>
-          <Txt
+          <FireTxt
             variant="displayS"
             color={fireLook.text}
             align="center"
             style={{ fontSize: 17, lineHeight: 19.5 }}
           >
             {title}
-          </Txt>
-          <Txt
+          </FireTxt>
+          <FireTxt
             variant="caption"
             color={fireLook.sub}
             align="center"
@@ -135,7 +135,7 @@ export function FireHeader({
             style={{ fontSize: 12, lineHeight: 15, marginTop: 2 }}
           >
             {line}
-          </Txt>
+          </FireTxt>
         </View>
       </Glass>
       {right ?? <View style={{ width: fireSize.button }} />}
@@ -190,11 +190,15 @@ export function AskText({
   return (
     <>
       {eyebrow ? (
-        <Txt variant="handL" color={fireLook.eyebrow} style={{ fontSize: 18, lineHeight: 19.8 }}>
+        <FireTxt
+          variant="handL"
+          color={fireLook.eyebrow}
+          style={{ fontSize: 18, lineHeight: 19.8 }}
+        >
           {eyebrow}
-        </Txt>
+        </FireTxt>
       ) : null}
-      <Txt
+      <FireTxt
         variant="displayM"
         color={fireLook.title}
         accessibilityRole="header"
@@ -202,10 +206,15 @@ export function AskText({
         style={{ fontSize: 26, lineHeight: 29.1 }}
       >
         {title}
-      </Txt>
-      <Txt variant="body" color={fireLook.sub} multiline style={{ fontSize: 14.5, lineHeight: 21 }}>
+      </FireTxt>
+      <FireTxt
+        variant="body"
+        color={fireLook.sub}
+        multiline
+        style={{ fontSize: 14.5, lineHeight: 21 }}
+      >
         {body}
-      </Txt>
+      </FireTxt>
     </>
   );
 }
@@ -259,9 +268,14 @@ export function FireButton({
       {...(testID ? { testID } : {})}
     >
       {icon ? <ArtIcon name={icon} size={22} color={ink} /> : null}
-      <Txt variant="button" color={ink} numberOfLines={1} style={{ fontSize: 16, lineHeight: 19 }}>
+      <FireTxt
+        variant="button"
+        color={ink}
+        numberOfLines={1}
+        style={{ fontSize: 16, lineHeight: 19 }}
+      >
         {label}
-      </Txt>
+      </FireTxt>
     </Press>
   );
 }
@@ -355,17 +369,17 @@ export function NameChip({
       >
         {talking && level ? <LevelBars level={level} color={ink} /> : null}
         {icon ? <ArtIcon name={icon} size={13} color={ink} /> : null}
-        <Txt variant="buttonSmall" color={ink} style={{ fontSize: 12, lineHeight: 14 }}>
+        <FireTxt variant="buttonSmall" color={ink} style={{ fontSize: 12, lineHeight: 14 }}>
           {name}
-        </Txt>
+        </FireTxt>
         {note ? (
-          <Txt
+          <FireTxt
             variant="handS"
             color={ink}
             style={{ fontSize: 12.5, lineHeight: 13, opacity: 0.85 }}
           >
             {note}
-          </Txt>
+          </FireTxt>
         ) : null}
       </View>
     </View>

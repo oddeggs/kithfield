@@ -60,6 +60,8 @@ export interface FireSnapshot {
   readonly captions: readonly CaptionRow[];
   /** Someone by the fire has captions on, so consenting speakers' voices are captioned. */
   readonly captioning: boolean;
+  /** Captions can be had here at all (the API says so with the token). */
+  readonly captionsAvailable: boolean;
 }
 
 const EMPTY: FireSnapshot = {
@@ -69,11 +71,14 @@ const EMPTY: FireSnapshot = {
   showing: null,
   captions: [],
   captioning: false,
+  captionsAvailable: false,
 };
 
 /** What the session asks of the app: a room token for this farm. */
 export interface SessionDeps {
-  readonly token: (mode: FireMode) => Promise<FireTokenResponse>;
+  readonly token: (
+    mode: FireMode,
+  ) => Promise<FireTokenResponse & { readonly captionsAvailable?: boolean }>;
 }
 
 export class FireSession {
@@ -126,6 +131,8 @@ export class FireSession {
     this.room.on(RoomEvent.ParticipantDisconnected, (p: RemoteParticipant) => {
       this.poorSince.delete(p.identity);
       this.showing.delete(p.identity);
+      this.paused.delete(p.identity);
+      this.levels.delete(p.identity);
     });
     this.room.on(RoomEvent.Reconnecting, () => this.setStatus('reconnecting'));
     this.room.on(RoomEvent.Reconnected, () => this.setStatus('live'));
@@ -156,6 +163,25 @@ export class FireSession {
     return level;
   }
 
+  /** Whose loudness is held now (everyone by the fire, and nobody who has gone home). */
+  heldLevels(): string[] {
+    return [...this.levels.keys()];
+  }
+
+  /** The id of the mic track you publish now, or null: captions follow it if it changes. */
+  micTrackId(): string | null {
+    const pub = this.room.localParticipant.getTrackPublication(Track.Source.Microphone);
+    return pub?.track?.mediaStreamTrack.id ?? null;
+  }
+
+  /**
+   * Reads the room again from scratch, as after the app comes back or an audio interruption
+   * ends (a call, Siri): the mic's state is whatever LiveKit says it is now.
+   */
+  resync(): void {
+    this.queueRefresh();
+  }
+
   /* Sitting down and heading home */
 
   /** Sits down, listening or joined in; both arrive muted. Answers whether it worked. */
@@ -163,11 +189,15 @@ export class FireSession {
     this.closed = false;
     this.setStatus('connecting');
     try {
-      const { url, token } = await this.deps.token(mode);
+      const { url, token, captionsAvailable } = await this.deps.token(mode);
+      this.state = { ...this.state, captionsAvailable: captionsAvailable === true };
+      // Headed home while the token was on its way: nothing is opened.
+      if (this.closed) return false;
       await AudioSession.startAudioSession();
       await this.room.connect(url, token, { autoSubscribe: true });
       if (this.closed) {
         await this.room.disconnect();
+        await AudioSession.stopAudioSession().catch(() => undefined);
         return false;
       }
       if (this.levelTimer !== null) clearInterval(this.levelTimer);

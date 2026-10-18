@@ -314,11 +314,18 @@ export function FireScene({
   const fireOpacity = useDerivedValue(() => Math.min(1, flame.get() * 4));
 
   // Each critter's poses, baked once per critter and seat.
+  // Baked again only when someone sits on a different log or changes how they look, never as
+  // they talk or doze (those are transforms and image swaps of what's here).
+  const castKey = cast.map((c) => `${c.id}:${c.seat}:${JSON.stringify(c.critter)}`).join('|');
+  const critters = useRef(cast);
+  critters.current = cast;
   const poses = useMemo(() => {
     const out = new Map<string, SeatPoses>();
-    for (const c of cast) out.set(`${c.id}:${c.seat}`, bakeSeat(store, c.critter, c.seat, width));
+    for (const c of critters.current)
+      out.set(`${c.id}:${c.seat}`, bakeSeat(store, c.critter, c.seat, width));
     return out;
-  }, [store, cast, width]);
+    // `castKey` names everything the poses are made from.
+  }, [store, castKey, width]);
 
   // Lifted behind a tall panel, the scene rises with the panel's own spring.
   const rise = useSharedValue(lifted ? 1 : 0);

@@ -1,4 +1,6 @@
+import { type Critter, type FarmState, FireTokenResponse } from '@kithfield/contracts';
 import type { Translate } from '@kithfield/i18n';
+import { z } from 'zod';
 
 import { DRAWN_SEATS } from './seats';
 
@@ -137,4 +139,84 @@ export function gestureTarget(
   if (picked !== null && others.some((p) => p.id === picked)) return picked;
   if (lastSpeaker !== null && others.some((p) => p.id === lastSpeaker)) return lastSpeaker;
   return others[0]?.id ?? null;
+}
+
+/** Someone in the room the farm doesn't know (yet): drawn all the same, never hidden. */
+export const PLACEHOLDER_CRITTER: Critter = {
+  species: 'mole',
+  coat: 'default',
+  mark: null,
+  accessory: null,
+  outfit: null,
+  outfitColor: null,
+  companion: null,
+  cottage: null,
+};
+
+/** A person's critter on the farm, through its aliases; the placeholder for anyone unknown. */
+export function critterFor(state: FarmState | null, id: string): Critter {
+  if (state === null) return PLACEHOLDER_CRITTER;
+  const person = state.aliases[id] ?? id;
+  return state.members.find((m) => m.person === person)?.critter ?? PLACEHOLDER_CRITTER;
+}
+
+export type Phase = 'unlit' | 'joining' | 'room' | 'leaving' | 'walking' | 'quiet';
+
+/**
+ * Where you are once the fire's state is known or changes: deciding by an unlit fire, or pulling
+ * up a log by a lit one. Someone lighting it, or it going out, moves you between the two; once
+ * you sit, the room itself says when it's over.
+ */
+export function phaseAfter(phase: Phase | null, lit: boolean): Phase {
+  if (phase === null) return lit ? 'joining' : 'unlit';
+  if (phase === 'unlit' && lit) return 'joining';
+  if (phase === 'joining' && !lit) return 'unlit';
+  return phase;
+}
+
+/** Whether your voice goes for captions right now. */
+export function captionsWanted(w: {
+  /** Captions can be had here at all. */
+  readonly available: boolean;
+  /** You said yes to captions. */
+  readonly captionsOk: boolean;
+  readonly micOpen: boolean;
+  /** Someone by the fire has captions on. */
+  readonly captioning: boolean;
+  /** The room is connected. */
+  readonly live: boolean;
+  /** The API said nobody is listening, and the room hasn't changed since. */
+  readonly quiet: boolean;
+  /** The app is in front: nothing is sent from the background. */
+  readonly active: boolean;
+}): boolean {
+  return w.available && w.captionsOk && w.micOpen && w.captioning && w.live && !w.quiet && w.active;
+}
+
+/**
+ * The fire token's answer as the API sends it: the contract's fields, and whether captions can be
+ * had here (absent from an older API: they can't).
+ */
+export const FireTokenAnswer = FireTokenResponse.extend({
+  captionsAvailable: z.boolean().optional(),
+});
+
+export function tokenAnswer(raw: unknown): FireTokenResponse & { captionsAvailable: boolean } {
+  const parsed = FireTokenAnswer.parse(raw);
+  return { ...parsed, captionsAvailable: parsed.captionsAvailable === true };
+}
+
+/** VoiceOver hears a new speaker at most this often. */
+export const ANNOUNCE_EVERY_MS = 5000;
+
+/** Who to announce as talking now, if anyone: a new speaker, and not too often. */
+export function speakerToAnnounce(
+  last: { readonly id: string; readonly at: number } | null,
+  speaking: string | null,
+  now: number,
+): string | null {
+  if (speaking === null) return null;
+  if (last === null) return speaking;
+  if (speaking === last.id) return null;
+  return now - last.at >= ANNOUNCE_EVERY_MS ? speaking : null;
 }

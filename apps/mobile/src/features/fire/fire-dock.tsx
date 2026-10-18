@@ -5,8 +5,8 @@ import { ArtIcon, ArtStill } from '../../ui/art/art-view';
 import { sceneLook } from '../../ui/art/critter-look';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
-import { Txt } from '../../ui/type/text';
 import { AskText, CritterStack, FireButton, FirePanel, GlassRound } from './fire-chrome';
+import { FireTxt } from './fire-text';
 import { fireLook, fireSize } from './look';
 import type { DockState } from './room-model';
 
@@ -167,14 +167,14 @@ function GestureRow({
           testID={`fire-gesture-${g.kind}`}
         >
           <ArtIcon name={g.icon} size={22} color={fireLook.primaryInk} />
-          <Txt
+          <FireTxt
             variant="buttonSmall"
             color={fireLook.text}
             numberOfLines={1}
             style={{ fontSize: 11.5, lineHeight: 13 }}
           >
             {t(g.label)}
-          </Txt>
+          </FireTxt>
         </Press>
       ))}
       <Press
@@ -318,34 +318,38 @@ export function RoomDock(p: RoomDockProps) {
           accessibilityLiveRegion="polite"
         >
           <ArtIcon name="moon" size={22} color={fireLook.text} />
-          <Txt
+          <FireTxt
             variant="caption"
             color={fireLook.sub}
             multiline
             style={{ flex: 1, fontSize: 13.5, lineHeight: 18.9 }}
           >
-            <Txt variant="caption" color={fireLook.text} style={{ fontWeight: '600' }}>
+            <FireTxt variant="caption" color={fireLook.text} style={{ fontWeight: '600' }}>
               {t('fire.weak.title', { name: p.weak })}
-            </Txt>{' '}
+            </FireTxt>{' '}
             {t('fire.weak.body')}
-          </Txt>
+          </FireTxt>
         </View>
       ) : (
         <View
           style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
         >
           <View style={{ flex: 1, gap: 3 }} accessible accessibilityLiveRegion="polite">
-            <Txt variant="rowTitle" color={fireLook.sub} style={{ fontSize: 13, lineHeight: 15 }}>
+            <FireTxt
+              variant="rowTitle"
+              color={fireLook.sub}
+              style={{ fontSize: 13, lineHeight: 15 }}
+            >
               {status.title}
-            </Txt>
-            <Txt
+            </FireTxt>
+            <FireTxt
               variant="handL"
               color={fireLook.text}
               multiline
               style={{ fontSize: 19, lineHeight: 20.9 }}
             >
               {status.line}
-            </Txt>
+            </FireTxt>
           </View>
           <CritterStack people={p.others} />
         </View>

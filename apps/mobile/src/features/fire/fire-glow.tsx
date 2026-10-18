@@ -1,6 +1,5 @@
 import type { FarmId, FarmState } from '@kithfield/contracts';
 import type { Translate } from '@kithfield/i18n';
-import { night } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { View } from 'react-native';
 
@@ -9,8 +8,9 @@ import { ArtLoop } from '../../ui/art/art-view';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useSession } from '../../ui/session/session';
-import { Txt } from '../../ui/type/text';
 import { memberOf, useFireCircle } from './use-fire-room';
+import { FireTxt } from './fire-text';
+import { fireLook } from './look';
 
 /*
  * The fire on the farm, for the farm screen to show: a soft glow and one line, "Mo's by the
@@ -70,7 +70,7 @@ export function FireGlowCard({ farm }: { readonly farm: FarmId }) {
         alignItems: 'center',
         padding: 12,
         borderRadius: 22,
-        backgroundColor: '#2b2e4a',
+        backgroundColor: fireLook.glowCard,
       }}
     >
       <View style={{ width: 52, height: 52, borderRadius: 16, overflow: 'hidden' }}>
@@ -82,16 +82,24 @@ export function FireGlowCard({ farm }: { readonly farm: FarmId }) {
         />
       </View>
       <View style={{ flex: 1 }}>
-        <Txt variant="rowTitle" color={night.moon} style={{ fontSize: 16, lineHeight: 19.2 }}>
+        <FireTxt
+          variant="rowTitle"
+          color={fireLook.text}
+          style={{ fontSize: 16, lineHeight: 19.2 }}
+        >
           {line}
-        </Txt>
-        <Txt variant="caption" color={night.moon2} style={{ fontSize: 13.5, lineHeight: 18.2 }}>
+        </FireTxt>
+        <FireTxt
+          variant="caption"
+          color={fireLook.sub}
+          style={{ fontSize: 13.5, lineHeight: 18.2 }}
+        >
           {t('fire.glow.body')}
-        </Txt>
+        </FireTxt>
       </View>
-      <Txt variant="body" color={night.dim} style={{ fontSize: 22, lineHeight: 24 }}>
+      <FireTxt variant="body" color={fireLook.dim} style={{ fontSize: 22, lineHeight: 24 }}>
         ›
-      </Txt>
+      </FireTxt>
     </Press>
   );
 }

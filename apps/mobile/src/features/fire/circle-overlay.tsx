@@ -15,8 +15,8 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { fadeTo } from '../../ui/motion/motion';
 import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
-import { Txt } from '../../ui/type/text';
 import { NameChip, type ChipKind } from './fire-chrome';
+import { FireTxt } from './fire-text';
 import { fireLook } from './look';
 import { chipAt, PATH_END, SLOTS } from './seats';
 
@@ -98,9 +98,9 @@ function FloatingGesture({
     >
       <ArtIcon name={float.icon} size={34} color={fireLook.primaryInk} />
       {float.fromYou ? (
-        <Txt variant="handS" color={fireLook.glyph} style={{ fontSize: 13, lineHeight: 13 }}>
+        <FireTxt variant="handS" color={fireLook.glyph} style={{ fontSize: 13, lineHeight: 13 }}>
           {t('fire.gesture.fromYou')}
-        </Txt>
+        </FireTxt>
       ) : null}
     </Animated.View>
   );

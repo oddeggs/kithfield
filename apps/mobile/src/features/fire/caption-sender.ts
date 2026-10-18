@@ -36,6 +36,8 @@ export class CaptionSender {
   private chunk = 0;
   private pieceStarted = 0;
   private sending = false;
+  /** The mic track the recorder listens to. */
+  private trackId: string | null = null;
 
   constructor(
     private readonly room: Room,
@@ -54,6 +56,7 @@ export class CaptionSender {
     const pub = this.room.localParticipant.getTrackPublication(Track.Source.Microphone);
     const track = pub?.track?.mediaStreamTrack;
     if (!g.MediaRecorder || !g.MediaStream || !track) return false;
+    this.trackId = track.id;
     const recorder = new g.MediaRecorder(new g.MediaStream([track]));
     recorder.addEventListener('dataavailable', (e) => void this.piece(e.data.byteArray));
     recorder.start();
@@ -63,7 +66,18 @@ export class CaptionSender {
     return true;
   }
 
+  /**
+   * The mic's track now: LiveKit replaces it when the mic is turned off and on, or the audio route
+   * changes, and the sink listens to a track, so it moves to the new one.
+   */
+  follow(trackId: string | null): void {
+    if (this.recorder === null || trackId === this.trackId) return;
+    this.stop();
+    if (trackId !== null) this.start();
+  }
+
   stop(): void {
+    this.trackId = null;
     if (this.timer !== null) clearInterval(this.timer);
     this.timer = null;
     const recorder = this.recorder;

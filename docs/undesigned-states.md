@@ -148,3 +148,7 @@ in the house voice, and is logged here so design can draw it later.
 | 16-12 to 16-16 | Turning your lit lantern round ("look at this") is a tap on your own frame | 16-16 draws only "Flip back", not how the camera was flipped |
 | 16-15 | "Sharing your screen from iPhone isn't ready yet." when the share button is pressed; someone else's shared screen shows in the card | Sharing from iPhone needs a broadcast upload extension that isn't in the app |
 | Fire room | "Couldn't reach the fire. Try again in a moment.", and notes when the mic or camera can't be used, as toasts | No error states are designed for the room |
+| 16-04 to 16-10 | No CC button while captions can't be had here at all (the API's token answer says so) | The speech and perks behind captions aren't wired yet; a button that leads nowhere would be a dead end |
+| Fire room | Someone in the room the farm doesn't know yet is drawn as a mole called "a friend", never hidden | The design assumes everyone by the fire is a known member |
+| 16-15 | The share button in the lantern layouts is a stub: it says sharing from iPhone isn't ready yet | Needs a broadcast upload extension (native surfaces) |
+| 16-11 | "Expressions from your voice" is deferred: the row is left out of the sheet | Needs on-device voice expression analysis |

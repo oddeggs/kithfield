@@ -1,46 +1,7 @@
-import { day, fireside, night } from '@kithfield/theme';
+import { fireRoom } from '@kithfield/theme';
 
-/*
- * The fire room's glass and text over the night scene, as `16 Fire Room and Calls` draws them.
- * The room is always night, whatever the phone's appearance. Colours the theme already names come
- * from it; the room's own translucent fills are the design's values.
- */
-export const fireLook = {
-  sky: fireside.sky,
-  /** Round buttons and the title pill. */
-  glass: fireside.glass,
-  glassBorder: fireside.glassBorder,
-  /** The panel at the bottom. */
-  panel: 'rgba(24,26,48,.76)',
-  panelBorder: fireside.sheetBorder,
-  /** A name chip over a quiet critter. */
-  chip: 'rgba(24,26,48,.76)',
-  /** A name chip over someone talking: honey, never a glowing ring. */
-  talking: day.honey,
-  talkingInk: day.ink,
-  text: night.moon,
-  sub: night.moon2,
-  title: fireside.title,
-  eyebrow: day.honey,
-  /** The main button; and the quieter one beside it. */
-  primary: day.honey,
-  primaryInk: day.ink,
-  secondary: 'rgba(255,255,255,.12)',
-  /** Gesture tiles and the weak-connection note. */
-  tile: 'rgba(255,255,255,.1)',
-  note: 'rgba(255,255,255,.08)',
-  /** "from you" over a gesture, and the critter's own glyphs. */
-  glyph: '#ffd98a',
-  /** The ring round the little critters in the panel. */
-  ring: fireside.ring,
-  /** Stopping a screen share. */
-  stop: day.clay,
-  /** The captions card. */
-  card: 'rgba(24,26,48,.82)',
-  /** A lantern frame's ring: honey when lit, dusk when the camera is off. */
-  frameLit: '#c9973e',
-  frameDark: '#6a6488',
-} as const;
+/** The fire room's colours (`@kithfield/theme`'s `fireRoom`): the room is always night. */
+export const fireLook = fireRoom;
 
 /** Sizes from the design, in points. */
 export const fireSize = {
@@ -57,3 +18,22 @@ export const fireSize = {
   /** The scene sits this far up while the tall panel asks you something (lighting, joining). */
   askLift: 170,
 } as const;
+
+/**
+ * Vietnamese stacks its marks above the letters: a label set tight (line height near its size)
+ * would clip them, so in Vietnamese no line is shorter than this many times its size.
+ */
+export const VI_LEADING = 1.4;
+
+/** A size and line height for the reading language: tight in English, roomy in Vietnamese. */
+export function lines(
+  fontLocale: string,
+  fontSize: number,
+  lineHeight: number,
+): { fontSize: number; lineHeight: number } {
+  return {
+    fontSize,
+    lineHeight:
+      fontLocale === 'vi' ? Math.max(lineHeight, Math.ceil(fontSize * VI_LEADING)) : lineHeight,
+  };
+}

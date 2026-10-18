@@ -16,8 +16,8 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { fadeTo, sheetTo } from '../../ui/motion/motion';
 import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
-import { Txt } from '../../ui/type/text';
 import { LevelBars } from './fire-chrome';
+import { FireTxt } from './fire-text';
 import { fireLook } from './look';
 import type { Layout } from './room-model';
 
@@ -61,7 +61,7 @@ const RING = Array.from({ length: 8 }, (_, i) => {
 });
 
 /** The frame's ring colour when the camera is off. */
-const DARK_RING = '#8a7f9a';
+const DARK_RING = fireLook.frameDark;
 
 function trackOf(p: Participant, source: Track.Source) {
   const publication = p.getTrackPublication(source);
@@ -173,13 +173,13 @@ export function LanternFrame({
               attrs={{ name: 'muted', color: fireLook.text }}
             />
           ) : null}
-          <Txt
+          <FireTxt
             variant="buttonSmall"
             color={talking ? fireLook.talkingInk : fireLook.text}
             style={{ fontSize: 11.5, lineHeight: 13 }}
           >
             {name}
-          </Txt>
+          </FireTxt>
         </View>
       </View>
     </View>
@@ -238,7 +238,7 @@ export function Lanterns({
             <LinearGradient
               start={vec(0, 0)}
               end={vec(0, 480 * scale)}
-              colors={['rgba(16,17,34,0.72)', 'rgba(16,17,34,0.25)', 'rgba(16,17,34,0)']}
+              colors={[...fireLook.lanternScrim]}
               positions={[0, 0.7, 1]}
             />
           </Rect>
@@ -264,7 +264,7 @@ export function Lanterns({
           pointerEvents="none"
           style={{ position: 'absolute', left: 24, right: 24, top: 410 * scale, zIndex: 7 }}
         >
-          <Txt
+          <FireTxt
             variant="handL"
             color={fireLook.glyph}
             align="center"
@@ -272,7 +272,7 @@ export function Lanterns({
             style={{ fontSize: 16, lineHeight: 19.2 }}
           >
             {t('fire.lantern.welcome', { name: lit.name, you: you.name })}
-          </Txt>
+          </FireTxt>
         </View>
       ) : null}
     </>
@@ -309,7 +309,7 @@ export function ShareCard({
           borderRadius: 28,
           borderWidth: 4,
           borderColor: fireLook.frameLit,
-          backgroundColor: '#fdf8ef',
+          backgroundColor: fireLook.paper,
           overflow: 'hidden',
           zIndex: 9,
         },

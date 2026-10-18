@@ -1,5 +1,4 @@
 import type { Critter, LanguageTag } from '@kithfield/contracts';
-import { night } from '@kithfield/theme';
 import { useEffect } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
@@ -11,9 +10,9 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { fadeTo, sheetTo } from '../../ui/motion/motion';
 import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
-import { Txt } from '../../ui/type/text';
 import type { CaptionRow } from './caption-lines';
 import { FireButton } from './fire-chrome';
+import { FireTxt } from './fire-text';
 import { fireLook } from './look';
 
 /*
@@ -56,9 +55,9 @@ export function CaptionsCard({
         right: 10,
         top,
         borderRadius: 30,
-        backgroundColor: 'rgba(20,22,42,.8)',
+        backgroundColor: fireLook.captions,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,.1)',
+        borderColor: fireLook.captionsBorder,
         paddingTop: 14,
         paddingHorizontal: 16,
         paddingBottom: 16,
@@ -68,26 +67,30 @@ export function CaptionsCard({
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <PlusBadge />
-        <Txt
+        <FireTxt
           variant="caption"
           color={fireLook.sub}
           style={{ fontSize: 12.5, lineHeight: 14, fontWeight: '600' }}
         >
           {t('fire.captions.title')}
-        </Txt>
+        </FireTxt>
         {from !== null ? (
           <>
-            <Txt variant="caption" color={night.dim} style={{ fontSize: 12.5, lineHeight: 14 }}>
+            <FireTxt
+              variant="caption"
+              color={fireLook.dim}
+              style={{ fontSize: 12.5, lineHeight: 14 }}
+            >
               ·
-            </Txt>
-            <Txt
+            </FireTxt>
+            <FireTxt
               variant="caption"
               color={fireLook.sub}
               numberOfLines={1}
               style={{ fontSize: 12.5, lineHeight: 14, fontWeight: '600', flexShrink: 1 }}
             >
               {t('fire.captions.pair', { from: t(langKey(from)), to: t(langKey(lang)) })}
-            </Txt>
+            </FireTxt>
           </>
         ) : null}
         <Press
@@ -97,19 +100,19 @@ export function CaptionsCard({
           accessibilityLabel={t('fire.captions.settings')}
           style={{ marginLeft: 'auto' }}
         >
-          <Txt
+          <FireTxt
             variant="caption"
             color={fireLook.eyebrow}
             style={{ fontSize: 12.5, lineHeight: 14, fontWeight: '600' }}
           >
             {t('fire.captions.settings')}
-          </Txt>
+          </FireTxt>
         </Press>
       </View>
       {rows.length === 0 ? (
-        <Txt variant="caption" color={night.dim} style={{ fontSize: 14, lineHeight: 19 }}>
+        <FireTxt variant="caption" color={fireLook.dim} style={{ fontSize: 14, lineHeight: 19 }}>
           {t('fire.captions.waiting')}
-        </Txt>
+        </FireTxt>
       ) : (
         rows.map((row, i) => {
           const latest = i === rows.length - 1;
@@ -141,30 +144,30 @@ export function CaptionsCard({
                 <View style={{ width: 28 }} />
               )}
               <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-                <Txt
+                <FireTxt
                   variant="caption"
                   color={fireLook.sub}
                   style={{ fontSize: 12.5, lineHeight: 14, fontWeight: '600' }}
                 >
                   {who.name}
-                </Txt>
-                <Txt
+                </FireTxt>
+                <FireTxt
                   variant="body"
                   color={fireLook.text}
                   multiline
                   style={{ fontSize: 17, lineHeight: 23, fontWeight: latest ? '600' : '500' }}
                 >
                   {text}
-                </Txt>
+                </FireTxt>
                 {original && originalText !== null ? (
-                  <Txt
+                  <FireTxt
                     variant="caption"
-                    color={night.dim}
+                    color={fireLook.dim}
                     multiline
                     style={{ fontSize: 14, lineHeight: 19 }}
                   >
                     {originalText}
-                  </Txt>
+                  </FireTxt>
                 ) : null}
               </View>
             </View>
@@ -186,13 +189,13 @@ function PlusBadge() {
         backgroundColor: fireLook.primary,
       }}
     >
-      <Txt
+      <FireTxt
         variant="label"
         color={fireLook.primaryInk}
         style={{ fontSize: 10.5, lineHeight: 11, letterSpacing: 0.42 }}
       >
         {t('fire.captions.plus')}
-      </Txt>
+      </FireTxt>
     </View>
   );
 }
@@ -216,22 +219,26 @@ function Row({
         gap: 12,
         paddingVertical: 11,
         borderBottomWidth: last ? 0 : 1,
-        borderBottomColor: 'rgba(255,255,255,.08)',
+        borderBottomColor: fireLook.rowRule,
       }}
     >
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Txt variant="rowTitle" color={fireLook.text} style={{ fontSize: 15.5, lineHeight: 19.4 }}>
+        <FireTxt
+          variant="rowTitle"
+          color={fireLook.text}
+          style={{ fontSize: 15.5, lineHeight: 19.4 }}
+        >
           {title}
-        </Txt>
+        </FireTxt>
         {sub ? (
-          <Txt
+          <FireTxt
             variant="caption"
             color={fireLook.sub}
             multiline
             style={{ fontSize: 13, lineHeight: 17.6, marginTop: 2 }}
           >
             {sub}
-          </Txt>
+          </FireTxt>
         ) : null}
       </View>
       {right}
@@ -288,7 +295,7 @@ export function CaptionsSheet({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(10,10,24,.4)',
+            backgroundColor: fireLook.scrim,
           },
           scrim,
         ]}
@@ -305,8 +312,8 @@ export function CaptionsSheet({
             bottom: 8,
             top: 150,
             borderRadius: 44,
-            backgroundColor: night.panel,
-            boxShadow: '0 -10px 40px -16px rgba(0,0,0,.6)',
+            backgroundColor: fireLook.sheet,
+            boxShadow: fireLook.sheetShadow,
             paddingTop: 10,
             paddingHorizontal: 20,
           },
@@ -318,7 +325,7 @@ export function CaptionsSheet({
             width: 36,
             height: 5,
             borderRadius: 3,
-            backgroundColor: 'rgba(255,255,255,.3)',
+            backgroundColor: fireLook.grabber,
             alignSelf: 'center',
           }}
         />
@@ -328,30 +335,34 @@ export function CaptionsSheet({
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <PlusBadge />
-            <Txt variant="handL" color={fireLook.eyebrow} style={{ fontSize: 17, lineHeight: 17 }}>
+            <FireTxt
+              variant="handL"
+              color={fireLook.eyebrow}
+              style={{ fontSize: 17, lineHeight: 17 }}
+            >
               {t('fire.captions.sheetEyebrow')}
-            </Txt>
+            </FireTxt>
           </View>
-          <Txt
+          <FireTxt
             variant="displayM"
             color={fireLook.text}
             accessibilityRole="header"
             style={{ fontSize: 26, lineHeight: 28.6 }}
           >
             {t('fire.captions.sheetTitle')}
-          </Txt>
-          <Txt
+          </FireTxt>
+          <FireTxt
             variant="body"
             color={fireLook.sub}
             multiline
             style={{ fontSize: 14.5, lineHeight: 21 }}
           >
             {t('fire.captions.lead', { processor: t('fire.captions.processor') })}
-          </Txt>
+          </FireTxt>
           <View
             style={{
               borderRadius: 22,
-              backgroundColor: night.bubble,
+              backgroundColor: fireLook.rows,
               paddingVertical: 2,
               paddingHorizontal: 14,
             }}
@@ -379,9 +390,13 @@ export function CaptionsSheet({
                 title={t('fire.captions.translate')}
                 sub={t('fire.captions.translateSub')}
                 right={
-                  <Txt variant="body" color={fireLook.sub} style={{ fontSize: 15, lineHeight: 18 }}>
+                  <FireTxt
+                    variant="body"
+                    color={fireLook.sub}
+                    style={{ fontSize: 15, lineHeight: 18 }}
+                  >
                     {`${t(langKey(lang))} ›`}
-                  </Txt>
+                  </FireTxt>
                 }
               />
             </Press>
@@ -398,14 +413,14 @@ export function CaptionsSheet({
               }
             />
           </View>
-          <Txt
+          <FireTxt
             variant="caption"
-            color={night.dim}
+            color={fireLook.dim}
             multiline
             style={{ fontSize: 12.5, lineHeight: 18 }}
           >
             {t('fire.captions.free')}
-          </Txt>
+          </FireTxt>
           <View style={{ marginTop: 'auto', gap: 6 }}>
             {perks ? (
               <FireButton label={t('fire.captions.done')} onPress={onClose} height={56} />
@@ -420,13 +435,13 @@ export function CaptionsSheet({
                 accessibilityLabel={t('fire.captions.notNow')}
                 style={{ height: 46, alignItems: 'center', justifyContent: 'center' }}
               >
-                <Txt
+                <FireTxt
                   variant="button"
                   color={fireLook.text}
                   style={{ fontSize: 16, lineHeight: 19 }}
                 >
                   {t('fire.captions.notNow')}
-                </Txt>
+                </FireTxt>
               </Press>
             )}
           </View>
