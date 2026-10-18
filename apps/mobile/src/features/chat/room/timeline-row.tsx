@@ -61,7 +61,15 @@ export const TimelineRow = memo(function TimelineRow({
       case 'unsent':
         return <UnsentLine actor={item.actor} by={item.by} />;
       case 'line':
-        return <GestureLine kind={item.kind} actor={item.actor} to={item.to} title={item.title} />;
+        return (
+          <GestureLine
+            kind={item.kind}
+            actor={item.actor}
+            to={item.to}
+            title={item.title}
+            {...(item.with ? { others: item.with } : {})}
+          />
+        );
       case 'back':
         return <BackCard actor={item.actor} />;
     }

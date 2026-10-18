@@ -137,10 +137,11 @@ const TILTS = [-2, 2.5, 1.5, -1.5, 2, -2.5] as const;
 function Cork({ width, height }: { readonly width: number; readonly height: number }) {
   const colours = useChatColours();
   const dots = useMemo(() => {
-    const path = Skia.Path.Make();
-    for (let y = 3.5; y < height; y += 7)
-      for (let x = 3.5; x < width; x += 7) path.addCircle(x, y, 1);
-    return path;
+    const builder = Skia.PathBuilder.Make();
+    for (let y = 3.5; y < height; y += 7) {
+      for (let x = 3.5; x < width; x += 7) builder.addCircle(x, y, 1);
+    }
+    return builder.build();
   }, [width, height]);
   return (
     <Canvas style={{ position: 'absolute', left: 0, top: 0, width, height }} pointerEvents="none">

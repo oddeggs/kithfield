@@ -22,7 +22,7 @@ export function barsOf(levels: readonly number[], count: number, max = 24): numb
     const from = Math.floor((i * levels.length) / count);
     const to = Math.max(from + 1, Math.floor(((i + 1) * levels.length) / count));
     const slice = levels.slice(from, to);
-    const level = slice.reduce((a, b) => a + b, 0) / slice.length;
+    const level = Math.max(...slice);
     return Math.round(4 + (level / 255) * (max - 4));
   });
 }

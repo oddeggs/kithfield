@@ -114,6 +114,10 @@ export const chatEn = {
   'chat.bubble.hugAll': '{name} sent everyone a hug',
   'chat.bubble.knock': '{name} knocked for {to}',
   'chat.bubble.joined': '{name} moved in',
+  'chat.bubble.joinedMany': '{names} moved in',
+  /** A list of names: "Bea and Fig", "Bea, Fig and Pip". */
+  'chat.names.two': '{a} and {b}',
+  'chat.names.more': '{list} and {last}',
   'chat.bubble.left': '{name} went wandering',
   'chat.bubble.plan': '{name} planted a seed: {title}',
   'chat.bubble.planAction': 'Plant as a seed',

@@ -208,4 +208,19 @@ describe('the chat timeline', () => {
       'wave',
     ]);
   });
+
+  it('says arrivals in a row on one line, and leaves them off a visit', () => {
+    const events = [
+      ev(2, 'bea', 'joined', {}),
+      ev(3, 'fig', 'joined', {}),
+      ev(4, 'pip', 'joined', {}),
+    ];
+    expect(buildTimeline({ ...base, events }).filter((i) => i.type === 'line')).toMatchObject([
+      { kind: 'joined', actor: 'bea', with: ['fig', 'pip'] },
+    ]);
+    const visit = { kind: 'visit', members: [], pins: [], aliases: {} } as never;
+    expect(
+      buildTimeline({ ...base, state: visit, events }).filter((i) => i.type === 'line'),
+    ).toEqual([]);
+  });
 });

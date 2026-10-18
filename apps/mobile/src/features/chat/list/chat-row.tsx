@@ -109,7 +109,6 @@ export interface ChatRowProps {
   readonly me: PersonId | null;
   readonly myCritter: Critter | null;
   readonly now: number;
-  readonly last: boolean;
   /** The row whose actions are showing; opening one closes the others. */
   readonly open: boolean;
   readonly onOpen: (farm: string | null) => void;
@@ -123,7 +122,7 @@ export interface ChatRowProps {
  * for something new. Swipe left for mute and pin to top.
  */
 export function ChatRow(props: ChatRowProps) {
-  const { row, me, myCritter, now, last, open, onOpen, onPress, onMute, onPin } = props;
+  const { row, me, myCritter, now, open, onOpen, onPress, onMute, onPin } = props;
   const { palette } = useTheme();
   const colours = useChatColours();
   const { t, language } = useLocale();
@@ -243,7 +242,7 @@ export function ChatRow(props: ChatRowProps) {
               gap: 12,
               paddingVertical: 11,
               minHeight: 44,
-              borderBottomWidth: last ? 0 : 1,
+              borderBottomWidth: 1,
               borderBottomColor: colours.rowRule,
             }}
           >

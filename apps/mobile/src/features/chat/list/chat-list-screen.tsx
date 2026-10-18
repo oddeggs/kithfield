@@ -80,14 +80,13 @@ export function ChatListScreen() {
 
   const renderRows = (list: readonly ChatListItem[]) => (
     <View>
-      {list.map((row, i) => (
+      {list.map((row) => (
         <ChatRow
           key={row.farm}
           row={row}
           me={me.person}
           myCritter={me.critter}
           now={now}
-          last={i === list.length - 1}
           open={open === row.farm}
           onOpen={setOpen}
           onPress={() => go.chat(row.farm)}
@@ -103,12 +102,12 @@ export function ChatListScreen() {
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <View
         style={{
-          paddingTop: Math.max(insets.top, 20) + 4,
+          paddingTop: Math.max(insets.top, 20) + 3,
           paddingHorizontal: layout.marginTitle,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          height: Math.max(insets.top, 20) + 4 + 52,
+          height: Math.max(insets.top, 20) + 3 + 44,
         }}
       >
         <Txt variant="displayL" accessibilityRole="header" style={{ lineHeight: 37.4 }}>
@@ -143,7 +142,7 @@ export function ChatListScreen() {
         <ScrollView
           contentContainerStyle={{
             paddingHorizontal: layout.marginTitle,
-            paddingTop: 8,
+            paddingTop: 12,
             paddingBottom: tabBarClearance(insets.bottom),
             gap: 6,
           }}

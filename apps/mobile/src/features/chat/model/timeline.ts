@@ -113,6 +113,8 @@ export type TimelineItem =
       readonly actor: PersonId | null;
       readonly to: PersonId | null;
       readonly title: string | null;
+      /** Friends who moved in alongside the first one, drawn as one line. */
+      readonly with?: readonly PersonId[];
     }
   | { readonly type: 'back'; readonly key: string; readonly seq: number; readonly actor: PersonId };
 
@@ -340,6 +342,19 @@ export function buildTimeline(input: TimelineInput): TimelineItem[] {
     if (isTombstone(d.payload)) continue;
     const line = lineOf(d, p, me, now);
     if (line) {
+      // A visit's two arrivals are its first moment, not news; on a farm, arrivals in a row share a line.
+      if (line.type === 'line' && line.kind === 'joined' && state?.kind === 'visit') continue;
+      const last = items.at(-1);
+      if (
+        line.type === 'line' &&
+        line.kind === 'joined' &&
+        last?.type === 'line' &&
+        last.kind === 'joined' &&
+        line.actor !== null
+      ) {
+        items[items.length - 1] = { ...last, with: [...(last.with ?? []), line.actor] };
+        continue;
+      }
       divide(d);
       items.push(line);
     }

@@ -50,11 +50,14 @@ export function GestureLine({
   actor,
   to,
   title,
+  others = [],
 }: {
   readonly kind: LineKind;
   readonly actor: PersonId | null;
   readonly to: PersonId | null;
   readonly title: string | null;
+  /** Friends who moved in alongside. */
+  readonly others?: readonly PersonId[];
 }) {
   const { palette } = useTheme();
   const colours = useChatColours();
@@ -76,8 +79,16 @@ export function GestureLine({
         return t('chat.bubble.knock', { name, to: toName });
       case 'dewdrop':
         return `${name} · ${t('chat.what.dewdrop')}`;
-      case 'joined':
-        return t('chat.bubble.joined', { name });
+      case 'joined': {
+        if (others.length === 0) return t('chat.bubble.joined', { name });
+        const names = [name, ...others.map((p) => nameOf(p))];
+        const last = names.pop() ?? '';
+        const list =
+          names.length === 1
+            ? t('chat.names.two', { a: names[0] ?? '', b: last })
+            : t('chat.names.more', { list: names.join(', '), last });
+        return t('chat.bubble.joinedMany', { names: list });
+      }
       case 'left':
         return t('chat.bubble.left', { name });
       case 'plan':

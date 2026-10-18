@@ -211,7 +211,8 @@ export function BubbleRow({ item, first, last, showSent }: BubbleRowProps) {
   const gesture = useExclusiveGestures(pan, long);
   const slide = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
   const hint = useAnimatedStyle(() => ({ opacity: Math.min(1, x.get() / REPLY_AT) }));
-  const showName = !item.mine && first && !room.visit;
+  // A quiet note carries its writer's name in its own header.
+  const showName = !item.mine && first && !room.visit && item.body.kind !== 'quiet_note';
   const label = `${item.mine ? t('chat.you') : room.nameOf(item.actor)}`;
 
   const column = (
