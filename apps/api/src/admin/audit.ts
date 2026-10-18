@@ -119,8 +119,10 @@ export const quarterOf = (at: number): string => {
 const csvCell = (value: string | number | null): string => {
   if (value === null) return '';
   const text = String(value);
-  // A leading formula character is neutralised so a spreadsheet never runs a cell.
-  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  // A formula character at the start (after any spaces) is neutralised, so a spreadsheet never
+  // runs a cell.
+  const trimmed = text.replace(/^\s+/, '');
+  const safe = /^[=+\-@|%]/.test(trimmed) ? `'${trimmed}` : text;
   return /[",\n\r]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
 };
 

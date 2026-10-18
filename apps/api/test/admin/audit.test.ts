@@ -86,6 +86,36 @@ describe('the audit log', () => {
     expect(left.results.length).toBeGreaterThan(0);
   });
 
+  it('never lets a spreadsheet run a cell', async () => {
+    const { lot } = await handled();
+    const now = new Date();
+    const quarter = `${now.getUTCFullYear()}-Q${Math.floor(now.getUTCMonth() / 3) + 1}`;
+    const notes = ['  =1+1', '|calc', '%0Acmd', '\t@SUM(A1)'];
+    for (const note of notes) {
+      const { report: id } = ReportResponse.parse(
+        (
+          await report(lot.pip, {
+            farm: lot.farm,
+            about: { about: 'person', person: lot.fig.id },
+            reason: 'unkind',
+            alsoBlock: false,
+          })
+        ).body,
+      );
+      await desk(access, ANA, 'POST', `/reports/${id}/actions`, {
+        action: 'dismiss',
+        rule: null,
+        note,
+        tellReporters: false,
+        tellMember: false,
+      });
+    }
+    const csv = (await desk(access, ANA, 'GET', `/audit.csv?quarter=${quarter}`)).text;
+    for (const cell of [",'=1+1", ",'|calc", ",'%0Acmd", ",'@SUM(A1)"]) {
+      expect(csv, cell).toContain(cell);
+    }
+  });
+
   it('exports a quarter as CSV', async () => {
     const { id } = await handled();
     const now = new Date();
