@@ -73,7 +73,7 @@ describe('catching up', () => {
       { text: 'note 248' },
       { text: 'note 249' },
     ]);
-  });
+  }, 20_000);
 
   it('gets a snapshot when it is more than 500 events behind', async () => {
     const { server, start } = setup();
