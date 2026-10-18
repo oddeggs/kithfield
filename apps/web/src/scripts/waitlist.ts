@@ -37,3 +37,26 @@ export function requestDeletion(email: string, lang: Lang): Promise<JoinOutcome>
   const body: DeletionRequest = { email: email.trim(), lang };
   return post('/v1/deletion-requests', body);
 }
+
+export type ConfirmOutcome = 'confirmed' | 'expired' | 'error';
+
+/** Confirms a waitlist address with the token from the letter (`POST /v1/waitlist/confirm`). */
+export async function confirmWaitlist(token: string): Promise<ConfirmOutcome> {
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return 'expired';
+  let response: Response;
+  try {
+    response = await fetch('/api/v1/waitlist/confirm', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ token }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch {
+    return 'error';
+  }
+  if (response.ok) return 'confirmed';
+  if (response.status === 400 || response.status === 404 || response.status === 410) {
+    return 'expired';
+  }
+  return 'error';
+}

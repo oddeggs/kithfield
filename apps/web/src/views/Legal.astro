@@ -1,5 +1,5 @@
 ---
-/** Privacy (`17-08`) and the house rules (`17-09`): plain, dated text from the catalogue. */
+/** Privacy and the house rules: plain, dated text from the catalogue. */
 import { pageStyles } from '../components/page/styles';
 import Page from '../layouts/Page.astro';
 import { copyFor, pathFor, type Language } from '../lib/site';
@@ -21,6 +21,10 @@ const content =
         sections: [
           { heading: t('websitePages.privacy.keepTitle'), body: t('websitePages.privacy.keep') },
           { heading: t('websitePages.privacy.neverTitle'), body: t('websitePages.privacy.never') },
+          {
+            heading: t('websitePages.privacy.partnersTitle'),
+            body: t('websitePages.privacy.partners'),
+          },
           {
             heading: t('websitePages.privacy.waitlistTitle'),
             body: t('websitePages.privacy.waitlist'),

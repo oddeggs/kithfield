@@ -1,7 +1,8 @@
 ---
 /**
- * Thank you (`17-07`): pick a critter early. The pick waves; saving it with the waitlist record
- * waits on the API (the request carries no critter yet), and the page says so when asked.
+ * Thank you: pick a critter early. Until the letter's link is opened it asks the visitor to check
+ * their inbox; with `?confirmed=1` (from the confirm page) it says they're on the list. The pick
+ * waves; saving it with the waitlist record waits on the API (the request carries no critter yet).
  */
 import { pageStyles } from '../components/page/styles';
 import Base from '../layouts/Base.astro';
@@ -59,9 +60,10 @@ const firstSave = cast.find((c) => c.kind === first)?.save ?? '';
   >
     <kf-art data-kf="pose" scene="pose" kind={first} pose="wave" style="width:180px;height:180px"
     ></kf-art>
-    <div style={s.hand}>{t('websitePages.thanks.kicker')}</div>
-    <p data-kf="confirmed" hidden style={`${s.body};color:#5E7F4A`}>
-      {t('websitePages.thanks.confirmed')}
+    <div data-kf="kicker-confirmed" hidden style={s.hand}>{t('websitePages.thanks.kicker')}</div>
+    <div data-kf="kicker-pending" style={s.hand}>{t('websitePages.thanks.pendingKicker')}</div>
+    <p data-kf="pending" role="status" style={`${s.body};color:#5E7F4A;max-width:520px`}>
+      {t('websitePages.thanks.pending')}
     </p>
     <h1 style={`margin:0;font:400 38px/1.06 ${s.serif}`}>{t('websitePages.thanks.title')}</h1>
     <p style={`${s.body};font-size:15.5px;line-height:1.55;max-width:520px`}>
@@ -77,6 +79,7 @@ const firstSave = cast.find((c) => c.kind === first)?.save ?? '';
             data-kind={c.kind}
             data-save={c.save}
             aria-checked={c.kind === first ? 'true' : 'false'}
+            tabindex={c.kind === first ? 0 : -1}
             aria-label={c.name}
             style="padding:0;border:0;background:none;cursor:pointer;border-radius:36px"
           >
@@ -93,7 +96,6 @@ const firstSave = cast.find((c) => c.kind === first)?.save ?? '';
     <p data-kf="save-note" role="status" hidden style={`${s.body};max-width:520px`}>
       {t('websitePages.thanks.saveSoon')}
     </p>
-    <p style={`margin:0;${s.small}`}>{t('websitePages.thanks.share')}</p>
   </main>
 </Base>
 
@@ -101,19 +103,42 @@ const firstSave = cast.find((c) => c.kind === first)?.save ?? '';
   const pose = document.querySelector<HTMLElement>('[data-kf="pose"]');
   const save = document.querySelector<HTMLButtonElement>('[data-kf="save"]');
   const picks = [...document.querySelectorAll<HTMLButtonElement>('.kf-pick')];
+  const part = (name: string) => document.querySelector<HTMLElement>(`[data-kf="${name}"]`);
+
+  // Until the letter's link is opened the spot isn't saved: say so, and say it once it is.
   if (new URLSearchParams(location.search).get('confirmed') === '1') {
-    const confirmed = document.querySelector<HTMLElement>('[data-kf="confirmed"]');
-    if (confirmed) confirmed.hidden = false;
+    for (const name of ['kicker-pending', 'pending']) part(name)?.setAttribute('hidden', '');
+    part('kicker-confirmed')?.removeAttribute('hidden');
   }
-  for (const pick of picks) {
-    pick.addEventListener('click', () => {
-      for (const other of picks) other.setAttribute('aria-checked', String(other === pick));
-      if (pose && pick.dataset.kind) pose.setAttribute('kind', pick.dataset.kind);
-      if (save) save.textContent = pick.dataset.save ?? '';
+
+  const choose = (pick: HTMLButtonElement, focus: boolean): void => {
+    for (const other of picks) {
+      other.setAttribute('aria-checked', String(other === pick));
+      other.tabIndex = other === pick ? 0 : -1;
+    }
+    if (focus) pick.focus();
+    if (pose && pick.dataset.kind) pose.setAttribute('kind', pick.dataset.kind);
+    if (save) save.textContent = pick.dataset.save ?? '';
+  };
+  // A radio group: arrow keys move the pick, wrapping at the ends; Up and Down move a row.
+  const columns = (): number => (matchMedia('(max-width: 759.98px)').matches ? 4 : 8);
+  const steps: Record<string, () => number> = {
+    ArrowRight: () => 1,
+    ArrowLeft: () => -1,
+    ArrowDown: columns,
+    ArrowUp: () => -columns(),
+  };
+  picks.forEach((pick, i) => {
+    pick.addEventListener('click', () => choose(pick, false));
+    pick.addEventListener('keydown', (event) => {
+      const step = steps[event.key];
+      if (!step) return;
+      event.preventDefault();
+      const next = picks[(i + step() + picks.length) % picks.length];
+      if (next) choose(next, true);
     });
-  }
+  });
   save?.addEventListener('click', () => {
-    const note = document.querySelector<HTMLElement>('[data-kf="save-note"]');
-    if (note) note.hidden = false;
+    part('save-note')?.removeAttribute('hidden');
   });
 </script>
