@@ -1,3 +1,4 @@
+import ImageIO
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
@@ -115,8 +116,7 @@ final class ShareModel: ObservableObject {
           lock.lock()
           loaded.append((index, file))
           lock.unlock()
-          if file.kind == .photo, self.thumbnail == nil, let image = UIImage(contentsOfFile: url.path) {
-            let small = image.preparingThumbnail(of: CGSize(width: 156, height: 156))
+          if file.kind == .photo, let small = Self.thumbnail(of: url) {
             DispatchQueue.main.async { self.thumbnail = self.thumbnail ?? small }
           }
         }
@@ -133,7 +133,7 @@ final class ShareModel: ObservableObject {
         provider.loadItem(forTypeIdentifier: UTType.plainText.identifier) { [weak self] item, _ in
           defer { group.leave() }
           if let words = item as? String {
-            DispatchQueue.main.async { self?.text = String(words.prefix(4000)) }
+            DispatchQueue.main.async { self?.text = Self.limited(words) }
           }
         }
       }
@@ -191,7 +191,7 @@ final class ShareModel: ObservableObject {
         "at": Int(Date().timeIntervalSince1970 * 1000),
         "files": files.map { ["path": $0.path, "mime": $0.mime, "bytes": $0.bytes] },
       ]
-      if !words.isEmpty { draft["text"] = String(words.prefix(4000)) }
+      if !words.isEmpty { draft["text"] = Self.limited(words) }
       if let url { draft["url"] = url }
       if let json = try? JSONSerialization.data(withJSONObject: draft) {
         try? json.write(to: folder.appendingPathComponent("\(opId).json"), options: .atomic)
@@ -208,6 +208,38 @@ final class ShareModel: ObservableObject {
       if let url = GroupFiles.url(file.path) { try? FileManager.default.removeItem(at: url) }
     }
     close()
+  }
+
+  /// `LIMITS.message`: the app counts a message's length in UTF-16 code units, as JavaScript does.
+  static let messageLimit = 4000
+
+  /// Words cut to the message limit at a whole character, measured as the app measures them.
+  static func limited(_ text: String) -> String {
+    guard text.utf16.count > messageLimit else { return text }
+    var kept = ""
+    var count = 0
+    for character in text {
+      let size = String(character).utf16.count
+      if count + size > messageLimit { break }
+      kept.append(character)
+      count += size
+    }
+    return kept
+  }
+
+  /// A small picture of a photo without decoding the whole of it (a 48-megapixel photo would not
+  /// fit in an extension's memory).
+  static func thumbnail(of url: URL) -> UIImage? {
+    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+    let options: [CFString: Any] = [
+      kCGImageSourceCreateThumbnailFromImageAlways: true,
+      kCGImageSourceCreateThumbnailWithTransform: true,
+      kCGImageSourceThumbnailMaxPixelSize: 156,
+    ]
+    guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+      return nil
+    }
+    return UIImage(cgImage: image)
   }
 
   /// A lowercase UUIDv7 (`OpId`): 48 bits of milliseconds, the version, then random bits.

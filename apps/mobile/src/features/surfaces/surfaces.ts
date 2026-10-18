@@ -45,6 +45,8 @@ export interface SurfacesDeps {
   readonly scheme: string;
   readonly shares: ShareSender;
   readonly open: (target: SurfaceTarget) => void;
+  /** Some shares couldn't be sent at all (over a limit, or unreadable): say so. */
+  readonly sharesRefused: (count: number) => void;
   readonly report: (error: unknown) => void;
   readonly now?: () => number;
 }
@@ -169,7 +171,7 @@ export function createSurfaces(deps: SurfacesDeps) {
 
   /** Sends what the share extension left, then opens the farm it went to. */
   async function shares(): Promise<void> {
-    const sentTo = await drainShares(deps.group, deps.shares, deps.report);
+    const sentTo = await drainShares(deps.group, deps.shares, deps.report, deps.sharesRefused);
     const last = sentTo[sentTo.length - 1];
     if (last !== undefined) deps.open({ to: 'farm', farm: last });
   }

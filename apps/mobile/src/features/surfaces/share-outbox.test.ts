@@ -69,9 +69,42 @@ describe('the share extension’s drafts', () => {
     expect(calls).toEqual([['words', 'f_lot', opA, 'look', 'https://example.com/a']]);
   });
 
-  it('drops a file that isn’t a draft', async () => {
-    const group = memoryGroup({ [`${dir}junk.json`]: '{"nope":1}', [`${dir}x.json`]: 'not json' });
-    expect(await pendingDrafts(group)).toEqual([]);
+  it('never sends a part twice: a retry picks up after the parts that already went', async () => {
+    const group = memoryGroup({
+      [`${dir}${opA}.json`]: draft(opA, 'f_lot', { files: [photo, pdf], text: 'look' }),
+      [photo.path]: 'jpeg',
+      [pdf.path]: 'pdf',
+    });
+    const { send, calls } = sender();
+    const flaky: ShareSender = {
+      ...send,
+      documents: () => Promise.reject(new Error('offline')),
+    };
+    expect(await drainShares(group, flaky)).toEqual([]);
+    expect(calls.map((c) => c[0])).toEqual(['media']);
+    expect(await drainShares(group, send)).toEqual(['f_lot']);
+    // The photos went the first time; only the file goes now.
+    expect(calls.map((c) => c[0])).toEqual(['media', 'documents']);
     expect(group.files.size).toBe(0);
+  });
+
+  it('tells the person about a share it can’t send, instead of dropping it quietly', async () => {
+    const tooLong = 'a'.repeat(4001);
+    const group = memoryGroup({
+      [`${dir}${opA}.json`]: draft(opA, 'f_lot', { text: tooLong }),
+      [`${dir}junk.json`]: 'not json',
+    });
+    const refused: number[] = [];
+    const { send, calls } = sender();
+    await drainShares(
+      group,
+      send,
+      () => undefined,
+      (count) => refused.push(count),
+    );
+    expect(refused).toEqual([2]);
+    expect(calls).toEqual([]);
+    expect(group.files.size).toBe(0);
+    expect(await pendingDrafts(group)).toEqual([]);
   });
 });
