@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Gaegu:wght@400;700&display=swap">
+<script src="./kithfield-art.js"></script>
+<style>html{scroll-behavior:smooth}body{margin:0;background:#F5EEE2;font-family:-apple-system,'SF Pro Text',system-ui,sans-serif;color:#2a221d;-webkit-font-smoothing:antialiased;overflow:visible!important;height:auto!important}html{height:auto!important;overflow-x:clip}a{color:#5E7F4A}a:hover{color:#2a221d}kf-art{display:block}::selection{background:#E8B44E;color:#2a221d}</style>
+</helmet>
+
+<nav data-kf="nav" style="position:fixed;top:0;left:0;right:0;z-index:50;height:64px;display:flex;align-items:center;gap:20px;padding:0 clamp(16px,4vw,48px);color:#2a221d;transition:background .3s,color .3s,box-shadow .3s">
+  <a href="#top" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit"><kf-art scene="appicon" style="width:32px;height:32px;border-radius:9px;overflow:hidden;box-shadow:0 2px 8px -3px rgba(40,25,10,.4)"></kf-art><span style="font:400 22px/1 'Young Serif',Georgia,serif">Kithfield</span></a>
+  <div style="flex:1"></div>
+  <sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}"><div style="display:flex;gap:26px;font:500 14.5px/1 -apple-system,system-ui"><a href="#evening" style="color:inherit;text-decoration:none">The evening</a><a href="#critters" style="color:inherit;text-decoration:none">Critters</a><a href="#rules" style="color:inherit;text-decoration:none">House rules</a><a href="https://github.com/oddeggs/kithfield" style="color:inherit;text-decoration:none">Open source</a></div></sc-if>
+  <a href="17%20Landing%20VI.dc.html" style="color:inherit;text-decoration:none;font:600 13px/1 -apple-system,system-ui;padding:8px 10px;border-radius:14px;border:1px solid currentColor;opacity:.75">VI</a><a href="#join" style="height:40px;padding:0 18px;border-radius:20px;background:#E8B44E;color:#2a221d;display:flex;align-items:center;font:600 14.5px/1 -apple-system,system-ui;text-decoration:none;box-shadow:0 4px 14px -6px rgba(120,70,10,.6);white-space:nowrap">Save me a cottage</a>
+</nav>
+
+<div data-kf="fly" style="position:fixed;left:0;top:0;width:46px;height:46px;z-index:60;pointer-events:none;opacity:0;transition:opacity .4s;border-radius:50%;background:radial-gradient(circle,rgba(255,220,120,.55) 0%,rgba(255,220,120,.18) 45%,rgba(255,220,120,0) 70%)"><kf-art scene="icon" name="firefly" style="position:absolute;left:9px;top:9px;width:28px;height:28px"></kf-art></div>
+
+<section id="top"></section>
+<section id="evening" data-kf="pin" style="position:relative;height:640vh;background:#1b1f3d">
+  <div data-kf="stage" style="position:sticky;top:0;height:100vh;overflow:hidden">
+    <div data-kf="world" style="position:absolute;left:0;top:0;width:100vw;height:62.5vw;transform-origin:0 0;will-change:transform">
+      <kf-art data-kf="art" scene="evening" style="position:absolute;inset:0;width:100%;height:100%"></kf-art>
+      <div data-ann="1" style="position:absolute;inset:0;pointer-events:none">
+        <div style="position:absolute;left:2.5%;top:52%;display:flex;flex-direction:column;align-items:flex-start;transform:rotate(-3deg)"><span style="font:700 clamp(13px,1.45vw,21px)/1.1 Gaegu,cursive;background:#fbf6ec;padding:.25em .55em .3em;border-radius:10px;box-shadow:0 5px 14px -7px rgba(60,40,20,.55);white-space:nowrap">Bea. voice notes, always.</span><kf-art scene="arrow" name="dr" style="width:clamp(30px,3.6vw,54px);aspect-ratio:1.2;margin-left:clamp(40px,5vw,76px)"></kf-art></div>
+        <div style="position:absolute;left:21.5%;top:59.5%;display:flex;flex-direction:column;align-items:flex-start;transform:rotate(2deg)"><span style="font:700 clamp(13px,1.45vw,21px)/1.1 Gaegu,cursive;background:#fbf6ec;padding:.25em .55em .3em;border-radius:10px;box-shadow:0 5px 14px -7px rgba(60,40,20,.55);white-space:nowrap">June. that's you.</span><kf-art scene="arrow" name="dr" style="width:clamp(26px,3vw,46px);aspect-ratio:1.1;margin-left:clamp(36px,4.4vw,66px)"></kf-art></div>
+        <div style="position:absolute;left:50.5%;top:61%;display:flex;flex-direction:column;align-items:flex-start;transform:rotate(-2deg)"><span style="font:700 clamp(13px,1.45vw,21px)/1.1 Gaegu,cursive;background:#fbf6ec;padding:.25em .55em .3em;border-radius:10px;box-shadow:0 5px 14px -7px rgba(60,40,20,.55);white-space:nowrap">Pip brought snacks.</span></div>
+        <div style="position:absolute;left:75.5%;top:45.5%;display:flex;flex-direction:column;align-items:flex-start;transform:rotate(3deg)"><span style="font:700 clamp(13px,1.45vw,21px)/1.1 Gaegu,cursive;background:#fbf6ec;padding:.25em .55em .3em;border-radius:10px;box-shadow:0 5px 14px -7px rgba(60,40,20,.55);white-space:nowrap">Otis. quiet lately. that's okay.</span><kf-art scene="arrow" name="dl" style="width:clamp(26px,3vw,44px);aspect-ratio:.85;margin-left:4px"></kf-art></div>
+      </div>
+    </div>
+
+    <div data-veil="paper" style="position:absolute;inset:0;pointer-events:none;opacity:0;background:{{ veilPaper }}"></div>
+    <div data-veil="night" style="position:absolute;inset:0;pointer-events:none;opacity:0;background:{{ veilNight }}"></div>
+
+    
+    <div data-a="-1" data-b="0.035" style="position:absolute;left:0;right:0;top:clamp(76px,12vh,140px);display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 20px;pointer-events:none">
+      <div style="font:700 clamp(19px,1.7vw,25px)/1.1 Gaegu,cursive;color:#7a3f22;margin-bottom:6px">a cosy group chat for your people</div>
+      <h1 style="margin:0;font:400 clamp(62px,min(11.4vw,21vh),184px)/.88 'Young Serif',Georgia,serif;letter-spacing:-.025em">Stay close.</h1>
+      <div style="font:400 clamp(26px,min(4vw,7.4vh),62px)/1 'Young Serif',Georgia,serif;letter-spacing:-.01em;margin-top:clamp(6px,1vw,14px);color:#4a2e22">No texting guilt.</div>
+    </div>
+    <div data-a="-1" data-b="0.025" style="position:absolute;left:0;right:0;bottom:26px;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none"><span style="font:700 19px/1.1 Gaegu,cursive;background:rgba(251,246,236,.92);padding:5px 13px 6px;border-radius:12px">scroll to spend an evening on the farm</span><kf-art scene="arrow" name="d" style="width:22px;height:34px"></kf-art></div>
+
+    <div data-a="0.085" data-b="0.21" style="position:absolute;left:{{ cL }};top:{{ cT }};bottom:{{ cB }};width:{{ cW }};display:flex;flex-direction:column;justify-content:{{ cJ }};opacity:0;visibility:hidden">
+      <div style="font:700 clamp(19px,1.6vw,24px)/1 Gaegu,cursive;color:#7a3f22;margin-bottom:12px">6:12 pm · June thinks of Otis</div>
+      <h2 style="margin:0;font:400 clamp(46px,6.4vw,108px)/.92 'Young Serif',Georgia,serif;letter-spacing:-.02em;text-wrap:balance">Say hi without words.</h2>
+      <p style="margin:18px 0 0;font:400 clamp(16px,1.3vw,19px)/1.5 -apple-system,system-ui;color:#3a302a;max-width:430px;text-wrap:pretty">One tap and a firefly flies to a friend's door. Dewdrops, waves and quiet notes count too, and none of them need an answer.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:20px">
+        <div style="height:40px;padding:0 14px 0 8px;border-radius:20px;background:rgba(255,250,242,.94);display:flex;align-items:center;gap:6px;font:600 14px/1 -apple-system,system-ui;box-shadow:0 4px 12px -8px rgba(60,40,20,.5)"><kf-art scene="icon" name="firefly" style="width:26px;height:26px"></kf-art>Firefly</div>
+        <div style="height:40px;padding:0 14px 0 8px;border-radius:20px;background:rgba(255,250,242,.94);display:flex;align-items:center;gap:6px;font:600 14px/1 -apple-system,system-ui;box-shadow:0 4px 12px -8px rgba(60,40,20,.5)"><kf-art scene="icon" name="dewdrop" style="width:26px;height:26px"></kf-art>Dewdrop</div>
+        <div style="height:40px;padding:0 14px 0 8px;border-radius:20px;background:rgba(255,250,242,.94);display:flex;align-items:center;gap:6px;font:600 14px/1 -apple-system,system-ui;box-shadow:0 4px 12px -8px rgba(60,40,20,.5)"><kf-art scene="icon" name="wave" style="width:24px;height:24px"></kf-art>Wave</div>
+        <div style="height:40px;padding:0 14px 0 8px;border-radius:20px;background:rgba(255,250,242,.94);display:flex;align-items:center;gap:6px;font:600 14px/1 -apple-system,system-ui;box-shadow:0 4px 12px -8px rgba(60,40,20,.5)"><kf-art scene="icon" name="note" style="width:24px;height:24px"></kf-art>Quiet note</div>
+      </div>
+    </div>
+
+    <div data-a="0.255" data-b="0.385" style="position:absolute;left:{{ cL }};top:{{ cT }};bottom:{{ cB }};width:{{ cW }};display:flex;flex-direction:column;justify-content:{{ cJ }};opacity:0;visibility:hidden">
+      <div style="font:700 clamp(19px,1.6vw,24px)/1 Gaegu,cursive;color:#7a3f22;margin-bottom:12px">7:05 pm · for the introverts</div>
+      <h2 style="margin:0;font:400 clamp(46px,6.4vw,108px)/.92 'Young Serif',Georgia,serif;letter-spacing:-.02em;text-wrap:balance">No reply needed.</h2>
+      <p style="margin:18px 0 0;font:400 clamp(16px,1.3vw,19px)/1.5 -apple-system,system-ui;color:#3a302a;max-width:430px;text-wrap:pretty">Otis has been quiet for a while. That's fine. Quiet critters doze, nobody keeps count, and coming back is always met with a warm welcome.</p>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:20px;font:700 clamp(19px,1.6vw,23px)/1.15 Gaegu,cursive;color:#3a302a"><span>no streaks</span><span>no read receipts</span><span>no "seen 3 days ago"</span></div>
+    </div>
+
+    <div data-a="0.425" data-b="0.555" style="position:absolute;left:{{ cL }};top:{{ cT }};bottom:{{ cB }};width:{{ cW }};display:flex;flex-direction:column;justify-content:{{ cJ }};opacity:0;visibility:hidden">
+      <div style="font:700 clamp(19px,1.6vw,24px)/1 Gaegu,cursive;color:#7a3f22;margin-bottom:12px">8:30 pm · "we should hang out"</div>
+      <h2 style="margin:0;font:400 clamp(46px,6.4vw,108px)/.92 'Young Serif',Georgia,serif;letter-spacing:-.02em;text-wrap:balance">Plans that actually happen.</h2>
+      <p style="margin:18px 0 0;font:400 clamp(16px,1.3vw,19px)/1.5 -apple-system,system-ui;color:#3a302a;max-width:430px;text-wrap:pretty">Every "we should hang out" becomes a seed, outside the chat. It sprouts once it has a day, a place and enough yeses.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:22px">
+        <div style="display:flex;align-items:center;gap:12px"><span data-tick="0.44" style="width:28px;height:28px;border-radius:14px;border:2px solid #5E7F4A;box-sizing:border-box;display:flex;align-items:center;justify-content:center;color:#fff;font:700 15px/1 -apple-system,system-ui;transition:background .25s">✓</span><span style="font:600 16px/1.2 -apple-system,system-ui">A day <span style="font-weight:400;color:#5b5048">· Saturday the 24th</span></span></div>
+        <div style="display:flex;align-items:center;gap:12px"><span data-tick="0.48" style="width:28px;height:28px;border-radius:14px;border:2px solid #5E7F4A;box-sizing:border-box;display:flex;align-items:center;justify-content:center;color:#fff;font:700 15px/1 -apple-system,system-ui;transition:background .25s">✓</span><span style="font:600 16px/1.2 -apple-system,system-ui">A place <span style="font-weight:400;color:#5b5048">· Willow bend</span></span></div>
+        <div style="display:flex;align-items:center;gap:12px"><span data-tick="0.52" style="width:28px;height:28px;border-radius:14px;border:2px solid #5E7F4A;box-sizing:border-box;display:flex;align-items:center;justify-content:center;color:#fff;font:700 15px/1 -apple-system,system-ui;transition:background .25s">✓</span><span style="font:600 16px/1.2 -apple-system,system-ui">Enough yeses <span style="font-weight:400;color:#5b5048">· everyone but Otis</span></span></div>
+      </div>
+    </div>
+
+    <div data-a="0.625" data-b="0.8" style="position:absolute;left:{{ cL }};top:{{ cT }};bottom:{{ cB }};width:{{ cW }};display:flex;flex-direction:column;justify-content:{{ cJ }};opacity:0;visibility:hidden;color:#f6eedb">
+      <div style="font:700 clamp(19px,1.6vw,24px)/1 Gaegu,cursive;color:#f2c25a;margin-bottom:12px">9:45 pm · the day of</div>
+      <h2 style="margin:0;font:400 clamp(46px,6.4vw,108px)/.92 'Young Serif',Georgia,serif;letter-spacing:-.02em;text-wrap:balance">The fire's lit. Everyone came.</h2>
+      <p style="margin:18px 0 0;font:400 clamp(16px,1.3vw,19px)/1.5 -apple-system,system-ui;color:#e6dccb;max-width:430px;text-wrap:pretty">On the day, the critters gather at the campfire. Even Otis, who's been asleep since Tuesday and is very glad he came.</p>
+    </div>
+
+    <div data-a="0.865" data-b="2" style="position:absolute;left:{{ cL }};top:{{ cT }};bottom:{{ cB }};width:{{ cW2 }};display:flex;flex-direction:column;justify-content:{{ cJ }};opacity:0;visibility:hidden;color:#f6eedb">
+      <div style="font:700 clamp(19px,1.6vw,24px)/1 Gaegu,cursive;color:#f2c25a;margin-bottom:12px">11:52 pm · goodnight</div>
+      <h2 style="margin:0;font:400 clamp(46px,6.4vw,108px)/.92 'Young Serif',Georgia,serif;letter-spacing:-.02em;text-wrap:balance">Your friends, on your home screen.</h2>
+      <p style="margin:18px 0 0;font:400 clamp(16px,1.3vw,19px)/1.5 -apple-system,system-ui;color:#e6dccb;max-width:400px;text-wrap:pretty">The widget shows the farm at night, with a lit window for every friend who's still up.</p>
+    </div>
+
+    <div data-phone="1" style="position:absolute;right:{{ phR }};bottom:{{ phB }};width:{{ phW }};aspect-ratio:9/19.5;border-radius:44px;background:#1d1a18;padding:9px;box-sizing:border-box;box-shadow:0 0 0 1.5px #4a4441,0 40px 80px -20px rgba(0,0,0,.7);transform:translateY(130%) rotate(4deg);transform-origin:50% 100%">
+      <div style="position:relative;width:100%;height:100%;border-radius:36px;overflow:hidden;background:radial-gradient(120% 70% at 30% 0%,#3a3a5c 0%,#23263f 60%)">
+        <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:32%;height:24px;border-radius:14px;background:#000"></div>
+        <div style="position:absolute;top:13px;left:22px;font:600 13px/1 -apple-system,system-ui;color:#f4ecda">11:52</div>
+        <div style="position:absolute;top:50px;left:7%;right:7%;aspect-ratio:2.15;border-radius:18px;overflow:hidden;box-shadow:0 10px 24px -10px rgba(0,0,0,.6)">
+          <kf-art scene="widget" lit="hedgehog,frog,sheep,rabbit" style="position:absolute;inset:0;width:100%;height:100%"></kf-art>
+          <div style="position:absolute;left:10px;top:9px;font:600 9px/1 -apple-system,system-ui;color:rgba(246,238,219,.8);letter-spacing:.04em">THE THURSDAY LOT</div>
+          <div style="position:absolute;left:10px;bottom:9px;font:700 14px/1 Gaegu,cursive;color:#f6eedb">Pip, Fig and Bea are up</div>
+        </div>
+        <div style="position:absolute;top:calc(50px + 41%);left:7%;right:7%;display:grid;grid-template-columns:repeat(4,1fr);gap:14px 10%">
+          <div style="aspect-ratio:1;border-radius:24%;background:rgba(255,255,255,.14)"></div><div style="aspect-ratio:1;border-radius:24%;background:rgba(255,255,255,.14)"></div><kf-art scene="appicon" style="aspect-ratio:1;width:100%;border-radius:24%;overflow:hidden"></kf-art><div style="aspect-ratio:1;border-radius:24%;background:rgba(255,255,255,.14)"></div>
+          <div style="aspect-ratio:1;border-radius:24%;background:rgba(255,255,255,.14)"></div><div style="aspect-ratio:1;border-radius:24%;background:rgba(255,255,255,.14)"></div><div style="aspect-ratio:1;border-radius:24%;background:rgba(255,255,255,.14)"></div><div style="aspect-ratio:1;border-radius:24%;background:rgba(255,255,255,.14)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div style="height:44vh;background:linear-gradient(#1b1f3d 0%,#5a4a5e 38%,#e9c9ae 72%,#F5EEE2 100%);display:flex;align-items:flex-end;justify-content:center;padding-bottom:4vh;box-sizing:border-box"><span style="font:700 clamp(22px,2.2vw,30px)/1 Gaegu,cursive;color:#4a2e22">…and in the morning</span></div>
+
+<section id="critters" style="padding:clamp(48px,8vw,120px) clamp(16px,5vw,72px) clamp(64px,9vw,140px);display:flex;flex-direction:column;align-items:center;gap:clamp(28px,4vw,56px)">
+  <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;max-width:1000px">
+    <div style="font:700 clamp(19px,1.7vw,24px)/1 Gaegu,cursive;color:#5E7F4A">sixteen critters · everyone picks their own</div>
+    <h2 style="margin:0;font:400 clamp(48px,7.6vw,128px)/.9 'Young Serif',Georgia,serif;letter-spacing:-.025em;text-wrap:balance">A field guide to your friends.</h2>
+  </div>
+  <div style="width:100%;max-width:1180px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));filter:drop-shadow(0 30px 40px rgba(60,40,20,.22));transform:rotate(-.6deg)">
+    <div style="position:relative;background:#fbf6ec;border-radius:{{ pageL }};padding:clamp(20px,3vw,40px);display:flex;flex-direction:column;gap:12px;box-shadow:inset -18px 0 30px -24px rgba(60,40,20,.35)">
+      <div style="display:flex;justify-content:space-between;font:700 18px/1 Gaegu,cursive;color:#8a7d70"><span>plate {{ plate }}</span><span>kithfield, vol. i</span></div>
+      <div style="position:relative;height:clamp(260px,30vw,400px);border-radius:16px;background:{{ fgTint }};overflow:hidden;transition:background .35s"><kf-art scene="stage" kind="{{ pick }}" style="position:absolute;inset:0;width:100%;height:100%"></kf-art></div>
+      <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap"><span style="font:400 clamp(44px,5vw,72px)/1 'Young Serif',Georgia,serif;letter-spacing:-.02em">{{ fgName }}</span><span style="font:700 clamp(19px,1.7vw,24px)/1 Gaegu,cursive;color:#7a3f22">{{ fgLatin }}</span></div>
+    </div>
+    <div style="position:relative;background:#fbf6ec;background-image:repeating-linear-gradient(transparent 0 37px,rgba(94,127,74,.17) 37px 38px);border-radius:{{ pageR }};padding:clamp(24px,3.4vw,48px);display:flex;flex-direction:column;gap:22px;box-shadow:inset 18px 0 30px -24px rgba(60,40,20,.35)">
+      <div style="display:flex;flex-direction:column;gap:4px"><span style="font:600 12px/1 -apple-system,system-ui;letter-spacing:.08em;text-transform:uppercase;color:#8a7d70">Often seen</span><span style="font:700 clamp(26px,2.6vw,36px)/1.12 Gaegu,cursive">{{ fgSeen }}</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><span style="font:600 12px/1 -apple-system,system-ui;letter-spacing:.08em;text-transform:uppercase;color:#8a7d70">Shows care by</span><span style="font:700 clamp(26px,2.6vw,36px)/1.12 Gaegu,cursive">{{ fgCare }}</span></div>
+      <div style="display:flex;flex-direction:column;gap:4px"><span style="font:600 12px/1 -apple-system,system-ui;letter-spacing:.08em;text-transform:uppercase;color:#8a7d70">When it's quiet</span><span style="font:700 clamp(26px,2.6vw,36px)/1.12 Gaegu,cursive">{{ fgQuiet }}</span></div>
+      <div style="margin-top:auto;font:14px/1.5 -apple-system,system-ui;color:#5b5048;max-width:420px">Your critter lives in your cottage, naps when you're busy and perks up when you're back. Change coats, outfits and markings any time.</div>
+    </div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:14px 12px;max-width:1080px">
+    <sc-for list="{{ cast }}" as="cr" hint-placeholder-count="16">
+      <button onClick="{{ cr.onClick }}" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:0;cursor:pointer;color:#2a221d">
+        <kf-art scene="avatar" kind="{{ cr.kind }}" style="width:58px;height:58px;border-radius:29px;overflow:hidden;box-shadow:{{ cr.ring }};transform:{{ cr.lift }};transition:transform .25s,box-shadow .25s"></kf-art>
+        <span style="font:700 16px/1 Gaegu,cursive;opacity:{{ cr.op }}">{{ cr.name }}</span>
+      </button>
+    </sc-for>
+  </div>
+</section>
+
+<section id="rules" data-kf="rules" style="background:#E6EDD8;padding:clamp(64px,9vw,140px) clamp(16px,5vw,72px);display:flex;justify-content:center">
+  <div style="width:100%;max-width:1180px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:clamp(36px,6vw,90px);align-items:center">
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div style="font:700 clamp(19px,1.7vw,24px)/1 Gaegu,cursive;color:#3f5a31">written into the code</div>
+      <h2 style="margin:0;font:400 clamp(52px,8vw,132px)/.88 'Young Serif',Georgia,serif;letter-spacing:-.025em">House rules.</h2>
+      <p style="margin:0;font:400 clamp(16px,1.35vw,20px)/1.5 -apple-system,system-ui;color:#3a4a30;max-width:440px;text-wrap:pretty">Kithfield is built to be put down. Nobody's counting, the farm never dies, and the code is open so you can check.</p>
+      <a href="https://github.com/oddeggs/kithfield" style="align-self:flex-start;height:48px;padding:0 20px;border-radius:24px;background:#2a221d;color:#F5EEE2;display:flex;align-items:center;gap:8px;font:600 15px/1 -apple-system,system-ui;text-decoration:none">Read the source on GitHub</a>
+    </div>
+    <div style="position:relative;justify-self:center;width:min(100%,520px)">
+      <div style="position:absolute;left:50%;top:-14px;width:120px;height:30px;transform:translateX(-50%) rotate(-3deg);background:rgba(232,180,78,.55);z-index:2"></div>
+      <div style="position:relative;background:#fbf6ec;background-image:repeating-linear-gradient(transparent 0 45px,rgba(94,127,74,.18) 45px 46px);border-radius:6px;padding:40px clamp(24px,3vw,40px) 34px;transform:rotate(-1.4deg);box-shadow:0 30px 50px -24px rgba(40,50,30,.45);display:flex;flex-direction:column;gap:8px;font:700 clamp(28px,2.7vw,36px)/1.28 Gaegu,cursive">
+        <span style="font-size:20px;color:#7a6a5c">we'll never:</span>
+        <sc-for list="{{ nevers }}" as="nv" hint-placeholder-count="5"><span style="position:relative;align-self:flex-start">{{ nv.t }}<span style="position:absolute;left:-4px;right:-6px;top:54%;height:3px;border-radius:2px;background:#c4523a;transform-origin:0 50%;transform:{{ nv.tr }};transition:transform .5s cubic-bezier(.3,.7,.3,1) {{ nv.d }}"></span></span></sc-for>
+        <span style="font-size:20px;color:#7a6a5c;margin-top:12px">we'll always:</span>
+        <span style="color:#3f5a31">let quiet friends doze</span><span style="color:#3f5a31">welcome you back</span><span style="color:#3f5a31">keep the code open</span>
+      </div>
+      <div style="position:absolute;right:-12px;bottom:-40px;width:150px;display:flex;flex-direction:column;align-items:center;gap:0;transform:rotate(3deg)"><kf-art scene="stage" kind="owl" state="sleep" style="width:150px;height:150px"></kf-art><span style="font:700 16px/1.1 Gaegu,cursive;text-align:center;color:#3a4a30">Otis read these and went back to sleep.</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="people" style="padding:clamp(64px,9vw,140px) clamp(16px,5vw,72px);display:flex;justify-content:center">
+  <div style="width:100%;max-width:1180px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:clamp(36px,6vw,90px);align-items:center">
+    <div style="position:relative;height:clamp(420px,46vw,620px)">
+      <div style="position:absolute;left:0;top:0;width:76%;height:86%;border-radius:22px;overflow:hidden;transform:rotate(-2deg);box-shadow:0 30px 50px -24px rgba(60,40,20,.5)"><kf-art scene="sofa" style="position:absolute;inset:0;width:100%;height:100%"></kf-art></div>
+      <div style="position:absolute;right:0;bottom:0;width:52%;height:46%;border-radius:20px;overflow:hidden;transform:rotate(3deg);box-shadow:0 0 0 6px #F5EEE2,0 30px 50px -24px rgba(60,40,20,.5)"><kf-art scene="apart" style="position:absolute;inset:0;width:100%;height:100%"></kf-art></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div style="font:700 clamp(19px,1.7vw,24px)/1 Gaegu,cursive;color:#7a3f22">the people behind the critters</div>
+      <h2 style="margin:0;font:400 clamp(48px,6.6vw,108px)/.9 'Young Serif',Georgia,serif;letter-spacing:-.025em;text-wrap:balance">Made for your actual friends.</h2>
+      <p style="margin:0;font:400 clamp(16px,1.35vw,20px)/1.5 -apple-system,system-ui;color:#3a302a;max-width:460px;text-wrap:pretty">The ones you love and forget to text back. The one three time zones away. The group that's been saying "we should hang out" since March.</p>
+      <p style="margin:0;font:400 clamp(16px,1.35vw,20px)/1.5 -apple-system,system-ui;color:#3a302a;max-width:460px;text-wrap:pretty">Across the street or across the world, everyone keeps the same little farm going together.</p>
+    </div>
+  </div>
+</section>
+
+<div style="height:36vh;background:linear-gradient(#F5EEE2 0%,#e9c9ae 30%,#5a4a5e 66%,#1b1f3d 100%);display:flex;align-items:flex-start;justify-content:center;padding-top:6vh;box-sizing:border-box"><span style="font:700 clamp(22px,2.2vw,30px)/1 Gaegu,cursive;color:#4a2e22">see you at the fire</span></div>
+
+<section id="join" style="position:relative;min-height:max(100vh,720px);background:#1b1f3d;overflow:hidden;display:flex;flex-direction:column">
+  <kf-art scene="evening" progress="0.8" style="position:absolute;left:50%;bottom:0;width:max(100%,1180px);aspect-ratio:1.6;transform:translateX({{ joinX }})"></kf-art>
+  <div style="position:absolute;inset:0;background:linear-gradient(rgba(27,31,61,.92) 0%,rgba(27,31,61,.55) 36%,rgba(27,31,61,0) 58%,rgba(20,18,30,0) 80%,rgba(20,18,30,.85) 100%)"></div>
+  <div style="position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:18px;padding:clamp(110px,15vh,170px) 20px 0;color:#f6eedb">
+    <div style="font:700 clamp(19px,1.7vw,24px)/1 Gaegu,cursive;color:#f2c25a">opening spring 2027 · iPhone and Android</div>
+    <h2 style="margin:0;font:400 clamp(56px,9vw,148px)/.88 'Young Serif',Georgia,serif;letter-spacing:-.025em">Save me a cottage.</h2>
+    <p style="margin:0;font:400 clamp(16px,1.35vw,20px)/1.5 -apple-system,system-ui;color:#e6dccb;max-width:480px;text-wrap:pretty">Leave your email and we'll keep a cottage aside for you and your people. One letter when the gate opens. That's it.</p>
+    <form onSubmit="{{ onJoin }}" style="display:flex;gap:8px;width:min(100%,480px);margin-top:6px;flex-wrap:wrap">
+      <input type="email" required placeholder="you@example.com" style="flex:1 1 220px;min-width:0;height:56px;border-radius:28px;border:1.5px solid rgba(246,238,219,.3);background:rgba(20,22,44,.55);color:#f6eedb;padding:0 22px;font:400 16px/1 -apple-system,system-ui;outline:none;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)">
+      <button type="submit" style="flex:0 0 auto;height:56px;padding:0 26px;border-radius:28px;border:0;background:#E8B44E;color:#2a221d;font:600 16px/1 -apple-system,system-ui;cursor:pointer;box-shadow:0 8px 24px -8px rgba(232,180,78,.7)">{{ joinLabel }}</button>
+    </form>
+    <div style="font:700 18px/1.2 Gaegu,cursive;color:#f2c25a;min-height:22px">{{ joinNote }}</div>
+  </div>
+  <div style="flex:1"></div>
+  <footer style="position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;padding:28px clamp(16px,4vw,48px) 30px;color:rgba(246,238,219,.82);font:13.5px/1.4 -apple-system,system-ui">
+    <span style="display:flex;align-items:center;gap:8px;color:#f6eedb"><kf-art scene="appicon" style="width:24px;height:24px;border-radius:7px;overflow:hidden"></kf-art>Made by oddeggs, the makers of 6pm.</span>
+    <div style="flex:1"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px"><a href="17%20Website.dc.html#17-08" style="color:inherit">Privacy</a><a href="17%20Website.dc.html#17-09" style="color:inherit">Terms</a><a href="17%20Website.dc.html#17-10" style="color:inherit">Support</a><a href="17%20Website.dc.html#17-13" style="color:inherit">Press kit</a><a href="https://github.com/oddeggs/kithfield" style="color:inherit">GitHub</a></div>
+  </footer>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const FG = {
+  mouse: ['Pim', 'mus minimus', 'up at 1am, in the group chat', 'four-second voice notes', 'tucked in a teacup'],
+  rabbit: ['June', 'lepus helloius', 'first to say hi', 'planting every seed', 'tending the clover'],
+  tortoise: ['Sage', 'testudo eventually', 'replying on Sundays', 'long, lovely paragraphs', 'reading by the pond'],
+  fox: ['Rue', 'vulpes plannerus', 'planning three things at once', 'booking the table', 'mapping new paths'],
+  duck: ['Dot', 'anas cloudspotter', 'sending photos of clouds', 'a dewdrop on everything', 'floating, unbothered'],
+  bear: ['Huck', 'ursus napalot', 'napping, honestly', 'the best hugs, eventually', 'hibernating, happily'],
+  hedgehog: ['Pip', 'erinaceus snackus', 'arriving with snacks', 'bringing the plan', 'curled up, prickles down'],
+  otter: ['Ollie', 'lutra stoneholder', 'down by the river', 'saving you the good stone', 'drifting on its back'],
+  frog: ['Fig', 'rana photographa', 'sending all the photos', 'turning up, rain or shine', 'sitting on a lily pad'],
+  capybara: ['Yuzu', 'hydro calmius', 'calm in every storm', 'making everyone sit down', 'having a long soak'],
+  cat: ['Miso', 'felis 3am', 'quiet, then suddenly not', 'fireflies at three in the morning', 'in a sunbeam'],
+  owl: ['Otis', 'bubo dozealot', 'dozing, mostly', 'coming back wonderful', 'asleep in the hollow'],
+  badger: ['Bram', 'meles fixitus', 'fixing something', 'turning up with tools', 'digging a better burrow'],
+  mole: ['Mo', 'talpa nightshiftus', 'working nights', 'little notes, no reply needed', 'underground, thinking of you'],
+  raccoon: ['Rocco', 'procyon findsitall', 'running the travelling cart', 'finding you the perfect thing', 'counting buttons'],
+  sheep: ['Bea', 'ovis voicenotus', 'mid voice note', 'long, warm voice notes', 'knitting something for you']
+};
+const ORDER = ['mouse', 'rabbit', 'tortoise', 'fox', 'duck', 'bear', 'hedgehog', 'otter', 'frog', 'capybara', 'cat', 'owl', 'badger', 'mole', 'raccoon', 'sheep'];
+const TINT = { mouse: '#efe3dc', rabbit: '#f2e0d4', tortoise: '#e3e6cf', fox: '#f3dcc8', duck: '#f4ecd0', bear: '#ecdccb', hedgehog: '#efdfca', otter: '#e3dcd2', frog: '#e2ead0', capybara: '#efe0c9', cat: '#ece4dc', owl: '#efe2c8', badger: '#e4e2df', mole: '#e6dde4', raccoon: '#e3e0dc', sheep: '#ece6da' };
+const CAM = [[0, .5, .5, 1], [.05, .5, .52, 1], [.13, .6, .7, 1.1], [.22, .72, .7, 1.12], [.29, .8, .74, 1.32], [.39, .8, .74, 1.32], [.45, .445, .8, 1.36], [.56, .46, .8, 1.3], [.64, .58, .82, 1.18], [.8, .58, .82, 1.14], [.9, .5, .56, 1], [1, .5, .56, 1]];
+const sm = u => { u = Math.min(1, Math.max(0, u)); return u * u * (3 - 2 * u); };
+class Component extends DCLogic {
+  state = { pick: 'owl', w: 1280, inRules: false, joined: false };
+  q(n) { return document.querySelector('[data-kf="' + n + '"]'); }
+  componentDidMount() {
+    this.onScroll = () => { if (!this.raf) this.raf = requestAnimationFrame(() => { this.raf = 0; this.frame(); }); };
+    this.onResize = () => { this.layout(); this.frame(); };
+    this.fine = window.matchMedia && matchMedia('(pointer:fine)').matches;
+    this.onMove = e => { this.mx = e.clientX; this.my = e.clientY; if (this.fx == null) { this.fx = this.mx; this.fy = this.my; } this.loopFly(); };
+    addEventListener('scroll', this.onScroll, { passive: true, capture: true }); addEventListener('resize', this.onResize); if (this.fine) addEventListener('pointermove', this.onMove);
+    this.io = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting && !this.state.inRules) this.setState({ inRules: true }); }), { threshold: .3 });
+    if (this.q('rules')) { this.io.observe(this.q('rules')); this.obs = true; }
+    this.layout(); this.frame(); this.t1 = setTimeout(this.onResize, 500);
+  }
+  componentDidUpdate() { if (this.io && !this.obs && this.q('rules')) { this.io.observe(this.q('rules')); this.obs = true; } }
+  componentWillUnmount() { removeEventListener('scroll', this.onScroll, true); removeEventListener('resize', this.onResize); removeEventListener('pointermove', this.onMove); this.io && this.io.disconnect(); cancelAnimationFrame(this.raf); cancelAnimationFrame(this.fr); clearTimeout(this.t1); }
+  layout() { const vw = innerWidth, vh = innerHeight, W = Math.max(vw, vh * 1.6), H = W / 1.6; Object.assign(this, { vw, vh, W, H }); const el = this.q('world'); if (el) { el.style.width = W + 'px'; el.style.height = H + 'px'; } if (Math.abs(vw - this.state.w) > 2) this.setState({ w: vw }); }
+  frame() {
+    const pin = this.q('pin'), wd = this.q('world'), st = this.q('stage'), nav = this.q('nav'); if (!pin || !wd || !st || !this.W) return;
+    const r = pin.getBoundingClientRect(), vw = this.vw, vh = this.vh, p = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - vh))), n = vw < 760;
+    this.inPin = r.top < vh * .5 && r.bottom > vh * .5;
+    const art = this.q('art'); if (art) { art.p = p; art.dirty = true; }
+    let i = 1; while (i < CAM.length - 1 && p > CAM[i][0]) i++; const A = CAM[i - 1], B = CAM[i], u = sm((p - A[0]) / ((B[0] - A[0]) || 1));
+    const hero = 1 - sm(p / .06), fx = A[1] + (B[1] - A[1]) * u - (n ? .08 * hero : 0), fy = A[2] + (B[2] - A[2]) * u, z = A[3] + (B[3] - A[3]) * u;
+    const tx = n ? .5 : .5 + .14 * (1 - hero), ty = n ? .5 + .17 * (1 - hero) : .5 + .06 * (1 - hero);
+    let X = tx * vw - z * fx * this.W, Y = ty * vh - z * fy * this.H; X = Math.min(0, Math.max(vw - z * this.W, X)); Y = Math.min(0, Math.max(vh - z * this.H, Y));
+    wd.style.transform = `translate3d(${X.toFixed(1)}px,${Y.toFixed(1)}px,0) scale(${z.toFixed(4)})`;
+    const ann = wd.querySelector('[data-ann]'); if (ann) ann.style.opacity = String(1 - sm(p / .03));
+    st.querySelectorAll('[data-a]').forEach(el => { const a = +el.dataset.a, b = +el.dataset.b, o = Math.max(0, Math.min(1, (p - a) / .022 + 1, (b - p) / .022 + 1)); el.style.opacity = o.toFixed(3); el.style.visibility = o < .01 ? 'hidden' : 'visible'; el.style.transform = `translateY(${((1 - o) * (p < a ? 30 : -30)).toFixed(1)}px)`; });
+    st.querySelectorAll('[data-tick]').forEach(el => { const on = p > +el.dataset.tick; el.style.background = on ? '#5E7F4A' : 'rgba(255,250,242,.6)'; el.style.color = on ? '#fff' : 'transparent'; });
+    const vP = st.querySelector('[data-veil="paper"]'), vN = st.querySelector('[data-veil="night"]');
+    if (vP) vP.style.opacity = String((1 - hero) * sm((.575 - p) / .03)); if (vN) vN.style.opacity = String(sm((p - .575) / .03));
+    const nightOn = p > .575;
+    const ph = st.querySelector('[data-phone]'); if (ph) { const e = sm((p - .86) / .07); ph.style.transform = `translateY(${((1 - e) * 130).toFixed(1)}%) rotate(${(4 - e * 1.5).toFixed(2)}deg)`; }
+    if (nav) { const past = r.bottom < 64, onNight = !past && nightOn && r.top <= 0; nav.style.color = onNight ? '#f6eedb' : '#2a221d'; nav.style.background = past ? 'rgba(245,238,226,.84)' : 'transparent'; nav.style.backdropFilter = past ? 'blur(16px) saturate(1.4)' : 'none'; nav.style.webkitBackdropFilter = nav.style.backdropFilter; nav.style.boxShadow = past ? '0 1px 0 rgba(42,34,29,.08)' : 'none'; }
+    const f = this.q('fly'); if (f) f.style.opacity = this.fine && this.inPin && this.mx != null ? '1' : '0';
+  }
+  loopFly() { if (this.fr) return; const step = () => { const f = this.q('fly'); if (!f) { this.fr = 0; return; } this.fx += (this.mx + 16 - this.fx) * .1; this.fy += (this.my - 22 - this.fy) * .1; const bob = Math.sin(performance.now() / 260) * 3; f.style.transform = `translate3d(${(this.fx - 23).toFixed(1)}px,${(this.fy - 23 + bob).toFixed(1)}px,0) scaleX(${this.mx < this.fx - 16 ? -1 : 1})`; f.style.opacity = this.inPin ? '1' : '0'; this.fr = requestAnimationFrame(step); }; this.fr = requestAnimationFrame(step); }
+  renderVals() {
+    const S = this.state, n = S.w < 760, d = FG[S.pick] || FG.owl;
+    return {
+      wide: S.w >= 980,
+      cL: n ? '20px' : 'clamp(24px,6vw,96px)', cT: n ? '128px' : '0', cB: n ? 'auto' : '0', cW: n ? 'calc(100% - 40px)' : 'min(520px,40vw)', cW2: n ? 'calc(100% - 40px)' : 'min(520px,40vw)', cJ: n ? 'flex-start' : 'center',
+      veilPaper: n ? 'linear-gradient(180deg,rgba(245,238,226,.94) 0%,rgba(245,238,226,.82) 38%,rgba(245,238,226,0) 60%)' : 'linear-gradient(90deg,rgba(245,238,226,.92) 0%,rgba(245,238,226,.72) 30%,rgba(245,238,226,0) 52%)',
+      veilNight: n ? 'linear-gradient(180deg,rgba(20,22,44,.92) 0%,rgba(20,22,44,.75) 40%,rgba(20,22,44,0) 62%)' : 'linear-gradient(90deg,rgba(20,22,44,.88) 0%,rgba(20,22,44,.66) 30%,rgba(20,22,44,0) 54%)',
+      phR: n ? 'calc(50% - 115px)' : 'clamp(24px,9vw,160px)', phB: n ? '-120px' : '-40px', phW: n ? '230px' : 'clamp(240px,21vw,320px)',
+      pageL: S.w < 980 ? '18px 18px 0 0' : '18px 6px 6px 18px', pageR: S.w < 980 ? '0 0 18px 18px' : '6px 18px 18px 6px',
+      plate: String(ORDER.indexOf(S.pick) + 1).padStart(2, '0'), pick: S.pick, fgName: d[0], fgLatin: d[1], fgSeen: d[2], fgCare: d[3], fgQuiet: d[4], fgTint: TINT[S.pick] || '#efe2c8',
+      cast: ORDER.map(k => ({ kind: k, name: FG[k][0], ring: k === S.pick ? '0 0 0 3px #F5EEE2, 0 0 0 5.5px #2a221d' : '0 0 0 1px rgba(42,34,29,.12)', lift: k === S.pick ? 'translateY(-4px)' : 'none', op: k === S.pick ? '1' : '.7', onClick: () => this.setState({ pick: k }) })),
+      nevers: ['streaks', 'read receipts', '"seen 3 days ago"', 'ads', 'selling your data'].map((t, i) => ({ t, tr: S.inRules ? 'scaleX(1) rotate(-2deg)' : 'scaleX(0) rotate(-2deg)', d: (0.3 + i * 0.18).toFixed(2) + 's' })),
+      joinX: n ? '-60%' : '-50%',
+      onJoin: e => { e.preventDefault(); this.setState({ joined: true }); },
+      joinLabel: S.joined ? 'Saved' : 'Save my cottage', joinNote: S.joined ? "Done. Your cottage has a lantern in the window." : ''
+    };
+  }
+}
+</script>
+</body>
+</html>
