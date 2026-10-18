@@ -2,7 +2,9 @@
  * Sending and showing photos, video, voice notes and files. See `README.md` beside this file.
  */
 export {
+  clearMediaForSignOut,
   MediaUploads,
+  pendingUploadCount,
   useMediaUrl,
   useUpload,
   useUploads,

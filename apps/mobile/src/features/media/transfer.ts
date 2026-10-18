@@ -88,11 +88,16 @@ export async function transferItem(
     if (target === null) throw new Error('no target');
 
     if (target.upload === 'single') {
+      // The URL is signed for exactly these headers: create only, never overwrite.
       const sent = await transport.put(target.url, item.uri, {
-        headers: { 'content-type': item.mime },
+        headers: { 'content-type': item.mime, 'if-none-match': '*' },
         onProgress: hooks.progress,
         signal: hooks.signal,
       });
+      // Already there: an earlier try landed and only its answer was lost.
+      if (sent.status === 412) {
+        return { ...item, phase: 'done', key: target.key, sentBytes: item.bytes, failure: null };
+      }
       if (sent.status >= 400 && sent.status < 500) throw new Refused();
       if (sent.status !== 200) throw new Error(`PUT answered ${sent.status}`);
       return { ...item, phase: 'done', key: target.key, sentBytes: item.bytes, failure: null };
@@ -138,10 +143,9 @@ export async function transferItem(
   } catch (error) {
     if (hooks.signal.aborted) return { ...item, phase: 'waiting' };
     if (error instanceof Refused) return refused(item, now());
-    // Signed out for now: the session comes back, and the item waits for it.
-    if (error instanceof ApiError && !isTransient(error) && error.status !== 401) {
-      return failed(item, failureOf(error));
-    }
+    // Signed out: nothing more goes up for this person; the item waits to be tried again by hand.
+    if (error instanceof ApiError && error.status === 401) return failed(item, 'signed_out');
+    if (error instanceof ApiError && !isTransient(error)) return failed(item, failureOf(error));
     return later(item, now());
   }
 }

@@ -1,170 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { LIMITS, type UploadUrlRequest, type UploadUrlResponse } from '@kithfield/contracts';
 
 import { ApiError } from '../../data/api-client';
-import type { MediaApi } from './media-api';
-import type { PutOptions, Transport } from './transport';
-import type { LocalMedia, UploadBatch } from './upload-model';
-import type { UploadStore } from './upload-store';
-import { Uploader } from './uploader';
+import {
+  type FakeDisk,
+  type FakeServer,
+  MB,
+  type MemoryStore,
+  PART,
+  type Sent,
+  settle,
+  World,
+} from './queue-fakes.test-data';
+import type { LocalMedia } from './upload-model';
 
-/*
- * The queue against a stand-in of the two network edges (the API and R2) and the disk. The
- * stand-ins keep what a real server would: objects, parts and their ETags.
- */
-
-const PART = 10 * 1024 * 1024;
-const MB = 1024 * 1024;
-
-type PutAnswer = 'ok' | 'refuse' | 'drop' | 'hang';
-
-class FakeServer {
-  objects = new Map<string, number>();
-  parts = new Map<string, Map<number, string>>();
-  puts: string[] = [];
-  asked: UploadUrlRequest[] = [];
-  /** What the next PUTs to URLs matching a pattern answer, in order. */
-  script: { match: RegExp; answer: PutAnswer }[] = [];
-  refuseUploadUrl: ApiError | null = null;
-  private n = 0;
-
-  readonly api: Pick<MediaApi, 'uploadUrl' | 'complete'> = {
-    uploadUrl: (req) => {
-      this.asked.push(req);
-      if (this.refuseUploadUrl) return Promise.reject(this.refuseUploadUrl);
-      const key = `farm/${req.farm}/0000000${++this.n}-0000-4000-8000-000000000000`;
-      const expiresAt = Date.now() + 3600_000;
-      if (req.bytes <= LIMITS.multipartAboveBytes) {
-        return Promise.resolve({ upload: 'single', key, url: `https://r2/${key}`, expiresAt });
-      }
-      const uploadId = `up${this.n}`;
-      this.parts.set(uploadId, new Map());
-      const count = Math.ceil(req.bytes / PART);
-      const parts = Array.from({ length: count }, (_, i) => ({
-        part: i + 1,
-        url: `https://r2/${key}?uploadId=${uploadId}&part=${i + 1}`,
-      }));
-      return Promise.resolve({
-        upload: 'multipart',
-        key,
-        uploadId,
-        partBytes: PART,
-        parts,
-        expiresAt,
-      } satisfies UploadUrlResponse);
-    },
-    complete: ({ key, uploadId, parts }) => {
-      const have = this.parts.get(uploadId);
-      if (have === undefined || parts.some((p) => have.get(p.part) !== p.etag)) {
-        return Promise.reject(new ApiError(409, 'conflict'));
-      }
-      this.objects.set(key, parts.length);
-      return Promise.resolve({ key });
-    },
-  };
-
-  put(url: string, bytes: number, options: PutOptions) {
-    this.puts.push(url);
-    const step = this.script.findIndex((s) => s.match.test(url));
-    const answer = step >= 0 ? (this.script.splice(step, 1)[0]?.answer ?? 'ok') : 'ok';
-    if (answer === 'hang') {
-      return new Promise<never>((_resolve, reject) =>
-        options.signal.addEventListener('abort', () => reject(new Error('aborted'))),
-      );
-    }
-    if (answer === 'drop') return Promise.reject(new Error('the network went'));
-    if (answer === 'refuse') return Promise.resolve({ status: 403, etag: null });
-    options.onProgress(bytes);
-    const query = new URL(url).searchParams;
-    const uploadId = query.get('uploadId');
-    if (uploadId !== null) {
-      const etag = `"etag-${uploadId}-${query.get('part')}"`;
-      this.parts.get(uploadId)?.set(Number(query.get('part')), etag);
-      return Promise.resolve({ status: 200, etag });
-    }
-    this.objects.set(new URL(url).pathname.slice(1), bytes);
-    return Promise.resolve({ status: 200, etag: '"single"' });
-  }
-}
-
-/** Files by URI with their sizes; a slice is a new file of its length. */
-class FakeDisk implements Transport {
-  files = new Map<string, number>();
-  constructor(private readonly server: FakeServer) {}
-  put(url: string, uri: string, options: PutOptions) {
-    return this.server.put(url, this.files.get(uri) ?? 0, options);
-  }
-  slice(uri: string, offset: number, length: number) {
-    const part = `${uri}#${offset}`;
-    this.files.set(part, length);
-    return Promise.resolve(part);
-  }
-  size(uri: string) {
-    return this.files.get(uri) ?? null;
-  }
-  remove(uri: string) {
-    this.files.delete(uri);
-  }
-}
-
-class MemoryStore implements UploadStore {
-  saved: UploadBatch[] = [];
-  load() {
-    return Promise.resolve(structuredClone(this.saved));
-  }
-  save(batches: readonly UploadBatch[]) {
-    this.saved = structuredClone([...batches]);
-    return Promise.resolve();
-  }
-}
-
+let world: World;
 let server: FakeServer;
 let disk: FakeDisk;
 let store: MemoryStore;
-let sent: { farm: string; kind: string; payload: unknown }[];
-let ids = 0;
-
-const uploader = () =>
-  new Uploader({
-    api: server.api,
-    transport: disk,
-    store,
-    now: () => Date.now(),
-    newId: () => `id${++ids}`,
-    send: (farm, kind, payload) => {
-      sent.push({ farm, kind, payload });
-      return Promise.resolve({ status: 'queued', opId: '0190a0b0-0000-7000-8000-000000000001' });
-    },
-    shrink: (item, longSide) => {
-      const uri = `${item.uri}@${longSide}`;
-      disk.files.set(uri, Math.floor(item.bytes / 2));
-      return Promise.resolve({ ...item, uri, bytes: Math.floor(item.bytes / 2), width: longSide });
-    },
-  });
-
-const photo = (name: string, bytes = 300_000): LocalMedia => {
-  disk.files.set(`file://${name}`, bytes);
-  return {
-    uri: `file://${name}`,
-    kind: 'photo',
-    mime: 'image/jpeg',
-    bytes,
-    width: 2048,
-    height: 1536,
-  };
-};
-
-/** Lets every pending promise and due timer run. */
-const settle = async (ms = 0) => {
-  for (let i = 0; i < 20; i++) await jest.advanceTimersByTimeAsync(i === 0 ? ms : 0);
-};
+let sent: Sent[];
+const uploader = () => world.uploader();
+const photo = (name: string, bytes?: number) => world.photo(name, bytes);
 
 beforeEach(() => {
   jest.useFakeTimers();
-  server = new FakeServer();
-  disk = new FakeDisk(server);
-  store = new MemoryStore();
-  sent = [];
+  world = new World();
+  ({ server, disk, store, sent } = world);
 });
 afterEach(() => {
   jest.useRealTimers();
@@ -316,5 +176,100 @@ describe('the upload queue', () => {
     await settle();
     expect(q.getSnapshot()[0]?.items[0]?.failure).toBe('unreadable');
     expect(server.asked).toEqual([]);
+  });
+});
+
+describe('a single PUT', () => {
+  it('asks R2 to create only, and takes “already there” as done', async () => {
+    const q = uploader();
+    server.script = [{ match: /r2/, answer: 'exists' }];
+    await q.enqueue('farm1', { command: 'media' }, [photo('a.jpg')]);
+    await settle();
+    expect(server.headers[0]).toMatchObject({ 'content-type': 'image/jpeg', 'if-none-match': '*' });
+    expect(sent).toHaveLength(1);
+  });
+});
+
+describe('sending the message', () => {
+  it('keeps the op id with the message before sending, so a send cut short repeats it', async () => {
+    const first = uploader();
+    world.hangSends = true;
+    await first.enqueue('farm1', { command: 'media' }, [photo('a.jpg')]);
+    await settle();
+    // The app is killed in the middle of the send: whether it reached the outbox is unknown.
+    expect(sent).toHaveLength(1);
+    const opId = sent[0]?.opId;
+    expect(store.saved[0]).toMatchObject({ phase: 'uploading', opId });
+
+    // The next launch sends it again with the same op id, which the farm applies once.
+    world.hangSends = false;
+    const second = uploader();
+    await second.start();
+    await settle();
+    expect(sent.map((s) => s.opId)).toEqual([opId, opId]);
+    expect(store.saved[0]).toMatchObject({ phase: 'sent', opId });
+  });
+});
+
+describe('signing out', () => {
+  it('stops at a 401 instead of retrying', async () => {
+    const q = uploader();
+    server.refuseUploadUrl = new ApiError(401, 'unauthorized');
+    await q.enqueue('farm1', { command: 'media' }, [photo('a.jpg')]);
+    await settle(10 * 60_000);
+    expect(server.asked).toHaveLength(1);
+    expect(q.getSnapshot()[0]?.items[0]?.failure).toBe('signed_out');
+  });
+
+  it('clears the queue and its files, and counts what was still unsent', async () => {
+    const q = uploader();
+    server.script = [
+      { match: /r2/, answer: 'hang' },
+      { match: /r2/, answer: 'hang' },
+    ];
+    await q.enqueue('farm1', { command: 'media' }, [photo('a.jpg')]);
+    await q.enqueue('farm1', { command: 'media' }, [photo('b.jpg')]);
+    await settle();
+    expect(q.pendingCount()).toBe(2);
+    await q.clear();
+    expect(q.getSnapshot()).toEqual([]);
+    expect(q.pendingCount()).toBe(0);
+    expect(store.saved).toEqual([]);
+    expect(disk.files.has('file://a.jpg')).toBe(false);
+  });
+});
+
+describe('cancelling', () => {
+  it('aborts the item’s upload on the server too', async () => {
+    const q = uploader();
+    const big = 55 * MB;
+    disk.files.set('file://big.mov', big);
+    server.script = [{ match: /part=2/, answer: 'hang' }];
+    const id = await q.enqueue('farm1', { command: 'media' }, [
+      { uri: 'file://big.mov', kind: 'video', mime: 'video/mp4', bytes: big },
+    ]);
+    await settle();
+    const item = q.getSnapshot()[0]?.items[0];
+    q.cancel(id, item?.id);
+    await settle();
+    expect(server.aborted).toEqual([
+      { key: expect.stringMatching(/^farm\/farm1\//), uploadId: expect.stringMatching(/^up/) },
+    ]);
+  });
+});
+
+describe('failed messages', () => {
+  it('are let go a week after they failed, with their files', async () => {
+    const q = uploader();
+    server.refuseUploadUrl = new ApiError(413, 'too_large');
+    await q.enqueue('farm1', { command: 'media' }, [photo('a.jpg')]);
+    await settle();
+    expect(q.getSnapshot()).toHaveLength(1);
+    await settle(8 * 24 * 60 * 60_000);
+    // Anything that wakes the queue lets the old failure go.
+    await q.enqueue('farm1', { command: 'media' }, [photo('b.jpg')]);
+    await settle();
+    expect(q.getSnapshot().map((b) => b.items[0]?.uri)).toEqual(['file://b.jpg']);
+    expect(disk.files.has('file://a.jpg')).toBe(false);
   });
 });

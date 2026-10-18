@@ -8,7 +8,7 @@ import { SlowUploadNotice, UploadStatusLine } from './upload-status';
 import type { UploadBatch, UploadItem } from './upload-model';
 
 /*
- * A message of photos on its way, as 12-06 draws it on your side of the chat: the grid of tiles
+ * A message of photos on its way, as the slow-upload state draws it on your side of the chat: the grid of tiles
  * with a ring over each item still going, the line under it, and the weak-signal card below when
  * the signal is thin. The chat draws its own bubbles; this is the reference arrangement it can
  * use as it is, or take the pieces from (`UploadProgress`, `UploadStatusLine`, `SlowUploadNotice`).

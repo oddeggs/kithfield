@@ -7,7 +7,7 @@ import { useMediaUrl, useSignedUrl } from './use-upload';
 /**
  * A photo from the farm by its media key: the sender's own copy while it is on the phone, else a
  * signed URL, cached on disk by the key (not the URL, which changes). Fades in as it decodes
- * (120 ms, as 04-14's tiles do).
+ * (120 ms, as the shared-media grid's tiles do).
  */
 export function MediaImage({
   mediaKey,

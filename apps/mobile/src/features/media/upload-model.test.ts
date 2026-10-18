@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
 import { ApiError } from '../../data/api-client';
+import { withAlpha } from './colour';
 import { ReadUrls } from './read-urls';
 import { photoSize } from './sizing';
 import {
@@ -120,5 +121,12 @@ describe('read URLs', () => {
     await jest.advanceTimersByTimeAsync(20);
     expect(await later).toBe('https://m/a');
     jest.useRealTimers();
+  });
+});
+
+describe('theme colours at an opacity', () => {
+  it('turns a token into rgba', () => {
+    expect(withAlpha('#FFFAF2', 0.3)).toBe('rgba(255,250,242,0.3)');
+    expect(() => withAlpha('red', 1)).toThrow();
   });
 });

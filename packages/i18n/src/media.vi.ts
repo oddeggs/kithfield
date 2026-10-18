@@ -14,6 +14,7 @@ export const mediaVi: ViCatalogue<typeof mediaEn> = {
   'media.failed.tooLarge': 'Tệp này lớn quá nên không gửi được. Tệp tối đa 100 MB.',
   'media.failed.notMember': 'Bạn không còn ở nông trại này nữa, nên không gửi tới đó được.',
   'media.failed.unreadable': 'Không đọc được tệp này trên điện thoại.',
+  'media.failed.signedOut': 'Hãy đăng nhập lại để gửi tệp này.',
   'media.failed.other': 'Chưa gửi được.',
   'media.retry': 'Thử lại',
   'media.lab.title': 'Phòng thử ảnh và tệp',

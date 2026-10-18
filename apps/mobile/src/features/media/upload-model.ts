@@ -36,7 +36,7 @@ export type UploadTarget =
     });
 
 /** Why an item stopped for good. */
-export type FailureReason = 'too_large' | 'not_member' | 'unreadable' | 'other';
+export type FailureReason = 'too_large' | 'not_member' | 'unreadable' | 'signed_out' | 'other';
 
 export type ItemPhase = 'waiting' | 'uploading' | 'done' | 'failed';
 
@@ -87,6 +87,8 @@ export interface UploadBatch {
   readonly sentAt: number | null;
   /** Retry the send itself, after a failure to queue it. */
   readonly retryAt: number;
+  /** When it last stopped for good (an item that can't go, or a send refused); null otherwise. */
+  readonly failedAt: number | null;
 }
 
 export const newItem = (id: string, media: LocalMedia): UploadItem => ({

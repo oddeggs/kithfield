@@ -1,14 +1,15 @@
 import type { FarmId, Seq } from '@kithfield/contracts';
-import { randomUUID } from 'expo-crypto';
+import { getRandomBytes, randomUUID } from 'expo-crypto';
 import type { DocumentPickerAsset } from 'expo-document-picker';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { useDataClient, type DataClient } from '../../data';
+import { createOpIdMaker } from '../../data/op-id';
 import { nativeMediaApi } from './native-api';
 import { encodePhoto, prepareAsset, prepareDocument, prepareVoice } from './prepare';
 import { ReadUrls } from './read-urls';
-import { nativeTransport } from './transport';
+import { nativeTransport, uploadsDirectory } from './transport';
 import type { LocalMedia, UploadBatch } from './upload-model';
 import { fileUploadStore } from './upload-store';
 import { Uploader } from './uploader';
@@ -30,7 +31,9 @@ const sharedUploader = (): Uploader =>
     store: fileUploadStore,
     now: Date.now,
     newId: randomUUID,
-    send: (farm, kind, payload) =>
+    newOpId: createOpIdMaker(getRandomBytes),
+    // The data layer picks its own op id until `client.send` takes one; then pass `opId` through.
+    sendCommand: (farm, kind, payload, _opId) =>
       client === null
         ? Promise.reject(new Error('the data layer has not started'))
         : client.send(farm, kind, payload),
@@ -126,7 +129,7 @@ export function useUploads(farm: FarmId): readonly UploadBatch[] {
   return useMemo(() => all.filter((b) => b.farm === farm), [all, farm]);
 }
 
-/** Whether a message is going up on a thin signal (12-06's notice and "Sending slowly"). */
+/** Whether a message is going up on a thin signal (the weak-signal card and "Sending slowly"). */
 export function useUploadSlow(batch: string): boolean {
   const queue = useStarted();
   return useSyncExternalStore(queue.subscribe, () => queue.isSlow(batch));
@@ -169,4 +172,22 @@ export function useMediaUrl(key: string | null): string | null {
 export function MediaUploads(): null {
   useStarted();
   return null;
+}
+
+/** Messages not yet in the farm's outbox: for the "these haven't sent" warning before signing out. */
+export async function pendingUploadCount(): Promise<number> {
+  const queue = sharedUploader();
+  await queue.start();
+  return queue.pendingCount();
+}
+
+/**
+ * Signing out, or the phone moving to another person: stops every upload, forgets the queue,
+ * deletes its files and the read URLs this person was given.
+ */
+export async function clearMediaForSignOut(): Promise<void> {
+  await sharedUploader().clear();
+  reads = null;
+  const dir = uploadsDirectory();
+  if (dir.exists) dir.delete();
 }

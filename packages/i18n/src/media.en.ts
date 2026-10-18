@@ -2,7 +2,7 @@ import type { EnCatalogue } from './catalogue-types';
 
 /**
  * Sending photos, video, voice notes and files: the progress over each item and the weak-signal
- * notice (`12 States`, 12-06), and what the upload says when something can't go. "1 of 4" counts
+ * notice (the slow-upload state in `12 States`), and what the upload says when something can't go. "1 of 4" counts
  * items on their way, never care.
  */
 export const mediaEn = {
@@ -22,6 +22,8 @@ export const mediaEn = {
   'media.failed.tooLarge': 'This one is too big to send. Files can be up to 100 MB.',
   'media.failed.notMember': 'This farm isn’t one you live on any more, so it can’t go there.',
   'media.failed.unreadable': 'This file couldn’t be read on this phone.',
+  /** After this phone was signed out: nothing goes up until someone signs in again. */
+  'media.failed.signedOut': 'Sign in again to send this.',
   'media.failed.other': 'This didn’t send.',
   'media.retry': 'Try again',
   /** The development media lab (left out of release builds). */

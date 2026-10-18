@@ -13,12 +13,13 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
+import { withAlpha } from './colour';
 import { batchCounts, itemProgress, type UploadBatch, type UploadItem } from './upload-model';
 
 /*
- * The words around a message going up (`12 States`, 12-06): the line under it ("Sending slowly ·
+ * The words around a message going up (the slow-upload state in `12 States`): the line under it ("Sending slowly ·
  * 1 of 4") and the honey card that offers smaller copies when the signal is thin; and the bar in a
- * file's bubble (05-10).
+ * file's bubble (the file gesture in `05 Gestures`).
  */
 
 /** Under a message on its way: how many of its items are up. */
@@ -63,7 +64,7 @@ export function SlowUploadNotice({
   return (
     <View
       style={{
-        // 12-06 draws this card at an 18-point radius, between the tile and the card radii.
+        // The design draws this card at an 18-point radius, between the tile and the card radii.
         borderRadius: 18,
         backgroundColor: palette.plan.bg,
         paddingVertical: 12,
@@ -82,7 +83,7 @@ export function SlowUploadNotice({
         </Txt>
       </View>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-        {/* The ink chip at the library's 34 points, as 12-06 draws it. */}
+        {/* The ink chip at the library's 34 points, as the design draws it. */}
         <Chip label={t('media.slow.smaller')} kind="selected" onPress={onSendSmaller} />
         {onWaitForWifi ? <Chip label={t('media.slow.wifi')} onPress={onWaitForWifi} /> : null}
       </View>
@@ -111,7 +112,12 @@ export function UploadBar({ item }: { readonly item: UploadItem }) {
   if (item.phase === 'done') return null;
   return (
     <View
-      style={{ height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,.3)', marginTop: 6 }}
+      style={{
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: withAlpha(palette.bubble.yoursFg, 0.3),
+        marginTop: 6,
+      }}
     >
       <Animated.View
         style={[{ height: 4, borderRadius: 2, backgroundColor: palette.bubble.yoursFg }, fill]}

@@ -27,10 +27,11 @@ export const PHOTO_LONG_SIDE = 2048;
 const PHOTO_QUALITY = 0.8;
 
 /**
- * Video goes through iOS's export at pick time: H.264 at 1280×720 with AAC sound. Apple's 720p
- * preset lands around 5 Mbit/s (to be measured on a device), so camera clips are held to 150
- * seconds to stay under 100 MB; a longer pick that still comes out over 100 MB is refused with the
- * "too big" line rather than sent.
+ * Video goes through iOS's export at pick time: H.264 at 1280×720 with AAC sound. The export also
+ * leaves out the clip's location (a geotagged clip picked on the simulator came back with no
+ * ISO 6709 location). A worst-case clip (full-frame noise) came out at about 10.7 Mbit/s, so
+ * camera clips are held to 75 seconds to stay under 100 MB; a longer pick that still comes out over
+ * 100 MB is refused with the "too big" line rather than sent.
  */
 const VIDEO: Pick<
   ImagePickerOptions,
@@ -38,7 +39,7 @@ const VIDEO: Pick<
 > = {
   videoExportPreset: VideoExportPreset.H264_1280x720,
   videoQuality: UIImagePickerControllerQualityType.IFrame1280x720,
-  videoMaxDuration: 150,
+  videoMaxDuration: 75,
   // HEIC and other formats arrive as JPEG and H.264, which every phone can show.
   preferredAssetRepresentationMode: UIImagePickerPreferredAssetRepresentationMode.Compatible,
 };

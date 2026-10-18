@@ -19,7 +19,7 @@ await upload.sendDocuments(farm, picked.assets);
 const recorder = useAudioRecorder(VOICE_RECORDING_OPTIONS); // AAC .m4a, mono, 64 kbit/s, metering on
 await upload.sendVoice(farm, { uri: recorder.uri, durationMs, waveform /* ≤ 64 levels 0–255 */, replyTo });
 
-upload.cancel(batch, item); // the ✕ on a tile; without `item`, the whole message
+upload.cancel(batch, item); // the ✕ on a tile (aborts its upload on the server); without `item`, the whole message
 upload.retry(batch);        // items that failed
 upload.sendSmaller(batch);  // 12-06: photos again at 1600 px
 ```
@@ -27,7 +27,7 @@ upload.sendSmaller(batch);  // 12-06: photos again at 1600 px
 Each call prepares the files and answers a batch id at once; the rest happens in the queue:
 
 - **Prepared on the phone**: photos re-encoded as JPEG at 2048 px on the long side; video compressed
-  by iOS as it is picked (H.264 1280×720 with AAC, `prepare.ts`; camera clips up to 150 s); voice
+  by iOS as it is picked (H.264 1280×720 with AAC, location left out, `prepare.ts`; camera clips up to 75 s); voice
   notes as AAC. Everything is copied into the queue's folder in the app's documents. Something
   that can't go throws `MediaRefused` (`too_large` over 100 MB, `unreadable`) before it is queued.
 - **Uploaded**: two items at a time, each as one presigned PUT or in 10 MiB parts above 50 MB, in a
@@ -38,11 +38,18 @@ Each call prepares the files and answers a batch id at once; the rest happens in
   multipart part's ETag as it lands, so after the app is closed it resumes with the parts it
   hasn't sent.
 - **Sent**: once every item of a message is up, the queue writes the `media` (photos, video, files,
-  with the caption) or `voice` command with the keys into the farm's outbox (`client.send`).
-  The chat then draws the pending write like any other.
+  with the caption) or `voice` command with the keys into the farm's outbox. Its op id (UUIDv7) is
+  saved with the message before the send, so a send cut short by the app going away is repeated
+  with the same id (`sendCommand` in `use-upload.tsx`; it passes the id on once `client.send`
+  takes one). The chat then draws the pending write like any other.
+- **Stops**: an item that can't go (too big, not on the farm, unreadable, signed out) waits for
+  "Try again"; a message that failed is let go a week later with its files.
 
 Mount `<MediaUploads />` once under the data layer so the queue resumes at launch (until then it
-starts with the first screen that uses these hooks).
+starts with the first screen that uses these hooks). On sign-out or when the phone moves to another
+person, call `clearMediaForSignOut()`: it stops every upload, deletes the queue's files and forgets
+the read URLs. `pendingUploadCount()` counts messages not yet in the outbox, for the warning
+before signing out.
 
 ## Showing progress: `<UploadProgress>` and friends
 
@@ -71,5 +78,5 @@ key, so a new URL for the same photo is never downloaded twice. Use the URL the 
 
 - **Wait for Wi-Fi** needs to tell Wi-Fi from cellular, and no module in the app does
   (`expo-network` would).
-- **Forwarding** media to another farm: a key stays readable only on its own farm, so forwarding
-  needs a server-side copy into the other farm.
+- **Forwarding** media to another farm copies it there first: `POST /v1/media/copy {fromFarm,
+  keys, farm}` answers `{keys: {old: new}}`; the forwarded message carries the new keys.

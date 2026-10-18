@@ -6,7 +6,7 @@ import {
   type CompleteUploadRequest,
   type UploadUrlRequest,
 } from '@kithfield/contracts';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import { ApiError, REQUEST_TIMEOUT_MS } from '../../data/api-client';
 
@@ -15,6 +15,8 @@ export interface MediaApi {
   uploadUrl(req: UploadUrlRequest): Promise<UploadUrlResponse>;
   complete(req: CompleteUploadRequest): Promise<CompleteUploadResponse>;
   readUrls(keys: readonly string[]): Promise<ReadUrlsResponse>;
+  /** Gives up on an upload nothing points at yet: R2 drops its parts or its object. */
+  abort(req: { key: string; uploadId?: string }): Promise<null>;
 }
 
 export interface MediaApiDeps {
@@ -65,5 +67,7 @@ export function createMediaApi(deps: MediaApiDeps): MediaApi {
     uploadUrl: (req) => post(UploadUrlResponse, '/v1/media/upload-url', req),
     complete: (req) => post(CompleteUploadResponse, '/v1/media/complete', req),
     readUrls: (keys) => post(ReadUrlsResponse, '/v1/media/read-urls', { keys }),
+    // Answers 204, no body.
+    abort: (req) => post(z.null(), '/v1/media/abort', req),
   };
 }

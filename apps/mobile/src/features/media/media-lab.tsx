@@ -30,13 +30,13 @@ import { useUpload, useUploads, useUploadSlow } from './use-upload';
 /*
  * Development only: sends photos, video, files and voice notes from this phone to the first farm
  * it lives on, through the local API, and shows each message's progress and its photos read back
- * through signed URLs. The specimen at the top is 12-06's state, drawn by the same components
+ * through signed URLs. The specimen at the top is the design's slow-upload state, drawn by the same components
  * from fixed progress, for comparing with the design.
  */
 
 const SNAPS = ['river', 'picnic', 'dusk', 'garden'] as const;
 
-/** 12-06 as drawn: one of four up, three at 64%, 22% and 4%. */
+/** The slow upload as drawn: one of four up, three at 64%, 22% and 4%. */
 const specimen: UploadBatch = {
   id: 'specimen',
   farm: 'specimen',
@@ -46,6 +46,7 @@ const specimen: UploadBatch = {
   opId: null,
   sentAt: null,
   retryAt: 0,
+  failedAt: null,
   items: [1, 0.64, 0.22, 0.04].map((fraction, i) => ({
     ...newItem(`s${i}`, { uri: '', kind: 'photo', mime: 'image/jpeg', bytes: 100 }),
     phase: fraction === 1 ? 'done' : 'uploading',
@@ -185,7 +186,7 @@ export function MediaLab() {
       contentContainerStyle={{
         paddingTop: insets.top + 12,
         paddingBottom: insets.bottom + 40,
-        // The chat's own side margins (12-06), so the specimen sits where the design draws it.
+        // The chat's own side margins, so the specimen sits where the design draws it.
         paddingHorizontal: 14,
         gap: 18,
       }}

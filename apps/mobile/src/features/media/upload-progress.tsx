@@ -1,4 +1,4 @@
-import { day } from '@kithfield/theme';
+import { day, night } from '@kithfield/theme';
 import { Canvas, Circle, Path, Skia } from '@shopify/react-native-skia';
 import { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -13,10 +13,11 @@ import {
 import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useLocale } from '../../ui/locale/locale-provider';
+import { withAlpha } from './colour';
 import { itemProgress, type UploadItem } from './upload-model';
 
 /*
- * The ring over an item on its way up (`12 States`, 12-06): the tile dims, a 54-point disc fills
+ * The ring over an item on its way up (the slow-upload state in `12 States`): the tile dims, a 54-point disc fills
  * clockwise from the top in paper white, and a 44-point dark centre holds the ✕ that stops that
  * item. The fill moves continuously between readings, on the UI thread (the one continuous motion
  * in the app, so progress feels honest). The same over photos by day and night.
@@ -26,10 +27,10 @@ const RING = 54;
 const CENTRE = 44;
 /** Paper white, and the same at 30% for what is still to go. */
 const FILL = day.card;
-const TRACK = 'rgba(255,250,242,.3)';
-/** The tile's dimming, and the centre behind the ✕ (ink at 55%). */
-const DIM = 'rgba(20,18,28,.32)';
-const CENTRE_FILL = 'rgba(42,34,29,.55)';
+const TRACK = withAlpha(day.card, 0.3);
+/** The tile's dimming (the night sky at 32%), and the centre behind the ✕ (ink at 55%). */
+const DIM = withAlpha(night.sky, 0.32);
+const CENTRE_FILL = withAlpha(day.ink, 0.55);
 
 /** Follows the item's progress: each reading is reached over the time the last one took. */
 function useAnimatedProgress(target: number): SharedValue<number> {
@@ -128,5 +129,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cross: { color: '#ffffff', fontSize: 16, lineHeight: 16, fontWeight: '700' },
+  cross: { color: FILL, fontSize: 16, lineHeight: 16, fontWeight: '700' },
 });
