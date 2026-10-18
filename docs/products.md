@@ -61,7 +61,7 @@ firefly, moonlit and starry night coats) have no product: patrons keep them.
 | `kf.item.blossom` | £1.99 | Coat: blossom | Blossom coat |
 | `kf.item.mossy` | £1.99 | Coat: mossy | Mossy coat |
 | `kf.item.chime` | £1.99 | Little thing: wind chime | Wind chime |
-| `kf.item.scarf` | £1.99 | Little thing: breezy scarf | Breezy scarf |
+| `kf.item.breezy_scarf` | £1.99 | Little thing: breezy scarf | Breezy scarf |
 | `kf.item.teacup` | £1.99 | Little thing: fireside teacup | Fireside teacup |
 | `kf.item.umbrella` | £1.99 | Little thing: rain umbrella | Rain umbrella |
 | `kf.item.pinwheel` | £1.99 | Little thing: pinwheel | Pinwheel |

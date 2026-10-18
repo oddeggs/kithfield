@@ -99,7 +99,7 @@ export const ITEMS: readonly CatalogItem[] = [
   coat('blossom', 199, [3, 4, 5]),
   coat('mossy', 199, [3, 4, 9, 10, 11]),
   littleThing('chime'),
-  littleThing('scarf'),
+  littleThing('breezy_scarf'),
   littleThing('teacup'),
   littleThing('umbrella'),
   littleThing('pinwheel'),

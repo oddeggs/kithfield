@@ -18,6 +18,14 @@ describe('wearing what you own', () => {
     expect((await wear({ cottage: 'lighthouse' })).status).toBe(200);
   });
 
+  it('asks for the shop’s breezy scarf, which is not the scarf every critter starts with', async () => {
+    const { pip } = await cast('pip');
+    const r = await api(pip, 'PATCH', '/v1/me/profile', {
+      critter: { ...pip.critter, accessory: 'breezy_scarf' },
+    });
+    expect(r.status).toBe(403);
+  });
+
   it('lets anyone wear the wardrobe every critter starts with', async () => {
     const { pip } = await cast('pip');
     for (const accessory of ['beanie', 'scarf', 'satchel']) {

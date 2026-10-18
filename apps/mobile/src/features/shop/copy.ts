@@ -33,7 +33,7 @@ export const ITEM_IDS = [
   'blossom',
   'mossy',
   'chime',
-  'scarf',
+  'breezy_scarf',
   'teacup',
   'umbrella',
   'pinwheel',

@@ -115,8 +115,10 @@ export function itemScene(look: ItemLook): { scene: string; attrs: SceneAttrs } 
       return { scene: 'pose', attrs };
     }
     case 'little_thing': {
-      const attrs: Record<string, string> = { name: item, season };
-      if (item === 'scarf') attrs['kind'] = look.species ?? 'cat';
+      // The breezy scarf is the art's reactive `scarf`, not the plain scarf critters start with.
+      const name = item === 'breezy_scarf' ? 'scarf' : item;
+      const attrs: Record<string, string> = { name, season };
+      if (name === 'scarf') attrs['kind'] = look.species ?? 'cat';
       return { scene: 'react', attrs };
     }
     case 'sticker_pack': {
