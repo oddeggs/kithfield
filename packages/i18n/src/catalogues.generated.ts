@@ -7,12 +7,21 @@ import { pushEn } from './push.en';
 import { pushSameInBoth, pushVi } from './push.vi';
 import { signInCodeEn } from './sign-in-code.en';
 import { signInCodeVi } from './sign-in-code.vi';
+import { websiteEn } from './website.en';
+import { websiteSameInBoth, websiteVi } from './website.vi';
+import { websiteCastEn } from './website-cast.en';
+import { websiteCastSameInBoth, websiteCastVi } from './website-cast.vi';
+import { websitePagesEn } from './website-pages.en';
+import { websitePagesSameInBoth, websitePagesVi } from './website-pages.vi';
 
 /** Every feature catalogue pair, in file-name order. */
 export const features: readonly FeatureCatalogues[] = [
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
+  { name: 'website', file: 'website', en: websiteEn, vi: websiteVi, sameInBoth: websiteSameInBoth },
+  { name: 'websiteCast', file: 'website-cast', en: websiteCastEn, vi: websiteCastVi, sameInBoth: websiteCastSameInBoth },
+  { name: 'websitePages', file: 'website-pages', en: websitePagesEn, vi: websitePagesVi, sameInBoth: websitePagesSameInBoth },
 ];
 
 /** The source catalogue: every key, in English. */
@@ -20,6 +29,9 @@ export const en = {
   ...glossaryEn,
   ...pushEn,
   ...signInCodeEn,
+  ...websiteEn,
+  ...websiteCastEn,
+  ...websitePagesEn,
 };
 
 /** Every key, in Vietnamese. */
@@ -27,4 +39,7 @@ export const vi = {
   ...glossaryVi,
   ...pushVi,
   ...signInCodeVi,
+  ...websiteVi,
+  ...websiteCastVi,
+  ...websitePagesVi,
 };
