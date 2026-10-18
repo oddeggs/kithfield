@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { registerDeletionJob } from '../deletion';
 import type { Bindings } from '../env';
 import { writeBundle } from './export-bundle';
+import { registerMergeStep } from './merge-steps';
 
 /*
  * The keepsakes export (`docs/backend.md` §7): `POST /v1/me/export` asks for it, a job on the
@@ -184,3 +185,8 @@ export async function forgetExports(env: Bindings, person: string): Promise<void
 }
 
 registerDeletionJob('export', ExportJob, runExport);
+
+/** A merge hands the anonymous person's exports to the account they signed in to. */
+registerMergeStep('exports', (db, { from, into }) => [
+  db.prepare('UPDATE exports SET person_id = ? WHERE person_id = ?').bind(into, from),
+]);

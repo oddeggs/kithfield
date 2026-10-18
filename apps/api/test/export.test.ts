@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/app';
 import { forgetExports, signLink } from '../src/auth/export';
 import { crc32 } from '../src/auth/export-zip';
+import { readSignIn, sendCode, signInWithCode, watchLetters } from '../src/auth/testing/client';
 import type { Bindings } from '../src/env';
 import worker from '../src/index';
 import { op } from './farm/support/client';
@@ -225,6 +226,19 @@ describe('the keepsakes export', () => {
     await forgetExports(env, pip.id);
     expect((await env.MEDIA.list({ prefix: `export/${pip.id}/` })).objects).toEqual([]);
     expect((await status(pip, 'GET')).status).toBe(404);
+  });
+
+  it('hands an install’s export to the account it signs in to', async () => {
+    const email = `export.${crypto.randomUUID().slice(0, 8)}@example.com`;
+    const letters = watchLetters();
+    await sendCode(email);
+    const account = await readSignIn(await signInWithCode(email, letters.codeFor(email)));
+    const { anon } = await cast('anon');
+    await status(anon, 'POST');
+    await sendCode(email, { token: anon.token });
+    await readSignIn(await signInWithCode(email, letters.codeFor(email), { token: anon.token }));
+    const kept = { ...anon, id: account.user.id, token: account.token };
+    expect(ExportStatus.parse((await status(kept, 'GET')).body).state).toBe('preparing');
   });
 
   it('is unavailable until the link key is set', async () => {
