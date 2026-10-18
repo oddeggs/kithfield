@@ -69,7 +69,7 @@ export function withCopiedKeys(
   if (payload['audio'] !== undefined) payload['audio'] = swap(payload['audio']);
   const preview = payload['preview'];
   if (typeof preview === 'object' && preview !== null && 'image' in preview) {
-    payload['preview'] = { ...preview, image: swap((preview).image) };
+    payload['preview'] = { ...preview, image: swap(preview.image) };
   }
   return missing ? null : { kind: write.kind, payload };
 }
