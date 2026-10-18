@@ -3,6 +3,7 @@ import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { accessCerts, forgetAccessCerts, verifyAccessJwt } from '../../src/admin/access';
+import { recordModerator } from '../../src/admin/moderator';
 import { adminRoutes } from '../../src/admin/routes';
 import { call } from '../../src/auth/testing/client';
 import { ANA, desk, KOFI, SAM, type TestAccess, useTestAccess } from './support';
@@ -153,5 +154,21 @@ describe('the safety desk behind Cloudflare Access', () => {
       );
       expect(response.status, missing).toBe(503);
     }
+  });
+});
+
+describe('the desk’s record of its moderators', () => {
+  it('gives two addresses with the same name different ids, and writes each once', async () => {
+    const first = await recordModerator(env.DB, 'robin@one.example', 'moderator', 1_000);
+    const second = await recordModerator(env.DB, 'robin@two.example', 'moderator', 2_000);
+    expect(first.id).toBe('robin');
+    expect(second.id).not.toBe(first.id);
+    expect(second.id.startsWith('robin-')).toBe(true);
+    const again = await recordModerator(env.DB, 'robin@one.example', 'senior', 3_000);
+    expect(again).toMatchObject({ id: 'robin', role: 'senior' });
+    const row = await env.DB.prepare('SELECT last_seen_at FROM moderators WHERE id = ?')
+      .bind('robin')
+      .first<{ last_seen_at: number }>();
+    expect(row?.last_seen_at).toBe(1_000);
   });
 });

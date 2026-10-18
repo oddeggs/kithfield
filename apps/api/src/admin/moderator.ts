@@ -31,48 +31,60 @@ const idFor = (email: string) =>
 
 interface ModeratorRow {
   id: string;
-  email: string;
   name: string;
-  role: string;
 }
 
-/** Records a moderator the first time Access lets them in; their role follows the config. */
+/** Moderators already recorded, by address: they are written once, on first sight. */
+const seen = new Map<string, { id: string; name: string }>();
+
+/** A short, stable suffix from an address, for when its name is already someone's id. */
+async function suffixFor(email: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
+  return [...new Uint8Array(digest).slice(0, 3)]
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * Records a moderator the first time Access lets them in, and never writes again. Their id is
+ * their address's name, or that name and a suffix from the address when it is taken. Their role
+ * always follows the config.
+ */
 export async function recordModerator(
   db: D1Database,
   email: string,
   role: ModeratorRole,
   now: number,
 ): Promise<Moderator> {
+  const cached = seen.get(email);
+  if (cached !== undefined) return { ...cached, email, role };
   const known = await db
-    .prepare('SELECT id, email, name, role FROM moderators WHERE email = ?')
+    .prepare('SELECT id, name FROM moderators WHERE email = ?')
     .bind(email)
-    .first<ModeratorRow>();
+    .first<{ id: string; name: string }>();
   if (known !== null) {
-    await db
-      .prepare('UPDATE moderators SET role = ?, last_seen_at = ? WHERE id = ?')
-      .bind(role, now, known.id)
-      .run();
-    return { id: known.id, email, name: known.name, role };
+    seen.set(email, known);
+    return { ...known, email, role };
   }
-  const base = idFor(email);
-  const taken = await db
-    .prepare('SELECT COUNT(*) AS n FROM moderators WHERE id = ? OR id LIKE ?')
-    .bind(base, `${base}-%`)
-    .first<{ n: number }>();
-  const id = (taken?.n ?? 0) === 0 ? base : `${base}-${(taken?.n ?? 0) + 1}`;
-  const name = base;
-  await db
-    .prepare(
-      `INSERT INTO moderators (id, email, name, role, first_seen_at, last_seen_at)
-       VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (email) DO NOTHING`,
-    )
-    .bind(id, email, name, role, now, now)
-    .run();
-  const row = await db
-    .prepare('SELECT id, email, name, role FROM moderators WHERE email = ?')
-    .bind(email)
-    .first<ModeratorRow>();
-  return { id: row?.id ?? id, email, name: row?.name ?? name, role };
+  const name = idFor(email);
+  for (const id of [name, `${name}-${await suffixFor(email)}`]) {
+    await db
+      .prepare(
+        `INSERT OR IGNORE INTO moderators (id, email, name, role, first_seen_at, last_seen_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(id, email, name, role, now, now)
+      .run();
+    const row = await db
+      .prepare('SELECT id, name FROM moderators WHERE email = ?')
+      .bind(email)
+      .first<{ id: string; name: string }>();
+    if (row !== null) {
+      seen.set(email, row);
+      return { ...row, email, role };
+    }
+  }
+  throw new Error('Could not record a moderator');
 }
 
 /** Everyone the desk has seen, by id, for names in the log and the queue. */
