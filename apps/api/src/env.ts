@@ -1,3 +1,6 @@
+import type { CottageDO } from './cottage/cottage-object';
+import type { FarmDO } from './farm/farm-object';
+
 /**
  * Secrets the Worker expects, by name. Values live in Wrangler secrets (deployed) or `.dev.vars`
  * (local, ignored by git); `.dev.vars.example` lists the same names.
@@ -15,9 +18,9 @@ export type Bindings = Secrets & {
   readonly ENVIRONMENT: EnvironmentName;
   readonly COMMIT_SHA: string;
   /** One farm object per farm or visit. */
-  readonly FARM: DurableObjectNamespace;
+  readonly FARM: DurableObjectNamespace<FarmDO>;
   /** One cottage object per person. */
-  readonly COTTAGE: DurableObjectNamespace;
+  readonly COTTAGE: DurableObjectNamespace<CottageDO>;
   readonly DB: D1Database;
   /** Photos, video, voice notes, files and export bundles. */
   readonly MEDIA: R2Bucket;
