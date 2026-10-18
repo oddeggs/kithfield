@@ -13,7 +13,7 @@ import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { ApiError } from '../settings/api/request';
-import { useSafetyApi } from '../settings/api/use-api';
+import { useBlocks, useSafetyApi } from '../settings/api/use-api';
 import { lookOf } from '../settings/format';
 import { useKitColors } from '../settings/kit/colors';
 import { Group, Row } from '../settings/kit/layout';
@@ -79,6 +79,7 @@ export function ReportSheet({
   const kit = useKitColors();
   const toast = useToast();
   const api = useSafetyApi();
+  const blocks = useBlocks();
   // Keeps the farm caught up while reporting, so the person is named from it.
   useOpenFarm(farm);
   const reported = useReported(farm, target);
@@ -107,6 +108,8 @@ export function ReportSheet({
       .then(
         () => {
           haptics.success();
+          // The server blocked them with the report; the phone's list catches up.
+          if (block && person !== null) blocks.refresh().catch(() => undefined);
           toast.show(t('safety.report.sent'));
           router.back();
         },

@@ -1,6 +1,6 @@
 import type { BlockList } from '@kithfield/contracts';
 import { motion } from '@kithfield/theme';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import Animated, { FadeOut, LinearTransition } from 'react-native-reanimated';
 
@@ -9,11 +9,11 @@ import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
-import { useSettingsApi } from '../settings/api/use-api';
+import { useBlocked } from '../../data/blocks';
+import { useBlocks } from '../settings/api/use-api';
 import { lookOf } from '../settings/format';
 import { NavBar, Note, Page, Row } from '../settings/kit/layout';
 import { KText } from '../settings/kit/text';
-import { useRemote } from '../settings/use-remote';
 
 type Blocked = BlockList['blocked'][number];
 
@@ -22,10 +22,15 @@ export function BlockedScreen() {
   const { t, language } = useLocale();
   const { palette } = useTheme();
   const toast = useToast();
-  const api = useSettingsApi();
-  const list = useRemote(() => api.blocks());
-  const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
-  const people = (list.data?.blocked ?? []).filter((b) => !gone.has(b.person));
+  const blocks = useBlocks();
+  const people = useBlocked().blocked;
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    blocks.refresh().then(
+      () => setLoaded(true),
+      () => setLoaded(true),
+    );
+  }, [blocks]);
   const day = (at: number) =>
     new Intl.DateTimeFormat(language === 'vi' ? 'vi-VN' : 'en-GB', {
       day: 'numeric',
@@ -33,17 +38,9 @@ export function BlockedScreen() {
     }).format(at);
   const unblock = (b: Blocked) => {
     const name = b.name ?? t('safety.friend');
-    setGone((g) => new Set(g).add(b.person));
-    api.unblock(b.person).then(
+    blocks.unblock(b.person).then(
       () => toast.show(t('safety.blocked.undone', { name })),
-      () => {
-        setGone((g) => {
-          const next = new Set(g);
-          next.delete(b.person);
-          return next;
-        });
-        toast.show(t('safety.failed'));
-      },
+      () => toast.show(t('safety.failed')),
     );
   };
   return (
@@ -89,9 +86,7 @@ export function BlockedScreen() {
         </View>
       ) : null}
       <Note
-        text={
-          list.data && people.length === 0 ? t('safety.blocked.none') : t('safety.blocked.note')
-        }
+        text={loaded && people.length === 0 ? t('safety.blocked.none') : t('safety.blocked.note')}
       />
     </Page>
   );

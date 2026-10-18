@@ -10,7 +10,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics } from '../../ui/motion/haptics';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
-import { useSettingsApi } from '../settings/api/use-api';
+import { useBlocks } from '../settings/api/use-api';
 import { lookOf } from '../settings/format';
 import { useKitColors } from '../settings/kit/colors';
 import { SheetButtons, SheetPage } from '../settings/kit/sheet-page';
@@ -37,12 +37,12 @@ function BlockBody({
   const { palette } = useTheme();
   const kit = useKitColors();
   const toast = useToast();
-  const api = useSettingsApi();
+  const blocks = useBlocks();
   const [busy, setBusy] = useState(false);
   const name = someone.name ?? fallbackName ?? t('safety.friend');
   const block = () => {
     setBusy(true);
-    api.block(person).then(
+    blocks.block({ person, name: someone.name, critter: someone.critter }).then(
       () => {
         haptics.success();
         toast.show(t('safety.block.done', { name }));
