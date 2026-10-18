@@ -43,13 +43,23 @@ const uriBytes = (uri: string | null) => (uri?.length ?? 0) * 2;
 export class ArtStore {
   private readonly stills = new Map<string, SkImage | null>();
   private readonly uris = new Map<string, string | null>();
+  private readonly warned = new Set<string>();
 
   constructor(
     readonly art: Art,
     /** The phone's pixels per point: every drawing is made at this density. */
     readonly dpr: number,
     private readonly compositor: Compositor,
+    /** Hears, once per drawing, art that had to be held still (development builds). */
+    private readonly warn: (message: string) => void = () => undefined,
   ) {}
+
+  /** Tells `warn` about `key` the first time only. */
+  warnOnce(key: string, message: string): void {
+    if (this.warned.has(key)) return;
+    this.warned.add(key);
+    this.warn(message);
+  }
 
   private hold<T>(map: Map<string, T>, key: string, size: (value: T) => number, make: () => T): T {
     const cacheKey = `${map === this.stills ? 'still' : 'uri'}:${key}`;
@@ -125,8 +135,22 @@ export class ArtStore {
     return avatarFrame(this.art.internals, kind, 1, coat).tint;
   }
 
-  /** A small scene as a loop on twos (12 frames at 12 fps), drawn once and cached by the art. */
-  loop(req: SceneRequest): FrameLoop {
-    return sceneLoop(this.art, { dpr: this.dpr, ...req });
+  /**
+   * A small scene as a loop on twos (12 frames at 12 fps), drawn once and cached by the art. Null
+   * for a scene too big to loop whole (over a quarter of the cache): it is then held still, and
+   * the first time it is told to `warn`. A full-size scene loops in layers (`LayeredScene`).
+   */
+  loop(req: SceneRequest): FrameLoop | null {
+    try {
+      return sceneLoop(this.art, { dpr: this.dpr, ...req });
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error;
+      this.warnOnce(
+        `loop:${JSON.stringify(req)}`,
+        `${req.scene} (${req.width}×${req.height}) is too big to loop whole, so it is held ` +
+          'still. Loop it in layers with <LayeredScene> (ui/art/README.md).',
+      );
+      return null;
+    }
   }
 }
