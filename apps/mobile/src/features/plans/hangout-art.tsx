@@ -1,7 +1,7 @@
-import { fireLoop } from '@kithfield/art';
+import { fireLoop, type FrameLoop } from '@kithfield/art';
 import { motion } from '@kithfield/theme';
 import { Canvas, Image } from '@shopify/react-native-skia';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PixelRatio, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -28,6 +28,16 @@ const FLAME = 0.17;
 /** `fireLoop` draws a flame 0.6 of its square, with its base 0.9 of the way down. */
 const LOOP_FLAME = 0.6;
 const LOOP_BASE = 0.9;
+/** Runs `fn` once the JS thread is idle; answers how to cancel it. */
+const whenIdle = (fn: () => void): (() => void) => {
+  if (typeof requestIdleCallback === 'function') {
+    const id = requestIdleCallback(fn);
+    return () => cancelIdleCallback(id);
+  }
+  const id = setTimeout(fn, 0);
+  return () => clearTimeout(id);
+};
+
 /** The scene time the still is drawn at, as `ArtLoop` holds still art. */
 const STILL_T = 1.2;
 
@@ -50,10 +60,15 @@ export function Campfire({
   const reduce = useReduceMotion();
   const visible = useArtVisible();
   const size = Math.round((width * FLAME) / LOOP_FLAME);
-  const loop = useMemo(
-    () => (reduce ? null : fireLoop(store.art, size, PixelRatio.get())),
-    [store, size, reduce],
-  );
+  // Drawn when the JS thread is idle, so the fire never holds up the screen's first frame.
+  const [loop, setLoop] = useState<FrameLoop | null>(null);
+  useEffect(() => {
+    if (reduce) {
+      setLoop(null);
+      return;
+    }
+    return whenIdle(() => setLoop(fireLoop(store.art, size, PixelRatio.get())));
+  }, [store, size, reduce]);
   const frames = loop?.frames ?? [];
   const fps = loop?.fps ?? motion.twos.fps;
   const elapsed = useSharedValue(0);
