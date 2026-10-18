@@ -90,7 +90,8 @@ export function FarmSheetContent({
   const { palette } = useTheme();
   const credits = farmCredits(t, state, view);
   const friends = credits.people.flatMap((p) => {
-    const m = state.members.find((x) => x.person === p);
+    // Someone who has gone wandering is still thanked for what they grew.
+    const m = state.members.find((x) => x.person === p) ?? state.former.find((x) => x.person === p);
     return m ? [{ name: m.name ?? '', kind: m.critter.species, look: lookOf(m.critter) }] : [];
   });
   // A friend napping a while: not hibernating or paused, who chose that, and not yourself.

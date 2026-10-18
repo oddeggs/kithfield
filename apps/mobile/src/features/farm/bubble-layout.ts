@@ -13,6 +13,8 @@ export interface BubbleWish {
   readonly maxWidth: number;
   /** An extra line under the words ("yours · 23h left"). */
   readonly meta: boolean;
+  /** Placed in this order, lowest first (statuses before labels); then front to back. */
+  readonly order?: number;
 }
 
 export interface PlacedBubble {
@@ -73,16 +75,27 @@ export function layoutBubbles(
   margin = 10,
 ): PlacedBubble[] {
   const placed: PlacedBubble[] = [];
-  for (const w of [...wishes].sort((a, b) => b.y - a.y)) {
+  for (const w of [...wishes].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || b.y - a.y)) {
     const size = bubbleSize(w.text, w.maxWidth, w.meta);
-    const tail = w.x > width / 2 ? 'right' : 'left';
-    const rawLeft = tail === 'left' ? w.x - 12 : w.x + 12 - size.width;
-    const left = Math.min(width - margin - size.width, Math.max(margin, rawLeft));
-    let bubble: PlacedBubble = { key: w.key, left, top: w.y - size.height, tail, ...size };
-    for (let guard = 0; guard < placed.length + 1; guard++) {
-      const hit = placed.find((p) => overlaps(p, bubble));
-      if (!hit) break;
-      bubble = { ...bubble, top: hit.top - bubble.height - GAP };
+    const near: 'left' | 'right' = w.x > width / 2 ? 'right' : 'left';
+    const at = (tail: 'left' | 'right', top: number): PlacedBubble => {
+      const raw = tail === 'left' ? w.x - 12 : w.x + 12 - size.width;
+      const left = Math.min(width - margin - size.width, Math.max(margin, raw));
+      return { key: w.key, left, top, tail, ...size };
+    };
+    const free = (b: PlacedBubble) => !placed.some((p) => overlaps(p, b));
+    // Over the critter on its nearer side, then its other side, then lifted clear.
+    let bubble = [
+      at(near, w.y - size.height),
+      at(near === 'left' ? 'right' : 'left', w.y - size.height),
+    ].find(free);
+    if (!bubble) {
+      bubble = at(near, w.y - size.height);
+      for (let guard = 0; guard < placed.length + 1; guard++) {
+        const hit = placed.find((p) => overlaps(p, bubble as PlacedBubble));
+        if (!hit) break;
+        bubble = { ...bubble, top: hit.top - bubble.height - GAP };
+      }
     }
     placed.push({ ...bubble, top: Math.max(ceiling, bubble.top) });
   }

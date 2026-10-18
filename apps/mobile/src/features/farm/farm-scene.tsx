@@ -98,7 +98,7 @@ export function FarmScene({
   const plan = view?.plans.find((p) => !p.seed.someday) ?? null;
   const head = (person: PersonId) => {
     const spot = spotOf.get(person);
-    return spot ? { x: width * spot.x, y: height * spot.y - width * spot.size * 1.02 } : null;
+    return spot ? { x: width * spot.x, y: height * spot.y - width * spot.size * 1.18 } : null;
   };
   const wishes: (BubbleWish & { mine: boolean; metaText?: string })[] = [];
   for (const c of view?.critters ?? []) {
@@ -134,6 +134,7 @@ export function FarmScene({
       maxWidth: 170,
       meta: false,
       mine: false,
+      order: 1,
     });
   }
   if (plan?.seed.title) {
@@ -146,6 +147,7 @@ export function FarmScene({
       maxWidth: 150,
       meta: false,
       mine: false,
+      order: 2,
     });
   }
   const placed = layoutBubbles(wishes, width, 110);
