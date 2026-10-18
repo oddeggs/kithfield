@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { Linter } from 'eslint';
+import globals from 'globals';
 import { describe, expect, it } from 'vitest';
 
-import { CLOSURE_END, renderFiles, renderModule } from './render';
+import { CLOSURE_END, HOST_GLOBALS, renderFiles, renderModule } from './render';
 
 const design = readFileSync(join(import.meta.dirname, '../../../../design/kithfield-art.js'));
 const vendor = (name: string) => readFileSync(join(import.meta.dirname, '../vendor', name));
@@ -32,5 +34,40 @@ describe('the synced renderer', () => {
 
   it('refuses a design file whose closure it does not recognise', () => {
     expect(() => renderModule('(() => {})();')).toThrow(/closure/);
+  });
+});
+
+/**
+ * The renderer may only read ES built-ins and the globals the host supplies: a design update
+ * that reaches for another browser global (`navigator`, `Image`…) would only fail at runtime on
+ * the phone, so it fails here instead.
+ */
+function undefinedGlobals(source: string): string[] {
+  const linter = new Linter({ configType: 'flat' });
+  const messages = linter.verify(source, [
+    {
+      languageOptions: {
+        ecmaVersion: 2024,
+        sourceType: 'script',
+        globals: {
+          ...globals.es2024,
+          ...Object.fromEntries(HOST_GLOBALS.map((g) => [g, 'readonly' as const])),
+        },
+      },
+      rules: { 'no-undef': 'error' },
+    },
+  ]);
+  return messages.map((m) => `${m.line}:${m.column} ${m.message}`);
+}
+
+describe('the renderer’s globals', () => {
+  it('are ES built-ins or supplied by the host', () => {
+    expect(undefinedGlobals(design.toString('utf8'))).toEqual([]);
+  });
+
+  it('catch a browser global the host does not supply', () => {
+    expect(undefinedGlobals('(() => { navigator.vibrate(1); })();')).toEqual([
+      "1:10 'navigator' is not defined.",
+    ]);
   });
 });
