@@ -93,6 +93,22 @@ export const COTTAGE_SCHEMA = [
     send_at INTEGER NOT NULL,
     PRIMARY KEY (farm, reason)
   )`,
+  // Live Activity push tokens: one push-to-start token per device, and the update token of each
+  // activity running on one (`seed` is 0 for the fire). They go with the device.
+  `CREATE TABLE IF NOT EXISTS activity_start_tokens (
+    device TEXT PRIMARY KEY,
+    token TEXT NOT NULL,
+    at INTEGER NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS activity_tokens (
+    device TEXT NOT NULL,
+    activity TEXT NOT NULL,
+    farm TEXT NOT NULL,
+    seed INTEGER NOT NULL,
+    token TEXT NOT NULL,
+    at INTEGER NOT NULL,
+    PRIMARY KEY (device, activity, farm, seed)
+  )`,
   // Set once the person's account is purged: a late delivery or farm row is never taken in again.
   `CREATE TABLE IF NOT EXISTS purged (id INTEGER PRIMARY KEY CHECK (id = 1))`,
 ] as const;
