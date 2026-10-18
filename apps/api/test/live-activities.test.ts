@@ -278,3 +278,92 @@ describe('Live Activities from the server', () => {
     expect(left).toEqual([{ token: PHONE_FIRE }]);
   });
 });
+
+describe('when the plan’s day doesn’t start from the server', () => {
+  const knock = { plans: true, doorstep: true, mentions: true, messages: false };
+
+  async function dueStart(prepare: (person: string) => Promise<void>) {
+    const { person, cottage } = await personOnPhone();
+    await cottage.setActivityStartToken('phone-1', PHONE_START);
+    farm = farmWith([seed({ rsvps: [{ person, answer: 'in' }] })], ['pip', person]);
+    await prepare(person);
+    await cottage.deliver(delivery(30, 'rsvp'));
+    const stub = env.COTTAGE.get(env.COTTAGE.idFromName(person));
+    useTestClock('2026-10-18T14:01:00Z');
+    await runInDurableObject(stub, (instance) => instance.alarm());
+    return sent.filter((s) => s.body.aps['event'] === 'start');
+  }
+
+  it('starts when nothing holds it back', async () => {
+    expect(await dueStart(() => Promise.resolve())).toHaveLength(1);
+  });
+
+  it('stays quiet on a muted farm', async () => {
+    const starts = await dueStart(async (person) => {
+      const cottage = env.COTTAGE.get(env.COTTAGE.idFromName(person));
+      await cottage.setFarmNotifications('farm-a', { mutedUntil: 'always', knockFor: knock });
+    });
+    expect(starts).toEqual([]);
+  });
+
+  it('stays quiet when the person turned plans off for the farm', async () => {
+    const starts = await dueStart(async (person) => {
+      const cottage = env.COTTAGE.get(env.COTTAGE.idFromName(person));
+      await cottage.setFarmNotifications('farm-a', {
+        mutedUntil: null,
+        knockFor: { ...knock, plans: false },
+      });
+    });
+    expect(starts).toEqual([]);
+  });
+
+  it('stays quiet while the person hibernates', async () => {
+    const starts = await dueStart(async (person) => {
+      await env.COTTAGE.get(env.COTTAGE.idFromName(person)).setHibernating(true);
+    });
+    expect(starts).toEqual([]);
+  });
+
+  it('forgets a farm’s plan days and activity tokens when the person leaves it', async () => {
+    const { person, cottage } = await personOnPhone();
+    await cottage.setActivityStartToken('phone-1', PHONE_START);
+    await cottage.setActivityToken('phone-1', {
+      activity: 'plan_day',
+      farm: 'farm-a',
+      seed: 20,
+      token: PHONE_PLAN,
+    });
+    farm = farmWith([seed({ rsvps: [{ person, answer: 'in' }] })], ['pip', person]);
+    await cottage.deliver(delivery(30, 'rsvp'));
+    await cottage.leaveFarm('farm-a');
+    const stub = env.COTTAGE.get(env.COTTAGE.idFromName(person));
+    const left = await runInDurableObject(stub, (_i, state) => ({
+      days: state.storage.sql.exec('SELECT farm FROM plan_days').toArray(),
+      tokens: state.storage.sql.exec('SELECT farm FROM activity_tokens').toArray(),
+    }));
+    expect(left).toEqual({ days: [], tokens: [] });
+    useTestClock('2026-10-18T14:01:00Z');
+    await runInDurableObject(stub, (instance) => instance.alarm());
+    expect(sent.filter((s) => s.body.aps['event'] === 'start')).toEqual([]);
+  });
+});
+
+describe('a farm the cottage doesn’t know', () => {
+  it('never starts a plan’s day', async () => {
+    recordPushQueue();
+    const person = freshPerson();
+    const cottage = env.COTTAGE.get(env.COTTAGE.idFromName(person));
+    await cottage.registerDevice('phone-1', {
+      platform: 'ios',
+      name: 'iPhone',
+      pushToken: null,
+      appVersion: '1.0.0 (1)',
+    });
+    await cottage.setActivityStartToken('phone-1', PHONE_START);
+    farm = farmWith([seed({ rsvps: [{ person, answer: 'in' }] })], ['pip', person]);
+    await cottage.deliver(delivery(30, 'rsvp'));
+    useTestClock('2026-10-18T14:01:00Z');
+    await runInDurableObject(cottage, (instance) => instance.alarm());
+    expect(sent).toEqual([]);
+  });
+});

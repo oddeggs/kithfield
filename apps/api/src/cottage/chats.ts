@@ -60,6 +60,9 @@ export function removeFarm(sql: SqlStorage, farm: string): void {
   sql.exec('DELETE FROM farms WHERE farm = ?', farm);
   sql.exec('DELETE FROM doorstep WHERE farm = ?', farm);
   sql.exec("DELETE FROM held WHERE json_extract(job, '$.farm') = ?", farm);
+  // Its Live Activities go with it: nothing starts or moves for a farm the person left.
+  sql.exec('DELETE FROM plan_days WHERE farm = ?', farm);
+  sql.exec('DELETE FROM activity_tokens WHERE farm = ?', farm);
 }
 
 /** Whether the cottage knows this farm: its kind and name, so it can show on the chat list. */

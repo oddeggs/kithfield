@@ -15,6 +15,7 @@ import {
   updatePayload,
 } from '../surfaces/live-activity';
 import * as activities from './activities';
+import { isMuted, knockForOf, knowsFarm } from './chats';
 import type { Intake } from './intake';
 import { quietOf, readProfile } from './profile';
 
@@ -67,6 +68,17 @@ async function sendAll(
   }
 }
 
+/**
+ * Whether a plan's day may start on the person's phones from the server: never for a farm the
+ * cottage doesn't know, a muted farm, plans turned off in its "Knock for", or while hibernating.
+ * The app still starts it itself when the person opens it on the day.
+ */
+export function mayStartOn(sql: SqlStorage, farm: string, now: number): boolean {
+  if (!knowsFarm(sql, farm) || isMuted(sql, farm, now)) return false;
+  if (!knockForOf(sql, farm).plans) return false;
+  return !readProfile(sql).hibernating;
+}
+
 /** A farm event that may move one of the person's activities. Never throws: a nicety. */
 export async function considerActivities(intake: Intake, delivery: CottageDelivery): Promise<void> {
   const config = activityPorts.config(intake.env);
@@ -102,7 +114,7 @@ async function fireChanged(intake: Intake, config: ApnsConfig, farm: string): Pr
 async function plansChanged(intake: Intake, config: ApnsConfig, farm: string): Promise<void> {
   const { sql, person, now } = intake;
   const followed = activities.followedSeeds(sql, farm);
-  const canStart = activities.startTokens(sql).length > 0;
+  const canStart = activities.startTokens(sql).length > 0 && mayStartOn(sql, farm, now);
   if (followed.length === 0 && !canStart) return;
   const state = await activityPorts.farmState(intake.env, farm);
   if (state === null) return;
@@ -110,6 +122,8 @@ async function plansChanged(intake: Intake, config: ApnsConfig, farm: string): P
   const going = new Set<number>();
   for (const seed of state.seeds) {
     const window = planDayWindow(state, seed);
+    // A day is kept for one that may start, and for one already running (to move it along).
+    if (!canStart && !followed.includes(seed.seq)) continue;
     if (window === null || window.endAt <= now || !goingTo(seed, person)) continue;
     going.add(seed.seq);
     sql.exec(
@@ -179,6 +193,7 @@ export async function ringActivities(intake: Intake): Promise<void> {
 async function startPlanDay(intake: Intake, config: ApnsConfig, row: PlanDayRow): Promise<void> {
   const { sql, now, env } = intake;
   sql.exec('UPDATE plan_days SET started = 1 WHERE farm = ? AND seed = ?', row.farm, row.seed);
+  if (!mayStartOn(sql, row.farm, now)) return;
   const state = await activityPorts.farmState(env, row.farm);
   const seed = state?.seeds.find((s) => s.seq === row.seed);
   const window = state && seed ? planDayWindow(state, seed) : null;
