@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { fontFaces, fontFor, fonts, isVietnamese, systemCss, vietnamese } from './fonts';
+import {
+  fontFaces,
+  fontFor,
+  fonts,
+  isVietnamese,
+  naturalLineHeight,
+  SYSTEM_LINE_HEIGHT,
+  systemCss,
+  vietnamese,
+} from './fonts';
 import { between, foundations, num, one, readDesign, textOf } from './test/design';
 import { type } from './type';
 
@@ -114,5 +123,15 @@ describe('fontFor', () => {
     expect(isVietnamese('vi_VN')).toBe(true);
     expect(isVietnamese('en')).toBe(false);
     expect(isVietnamese('video')).toBe(false);
+  });
+});
+
+describe('natural line height', () => {
+  it('is each face’s own, SF Pro’s for the system face', () => {
+    expect(naturalLineHeight(fonts.youngSerif)).toBe(1.412);
+    expect(naturalLineHeight(fonts.gaeguBold)).toBe(1.25);
+    expect(naturalLineHeight(undefined)).toBeCloseTo(1.1934, 4);
+    expect(naturalLineHeight('Menlo')).toBeCloseTo(1.164, 3);
+    expect(naturalLineHeight('Georgia')).toBe(SYSTEM_LINE_HEIGHT);
   });
 });

@@ -127,3 +127,37 @@ export function readFont(bytes: Uint8Array): FontInfo {
     codePoints: codePoints(view, table(map, 'cmap')),
   };
 }
+
+/** The vertical metrics a text engine sets a line from, in font units. */
+export interface LineMetrics {
+  /** head unitsPerEm. */
+  unitsPerEm: number;
+  /** hhea ascender, descender (negative below the baseline) and line gap. */
+  hhea: { ascender: number; descender: number; lineGap: number };
+  /** OS/2 sTypoAscender, sTypoDescender and sTypoLineGap. */
+  typo: { ascender: number; descender: number; lineGap: number };
+  /** OS/2 fsSelection bit 7: the font asks for its typo metrics to be used. */
+  useTypoMetrics: boolean;
+}
+
+export function readLineMetrics(bytes: Uint8Array): LineMetrics {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const map = tables(view);
+  const head = table(map, 'head').offset;
+  const hhea = table(map, 'hhea').offset;
+  const os2 = table(map, 'OS/2').offset;
+  return {
+    unitsPerEm: view.getUint16(head + 18),
+    hhea: {
+      ascender: view.getInt16(hhea + 4),
+      descender: view.getInt16(hhea + 6),
+      lineGap: view.getInt16(hhea + 8),
+    },
+    typo: {
+      ascender: view.getInt16(os2 + 68),
+      descender: view.getInt16(os2 + 70),
+      lineGap: view.getInt16(os2 + 72),
+    },
+    useTypoMetrics: (view.getUint16(os2 + 62) & 0x80) !== 0,
+  };
+}
