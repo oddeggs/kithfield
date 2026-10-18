@@ -183,7 +183,8 @@ private struct PlanDayLockScreen: View {
 
   var body: some View {
     let copy = context.copy
-    VStack(alignment: .leading, spacing: 10) {
+    // The Lock Screen gives an activity 160 points: the design's 92-point path is drawn at 64.
+    VStack(alignment: .leading, spacing: 8) {
       HStack(spacing: 8) {
         Art(name: "appicon.png", width: 24, height: 24, radius: 7)
         Text(attributes.title).font(.system(size: 15, weight: .semibold)).lineLimit(1)
@@ -194,23 +195,26 @@ private struct PlanDayLockScreen: View {
             .foregroundStyle(SurfacePalette.honey)
         }
       }
-      Walk(season: context.season(attributes.farm), state: state).frame(height: 92)
+      Walk(season: context.season(attributes.farm), state: state).frame(height: 64)
       HStack(alignment: .center, spacing: 10) {
         Text(summary)
           .font(.system(size: 13.5))
           .foregroundStyle(SurfacePalette.moon2)
-          .fixedSize(horizontal: false, vertical: true)
+          .lineLimit(2)
+          .minimumScaleFactor(0.85)
         Spacer(minLength: 0)
         if let start = PlanTime.start(date: attributes.date, from: attributes.from), start > .now {
-          Text(start, style: .relative)
+          // Counts down on its own between updates, which a Live Activity can't do otherwise.
+          Text(timerInterval: Date.now...start, countsDown: true, showsHours: false)
             .font(.system(size: 22, weight: .bold))
+            .monospacedDigit()
             .multilineTextAlignment(.trailing)
             .frame(maxWidth: 90, alignment: .trailing)
         }
       }
     }
     .foregroundStyle(SurfacePalette.moon)
-    .padding(14)
+    .padding(12)
     .environment(\.locale, copy.locale)
   }
 
