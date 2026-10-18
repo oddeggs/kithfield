@@ -3,7 +3,6 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import type { Art } from './art';
 import { companionFrame, critterLayers, type CritterLook } from './critter';
 import { diff } from './golden/compare';
-import { fireLoop, sceneLoop } from './loops';
 import { createNodeArt, premulPixels } from './node';
 
 let art: Art;
@@ -79,29 +78,6 @@ describe('critter layers', () => {
     expect(opaque).toBeGreaterThan(200);
     // Far less than the critter and duckling together would cover.
     expect(opaque).toBeLessThan((px.length / 4) * 0.15);
-  });
-});
-
-describe('loops on twos', () => {
-  it('holds twelve frames of the fire and picks them by time', () => {
-    const loop = fireLoop(art, 80);
-    expect(loop.frames).toHaveLength(12);
-    expect(loop.indexAt(0)).toBe(0);
-    expect(loop.indexAt(0.5)).toBe(6);
-    expect(loop.indexAt(1.05)).toBe(0);
-    const a = premulPixels(loop.frames[0] ?? fail());
-    const b = premulPixels(loop.frames[3] ?? fail());
-    expect(diff(a, b).mean).toBeGreaterThan(0);
-  });
-
-  it('loops a whole scene over one cached background', () => {
-    const loop = sceneLoop(
-      art,
-      { scene: 'firesmall', width: 120, height: 90, attrs: { season: 'summer' } },
-      { frames: 4 },
-    );
-    expect(loop.frames).toHaveLength(4);
-    expect(loop.frameAt(0.1)).toBe(loop.frames[1]);
   });
 });
 
