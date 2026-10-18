@@ -35,22 +35,29 @@ export const VARIANTS: Record<AppVariant, VariantConfig> = {
 
 /** Unset means dev, for local work; every EAS profile names its variant. */
 export function resolveVariant(raw: string | undefined): AppVariant {
-  if (raw === undefined || raw === '') return 'dev';
+  if (!isSet(raw)) return 'dev';
   if (raw === 'dev' || raw === 'prd') return raw;
   throw new Error(`APP_VARIANT must be dev or prd, not "${raw}"`);
 }
 
-/**
- * The app's config for one variant. The EAS project id comes from the environment until the
- * project exists; without it the build is not linked to EAS and takes no over-the-air updates.
- */
+/** Settings read from the environment; unset or empty means the variant's default. */
+export interface BuildEnv {
+  /** The EAS project id. Without it the build is not linked to EAS and takes no updates. */
+  easProjectId: string | undefined;
+  /** Points the app at another API, such as `wrangler dev` on this Mac. */
+  apiBase: string | undefined;
+}
+
+const isSet = (value: string | undefined): value is string => value !== undefined && value !== '';
+
+/** The app's config for one variant. */
 export function buildConfig(
   config: ConfigContext['config'],
   appVariant: AppVariant,
-  easProjectId: string | undefined,
+  { easProjectId, apiBase }: BuildEnv,
 ): ExpoConfig {
   const variant = VARIANTS[appVariant];
-  const linked = easProjectId !== undefined && easProjectId !== '';
+  const linked = isSet(easProjectId);
   return {
     ...config,
     name: variant.name,
@@ -83,7 +90,7 @@ export function buildConfig(
     extra: {
       ...config.extra,
       appVariant,
-      apiBase: `https://${variant.host}/api`,
+      apiBase: isSet(apiBase) ? apiBase : `https://${variant.host}/api`,
       appGroup: variant.appGroup,
       ...(linked ? { eas: { projectId: easProjectId } } : {}),
     },
@@ -94,4 +101,7 @@ export function buildConfig(
 const env = process.env as Partial<Record<string, string>>;
 
 export default ({ config }: ConfigContext): ExpoConfig =>
-  buildConfig(config, resolveVariant(env['APP_VARIANT']), env['EAS_PROJECT_ID']);
+  buildConfig(config, resolveVariant(env['APP_VARIANT']), {
+    easProjectId: env['EAS_PROJECT_ID'],
+    apiBase: env['API_BASE'],
+  });
