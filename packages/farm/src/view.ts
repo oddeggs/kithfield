@@ -13,6 +13,7 @@ import {
   type Weather,
 } from '@kithfield/contracts';
 
+import { aliasOf } from './aliases';
 import { FAMILIES, SLEEPY_AFTER_DAYS, plantFor } from './catalog';
 import { type PlanConditions, planConditions } from './plans';
 import { CLOUD_MS, CRITTER_SLEEPY_DAYS, DAY_MS, FARM_MISTY_DAYS, STATUS_MS } from './rules';
@@ -101,7 +102,12 @@ const todayOf = (state: FarmState, now: EpochMs) => {
   }
 };
 
+/**
+ * The farm as drawn at `now`. People are drawn as who they are now: an id merged into another
+ * person reads as the kept one (`state.aliases`).
+ */
 export const farmView = (state: FarmState, now: EpochMs): FarmView => {
+  const alias = (person: PersonId) => aliasOf(state, person);
   const { today, timeZoneUnknown } = todayOf(state, now);
   const season = state.season;
   const harvestDay = harvestDayOf(state, today);
@@ -142,7 +148,7 @@ export const farmView = (state: FarmState, now: EpochMs): FarmView => {
     const woken = latest([m.lastOpenedAt, m.lastWokenAt]) ?? m.joinedAt;
     const away = asleep(woken, CRITTER_SLEEPY_DAYS * DAY_MS);
     return {
-      person: m.person,
+      person: aliasOf(state, m.person),
       sleepy: away || m.hibernating || paused,
       hibernating: m.hibernating,
       paused,
@@ -175,10 +181,16 @@ export const farmView = (state: FarmState, now: EpochMs): FarmView => {
     weather: state.weather?.day === today ? state.weather.weather : null,
     sharedRain: state.sharedRainDay === today,
     roses: [...birthdays].map((person) => {
-      const rose = state.roses.find((r) => r.person === person && r.day === today);
-      return { person, waterers: [...(rose?.waterers ?? [])], signers: [...(rose?.signers ?? [])] };
+      const rose = state.roses.find((r) => aliasOf(state, r.person) === person && r.day === today);
+      return {
+        person,
+        waterers: [...new Set((rose?.waterers ?? []).map(alias))],
+        signers: [...new Set((rose?.signers ?? []).map(alias))],
+      };
     }),
-    doorstep: state.doorstep.filter((d) => d.deliverAt === undefined || d.deliverAt > now),
+    doorstep: state.doorstep
+      .filter((d) => d.deliverAt === undefined || d.deliverAt > now)
+      .map((d) => ({ ...d, from: alias(d.from), to: alias(d.to) })),
     plans,
   };
 };

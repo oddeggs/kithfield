@@ -135,6 +135,13 @@ export type ContactMatchResponse = z.infer<typeof ContactMatchResponse>;
 export const ChatRowUpdate = z.object({ pinned: z.boolean() });
 export type ChatRowUpdate = z.infer<typeof ChatRowUpdate>;
 
+/**
+ * `POST /v1/push/opened`: the app opened a push, named by the `push` in its data (`PushData`). 204,
+ * also for an id the cottage doesn't know.
+ */
+export const PushOpenedRequest = z.object({ id: Id });
+export type PushOpenedRequest = z.infer<typeof PushOpenedRequest>;
+
 /** Why something waits in Quick Tend. */
 export const QuickTendWhy = z.enum(['question', 'plan', 'back', 'mention', 'doorstep', 'birthday']);
 export type QuickTendWhy = z.infer<typeof QuickTendWhy>;

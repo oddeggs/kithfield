@@ -17,12 +17,33 @@ const queueRow = {
   reporters: 2,
   source: 'member',
   claimedBy: null,
+  preview: {
+    excerpt: 'honestly nobody here even wants you around',
+    note: 'third time this week',
+    reportedName: 'Bram',
+    aimedAtName: 'June',
+    earlierReports: 1,
+  },
+};
+
+const pending = {
+  action: 'a1',
+  report: 'R-20418',
+  decision: 'remove_from_kithfield',
+  person: 'p_bram',
+  name: 'Bram',
+  askedBy: 'm_ana',
+  askedByName: 'Ana R.',
+  askedAt: at,
+  rule: 3,
+  note: 'Third removal this month',
 };
 
 const appealRow = {
   appeal: 'ap1',
   person: 'p_bram',
   name: 'Bram',
+  species: 'badger',
   action: 'a1',
   decision: 'remove_warn',
   category: 'harassment',
@@ -104,7 +125,11 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
   QueueQuery: [[{}, { category: 'hate', cursor: 'c1' }], [{ category: 'all' }]],
   QueueRow: [
     [queueRow, { ...queueRow, farmName: null, kind: 'lantern_lit' }],
-    [{ ...queueRow, reporters: -1 }],
+    [
+      { ...queueRow, reporters: -1 },
+      { ...queueRow, preview: undefined },
+      { ...queueRow, preview: { ...queueRow.preview, excerpt: 'x'.repeat(301) } },
+    ],
   ],
   QueuePage: [[{ rows: [queueRow], cursor: null }], [{ rows: [queueRow] }]],
   ReportDetail: [
@@ -126,6 +151,11 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
           { ...event, payload: eventPayloads.message },
           { ...event, seq: 42, kind: 'lantern_lit', payload: {} },
         ],
+        people: [
+          { person: 'p_bram', name: 'Bram', species: 'badger' },
+          { person: bea, name: null, species: null },
+        ],
+        reporters: [pip],
         signals: {
           earlierReports: 1,
           accountAgeDays: 210,
@@ -136,6 +166,17 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
       },
     ],
     [{ report: 'R-1', context: Array(22).fill({ ...event, payload: eventPayloads.message }) }],
+  ],
+  PendingAction: [
+    [pending, { ...pending, name: null, rule: null }],
+    [
+      { ...pending, note: '' },
+      { ...pending, decision: 'ban' },
+    ],
+  ],
+  PendingActionPage: [
+    [{ rows: [pending], cursor: null }],
+    [{ rows: [pending] }, { rows: [{ action: 'a1' }], cursor: null }],
   ],
   ModerationAction: [
     ['remove_warn', 'remove_from_kithfield', 'freeze_farm', 'unfreeze_farm'],
@@ -195,6 +236,7 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         appeal: 'ap1',
         person: 'p_bram',
         name: 'Bram',
+        species: 'badger',
         action: 'a1',
         decision: 'remove_warn',
         category: 'harassment',
@@ -204,8 +246,12 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         reviewer: 'm_kofi',
         text: 'I was joking.',
       },
+      { ...appealRow, name: null, species: null },
     ],
-    [{ appeal: 'ap1', status: 'open' }],
+    [
+      { appeal: 'ap1', status: 'open' },
+      { ...appealRow, species: 'dragon' },
+    ],
   ],
   AppealPage: [
     [
@@ -242,7 +288,26 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         warnings: 1,
         pausedUntil: null,
         history: [
-          { at, what: 'actioned', report: 'R-20418', action: 'remove_warn', rule: 3, by: 'm_ana' },
+          {
+            at,
+            what: 'actioned',
+            report: 'R-20418',
+            action: 'remove_warn',
+            rule: 3,
+            by: 'm_ana',
+            category: 'harassment',
+            farm,
+          },
+          {
+            at,
+            what: 'joined',
+            report: null,
+            action: null,
+            rule: null,
+            by: null,
+            category: null,
+            farm: null,
+          },
         ],
         blockedBy: 0,
         reportsMade: 0,
@@ -262,6 +327,16 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         item: 'R-20418',
         rule: 3,
         reason: 'Apology noted',
+      },
+      {
+        id: 'l3',
+        at,
+        by: 'm_kofi',
+        byName: 'Kofi A.',
+        what: 'appeal_restore_failed',
+        item: 'ap1',
+        rule: null,
+        reason: null,
       },
       {
         id: 'l2',

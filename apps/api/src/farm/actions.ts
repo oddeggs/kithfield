@@ -254,8 +254,9 @@ export const setHibernating = async (
 const RANK = { critter: 0, helper: 1, keeper: 2 } as const;
 
 /**
- * The farm's state with `from` read as `into`. If both lived here, `into`'s entry stays with the
- * higher of their two roles, so a farm never loses its keeper to a merge.
+ * The farm's state with `from` read as `into`, and `from → into` in its aliases. If both lived
+ * here, `into`'s entry stays with the higher of their two roles, so a farm never loses its keeper
+ * to a merge.
  */
 const movePerson = (state: FarmState, from: PersonId, into: PersonId): FarmState => {
   const old = state.members.find((m) => m.person === from);
@@ -271,9 +272,11 @@ const movePerson = (state: FarmState, from: PersonId, into: PersonId): FarmState
             ),
         }
       : state;
-  return JSON.parse(
+  const moved = JSON.parse(
     JSON.stringify(trimmed).replaceAll(JSON.stringify(from), JSON.stringify(into)),
   ) as FarmState;
+  // Phones draw pre-merge events as the kept person, and the reducer maps actors through this.
+  return { ...moved, aliases: { ...moved.aliases, [from]: into } };
 };
 
 /**

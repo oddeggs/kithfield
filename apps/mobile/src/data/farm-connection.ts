@@ -22,8 +22,11 @@ import {
   type SocketPhase,
 } from './socket';
 
-/** Socket errors after which reconnecting can't help. */
-export type BlockedCode = Exclude<SocketErrorCode, 'unauthorized'>;
+/**
+ * Socket errors after which reconnecting can't help. `session_ended` isn't one: the session is
+ * over for the whole phone, not this link.
+ */
+export type BlockedCode = Exclude<SocketErrorCode, 'unauthorized' | 'session_ended'>;
 
 /** How a farm's link to the server stands, for the UI. */
 export type FarmLink =
@@ -51,7 +54,7 @@ export interface FarmConnectionDeps {
   /** Whether the farm is open in front of its person (drives `farm_opened`). */
   readonly here: () => boolean;
   readonly onLink: (link: FarmLink) => void;
-  /** The session is gone (401): the app offers sign-in. */
+  /** The farm said `session_ended` (signed out from another device): the phone wipes. */
   readonly onSessionEnded: () => void;
   /** The person is banned: every socket stops. */
   readonly onBanned: () => void;
@@ -116,10 +119,9 @@ export function createFarmConnection(deps: FarmConnectionDeps) {
     },
     onHelloError: (error) => {
       if (!(error instanceof ApiError)) return 'retry';
-      if (error.status === 401) {
-        deps.onSessionEnded();
-        return 'stop';
-      }
+      // A token's 401 already had the session re-checked: ended, it stopped this socket; else
+      // try again later.
+      if (error.status === 401) return 'retry';
       if (error.status === 403) {
         guard('farm.block', block(error.code === 'banned' ? 'banned' : 'not_member'));
         return 'stop';
@@ -194,7 +196,10 @@ export function createFarmConnection(deps: FarmConnectionDeps) {
     }
     if (frame.type === 'error') {
       if (frame.code === 'unauthorized') tokens.invalidate(farm);
-      else await block(frame.code);
+      else if (frame.code === 'session_ended') {
+        socket.stop();
+        deps.onSessionEnded();
+      } else await block(frame.code);
       return;
     }
     const outcome = await replica.handle(frame);
@@ -253,9 +258,9 @@ export function createFarmConnection(deps: FarmConnectionDeps) {
     if (draining || link.status === 'blocked') return null;
     draining = true;
     try {
+      // A 401 here already had the session re-checked (`onUnauthorized`): nothing more to do.
       const outcome = await drainOverHttp(replica, api);
-      if (outcome === 'session_ended') deps.onSessionEnded();
-      else if (outcome === 'banned') await block('banned');
+      if (outcome === 'banned') await block('banned');
       else if (outcome === 'not_member') await block('not_member');
       else if (outcome === 'not_found') await block('farm_gone');
       return outcome;

@@ -1,6 +1,7 @@
 import {
   ApprovalRequest,
   CreateFarmRequest,
+  type CurrentInvite,
   type CreateFarmResponse,
   CreateInviteRequest,
   type Invite,
@@ -17,23 +18,21 @@ import { Hono } from 'hono';
 
 import { isKnownTimeZone } from '@kithfield/farm';
 
-import type { SessionEnv } from '../auth';
+import { eitherBlocked, type SessionEnv } from '../auth';
 import type { Bindings } from '../env';
 import { profileOf } from './adapters/identity';
-import { blocks } from './blocks';
 import {
   insertFarm,
-  liveInvite,
-  replaceInvite,
   shareAFarm,
   takeWaiting,
   waitingRequest,
-  useInvite,
   visitBetween,
   waitingList,
 } from './d1';
+import { currentInvite, liveInvite, replaceInvite, useInvite } from './d1-invites';
 import { body, fail, farmStub, inviteUrl, member, signedIn } from './http';
 import { newFarmId, newInviteCode, sha256Hex } from './ids';
+import { inviteKey, openInviteCode, sealInviteCode } from './invite-codes';
 
 /* Planting farms, opening visits, invites, joining and the keeper's waiting list. */
 
@@ -47,7 +46,10 @@ const newInvite = async (
   expiresAt: number | null,
 ): Promise<Invite> => {
   const code = newInviteCode();
-  await replaceInvite(env.DB, { hash: await sha256Hex(code), farm, by, expiresAt });
+  // Without the key the link still works; it just can't be shown again (`GET .../invite`).
+  const key = inviteKey(env);
+  const sealed = key === null ? null : await sealInviteCode(key, farm, code);
+  await replaceInvite(env.DB, { hash: await sha256Hex(code), farm, by, expiresAt, sealed });
   return { code, url: inviteUrl(env, code), expiresAt };
 };
 
@@ -87,7 +89,7 @@ export const joiningRoutes = (): Hono<SessionEnv> => {
     if (req instanceof Response) return req;
     if (req.person === person) return fail(c, 400, 'bad_request', ['person']);
     if (!isKnownTimeZone(req.timeZone)) return fail(c, 400, 'bad_request', ['timeZone']);
-    if (await blocks.isBlocked(c.env, person, req.person)) return fail(c, 404, 'not_found');
+    if (await eitherBlocked(c.env.DB, person, req.person)) return fail(c, 404, 'not_found');
     if (!(await shareAFarm(c.env.DB, person, req.person))) return fail(c, 404, 'not_found');
     const [mine, theirs] = await Promise.all([
       profileOf(c.env, person),
@@ -148,6 +150,24 @@ export const joiningRoutes = (): Hono<SessionEnv> => {
     return c.json(await newInvite(c.env, m.farm, m.person, req.expiresAt), 201);
   });
 
+  /**
+   * The farm's current link, for the invite screen; null when it has none (taken back, expired,
+   * used up, or made before links could be read again). Keepers and helpers only.
+   */
+  app.get('/farms/:id/invite', signedIn, async (c) => {
+    const m = await member(c, ['keeper', 'helper']);
+    if (m instanceof Response) return m;
+    const key = inviteKey(c.env);
+    if (key === null) return fail(c, 503, 'unavailable');
+    const live = await currentInvite(c.env.DB, m.farm, Date.now());
+    const code = live?.sealed == null ? null : await openInviteCode(key, m.farm, live.sealed);
+    const invite =
+      live === null || code === null
+        ? null
+        : { code, url: inviteUrl(c.env, code), expiresAt: live.expiresAt };
+    return c.json({ invite } satisfies CurrentInvite);
+  });
+
   /** Public: the invite page shows this before anyone signs in. */
   app.get('/invites/:code', async (c) => {
     const invite = await liveInvite(c.env.DB, await sha256Hex(c.req.param('code')), Date.now());
@@ -155,11 +175,12 @@ export const joiningRoutes = (): Hono<SessionEnv> => {
     const state = await farmStub(c.env, invite.farm_id).state();
     if (state === null || state.name === null) return fail(c, 404, 'invite_invalid');
     // Whoever made the link, as they are now; nobody once they have left or deleted their account.
-    const inviter = state.aliases[invite.created_by] ?? invite.created_by;
-    const stillHere = state.members.some((m) => m.person === inviter);
+    const maker = invite.created_by;
+    const inviter = maker === null ? null : (state.aliases[maker] ?? maker);
+    const stillHere = inviter !== null && state.members.some((m) => m.person === inviter);
     const preview: InvitePreview = {
       name: state.name,
-      from: stillHere ? await profileOf(c.env, inviter) : null,
+      from: stillHere && inviter !== null ? await profileOf(c.env, inviter) : null,
       land: state.land,
       critters: state.members.map((m) => m.critter),
       full: state.members.length >= LIMITS.members,

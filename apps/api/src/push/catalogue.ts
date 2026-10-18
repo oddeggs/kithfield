@@ -1,4 +1,9 @@
-import type { CottageDelivery, FarmNotifications, PushJob } from '@kithfield/contracts';
+import type {
+  CottageDelivery,
+  FarmNotifications,
+  NotificationType,
+  PushJob,
+} from '@kithfield/contracts';
 
 import type { PushCategory } from './policy';
 
@@ -86,6 +91,29 @@ const isPlanPush = (job: Pick<PushJob, 'kind' | 'copy'>) =>
   PLAN_KINDS.has(job.kind) ||
   job.copy.key.startsWith('push.plan') ||
   job.copy.key.startsWith('push.fireLit');
+
+/** Birthday pushes: a friend's rose blooming, or a card to sign. */
+const isBirthdayPush = (job: Pick<PushJob, 'kind' | 'copy'>) =>
+  job.kind === 'card_signed' || job.copy.key.startsWith('push.birthday');
+
+/**
+ * The kind of push as the notification settings name it, for resting a kind after unopened ones.
+ * Null for pushes that never rest: who moved in, knocks, remember-me seeds and the "a few things"
+ * pushes, which stand for several kinds at once.
+ */
+export function notificationTypeOf(
+  job: Pick<PushJob, 'kind' | 'copy' | 'farm' | 'forYou'>,
+): NotificationType | null {
+  if (PASSIVE_COPY.has(job.copy.key)) return null;
+  const category = categoryOf(job);
+  if (category === 'reminder' || category === 'knock') return null;
+  if (category === 'nudge') return 'nudges';
+  if (isPlanPush(job)) return 'plans';
+  if (isBirthdayPush(job)) return 'birthdays';
+  if (category === 'doorstep') return 'doorstep';
+  if (category === 'mention') return job.forYou ? 'mentions' : 'messages';
+  return null;
+}
 
 /**
  * Whether the person's "Knock for" toggles on this farm let a push through: plans, the doorstep,

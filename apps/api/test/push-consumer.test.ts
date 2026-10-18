@@ -5,6 +5,7 @@ import { runDurableObjectAlarm } from 'cloudflare:test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { cottageClock } from '../src/cottage/clock';
+import { pushIdOf } from '../src/cottage/resting';
 import { cottageOf } from '../src/cottage/stub';
 import { backoffSeconds, consumePush } from '../src/push/consumer';
 import { EXPO_RECEIPTS_URL, EXPO_SEND_URL } from '../src/push/expo';
@@ -79,7 +80,8 @@ describe('the push consumer', () => {
     const queue = recordPushQueue();
     const { person } = await personWithPhone('vi');
     const expo = fakeExpoPushService(okTickets);
-    const result = await consume([jobFor(person)], expo.fetch);
+    const job = jobFor(person);
+    const result = await consume([job], expo.fetch);
 
     expect(result.explicitAcks).toEqual(['m0']);
     expect(expo.calls).toEqual([
@@ -90,7 +92,13 @@ describe('the push consumer', () => {
             to: TOKEN,
             title: 'The Thursday Lot',
             body: 'Otis để lại một con đom đóm trước cửa nhà bạn. Không cần trả lời đâu.',
-            data: { farm: 'farm-a', seq: 4, kind: 'firefly' },
+            // The cottage's id for the push, sent back by the app when it is opened.
+            data: {
+              farm: 'farm-a',
+              seq: 4,
+              kind: 'firefly',
+              push: pushIdOf(job),
+            },
             sound: 'default',
             collapseId: 'doorstep.20261018',
             tag: 'doorstep.20261018',
