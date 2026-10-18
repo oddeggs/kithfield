@@ -4,6 +4,7 @@ import { checkRtToken, type RtTokenScope } from './rt-token';
 export { authRoutes } from './routes';
 export { requireSession, errorResponse, type SessionEnv } from './session';
 export { ACCOUNT_BAN_SCOPE, banPerson, isBanned, type Ban } from './bans';
+export { eitherBlocked, hasBlocked } from './blocks';
 export { registerMergeStep, type MergeStep, type PersonMerge } from './merge-steps';
 export { CURRENT_TERMS_VERSION } from './terms';
 export { registerProfileFanOut, type ProfileFanOut } from './profile';

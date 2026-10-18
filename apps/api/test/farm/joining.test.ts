@@ -8,7 +8,7 @@ import {
 } from '@kithfield/contracts';
 import { createMessageBatch, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   readSignIn,
@@ -18,7 +18,6 @@ import {
   watchLetters,
 } from '../../src/auth/testing/client';
 import { cottageOf } from '../../src/cottage/stub';
-import { blocks } from '../../src/farm/blocks';
 import { consumeDeletion } from '../../src/deletion';
 import { op, TestSocket } from './support/client';
 import {
@@ -412,23 +411,39 @@ describe('the gate', () => {
     expect((await api(kit, 'GET', `/v1/farms/${home.farm}/gate`)).status).toBe(404);
   });
 
-  it('hides a member who blocked a visitor from that visitor, and refuses trades between them', async () => {
+  it('hides a member who blocked a visitor from that visitor, and refuses gestures and trades between them', async () => {
     const { pip, fig, kit, home, next } = await neighbours();
-    // The safety work isn't built yet: this stands in for Pip having blocked Kit.
-    const blocked = (a: string, b: string) =>
-      [a, b].sort().join() === [pip.id, kit.id].sort().join();
-    vi.spyOn(blocks, 'isBlocked').mockImplementation((_env, a, b) =>
-      Promise.resolve(blocked(a, b)),
-    );
+    expect((await api(pip, 'PUT', `/v1/blocks/${kit.id}`)).status).toBe(204);
     const gate = FarmGate.parse((await api(kit, 'GET', `/v1/farms/${home.farm}/gate`)).body);
     expect(gate.critters.map((c) => c.person)).toEqual([fig.id]);
+    const firefly = { opId: op(2), gesture: { gesture: 'firefly', to: pip.id } };
+    expect((await api(kit, 'POST', `/v1/farms/${home.farm}/gate`, firefly)).body).toEqual({
+      result: 'rejected',
+      opId: op(2),
+      reason: 'unavailable',
+    });
     const trade = { opId: op(1), from: next.farm, with: pip.id, give: null, take: 'marigold' };
     expect((await api(kit, 'POST', `/v1/farms/${home.farm}/trade`, trade)).body).toEqual({
       result: 'rejected',
       opId: op(1),
       reason: 'unavailable',
     });
-    vi.restoreAllMocks();
+    // Unblocked, Pip shows at the gate again.
+    expect((await api(pip, 'DELETE', `/v1/blocks/${kit.id}`)).status).toBe(204);
+    const again = FarmGate.parse((await api(kit, 'GET', `/v1/farms/${home.farm}/gate`)).body);
+    expect(again.critters.map((c) => c.person)).toEqual([pip.id, fig.id]);
+  });
+
+  it('opens no visit between two people where either blocked the other', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    await plantFarm(pip, [fig]);
+    const open = (who: Person, person: string) =>
+      api(who, 'POST', '/v1/visits', { person, timeZone: 'Europe/London', hemisphere: 'north' });
+    expect((await api(fig, 'PUT', `/v1/blocks/${pip.id}`)).status).toBe(204);
+    expect((await open(pip, fig.id)).status).toBe(404);
+    expect((await open(fig, pip.id)).status).toBe(404);
+    expect((await api(fig, 'DELETE', `/v1/blocks/${pip.id}`)).status).toBe(204);
+    expect((await open(pip, fig.id)).status).toBe(201);
   });
 
   it('takes one gesture a farm day from each visitor, and limits how fast they come', async () => {

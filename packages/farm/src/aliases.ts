@@ -52,7 +52,7 @@ const moveFields = (state: Aliases, fields: Record<string, unknown>): Record<str
 export const withAliases = (state: Aliases, event: FarmEvent): FarmEvent => {
   if (Object.keys(state.aliases).length === 0) return event;
   const actor = event.actor === null ? null : aliasOf(state, event.actor);
-  const payload = moveFields(state, event.payload as Record<string, unknown>);
+  const payload = moveFields(state, event.payload);
   if (actor === event.actor && payload === event.payload) return event;
   return { ...event, actor, payload } as FarmEvent;
 };

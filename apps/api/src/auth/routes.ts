@@ -5,6 +5,7 @@ import { Hono } from 'hono';
 import type { z } from 'zod';
 
 import { checkAge } from './age';
+import { blockRoutes } from './blocks';
 import { readMe } from './me';
 import { updateProfile } from './profile';
 import { AuthNotConfigured, authSecret, handleAuthRequest } from './instance';
@@ -37,9 +38,12 @@ async function parseBody<T>(c: Context, schema: z.ZodType<T>): Promise<Parsed<T>
  * - `POST /v1/rt-token`: a socket token (a banned person is refused by `requireSession`).
  * - `GET /v1/me`: the person, with their settings and hibernating from their cottage.
  * - `POST /v1/me/age`, `POST /v1/me/terms`: the age check and the Terms acceptance.
+ * - `/v1/blocks`: blocking (`blocks.ts`).
  */
 export function authRoutes(): Hono<SessionEnv> {
   const routes = new Hono<SessionEnv>();
+
+  routes.route('/', blockRoutes());
 
   routes.on(['GET', 'POST'], '/auth/*', async (c) => {
     try {
