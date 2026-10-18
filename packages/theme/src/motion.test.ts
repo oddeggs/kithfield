@@ -8,6 +8,7 @@ import {
   springFromResponse,
   springs,
   travel,
+  travelWobble,
   type Bezier,
 } from './motion';
 import { between, captures, foundations, num, one, readDesign, textOf } from './test/design';
@@ -172,5 +173,25 @@ describe('sample curves match design/kf-motion.js', () => {
     );
     const known = Object.values(sampleCurves).map((c) => [...c]);
     for (const curve of used) expect(known).toContainEqual(curve);
+  });
+});
+
+describe('the travelling wobble matches sample 01 in design/kf-motion.js', () => {
+  it('tilts the face one way then the other as it flies, as the sample keys it', () => {
+    const source = readDesign('kf-motion.js');
+    const sample = source.split("\n '01':")[1]?.split("\n '02':")[0] ?? '';
+    const track = one(sample, /A\(K\('avatar'[^\n]*?, 60, 60, (\[\[[^\n]*\]\])\),\n/)[0];
+    const frames = JSON.parse(
+      (track ?? '').replace(/\.(\d)/g, '0.$1').replace(/, SP|, LIN|, EO/g, ''),
+    ) as number[][];
+    // The flight is the frames while the face shows; it lands on the last of them.
+    const flying = frames.filter((f) => f[5] === 1);
+    const end = flying[flying.length - 1]?.[0] ?? 1;
+    const keyed = flying.map((f) => [Math.round(((f[0] ?? 0) / end) * 1000) / 1000, f[4] ?? 0]);
+    expect(travelWobble).toEqual(keyed);
+    for (const [, deg] of travelWobble.slice(1)) {
+      expect(Math.abs(deg)).toBeGreaterThanOrEqual(travel.wobbleMinDeg);
+      expect(Math.abs(deg)).toBeLessThanOrEqual(travel.wobbleMaxDeg);
+    }
   });
 });

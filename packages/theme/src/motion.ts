@@ -90,3 +90,16 @@ export const travel = {
   /** Landing settles over two drawings: a 4% squash, then rest. */
   landingSquash: 0.04,
 } as const;
+
+/**
+ * The travelling face's tilt in sample 01 of `design/kf-motion.js`, as `[progress, degrees]` from
+ * leaving (0) to landing (1): it leans one way, then the other, settling as it lands. Every
+ * travelling sprite tilts on this curve, mirrored when it flies leftward.
+ */
+export const travelWobble: readonly (readonly [number, number])[] = [
+  [0, 0],
+  [0.273, -6],
+  [0.545, 8],
+  [0.818, -5],
+  [1, 3],
+];
