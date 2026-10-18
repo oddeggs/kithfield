@@ -18,7 +18,6 @@ import { titleFrom } from './draft';
 import { leave } from './chrome';
 import { personOn } from './people';
 import { usePlanLook } from './plan-look';
-import { rememberOf } from './remember-api';
 import { SeedArt } from './seed-art';
 import { useMessage } from './use-message';
 import { useMe } from './use-plans';
@@ -76,8 +75,11 @@ export function RememberSheet({
     const draft = t('plans.remember.titleDraft', { name: friendName, text: titleFrom(message.text) });
     setTitle(draft.slice(0, TITLE_MAX));
   }, [message, friendName, t]);
-  // The times are fixed when the sheet opens, from the words of the message.
-  const times = useMemo(() => nudgeTimes(message?.text ?? '', new Date()), [message]);
+  // The times are fixed when the sheet opens, from the message's words and when it was sent.
+  const times = useMemo(() => {
+    const now = new Date();
+    return nudgeTimes(message?.text ?? '', message ? new Date(message.at) : now, now);
+  }, [message]);
   const when = times[choice];
   const whenDay = localParts(when).day;
   const label = (c: NudgeChoice) => {
@@ -89,12 +91,10 @@ export function RememberSheet({
   };
 
   const plant = async () => {
-    const remember = rememberOf(api);
     if (busy || title.trim() === '') return;
     setBusy(true);
     try {
-      if (!remember) throw new Error('remember is not in the API client');
-      await remember({ farm, fromSeq: seq, about, title: title.trim(), nudgeAt: when.getTime() });
+      await api.remember({ farm, fromSeq: seq, about, title: title.trim(), nudgeAt: when.getTime() });
       haptics.success();
       show(t('plans.remember.planted'), 'sprout');
       leave();

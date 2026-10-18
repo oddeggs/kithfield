@@ -79,17 +79,34 @@ describe('remember-me nudges', () => {
   });
 
   it('nudges the day after, in the morning, the evening or at the weekend', () => {
-    const times = nudgeTimes('big interview on thursday', monday);
+    const times = nudgeTimes('big interview on thursday', monday, monday);
     expect(times.morning).toEqual(new Date(2026, 9, 23, 9));
     expect(times.evening).toEqual(new Date(2026, 9, 23, 18));
     expect(times.weekend).toEqual(new Date(2026, 9, 24, 10));
   });
 
+  it('counts the day from when the message was sent, not from when the seed is planted', () => {
+    // Sent on Thursday 15 October about that day; planted the Monday after, at noon.
+    const sent = new Date(2026, 9, 15, 8);
+    const times = nudgeTimes('big interview on thursday', sent, monday);
+    expect(times.morning).toEqual(new Date(2026, 9, 20, 9));
+    expect(times.evening).toEqual(new Date(2026, 9, 19, 18));
+    expect(times.weekend).toEqual(new Date(2026, 9, 24, 10));
+  });
+
   it('never nudges in the past', () => {
     const lateSunday = new Date(2026, 9, 18, 20);
-    const times = nudgeTimes('saturday party', lateSunday);
+    const times = nudgeTimes('saturday party', lateSunday, lateSunday);
     // About next Saturday, so the Sunday after it.
     expect(times.morning).toEqual(new Date(2026, 9, 25, 9));
     expect(times.weekend).toEqual(new Date(2026, 9, 25, 10));
+  });
+
+  it('rolls a weekend nudge already past on Sunday to the next Saturday, not to Monday', () => {
+    const saturday = new Date(2026, 9, 17, 9);
+    const sundayLate = new Date(2026, 9, 18, 11);
+    expect(nudgeTimes('wish me luck', saturday, sundayLate).weekend).toEqual(
+      new Date(2026, 9, 24, 10),
+    );
   });
 });

@@ -7,6 +7,7 @@ import {
   JoinResponse,
   LIMITS,
   Me,
+  RememberResponse,
   RtTokenResponse,
   SignInNonceResponse,
   type CreateFarmRequest,
@@ -15,6 +16,7 @@ import {
   type FarmId,
   type JoinRequest,
   type MeProfileUpdate,
+  type RememberRequest,
 } from '@kithfield/contracts';
 import { z } from 'zod';
 
@@ -158,6 +160,9 @@ export function createApiClient(deps: ApiClientDeps) {
     /** A new invite to a farm, replacing the one before. Keepers and helpers. */
     createInvite: (farm: FarmId, invite: CreateInviteRequest) =>
       request(Invite, 'POST', `/v1/farms/${encodeURIComponent(farm)}/invites`, invite),
+
+    /** Plants a remember-me seed: personal, kept by the cottage, never in a farm's log. */
+    remember: (seed: RememberRequest) => request(RememberResponse, 'POST', '/v1/remember', seed),
 
     /** Moves in with an invite's code, or waits for the keeper when the farm asks first. */
     join: (code: string, join: JoinRequest) =>

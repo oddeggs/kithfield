@@ -156,22 +156,29 @@ const MORNING_HOUR = 9;
 const EVENING_HOUR = 18;
 const WEEKEND_HOUR = 10;
 
+const isWeekend = (day: Date) => day.getDay() === 0 || day.getDay() === SATURDAY;
+const atHour = (day: Date, hour: number) =>
+  new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour);
+
+/** The first day from `day` on (it included) that `fits` and whose `hour` is still to come. */
+function nextAt(day: Date, hour: number, now: Date, fits: (d: Date) => boolean): Date {
+  let d = day;
+  while (!fits(d) || atHour(d, hour).getTime() <= now.getTime()) d = plusDays(d, 1);
+  return atHour(d, hour);
+}
+
 /**
  * When each nudge choice lands: the morning or evening of the day after the one the message is
- * about, or the weekend on or after it. A time already past moves on a day.
+ * about, or the weekend on or after it. The day is read from when the message was sent; a time
+ * already past moves on to the next morning, evening or weekend.
  */
-export function nudgeTimes(text: string, now: Date): Record<NudgeChoice, Date> {
-  const after = plusDays(dayMentioned(text, now), 1);
-  const at = (day: Date, hour: number) => {
-    const when = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour);
-    return when.getTime() > now.getTime() ? when : plusDays(when, 1);
-  };
-  const day = after.getDay();
-  const weekendDay = day === 0 || day === SATURDAY ? after : plusDays(after, SATURDAY - day);
+export function nudgeTimes(text: string, sentAt: Date, now: Date): Record<NudgeChoice, Date> {
+  const after = plusDays(dayMentioned(text, sentAt), 1);
+  const any = () => true;
   return {
-    morning: at(after, MORNING_HOUR),
-    evening: at(after, EVENING_HOUR),
-    weekend: at(weekendDay, WEEKEND_HOUR),
+    morning: nextAt(after, MORNING_HOUR, now, any),
+    evening: nextAt(after, EVENING_HOUR, now, any),
+    weekend: nextAt(after, WEEKEND_HOUR, now, isWeekend),
   };
 }
 

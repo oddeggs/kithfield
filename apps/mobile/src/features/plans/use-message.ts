@@ -6,10 +6,10 @@ import { useDataClient, useFarmSelector } from '../../data';
 
 const lastSeqOf = (farm: { lastSeq: number } | null) => farm?.lastSeq ?? 0;
 
-/** A message on a farm by seq, from the phone's copy of the log: its words and who wrote it. */
+/** A message on a farm by seq, from the phone's copy of the log: its words, who wrote it and when. */
 export function useMessage(farm: FarmId, fromSeq: Seq | null) {
   const client = useDataClient();
-  const [found, setFound] = useState<{ text: string; actor: string | null } | null>(null);
+  const [found, setFound] = useState<{ text: string; actor: string | null; at: number } | null>(null);
   // Looked for again as the phone catches up, until the message is here.
   const lastSeq = useFarmSelector(farm, lastSeqOf);
   const have = found !== null;
@@ -21,7 +21,7 @@ export function useMessage(farm: FarmId, fromSeq: Seq | null) {
       const payload = event.payload;
       if (isTombstone(payload) || typeof payload !== 'object' || payload === null) return;
       const text = (payload as { text?: unknown }).text;
-      if (typeof text === 'string') setFound({ text, actor: event.actor });
+      if (typeof text === 'string') setFound({ text, actor: event.actor, at: event.at });
     });
     return () => {
       live = false;
