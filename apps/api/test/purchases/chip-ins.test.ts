@@ -1,4 +1,4 @@
-import type { ChipIn, ChipInList } from '@kithfield/contracts';
+import { RESTORATION_RULES_VERSION, type ChipIn, type ChipInList } from '@kithfield/contracts';
 import { localDay } from '@kithfield/farm';
 import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -18,7 +18,7 @@ const pledge = (
 ) => api(person, 'POST', `/v1/chip-ins/${id}/pledges`, { tier, transaction });
 
 describe('a farm theme chip-in', () => {
-  it('fills from promises, is paid once covered, and switches the theme on for good', async () => {
+  it('fills from promises, is paid once covered, and is the farm’s for good', async () => {
     const { pip, fig, bea } = await cast('pip', 'fig', 'bea');
     const { farm, stub } = await plantFarm(pip, [fig, bea]);
     const started = await api(fig, 'POST', `/v1/farms/${farm}/chip-ins`, {
@@ -49,9 +49,12 @@ describe('a farm theme chip-in', () => {
       await pledge(bea, chipIn, 'kf.chipin.500', await boughtConsumable(bea, 'kf.chipin.500'))
     ).body as ChipIn;
     expect(view.mine?.state).toBe('paid');
-    expect((await stub.state())?.theme).toBe('snowy_hollow');
+    // The farm switches it on itself from the rules that brought farm-written themes.
+    const state = await stub.state();
+    const shown = (state?.rulesVersion ?? 0) >= RESTORATION_RULES_VERSION ? 'snowy_hollow' : null;
+    expect(state?.theme ?? null).toBe(shown);
     const themes = await api(pip, 'GET', `/v1/farms/${farm}/themes`);
-    expect(themes.body).toEqual({ owned: ['snowy_hollow'], current: 'snowy_hollow' });
+    expect(themes.body).toEqual({ owned: ['snowy_hollow'], current: shown });
     // Owned now: no second chip-in for it.
     expect(
       (

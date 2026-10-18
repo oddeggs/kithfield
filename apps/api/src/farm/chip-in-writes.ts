@@ -1,4 +1,11 @@
-import type { ArtId, CommandResult, GiftPayload, OpId, PersonId } from '@kithfield/contracts';
+import {
+  type ArtId,
+  type CommandResult,
+  type GiftPayload,
+  type OpId,
+  type PersonId,
+  RESTORATION_RULES_VERSION,
+} from '@kithfield/contracts';
 
 import type { FarmHost } from './host';
 
@@ -39,13 +46,18 @@ export const chipInGift = (
     }),
   );
 
-/** `settings_changed {theme}` written by the farm itself, once the theme is covered. */
+/**
+ * `settings_changed {theme}` written by the farm itself, once the theme is covered. Farm-written
+ * themes come with the rules that brought the restoration project; a farm on older rules answers
+ * `not_allowed`, the theme stays owned, and a keeper switches it on.
+ */
 export const chipInTheme = (host: FarmHost, opId: OpId, theme: ArtId) =>
   finish(
     host,
     host.farm.once(opId, host.now(), () => {
       const state = host.farm.state;
       if (state === null || state.kind === 'visit') return 'not_found';
+      if (state.rulesVersion < RESTORATION_RULES_VERSION) return 'not_allowed';
       return { actor: null, kind: 'settings_changed', payload: { setting: 'theme', theme } };
     }),
   );
