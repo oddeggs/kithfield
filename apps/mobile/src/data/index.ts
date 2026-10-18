@@ -42,7 +42,9 @@
  * session is still live, tries the call once more. A session confirmed gone (the re-check, the
  * launch check, or a socket's `session_ended`) stops the sockets, counts the writes still waiting
  * (`unsent_at_session_end`) and wipes this person's data as signing out does, the media queue
- * included, then sets `useDataStatus().sessionEnded`.
+ * included, then sets `useDataStatus().sessionEnded`. That count (and a forced sign-out's) is kept
+ * in the Keychain: the sign-in screen reads it once with `takeUnsentNotice()` (null when nothing
+ * was lost) to tell the person what didn't send.
  *
  * Sockets: `useOpenFarm(farm)` keeps a farm's socket open while a screen shows it (the last one
  * held wins). The cottage socket runs while the app is in the foreground and there is a person.
@@ -53,7 +55,8 @@
  * included) before it wipes anything, the media queue with the tables; then
  * `session.signOut()` and start again with `startData`.
  */
-export { startData, type DataRuntime, type StartOptions } from './native';
+export { startData, takeUnsentNotice, type DataRuntime, type StartOptions } from './native';
+export type { UnsentNotice, UnsentReason } from './unsent-notice';
 export { kithfieldRules } from './farm-rules';
 export type { NetworkSwitch } from './dev-network';
 export {

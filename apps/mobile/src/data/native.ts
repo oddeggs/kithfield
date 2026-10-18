@@ -17,6 +17,7 @@ import { SessionEnded, createSession, type Session, type SessionStorage } from '
 import { sessionRecheck } from './session-check';
 import { createSignIn, type SignIn } from './sign-in';
 import type { OpenSocket, WebSocketLike } from './socket';
+import { createUnsentNotices, type UnsentNotice } from './unsent-notice';
 
 // Readable after first unlock, so a background wake can still reach the API. It travels with
 // encrypted backups and device moves, like the database key, so a restored phone stays signed in.
@@ -30,6 +31,20 @@ const keychain: SessionStorage = {
   setItem: (key, value) => SecureStore.setItem(key, value, KEYCHAIN),
   setItemAsync: (key, value) => SecureStore.setItemAsync(key, value, KEYCHAIN),
 };
+
+// Kept in the Keychain, which the wipe leaves alone, so the next sign-in can tell the person.
+const unsentNotices = createUnsentNotices({
+  getItemAsync: (key) => SecureStore.getItemAsync(key, KEYCHAIN),
+  setItemAsync: (key, value) => SecureStore.setItemAsync(key, value, KEYCHAIN),
+  deleteItemAsync: (key) => SecureStore.deleteItemAsync(key, KEYCHAIN),
+});
+
+/**
+ * How many writes never left the phone when its data was last wiped (the session ended from
+ * another device, or a sign-out was forced past the warning), for the sign-in screen to tell the
+ * person once: null when nothing was lost. Reading it clears it.
+ */
+export const takeUnsentNotice = (): Promise<UnsentNotice | null> => unsentNotices.take();
 
 interface AppExtra {
   readonly apiBase: string;
@@ -79,13 +94,18 @@ export async function startData<View>(
   options: StartOptions = {},
 ): Promise<DataRuntime<View>> {
   const { apiBase } = Constants.expoConfig?.extra as AppExtra;
+  const reportAll = (event: SyncReport) => {
+    // Counted before the wipe, kept where the wipe can't reach.
+    unsentNotices.remember(event).catch(() => undefined);
+    report(event);
+  };
   const network =
     makeNetworkSwitch?.({
       fetch: (input, init) => fetch(input, init),
       openSocket: platformSocket,
     }) ?? null;
   const netFetch = network?.fetch ?? fetch;
-  const db = await openDatabase((reason) => report({ type: 'store_reset', reason }));
+  const db = await openDatabase((reason) => reportAll({ type: 'store_reset', reason }));
   const auth = createKithfieldAuthClient({
     apiBase,
     storage: keychain,
@@ -122,7 +142,7 @@ export async function startData<View>(
     me: () => session.person()?.person ?? null,
     appState: AppState,
     newOpId: createOpIdMaker(getRandomBytes),
-    report,
+    report: reportAll,
     ...(options.heldElsewhere ? { heldElsewhere: options.heldElsewhere } : {}),
   });
 
