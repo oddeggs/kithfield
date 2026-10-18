@@ -263,8 +263,8 @@ export const stickersEn = {
   'stickers.ask.lead':
     'Before a sticker with {names} leaves Kithfield, each of them says OK. They’re asked once.',
   'stickers.ask.send': 'Ask',
-  'stickers.ask.waiting': 'Waiting for everyone’s OK',
-  'stickers.ask.ready': 'Everyone said OK',
+  'stickers.ask.waiting': 'Asked. It goes into your Messages stickers once everyone says OK.',
+  'stickers.ask.ready': 'Everyone said OK. It’s in your Messages stickers.',
   'stickers.asks.title': 'Stickers with you in them',
   'stickers.asks.lead':
     'Friends asking to take together stickers with you in them out of Kithfield.',

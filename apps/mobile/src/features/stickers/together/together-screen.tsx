@@ -23,6 +23,7 @@ import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { stickersApi } from '../api';
+import { rememberTogetherExport } from '../export/together-export';
 import { useTogetherPeople } from '../data';
 import { OWN } from '../model/catalogue';
 import { sceneOfSticker, type StickerPerson } from '../model/look';
@@ -129,12 +130,22 @@ export function TogetherScreen({
       void stickersApi(client.api)
         .askToExport({ farm, people: [...big.with] })
         .then(
-          (r) =>
+          async (r) => {
+            // Remembered either way: it goes into the Messages drawer once everyone says OK.
+            if (me.person) {
+              await rememberTogetherExport(me.person, {
+                farm,
+                sticker: big.def.id,
+                with: [...big.with],
+              });
+            }
             toast.show(
               big.with.every((p) => r.ok.includes(p))
                 ? t('stickers.ask.ready')
                 : t('stickers.ask.waiting'),
-            ),
+            );
+            leave();
+          },
           () => toast.show(t('stickers.adding.failed')),
         );
       return;

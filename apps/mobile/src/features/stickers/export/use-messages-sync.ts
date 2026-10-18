@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
 
+import { useDataClient } from '../../../data';
 import { useArt } from '../../../ui/art/art-provider';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useMe } from '../ui/use-me';
 import { syncMessages } from './messages';
 import { ownPack } from './pack';
+import { approvedTogether } from './together-export';
 
 export type MessagesState = 'checking' | 'on' | 'updating' | 'unavailable';
 
@@ -23,10 +25,15 @@ export function useMessagesSync(): {
   const store = useArt();
   const { t } = useLocale();
   const me = useMe();
-  const { refresh, critter, name } = me;
+  const client = useDataClient();
+  const { refresh, critter, name, person } = me;
+  // Back in the foreground: read the critter again, and ask about together stickers again.
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') refresh();
+      if (s !== 'active') return;
+      refresh();
+      setTick((n) => n + 1);
     });
     return () => sub.remove();
   }, [refresh]);
@@ -38,29 +45,34 @@ export function useMessagesSync(): {
   const [state, setState] = useState<MessagesState>('checking');
   const [progress, setProgress] = useState(0);
   useEffect(() => {
-    if (stickers === null) return;
+    if (stickers === null || critter === null || person === null) return;
     let stop = false;
     setState('checking');
-    syncMessages(
-      store.art,
-      stickers,
-      (done, total) => {
-        if (stop) return;
-        setProgress(total > 0 ? done / total : 0);
-        if (done < total) setState('updating');
-      },
-      () => stop,
-    ).then(
-      (result) => {
-        if (stop) return;
-        setState(result === 'unavailable' ? 'unavailable' : 'on');
-      },
-      () => !stop && setState('unavailable'),
-    );
+    approvedTogether(client, t, { person, name, critter }, stickers.length + 1)
+      .catch(() => [])
+      .then((together) =>
+        syncMessages(
+          store.art,
+          [...stickers, ...together],
+          (done, total) => {
+            if (stop) return;
+            setProgress(total > 0 ? done / total : 0);
+            if (done < total) setState('updating');
+          },
+          () => stop,
+        ),
+      )
+      .then(
+        (result) => {
+          if (stop) return;
+          setState(result === 'unavailable' ? 'unavailable' : 'on');
+        },
+        () => !stop && setState('unavailable'),
+      );
     return () => {
       stop = true;
     };
     // The pack's drawing is the key: the same stickers drawn the same need nothing.
-  }, [store, key]);
+  }, [store, key, tick, client, person]);
   return { state, progress };
 }

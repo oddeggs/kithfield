@@ -3,15 +3,20 @@ import { Directory, File, Paths } from 'expo-file-system';
 
 /*
  * What stickers keep on this phone, each person's apart: the recent row, the one "you're in a
- * sticker" note, the WhatsApp pack's identifier. And everything stickers leave behind, cleared
+ * sticker" note, the WhatsApp pack's identifier, the together stickers asked to leave. And everything stickers leave behind, cleared
  * when the person signs out.
  */
 
 const PREFIX = 'stickers-';
 
-type Kind = 'recent' | 'noted' | 'whatsapp-id';
+type Kind = 'recent' | 'noted' | 'whatsapp-id' | 'together';
 
-const EXTENSION: Record<Kind, string> = { recent: '.json', noted: '', 'whatsapp-id': '.txt' };
+const EXTENSION: Record<Kind, string> = {
+  recent: '.json',
+  noted: '',
+  'whatsapp-id': '.txt',
+  together: '.json',
+};
 
 /** A person's own sticker file in the app's documents. */
 export function personFile(kind: Kind, person: string): File {

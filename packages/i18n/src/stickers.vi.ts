@@ -236,8 +236,8 @@ export const stickersVi: ViCatalogue<typeof stickersEn> = {
   'stickers.ask.lead':
     'Trước khi một nhãn dán có {names} rời Kithfield, mỗi người sẽ đồng ý. Mỗi người chỉ được hỏi một lần.',
   'stickers.ask.send': 'Hỏi',
-  'stickers.ask.waiting': 'Đang chờ mọi người đồng ý',
-  'stickers.ask.ready': 'Mọi người đã đồng ý',
+  'stickers.ask.waiting': 'Đã hỏi. Nhãn dán sẽ vào Tin nhắn khi mọi người đồng ý.',
+  'stickers.ask.ready': 'Mọi người đã đồng ý. Nhãn dán đã có trong Tin nhắn.',
   'stickers.asks.title': 'Nhãn dán có bạn trong đó',
   'stickers.asks.lead': 'Bạn bè muốn đưa nhãn dán cùng nhau có bạn trong đó ra ngoài Kithfield.',
   'stickers.asks.from': '{name} hỏi',
