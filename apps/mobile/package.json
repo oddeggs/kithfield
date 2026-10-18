@@ -51,6 +51,7 @@
     "expo-doctor": "catalog:",
     "jest": "catalog:",
     "jest-expo": "catalog:",
+    "react-test-renderer": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
