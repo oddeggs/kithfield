@@ -3,6 +3,7 @@ import {
   EventsPage,
   FarmEvent,
   MemberRecord,
+  PendingActionPage,
   QueuePage,
   ReportDetail,
   ReportResponse,
@@ -117,7 +118,11 @@ describe('decisions on a report', () => {
       (await desk(access, KOFI, 'GET', `/members/${lot.bram.id}`)).body,
     );
     expect(record).toMatchObject({ name: 'Bram', warnings: 1, pausedUntil: null, openAppeals: 0 });
-    expect(record.history.map((h) => h.what)).toEqual(['actioned', 'reported', 'joined']);
+    expect(record.history.map((h) => [h.what, h.category, h.farm])).toEqual([
+      ['actioned', 'harassment', lot.farm],
+      ['reported', 'harassment', lot.farm],
+      ['joined', null, null],
+    ]);
     expect(record.farms).toEqual([{ farm: lot.farm, name: 'The Thursday Lot' }]);
   });
 
@@ -183,11 +188,28 @@ describe('decisions on a report', () => {
     expect(await isBanned(env.DB, lot.bram.id, Date.now())).toBe(false);
     expect(isTombstone((await eventOnFarm(lot, lot.unkind))?.payload)).toBe(false);
 
+    const waiting = PendingActionPage.parse(
+      (await desk(access, KOFI, 'GET', '/actions?status=awaiting_second')).body,
+    );
+    expect(waiting.rows.find((r) => r.action === asked.action)).toMatchObject({
+      report: id,
+      decision: 'remove_from_kithfield',
+      person: lot.bram.id,
+      name: 'Bram',
+      askedBy: expect.any(String) as string,
+      rule: 3,
+    });
+    expect((await desk(access, KOFI, 'GET', '/actions')).status).toBe(400);
+
     const self = await desk(access, ANA, 'POST', `/actions/${asked.action}/approve`, {});
     expect(self.status).toBe(403);
     const agreed = await desk(access, KOFI, 'POST', `/actions/${asked.action}/approve`, {});
     expect(agreed.status).toBe(200);
     expect(ActionResponse.parse(agreed.body)).toEqual({ action: asked.action, status: 'applied' });
+    const after = PendingActionPage.parse(
+      (await desk(access, KOFI, 'GET', '/actions?status=awaiting_second')).body,
+    );
+    expect(after.rows.some((r) => r.action === asked.action)).toBe(false);
 
     expect(await isBanned(env.DB, lot.bram.id, Date.now())).toBe(true);
     expect((await socket.waitClosed()).reason).toBe('banned');

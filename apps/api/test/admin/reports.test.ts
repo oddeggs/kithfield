@@ -51,6 +51,13 @@ describe('reporting from the app', () => {
       reporters: 1,
       source: 'member',
       claimedBy: null,
+      preview: {
+        excerpt: expect.stringContaining('nobody here') as string,
+        note: 'third time this week',
+        reportedName: 'Bram',
+        aimedAtName: null,
+        earlierReports: 0,
+      },
     });
     expect((row?.dueAt ?? 0) - (row?.receivedAt ?? 0)).toBe(24 * 60 * 60_000);
 
@@ -61,6 +68,10 @@ describe('reporting from the app', () => {
     expect(detail.reportedSeq).toBe(lot.unkind);
     expect(detail.reasons).toEqual(['unkind']);
     expect(detail.notes).toEqual(['third time this week']);
+    expect(detail.reporters).toEqual([lot.june.id]);
+    // Everyone the context names, the reported person first, drawn as friends see them.
+    expect(detail.people[0]).toEqual({ person: lot.bram.id, name: 'Bram', species: 'fox' });
+    expect(detail.people.map((p) => p.name).sort()).toEqual(['Bram', 'Fig', 'June', 'Pip']);
     const from = Math.max(1, lot.unkind - 10);
     expect(detail.context.map((e) => e.seq)).toEqual(
       Array.from({ length: lot.unkind + 10 - from + 1 }, (_, i) => from + i),

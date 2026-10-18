@@ -24,6 +24,7 @@ import { takeReport } from './intake';
 import { memberRecord } from './members';
 import { deny, type ModeratorEnv, requireModerator } from './moderator';
 import { readNotes } from './notes';
+import { pendingActions } from './pending';
 import { responseTimes } from './times';
 
 /** A JSON body parsed against a contract; on failure, the 400 to send instead. */
@@ -89,6 +90,10 @@ const AppealQuery = z.object({
   status: AppealStatus.optional(),
   cursor: z.string().max(256).optional(),
 });
+const ActionsQuery = z.object({
+  status: z.literal('awaiting_second'),
+  cursor: z.string().max(256).optional(),
+});
 const DaysQuery = z.object({ days: z.coerce.number().int().min(1).max(366).default(30) });
 
 /** The safety desk's API, mounted at `/api/admin/v1`, behind Cloudflare Access. */
@@ -141,6 +146,12 @@ export function adminRoutes(): Hono<ModeratorEnv> {
     if (!req.ok) return req.response;
     const out = await decide(c.env, c.get('moderator'), id, req.value, Date.now());
     return out.ok ? c.json(out.response) : failed(c, out);
+  });
+
+  app.get('/actions', async (c) => {
+    const query = ActionsQuery.safeParse(c.req.query());
+    if (!query.success) return deny(c, 400, 'bad_request', ['status']);
+    return c.json(await pendingActions(c.env.DB, query.data));
   });
 
   app.post('/actions/:id/approve', async (c) => {

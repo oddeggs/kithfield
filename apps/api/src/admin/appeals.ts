@@ -229,11 +229,19 @@ export async function decideAppeal(
     if (!undone) {
       // Nothing is held to put back any more: the appeal stays open for a different answer.
       console.error('appeal undo found nothing to restore', { appeal: id, report: raw.report_id });
-      await env.DB.prepare(
-        "UPDATE appeals SET status = 'open', reviewer_id = ?, reply = NULL, decided_at = NULL WHERE id = ?",
-      )
-        .bind(raw.reviewer_id, id)
-        .run();
+      await env.DB.batch([
+        env.DB.prepare(
+          "UPDATE appeals SET status = 'open', reviewer_id = ?, reply = NULL, decided_at = NULL WHERE id = ?",
+        ).bind(raw.reviewer_id, id),
+        auditStatement(env.DB, {
+          at: now,
+          by: moderator.id,
+          what: 'appeal_restore_failed',
+          item: raw.report_id,
+          rule: ruleFromDb(raw.rule),
+          reason: null,
+        }),
+      ]);
       return { ok: false, status: 404, code: 'not_found' };
     }
   }

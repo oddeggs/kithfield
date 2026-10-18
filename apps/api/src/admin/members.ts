@@ -1,4 +1,9 @@
-import { type MemberRecord, type ModerationAction, Species } from '@kithfield/contracts';
+import {
+  type MemberRecord,
+  type ModerationAction,
+  ReportCategory,
+  Species,
+} from '@kithfield/contracts';
 
 import { blockerCount } from '../auth';
 import type { Bindings } from '../env';
@@ -15,6 +20,11 @@ const HISTORY_MAX = 500;
 
 type Entry = MemberRecord['history'][number];
 
+const categoryOf = (raw: string | null): Entry['category'] => {
+  const parsed = ReportCategory.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+};
+
 export async function memberRecord(
   env: Bindings,
   person: string,
@@ -25,14 +35,19 @@ export async function memberRecord(
     personOf(db, person),
     farmsOf(db, person),
     db
-      .prepare('SELECT id, received_at FROM reports WHERE reported_id = ? ORDER BY received_at')
+      .prepare(
+        `SELECT id, received_at, category, farm_id FROM reports WHERE reported_id = ?
+         ORDER BY received_at`,
+      )
       .bind(person)
-      .all<{ id: string; received_at: number }>(),
+      .all<{ id: string; received_at: number; category: string; farm_id: string }>(),
     db
       .prepare(
-        `SELECT id, report_id, moderator_id, action, rule, status, created_at, applied_at, paused_until
-         FROM moderation_actions WHERE person_id = ? AND status IN ('applied', 'undone', 'awaiting_second')
-         ORDER BY created_at`,
+        `SELECT a.id, a.report_id, a.moderator_id, a.action, a.rule, a.status, a.created_at,
+           a.applied_at, a.paused_until, a.farm_id, r.category
+         FROM moderation_actions a LEFT JOIN reports r ON r.id = a.report_id
+         WHERE a.person_id = ? AND a.status IN ('applied', 'undone', 'awaiting_second')
+         ORDER BY a.created_at`,
       )
       .bind(person)
       .all<{
@@ -45,14 +60,26 @@ export async function memberRecord(
         created_at: number;
         applied_at: number | null;
         paused_until: number | null;
+        farm_id: string;
+        category: string | null;
       }>(),
     db
       .prepare(
-        `SELECT p.id, p.status, p.sent_at, a.report_id, a.action FROM appeals p
-         JOIN moderation_actions a ON a.id = p.action_id WHERE p.person_id = ?`,
+        `SELECT p.id, p.status, p.sent_at, a.report_id, a.action, a.farm_id, r.category
+         FROM appeals p JOIN moderation_actions a ON a.id = p.action_id
+           LEFT JOIN reports r ON r.id = a.report_id
+         WHERE p.person_id = ?`,
       )
       .bind(person)
-      .all<{ id: string; status: string; sent_at: number; report_id: string; action: string }>(),
+      .all<{
+        id: string;
+        status: string;
+        sent_at: number;
+        report_id: string;
+        action: string;
+        farm_id: string;
+        category: string | null;
+      }>(),
     db
       .prepare('SELECT COUNT(*) AS n FROM report_filings WHERE reporter_id = ?')
       .bind(person)
@@ -70,6 +97,8 @@ export async function memberRecord(
       action: null,
       rule: null,
       by: null,
+      category: null,
+      farm: null,
     });
   }
   for (const r of reports.results) {
@@ -80,6 +109,8 @@ export async function memberRecord(
       action: null,
       rule: null,
       by: null,
+      category: categoryOf(r.category),
+      farm: r.farm_id,
     });
   }
   let warnings = 0;
@@ -103,6 +134,8 @@ export async function memberRecord(
       action,
       rule: ruleFromDb(a.rule),
       by: a.moderator_id,
+      category: categoryOf(a.category),
+      farm: a.farm_id,
     });
   }
   for (const p of appeals.results) {
@@ -113,6 +146,8 @@ export async function memberRecord(
       action: p.action as ModerationAction,
       rule: null,
       by: null,
+      category: categoryOf(p.category),
+      farm: p.farm_id,
     });
   }
   history.sort((x, y) => y.at - x.at);

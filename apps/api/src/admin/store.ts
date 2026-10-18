@@ -139,6 +139,33 @@ export async function filingsOf(db: D1Database, report: string): Promise<Filing[
   }));
 }
 
+const speciesOf = (critter: string | null): string | null => {
+  try {
+    const parsed = critter === null ? null : (JSON.parse(critter) as { species?: unknown });
+    return typeof parsed?.species === 'string' ? parsed.species : null;
+  } catch {
+    return null;
+  }
+};
+
+/** Display names and critter species of several people at once; someone unknown is left out. */
+export async function namesOf(
+  db: D1Database,
+  people: readonly string[],
+): Promise<Map<string, { name: string | null; species: string | null }>> {
+  const ids = [...new Set(people)].slice(0, 90);
+  if (ids.length === 0) return new Map();
+  const { results } = await db
+    .prepare(
+      `SELECT id, display_name, critter FROM people WHERE id IN (${ids.map(() => '?').join(', ')})`,
+    )
+    .bind(...ids)
+    .all<{ id: string; display_name: string | null; critter: string | null }>();
+  return new Map(
+    results.map((r) => [r.id, { name: r.display_name, species: speciesOf(r.critter) }]),
+  );
+}
+
 /** A person's display name and critter species, as friends see them. */
 export async function personOf(
   db: D1Database,
@@ -149,14 +176,7 @@ export async function personOf(
     .bind(person)
     .first<{ display_name: string | null; critter: string | null; created_at: string | number }>();
   if (row === null) return null;
-  let species: string | null;
-  try {
-    const critter =
-      row.critter === null ? null : (JSON.parse(row.critter) as { species?: unknown });
-    species = typeof critter?.species === 'string' ? critter.species : null;
-  } catch {
-    species = null;
-  }
+  const species = speciesOf(row.critter);
   const created =
     typeof row.created_at === 'number' ? row.created_at : Date.parse(String(row.created_at));
   return {

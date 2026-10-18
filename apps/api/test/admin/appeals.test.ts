@@ -3,6 +3,7 @@ import {
   AppealDetail,
   AppealPage,
   AppealResponse,
+  AuditPage,
   EventsPage,
   FarmEvent,
   isTombstone,
@@ -266,6 +267,8 @@ describe('appeals', () => {
     );
     expect(detail.status).toBe('open');
     expect((await notesOf(lot.bram)).some((n) => n.note === 'appeal_answered')).toBe(false);
+    const log = AuditPage.parse((await desk(access, KOFI, 'GET', '/audit')).body);
+    expect(log.entries[0]).toMatchObject({ what: 'appeal_restore_failed', item: detail.report });
   });
 
   it('can’t undo a removal from a farm from the desk yet', async () => {
