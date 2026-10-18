@@ -1,7 +1,9 @@
-import type { TextStyle } from 'react-native';
+import { vietnamese } from '@kithfield/theme';
+import { StyleSheet, type TextStyle } from 'react-native';
 
+import { useLocale } from '../../../ui/locale/locale-provider';
 import { Txt, type TxtProps } from '../../../ui/type/text';
-import type { TypeVariant } from '../../../ui/type/styles';
+import { typeStyleOf, type TypeVariant } from '../../../ui/type/styles';
 
 /**
  * The text `11 Settings and Safety` sets, each on the library's nearest type style (for the face
@@ -26,7 +28,7 @@ const kinds = {
   /** Section labels: 700 12, tracked, upper case. */
   label: ['label', {}],
   /** Settings' section labels: 600 12.5, tracked .05em. */
-  settingsLabel: ['label', { fontSize: 12.5, lineHeight: 12.5, letterSpacing: 0.625 }],
+  settingsLabel: ['label', { fontSize: 12.5, lineHeight: 15, letterSpacing: 0.625 }],
   /** Quiet notes under groups: 13/1.4 (or 1.45). */
   note: ['caption', { fontSize: 13, lineHeight: 18.5 }],
   /** Paragraphs in cards: 13.5/1.45. */
@@ -45,11 +47,37 @@ const kinds = {
 
 export type TextKind = keyof typeof kinds;
 
+/**
+ * The line height a kit text ends with: the design's in English, and never below what
+ * Vietnamese's stacked marks need (`vietnamese.minLineHeightRatio`), whatever a screen sets.
+ */
+export function kitLineHeight(
+  kind: TextKind,
+  extra: Pick<TextStyle, 'fontSize' | 'lineHeight'> | undefined,
+  fontLocale: string,
+): number | undefined {
+  const own: TextStyle = kinds[kind][1];
+  const size = extra?.fontSize ?? own.fontSize ?? typeStyleOf(kinds[kind][0]).size;
+  const line = extra?.lineHeight ?? own.lineHeight;
+  if (fontLocale !== 'vi') return line;
+  const tall = Math.round(size * vietnamese.minLineHeightRatio);
+  return line === undefined ? tall : Math.max(line, tall);
+}
+
 export function KText({
   kind,
   style,
   ...rest
 }: Omit<TxtProps, 'variant'> & { readonly kind: TextKind }) {
+  const { fontLocale } = useLocale();
   const [variant, own] = kinds[kind];
-  return <Txt variant={variant} {...rest} style={[own, style]} />;
+  const extra = (StyleSheet.flatten(style as never) ?? {}) as TextStyle;
+  const lineHeight = kitLineHeight(kind, extra, fontLocale);
+  return (
+    <Txt
+      variant={variant}
+      {...rest}
+      style={[own, style, lineHeight === undefined ? null : { lineHeight }]}
+    />
+  );
 }
