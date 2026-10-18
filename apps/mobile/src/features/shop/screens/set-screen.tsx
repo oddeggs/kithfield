@@ -1,3 +1,4 @@
+import { shopInks } from '@kithfield/theme';
 import type { ShopItem } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { useEffect, useMemo } from 'react';
@@ -68,7 +69,7 @@ function PieceRow({ item, owned }: { readonly item: ShopItem; readonly owned: bo
             : { borderWidth: 1.5, borderColor: inks.checkRing }),
         }}
       >
-        {owned ? <ArtIcon name="check" size={13} color="#ffffff" /> : null}
+        {owned ? <ArtIcon name="check" size={13} color={shopInks.day.onColour} /> : null}
       </View>
       <SText s={15} lh={1.2} w={600} style={{ flex: 1 }} numberOfLines={1}>
         {name}

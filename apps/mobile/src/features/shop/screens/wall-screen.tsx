@@ -128,7 +128,7 @@ export function WallScreen() {
               height: cardHeight,
               borderRadius: 14,
               backgroundColor: inks.wallCard,
-              boxShadow: '0 10px 20px -10px rgba(0,0,0,.4)',
+              boxShadow: inks.cardShadow,
               overflow: 'hidden',
             }}
           >

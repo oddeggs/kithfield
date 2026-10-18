@@ -1,5 +1,5 @@
 import type { Critter } from '@kithfield/contracts';
-import { motion } from '@kithfield/theme';
+import { motion, shopInks } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, useWindowDimensions, View } from 'react-native';
@@ -28,9 +28,11 @@ const SHEET = 440;
 
 /** What the critter wears, for a cottage tried on beside them. */
 function outfitOf(critter: Critter | null) {
-  if (!critter) return { outfit: 'scarf', color: '#5E7F4A' };
+  if (!critter) return { outfit: 'scarf', color: shopInks.day.defaultOutfit };
   const look = sceneLook(critter);
-  return look['outfit'] ? { outfit: look['outfit'], color: look['ocolor'] ?? '#5E7F4A' } : null;
+  return look['outfit']
+    ? { outfit: look['outfit'], color: look['ocolor'] ?? shopInks.day.defaultOutfit }
+    : null;
 }
 
 /** The Day / Night switch over the art: a glass track with the chosen side lit. */

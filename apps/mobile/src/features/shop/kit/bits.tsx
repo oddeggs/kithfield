@@ -55,7 +55,7 @@ export function Pill({
           : kind === 'honey'
             ? inks.honeyButton
             : kind === 'plum'
-              ? { bg: inks.wish.button, fg: '#ffffff' }
+              ? { bg: inks.wish.button, fg: inks.onColour }
               : inks.danger;
   const off = disabled || busy;
   return (
@@ -317,7 +317,7 @@ export function CheckLine({
   const { palette } = useTheme();
   return (
     <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
-      <ArtIcon name={icon} size={22} color={icon === 'sparkle' ? '#c9973e' : inks.fillMoss} />
+      <ArtIcon name={icon} size={22} color={icon === 'sparkle' ? inks.sparkle : inks.fillMoss} />
       <SText s={size} lh={1.4} multiline color={palette.text} style={{ flex: 1 }}>
         {text}
       </SText>

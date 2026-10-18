@@ -1,6 +1,7 @@
 import type { SceneAttrs } from '@kithfield/art';
 import { View } from 'react-native';
 import type { Season, ShopItemKind, Species } from '@kithfield/contracts';
+import { shopInks } from '@kithfield/theme';
 
 import { ArtStill } from '../../ui/art/art-view';
 import { LayeredScene } from '../../ui/art/layered-scene';
@@ -54,8 +55,8 @@ export const THEME_SEASON: Readonly<Record<string, Season>> = {
 /** Seasonal cottages always show their own season. */
 const COTTAGE_SEASON: Readonly<Record<string, Season>> = { igloo: 'winter' };
 
-/** The night tile behind glowing companions (`#2b2e4a`). */
-export const NIGHT_TILE = '#2b2e4a';
+/** The night tile behind glowing companions, the same in both appearances. */
+export const NIGHT_TILE = shopInks.day.nightTile;
 
 export interface ItemLook {
   readonly item: string;

@@ -1,3 +1,4 @@
+import { shopMotion } from '@kithfield/theme';
 import type { Critter, Species } from '@kithfield/contracts';
 import { Canvas, Oval, RadialGradient, vec } from '@shopify/react-native-skia';
 import { Children, isValidElement, useEffect, type ReactNode } from 'react';
@@ -342,7 +343,14 @@ export function LanternGlow({
       return;
     }
     breath.set(
-      withRepeat(withTiming(0.55, { duration: 1500, easing: Easing.inOut(Easing.sin) }), -1, true),
+      withRepeat(
+        withTiming(0.55, {
+          duration: shopMotion.lanternBreathMs / 2,
+          easing: Easing.inOut(Easing.sin),
+        }),
+        -1,
+        true,
+      ),
     );
     return () => cancelAnimation(breath);
   }, [breath, reduce]);
@@ -357,7 +365,7 @@ export function LanternGlow({
           <RadialGradient
             c={vec(width / 2, height / 2)}
             r={(Math.max(width, height) / 2) * 0.7}
-            colors={[inks.lanternGlow, 'rgba(255,214,110,0)']}
+            colors={[inks.lanternGlow, inks.lanternGlowEdge]}
           />
         </Oval>
       </Canvas>

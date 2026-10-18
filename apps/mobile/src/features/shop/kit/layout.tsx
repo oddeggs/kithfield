@@ -151,6 +151,7 @@ export function HeroSheet({
   readonly scroll?: boolean;
 }) {
   const { palette } = useTheme();
+  const inks = useInks();
   const insets = useSafeAreaInsets();
   const top = useDesignTop();
   const content = (
@@ -174,7 +175,7 @@ export function HeroSheet({
           backgroundColor: palette.sheet,
           borderTopLeftRadius: 30,
           borderTopRightRadius: 30,
-          boxShadow: '0 -10px 40px -16px rgba(40,25,10,.45)',
+          boxShadow: inks.sheetShadow,
           overflow: 'hidden',
         }}
       >

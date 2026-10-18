@@ -1,3 +1,4 @@
+import { shopInks } from '@kithfield/theme';
 import {
   GatePayload,
   GiftPayload,
@@ -131,7 +132,7 @@ function Step({ farm, gift }: { readonly farm: FarmId; readonly gift: Id }) {
       attrs={{
         kind: species,
         state: 'found',
-        color: wrapColour ?? '#d4704e',
+        color: wrapColour ?? shopInks.day.wraps['clay'] ?? '',
         caption: t('shop.step.forYou', { name: me?.name ?? '' }),
       }}
       t={1.2}

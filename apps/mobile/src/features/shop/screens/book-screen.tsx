@@ -63,7 +63,7 @@ function Book({ farm }: { readonly farm: FarmId }) {
   const farmName = state?.name ?? '';
   const ways = Math.max(1, state?.members.length ?? 1);
   const cloths = quote.cloths.filter(isClothId);
-  const colour = inks.cloth[cloth] ?? inks.cloth['moss'] ?? '#7d8f6a';
+  const colour = inks.cloth[cloth] ?? inks.cloth['moss'] ?? inks.fillMoss;
   const price = split
     ? t('shop.book.orderEach', { price: formatMoney(language, shareOf(quote.price, ways)) })
     : t('shop.book.order', { price: formatMoney(language, quote.price) });

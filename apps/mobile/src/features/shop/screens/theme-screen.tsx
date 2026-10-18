@@ -8,7 +8,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { motion } from '@kithfield/theme';
+import { motion, shopMotion } from '@kithfield/theme';
 
 import { useOpenFarm, useSend } from '../../../data/react';
 import { ArtStill } from '../../../ui/art/art-view';
@@ -38,8 +38,8 @@ import { SText } from '../kit/text';
 /** The farm is 400 tall; the sheet comes up over it from 360. */
 const HERO = 400;
 const SHEET = 360;
-/** A theme change cross-fades the farm over 1.2 s (the design's notes). */
-const THEME_FADE_MS = 1200;
+/** A theme change cross-fades the farm (the design's notes). */
+const THEME_FADE_MS = shopMotion.themeFadeMs;
 
 const THEME_IDS = ['seaside_cove', 'cherry_valley', 'snowy_hollow', 'mountain_lake'] as const;
 

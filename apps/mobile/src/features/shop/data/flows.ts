@@ -1,3 +1,4 @@
+import { shopMotion } from '@kithfield/theme';
 import {
   type ArtId,
   type ChipIn,
@@ -23,7 +24,7 @@ import { useShop } from './shop-data';
  */
 
 /** How long to wait between asking the server whether a purchase has landed. */
-const LANDING_WAIT_MS = 1500;
+const LANDING_WAIT_MS = shopMotion.landingWaitMs;
 const LANDING_TRIES = 6;
 
 const wait = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));

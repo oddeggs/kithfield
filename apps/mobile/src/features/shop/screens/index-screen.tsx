@@ -1,5 +1,5 @@
 import type { ShopItem } from '@kithfield/contracts';
-import { motion } from '@kithfield/theme';
+import { motion, shopInks, shopMotion } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
@@ -37,8 +37,8 @@ import { SText } from '../kit/text';
 /** The cart's hero is 330 tall; the sheet comes up over it from 296. */
 const HERO = 330;
 const SHEET = 296;
-/** The cart rolls in once per visit: 900 ms, drawn on twos. */
-const ROLL_MS = 900;
+/** The cart rolls in once per visit, drawn on twos. */
+const ROLL_MS = shopMotion.cartRollMs;
 
 /** The cart arriving from the left, held a drawing at a time at 12 a second (on the UI thread). */
 function RollingCart({ width, height }: { readonly width: number; readonly height: number }) {
@@ -48,7 +48,7 @@ function RollingCart({ width, height }: { readonly width: number; readonly heigh
   const attrs = useMemo(() => {
     const look = critter
       ? sceneLook(critter)
-      : { kind: 'rabbit', outfit: 'scarf', ocolor: '#5E7F4A' };
+      : { kind: 'rabbit', outfit: 'scarf', ocolor: shopInks.day.defaultOutfit };
     return { ...look, season: currentSeason() };
   }, [critter]);
   const progress = useSharedValue(reduce ? 1 : 0);
