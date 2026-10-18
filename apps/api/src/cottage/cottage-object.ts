@@ -6,9 +6,9 @@ import {
   type CottageServerFrame,
   type MeSettings,
   MeSettingsUpdate,
+  NotificationType,
   PING,
   PONG,
-  PROTOCOL_VERSION,
   PushJob,
   RegisterDeviceRequest,
   RememberRequest,
@@ -19,16 +19,17 @@ import { DurableObject } from 'cloudflare:workers';
 
 import type { Bindings } from '../env';
 import type { Decision } from '../push/policy';
-import { cottageAdapters } from './adapters';
 import * as chats from './chats';
 import { alarmDelay, nextAlarmAt, ringAlarm } from './alarm';
 import { type Claim, claimJob } from './claim';
 import { cottageClock } from './clock';
 import * as devices from './devices';
 import { decideDelivery, receiveDelivery } from './deliver';
+import { answerHello } from './hello';
 import { considerJob, type Intake } from './intake';
 import * as merge from './merge';
 import { applySettings, readProfile, updateProfile } from './profile';
+import * as resting from './resting';
 import { applySchema } from './schema';
 import * as seeds from './seeds';
 import * as sockets from './socket';
@@ -133,6 +134,20 @@ export class CottageDO extends DurableObject<Bindings> {
   pinFarm(farm: string, pinned: boolean): void {
     chats.setPinned(this.sql, farm, pinned);
     this.sendRow(farm, this.now);
+  }
+
+  /** The app opened a push (the id in its data); an unknown id is ignored. */
+  pushOpened(id: string): void {
+    resting.markOpened(this.sql, id);
+  }
+
+  /** The kinds of push resting on a farm after unopened ones, and until when. */
+  restingOn(farm: string): { type: NotificationType; until: number }[] {
+    return resting.restingOn(this.sql, farm, this.now);
+  }
+
+  wakeResting(farm: string, type: NotificationType): void {
+    resting.wake(this.sql, farm, NotificationType.parse(type), this.now);
   }
 
   chatList(): ChatListItem[] {
@@ -247,11 +262,6 @@ export class CottageDO extends DurableObject<Bindings> {
     else await this.ctx.storage.setAlarm(Date.now() + alarmDelay(at, this.now));
   }
 
-  /** The person came back on their own: nudges start again from the first. */
-  private cameBack(): void {
-    updateProfile(this.sql, (profile) => ({ ...profile, nudgesSinceBack: 0 }));
-  }
-
   /* The cottage socket: `hello {protocol, token}` first, then `chats`, then a `chat` per change. */
 
   override async fetch(request: Request): Promise<Response> {
@@ -267,25 +277,7 @@ export class CottageDO extends DurableObject<Bindings> {
   }
 
   override async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
-    const hello = sockets.helloIn(message);
-    if (hello === null) {
-      if (sockets.stateOf(ws)?.authed !== true) sockets.refuse(ws, 'unauthorized');
-      return;
-    }
-    if (hello.protocol !== PROTOCOL_VERSION) {
-      sockets.refuse(ws, 'protocol_unsupported');
-      return;
-    }
-    const scope = { cottage: this.person };
-    const person = await cottageAdapters().verifyRtToken(this.env, hello.token, scope);
-    if (person !== this.person) {
-      sockets.refuse(ws, 'unauthorized');
-      return;
-    }
-    ws.serializeAttachment({ authed: true } satisfies sockets.SocketState);
-    this.cameBack();
-    sockets.send(ws, { type: 'chats', chats: chats.chatList(this.sql, this.now) });
-    if (readProfile(this.sql).safetyNote) sockets.send(ws, { type: 'safety_note' });
+    await answerHello(ws, message, this.intake());
   }
 
   /** Completes the closing handshake; a socket already closed needs nothing. */

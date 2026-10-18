@@ -19,6 +19,7 @@ import { DAY_MS, type Decision, decide, localClock } from '../push/policy';
 import { enqueuePush } from '../push/queue';
 import { isMuted, knockForOf, peerName } from './chats';
 import { quietOf, readProfile, updateProfile, zoneOf } from './profile';
+import { restsNow } from './resting';
 
 /** What the cottage's push decisions run against. */
 export interface Intake {
@@ -138,7 +139,7 @@ export async function considerJob(
   const { date, minutes } = localClock(now, zoneOf(profile));
   const spendKey = budgetKey(category, job.farm, date, Math.floor(minutes / 60));
   const fewKey = category === 'doorstep' ? spendKey : fewCollapseKey(job.farm, date);
-  const decision = decide({
+  const decided = decide({
     category,
     at: now,
     muted: isMuted(sql, job.farm, now),
@@ -153,6 +154,10 @@ export async function considerJob(
     sentToday: countOf(sql, spendKey),
     fewSent: countOf(sql, `few.${fewKey}`) > 0,
   });
+  // A kind resting after unopened pushes goes nowhere, not even into "a few things".
+  const outgoing = decided.action !== 'skip' && decided.action !== 'hold';
+  const decision: Decision =
+    outgoing && restsNow(sql, job, now) ? { action: 'skip', reason: 'resting' } : decided;
 
   const base = {
     person: job.person,

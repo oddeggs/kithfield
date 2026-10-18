@@ -67,6 +67,25 @@ export const COTTAGE_SCHEMA = [
     nudge_at INTEGER NOT NULL,
     created_at INTEGER NOT NULL
   )`,
+  // Pushes handed to the consumer to send, by the id in their data, for the per-type rest after
+  // unopened ones. `farm` is '' for a push that belongs to no farm. Kept 60 days.
+  `CREATE TABLE IF NOT EXISTS sent_pushes (
+    id TEXT PRIMARY KEY,
+    farm TEXT NOT NULL,
+    type TEXT NOT NULL,
+    at INTEGER NOT NULL,
+    opened INTEGER NOT NULL DEFAULT 0
+  )`,
+  `CREATE INDEX IF NOT EXISTS sent_pushes_by_type ON sent_pushes (farm, type, at)`,
+  // A kind of push resting on a farm after unopened ones, until `until`; only pushes sent
+  // after `since` count towards the next rest.
+  `CREATE TABLE IF NOT EXISTS resting (
+    farm TEXT NOT NULL,
+    type TEXT NOT NULL,
+    until INTEGER,
+    since INTEGER NOT NULL,
+    PRIMARY KEY (farm, type)
+  )`,
 ] as const;
 
 /** Columns added after a table first shipped, each added once. */

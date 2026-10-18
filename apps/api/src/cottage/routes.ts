@@ -9,7 +9,7 @@ import {
 } from '@kithfield/contracts';
 import { type Context, Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import { newActionKey, storeActionKey } from './action-key';
 import { cottageAdapters, type SessionRouteEnv } from './adapters';
@@ -35,12 +35,18 @@ async function bodyOf<S extends z.ZodType>(
   return { ok: false, response: fail(c, 400, 'bad_request', fields.slice(0, 50)) };
 }
 
+/**
+ * `POST /v1/push/opened`: the app says a push was opened, by the id in its data (`data.push`).
+ * Not in the contracts yet.
+ */
+export const PushOpenedRequest = z.object({ id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/) });
+
 /** Lets a request through only with a signed-in session, and names its person. */
 const signedIn = createMiddleware<RouteEnv>((c, next) => cottageAdapters().requireSession(c, next));
 
 /**
  * The person's cottage over HTTP: devices and their action keys, settings, hibernating,
- * remember-me seeds, and the cottage socket.
+ * remember-me seeds, opened pushes, and the cottage socket.
  */
 export function cottageRoutes(): Hono<RouteEnv> {
   const app = new Hono<RouteEnv>();
@@ -120,6 +126,14 @@ export function cottageRoutes(): Hono<RouteEnv> {
     if (!id.success) return fail(c, 404, 'not_found');
     const removed = await cottageOf(c.env, c.get('person')).removeSeed(id.data);
     return removed ? c.body(null, 204) : fail(c, 404, 'not_found');
+  });
+
+  // An opened push; the same answer for an id the cottage doesn't know.
+  app.post('/v1/push/opened', signedIn, async (c) => {
+    const body = await bodyOf(c, PushOpenedRequest);
+    if (!body.ok) return body.response;
+    await cottageOf(c.env, c.get('person')).pushOpened(body.value.id);
+    return c.body(null, 204);
   });
 
   return app;

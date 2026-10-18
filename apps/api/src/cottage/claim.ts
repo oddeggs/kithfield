@@ -6,14 +6,17 @@ import { farmTitle, isMuted, knockForOf, knowsFarm } from './chats';
 import { pushTargets, type PushTarget } from './devices';
 import { considerJob, holdJob, type Intake, ledger, QUEUE_RETRY_MS, tryEnqueue } from './intake';
 import { quietOf, readProfile } from './profile';
+import { isResting, pushIdOf, rememberSent } from './resting';
 
 /** Why a push that was already decided on is not sent after all. */
-export type LateSkip = 'muted' | 'knock_off' | 'hibernating' | 'left' | 'expired';
+export type LateSkip = 'muted' | 'knock_off' | 'hibernating' | 'left' | 'expired' | 'resting';
 
 /** What the push consumer needs to send a job now, or why it shouldn't. */
 export type Claim =
   | {
       readonly action: 'send';
+      /** The push's id, carried in its data so the app can say it was opened. */
+      readonly push: string;
       readonly lang: Lang;
       /** The farm's name, or the other person's on a visit; null for a push with no farm. */
       readonly title: string | null;
@@ -33,6 +36,7 @@ function lateSkip(intake: Intake, job: PushJob): LateSkip | null {
   if (category !== 'reminder' && job.farm !== null && !knowsFarm(sql, job.farm)) return 'left';
   if (category !== 'reminder' && isMuted(sql, job.farm, now)) return 'muted';
   if (!knockAllows(knockForOf(sql, job.farm), job, category)) return 'knock_off';
+  if (isResting(sql, job, now)) return 'resting';
   if (category === 'knock' && now - job.at > KNOCK_LIFETIME_MS) return 'expired';
   return null;
 }
@@ -54,7 +58,15 @@ export function claimJob(intake: Intake, job: PushJob): Claim {
   }
   const targets = pushTargets(sql);
   if (targets.length === 0) return { action: 'skip', reason: 'no_device' };
-  return { action: 'send', lang: profile.settings.lang, title: farmTitle(sql, job.farm), targets };
+  const push = pushIdOf(job);
+  rememberSent(sql, job, push, now);
+  return {
+    action: 'send',
+    push,
+    lang: profile.settings.lang,
+    title: farmTitle(sql, job.farm),
+    targets,
+  };
 }
 
 /**
