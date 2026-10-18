@@ -32,11 +32,11 @@ const toPem = (der: ArrayBuffer, newline: string): string => {
 };
 
 beforeAll(async () => {
-  const pair = (await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
+  const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, [
     'sign',
     'verify',
-  ]));
-  pem = toPem((await crypto.subtle.exportKey('pkcs8', pair.privateKey)), '\n');
+  ]);
+  pem = toPem(await crypto.subtle.exportKey('pkcs8', pair.privateKey), '\n');
   publicKey = pair.publicKey;
 });
 

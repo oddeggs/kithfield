@@ -1,10 +1,16 @@
-import { PersonId, ScrapbookQuery, WeatherAttributionQuery } from '@kithfield/contracts';
+import {
+  PersonId,
+  RecapQuery,
+  ScrapbookQuery,
+  WeatherAttributionQuery,
+} from '@kithfield/contracts';
 import { Hono } from 'hono';
 
 import type { SessionEnv } from '../auth';
 import { type Ctx, fail, farmStub, member, signedIn } from '../farm/http';
 import { weatherAttribution } from './attribution';
 import { gateList } from './gates';
+import { readerLang, weeklyRecap } from './recap';
 
 /* The farm's rhythm over HTTP, mounted at `/v1`. */
 
@@ -52,6 +58,19 @@ export const rhythmRoutes = (): Hono<SessionEnv> => {
     if (!query.success) return badQuery(c, query.error.issues);
     const book = await farmStub(c.env, m.farm).scrapbook(m.person, query.data.before ?? null);
     return book === null ? fail(c, 404, 'not_found') : c.json(book);
+  });
+
+  /** The Sunday recap of a week (by its Sunday, farm time; the latest without one), for members. */
+  app.get('/farms/:id/recap', signedIn, async (c) => {
+    const m = await member(c);
+    if (m instanceof Response) return m;
+    const query = RecapQuery.safeParse(c.req.query());
+    if (!query.success) return badQuery(c, query.error.issues);
+    const facts = await farmStub(c.env, m.farm).recapFacts(m.person, query.data.week ?? null);
+    if (facts === null) return fail(c, 404, 'not_found');
+    if (facts === 'bad_week') return fail(c, 400, 'bad_request', ['week']);
+    const lang = await readerLang(c.env, m.person, c.req.header('Accept-Language'));
+    return c.json(await weeklyRecap(c.env, m.farm, lang, facts, Date.now()));
   });
 
   return app;
