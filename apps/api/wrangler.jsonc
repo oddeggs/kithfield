@@ -37,6 +37,11 @@
         // Signed reads come from the media Worker on its own host (apps/media-worker).
         "MEDIA_ORIGIN": "https://media-dev.kithfield.com",
         "MEDIA_BUCKET_NAME": "kithfield-media-dev",
+        // WeatherKit (the farm's daily weather): the team, the key's id and the Services ID its
+        // tokens name. The key is the `WEATHERKIT_KEY` secret.
+        "WEATHERKIT_TEAM_ID": "YFND2EEW8S",
+        "WEATHERKIT_KEY_ID": "UC6TN76PKY",
+        "WEATHERKIT_SERVICE_ID": "com.kithfield.app",
       },
       "durable_objects": {
         "bindings": [
@@ -142,6 +147,11 @@
         // Signed reads come from the media Worker on its own host (apps/media-worker).
         "MEDIA_ORIGIN": "https://media.kithfield.com",
         "MEDIA_BUCKET_NAME": "kithfield-media",
+        // WeatherKit (the farm's daily weather): the team, the key's id and the Services ID its
+        // tokens name. The key is the `WEATHERKIT_KEY` secret.
+        "WEATHERKIT_TEAM_ID": "YFND2EEW8S",
+        "WEATHERKIT_KEY_ID": "UC6TN76PKY",
+        "WEATHERKIT_SERVICE_ID": "com.kithfield.app",
       },
       "durable_objects": {
         "bindings": [

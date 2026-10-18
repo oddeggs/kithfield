@@ -1,10 +1,10 @@
 import { farmRules } from './adapters/rules';
-import { noWeather } from './adapters/weather';
 import type { FarmPorts } from './ports';
+import { weatherKit } from './weather/weatherkit';
 
 const production: FarmPorts = {
   rules: farmRules,
-  weather: noWeather,
+  weather: weatherKit,
   clock: { now: () => Date.now() },
 };
 
