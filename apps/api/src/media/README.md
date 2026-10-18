@@ -49,7 +49,9 @@ enter the kithfield.com zone's cache. Video, voice and files are `private` and n
 
 Locally: run it with `wrangler dev --env dev` on its own port with the same `--persist-to` as the
 API (they share the local bucket and database) and the same `MEDIA_SIGNING_KEY`, and start the API
-with `--var MEDIA_ORIGIN:http://localhost:<port>`.
+with `--var MEDIA_ORIGIN:http://localhost:<media port>` and `--var
+MEDIA_UPLOAD_PROXY_ORIGIN:http://localhost:<api port>` (`wrangler dev` rewrites each request to the
+route's host, so the API can't see the address the phone used).
 
 ## CSAM: quarantine
 

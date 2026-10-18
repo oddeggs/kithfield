@@ -55,7 +55,10 @@ export const mediaRoutes = (): Hono<SessionEnv> => {
     if ((await roleOf(c.env.DB, req.farm, person)) === null) return fail(c, 404, 'not_found');
     if (!mimeFits(req.kind, req.mime)) return fail(c, 400, 'bad_request', ['mime']);
     if (req.bytes > MAX_BYTES[req.kind]) return fail(c, 413, 'too_large', ['bytes']);
-    const signer = uploadSigner(c.env, new URL(c.req.url).origin);
+    const signer = uploadSigner(
+      c.env,
+      c.env.MEDIA_UPLOAD_PROXY_ORIGIN ?? new URL(c.req.url).origin,
+    );
     if (signer === null) return fail(c, 503, 'unavailable');
 
     const now = Date.now();

@@ -49,6 +49,12 @@ export type Bindings = Secrets & {
   readonly MEDIA_BUCKET_NAME: string;
   /** Where the media Worker serves signed reads (`https://media.kithfield.com`). */
   readonly MEDIA_ORIGIN: string;
+  /**
+   * Development only: the origin a phone reaches this API at, for upload-proxy URLs when
+   * `wrangler dev` rewrites requests to the route's host (`--var
+   * MEDIA_UPLOAD_PROXY_ORIGIN:http://localhost:8787`). Unset, the request's own origin.
+   */
+  readonly MEDIA_UPLOAD_PROXY_ORIGIN?: string;
   /** At most 20 sign-in nonces a minute per client address. */
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Gestures at another farm's gate, per visitor. */
