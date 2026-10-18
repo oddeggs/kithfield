@@ -5,16 +5,20 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
   type ReactNode,
 } from 'react';
 
+import { failure } from './apply-events';
 import type { CottageState } from './cottage-connection';
-import type { DataClient } from './data-client';
+import type { DataClient, DataStatus } from './data-client';
 import type { FarmLink } from './farm-connection';
 import type { EnqueueResult, FarmReplica, FarmReplicaState } from './farm-replica';
 import type { FarmRules } from './farm-rules';
+import type { PresenceState } from './presence-store';
+import { createSelection } from './selection';
 import type { StoredEvent, StoredRejection } from './sync-store';
 
 interface DataContextValue {
@@ -55,7 +59,10 @@ function useReplica(farm: FarmId): FarmReplica | null {
   useEffect(() => {
     let live = true;
     setReplica(null);
-    void client.replica(farm).then((r) => live && setReplica(r));
+    client.replica(farm).then(
+      (r) => live && setReplica(r),
+      (error: unknown) => client.report(failure('hook.replica', error)),
+    );
     return () => {
       live = false;
     };
@@ -78,6 +85,33 @@ export function useFarm(farm: FarmId): FarmReplicaState | null {
   return useSyncExternalStore(replica?.subscribe ?? noSubscribe, replica?.getState ?? nothing);
 }
 
+/**
+ * One piece of a farm, re-rendering only when that piece changes (by `isEqual`). Keep `selector`
+ * stable (outside the component or in `useCallback`), or it runs on every render.
+ */
+export function useFarmSelector<T>(
+  farm: FarmId,
+  selector: (farm: FarmReplicaState | null) => T,
+  isEqual?: (a: T, b: T) => boolean,
+): T {
+  const replica = useReplica(farm);
+  const selection = useRef(createSelection<FarmReplicaState | null, T>(isEqual)).current;
+  return useSyncExternalStore(replica?.subscribe ?? noSubscribe, () =>
+    selection(replica?.getState() ?? null, selector),
+  );
+}
+
+const NOBODY: PresenceState = { here: [], typing: [] };
+
+/** Who has the farm open and who is writing. Kept apart from the farm, so it re-renders alone. */
+export function usePresence(farm: FarmId): PresenceState {
+  const replica = useReplica(farm);
+  return useSyncExternalStore(
+    replica?.presence.subscribe ?? noSubscribe,
+    replica?.presence.getState ?? (() => NOBODY),
+  );
+}
+
 /** What the farm looks like at `now` (sleepy, misty and the rest), from the shared rules. */
 export function useFarmView<View>(farm: FarmId, now: number): View | null {
   const { rules } = useData();
@@ -92,7 +126,10 @@ export function useFarmEvents(farm: FarmId, limit = 50): readonly StoredEvent[] 
   const [events, setEvents] = useState<readonly StoredEvent[]>([]);
   useEffect(() => {
     let live = true;
-    void client.events(farm, { limit }).then((rows) => live && setEvents(rows));
+    client.events(farm, { limit }).then(
+      (rows) => live && setEvents(rows),
+      (error: unknown) => client.report(failure('hook.events', error)),
+    );
     return () => {
       live = false;
     };
@@ -122,4 +159,10 @@ export function useCottage(): CottageState {
 export function useRejections(): readonly StoredRejection[] {
   const client = useDataClient();
   return useSyncExternalStore(client.subscribe, client.rejections);
+}
+
+/** Whether the session ended (offer sign-in) or the person is banned. */
+export function useDataStatus(): DataStatus {
+  const client = useDataClient();
+  return useSyncExternalStore(client.subscribe, client.status);
 }
