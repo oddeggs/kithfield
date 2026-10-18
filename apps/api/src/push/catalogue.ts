@@ -1,4 +1,4 @@
-import type { CottageDelivery, PushJob } from '@kithfield/contracts';
+import type { CottageDelivery, FarmNotifications, PushJob } from '@kithfield/contracts';
 
 import type { PushCategory } from './policy';
 
@@ -40,14 +40,24 @@ export interface Candidate {
 
 /**
  * The push an event would make for this person, or null when it makes none. The person's own
- * events never push them. Who moved in pushes everyone; the rest only the person they are for.
+ * events never push them. Who moved in pushes everyone; the rest only the person they are for,
+ * unless they asked for every message on this farm.
  */
-export function candidateFor(delivery: CottageDelivery, person: string): Candidate | null {
+export function candidateFor(
+  delivery: CottageDelivery,
+  person: string,
+  everyMessage = false,
+): Candidate | null {
   if (delivery.actor === person) return null;
   if (delivery.kind === 'joined' && delivery.actor !== null) {
     return { category: 'farm', copyKey: 'push.joined', named: true };
   }
-  if (!delivery.forYou) return null;
+  if (!delivery.forYou) {
+    // Every message, for someone who turned that on for this farm (11-08, off by default).
+    return everyMessage && CHAT_KINDS.has(delivery.kind) && delivery.preview !== null
+      ? { category: 'mention', copyKey: 'push.mention', named: true }
+      : null;
+  }
   const doorstep = DOORSTEP_COPY[delivery.kind];
   if (doorstep !== undefined) return { category: 'doorstep', copyKey: doorstep, named: true };
   if (delivery.kind === 'knock') return { category: 'knock', copyKey: 'push.knock', named: true };
@@ -68,6 +78,29 @@ export function categoryOf(job: Pick<PushJob, 'kind' | 'copy' | 'farm'>): PushCa
   if (Object.values(DOORSTEP_COPY).includes(job.copy.key)) return 'doorstep';
   if (job.copy.key === 'push.mention') return 'mention';
   return 'farm';
+}
+
+/** Kinds and copy that make a plan push ("Plans that need your yes"). */
+const PLAN_KINDS = new Set(['seed_planted', 'seed_changed', 'vote', 'rsvp', 'checkin']);
+const isPlanPush = (job: Pick<PushJob, 'kind' | 'copy'>) =>
+  PLAN_KINDS.has(job.kind) ||
+  job.copy.key.startsWith('push.plan') ||
+  job.copy.key.startsWith('push.fireLit');
+
+/**
+ * Whether the person's "Knock for" toggles on this farm let a push through: plans, the doorstep,
+ * mentions (and replies), and every other message. Who moved in, knocks, nudges and remember-me
+ * seeds aren't among the toggles.
+ */
+export function knockAllows(
+  knockFor: FarmNotifications['knockFor'],
+  job: Pick<PushJob, 'kind' | 'copy' | 'forYou'>,
+  category: PushCategory,
+): boolean {
+  if (isPlanPush(job)) return knockFor.plans;
+  if (category === 'doorstep') return knockFor.doorstep;
+  if (category === 'mention') return job.forYou ? knockFor.mentions : knockFor.messages;
+  return true;
 }
 
 /** A short stable tag for an id, so keys stay within the queue's 64 characters. FNV-1a, 52 bits. */

@@ -2,6 +2,7 @@ import {
   type ChatListItem,
   CottageDelivery,
   CottageFarm,
+  FarmNotifications,
   type CottageServerFrame,
   type MeSettings,
   MeSettingsUpdate,
@@ -118,9 +119,9 @@ export class CottageDO extends DurableObject<Bindings> {
     this.broadcast({ type: 'chats', chats: chats.chatList(this.sql, this.now) });
   }
 
-  /** Mutes a farm until a time (null unmutes). Muted farms never push. */
-  muteFarm(farm: string, until: number | null): void {
-    chats.setMuted(this.sql, farm, until);
+  /** From the farm after `PUT /v1/farms/:id/notifications`: the mute and the "Knock for" toggles. */
+  setFarmNotifications(farm: string, settings: FarmNotifications): void {
+    chats.setNotifications(this.sql, farm, FarmNotifications.parse(settings));
     this.sendRow(farm, this.now);
   }
 
@@ -177,10 +178,10 @@ export class CottageDO extends DurableObject<Bindings> {
     devices.forgetDevice(this.sql, device);
   }
 
-  /** For `GET /v1/me`. */
-  settings(): { settings: MeSettings; hibernating: boolean } {
-    const { settings, hibernating } = readProfile(this.sql);
-    return { settings, hibernating };
+  /** For `GET /v1/me`; `zoneKnown` says whether the app has sent the person's time zone yet. */
+  settings(): { settings: MeSettings; hibernating: boolean; zoneKnown: boolean } {
+    const { settings, hibernating, zoneKnown } = readProfile(this.sql);
+    return { settings, hibernating, zoneKnown };
   }
 
   /** Changes settings, the person's time zone among them. */
