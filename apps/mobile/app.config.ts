@@ -83,7 +83,13 @@ export function buildConfig(
     android: {
       package: variant.bundleIdentifier,
     },
-    plugins: ['expo-router'],
+    plugins: [
+      'expo-router',
+      // The phone's cache of each farm's log and the outbox, encrypted at rest.
+      ['expo-sqlite', { useSQLCipher: true }],
+      // Fonts are embedded natively so the first frame already has them.
+      'expo-font',
+    ],
     experiments: {
       typedRoutes: true,
     },
