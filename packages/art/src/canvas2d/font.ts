@@ -52,6 +52,14 @@ export function defaultFont(): ParsedFont {
 /** Synthetic bold, as browsers apply it: asked for bold, given a face lighter than semibold. */
 const needsSyntheticBold = (want: number, face: number) => want >= 600 && face < 600;
 
+/**
+ * The hand face that writes Vietnamese. Text a scene sets in a face without its letters (a sticker
+ * caption in Gaegu) is written wholly in it, a little smaller to sit in the same space, until the
+ * renderer picks the face by language itself.
+ */
+const HAND_FALLBACK = 'Patrick Hand';
+const HAND_FALLBACK_SCALE = 0.9;
+
 export interface ResolvedRun {
   font: SkFont;
   glyphs: number[];
@@ -119,14 +127,18 @@ export class FontBook {
    * caption bounds match to the pixel; see the golden text scenes).
    */
   shape(text: string, font: ParsedFont): ResolvedRun[] {
-    const faces = this.facesFor(font.families, font.weight);
+    const nfc = text.normalize('NFC');
+    const listed = this.facesFor(font.families, font.weight);
+    const hand = this.handFallback(nfc, listed, font);
+    const faces = hand ? [hand] : listed;
+    const size = hand ? font.size * HAND_FALLBACK_SCALE : font.size;
     const runs: ResolvedRun[] = [];
     let current: ResolvedRun | null = null;
-    for (const ch of text.normalize('NFC')) {
+    for (const ch of nfc) {
       let chosen: SkFont | null = null;
       let glyph = 0;
       for (const face of faces) {
-        const f = this.skFont(face, font.size, font.weight);
+        const f = this.skFont(face, size, font.weight);
         const g = f.getGlyphIDs(ch)[0] ?? 0;
         if (g !== 0) {
           chosen = f;
@@ -138,7 +150,7 @@ export class FontBook {
         if (ch >= ' ') this.missingGlyphs++;
         const first = faces[0];
         if (!first) continue;
-        chosen = this.skFont(first, font.size, font.weight);
+        chosen = this.skFont(first, size, font.weight);
       }
       if (!current || current.font !== chosen) {
         current = { font: chosen, glyphs: [], advances: [] };
@@ -148,6 +160,25 @@ export class FontBook {
     }
     for (const run of runs) run.advances = run.font.getGlyphWidths(run.glyphs);
     return runs;
+  }
+
+  /**
+   * Patrick Hand, when some character of `text` is in none of the listed faces and Patrick Hand
+   * has them all; otherwise null.
+   */
+  private handFallback(
+    text: string,
+    listed: readonly FaceEntry[],
+    font: ParsedFont,
+  ): FaceEntry | null {
+    const has = (face: FaceEntry, ch: string) =>
+      (this.skFont(face, font.size, font.weight).getGlyphIDs(ch)[0] ?? 0) !== 0;
+    const chars = [...text].filter((ch) => ch >= ' ' && ch.trim() !== '');
+    if (!chars.some((ch) => !listed.some((face) => has(face, ch)))) return null;
+    const hand = this.facesFor([HAND_FALLBACK], font.weight).find(
+      (f) => f.family.toLowerCase() === HAND_FALLBACK.toLowerCase(),
+    );
+    return hand && chars.every((ch) => has(hand, ch)) ? hand : null;
   }
 
   measure(text: string, font: ParsedFont): number {
