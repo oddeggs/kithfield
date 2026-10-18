@@ -1,0 +1,75 @@
+---
+import '../styles/fonts.css';
+import '../styles/base.css';
+
+import { copyFor, pathFor, themeVariables, type Language } from '../lib/site';
+
+interface Props {
+  lang: Language;
+  /** The page's path without the language prefix (`/`, `/privacy`). */
+  path: string;
+  title: string;
+  description?: string;
+  /** The link-preview card under `public/og/` (`home`, `invite`). */
+  card?: 'home' | 'invite';
+  /** Keep the page out of search results (private links, thank-you pages). */
+  noindex?: boolean;
+}
+
+const { lang, path, title, description, card = 'home', noindex = false } = Astro.props;
+const t = copyFor(lang);
+const site = Astro.site ?? new URL('https://kithfield.com');
+const canonical = new URL(pathFor(lang, path), site).href;
+const alternates = (['en', 'vi'] as const).map((l) => ({
+  lang: l,
+  href: new URL(pathFor(l, path), site).href,
+}));
+const image = new URL(`/og/${card}-${lang}.png`, site).href;
+const summary = description ?? t('website.metaDescription');
+// The faces the page sets first, fetched before the stylesheet asks for them.
+const preloads =
+  lang === 'vi'
+    ? ['lora-latin', 'lora-vietnamese', 'patrick-hand-latin', 'patrick-hand-vietnamese']
+    : ['young-serif-latin', 'gaegu-bold-latin'];
+---
+
+<!doctype html>
+<html lang={lang} style={themeVariables}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={summary} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="canonical" href={canonical} />
+    {alternates.map((a) => <link rel="alternate" hreflang={a.lang} href={a.href} />)}
+    <link rel="alternate" hreflang="x-default" href={alternates[0]?.href} />
+    <meta name="theme-color" content="#F5EEE2" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    {
+      preloads.map((file) => (
+        <link rel="preload" as="font" type="font/woff2" href={`/fonts/${file}.woff2`} crossorigin />
+      ))
+    }
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={t('website.brand')} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={summary} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content={lang === 'vi' ? 'vi_VN' : 'en_GB'} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <slot name="head" />
+  </head>
+  <body>
+    <slot />
+    <script>
+      import { startArt } from '../scripts/art';
+
+      startArt();
+    </script>
+  </body>
+</html>

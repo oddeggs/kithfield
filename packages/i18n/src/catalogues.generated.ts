@@ -13,6 +13,12 @@ import { signInCodeEn } from './sign-in-code.en';
 import { signInCodeVi } from './sign-in-code.vi';
 import { syncLabEn } from './sync-lab.en';
 import { syncLabVi } from './sync-lab.vi';
+import { websiteEn } from './website.en';
+import { websiteSameInBoth, websiteVi } from './website.vi';
+import { websiteCastEn } from './website-cast.en';
+import { websiteCastSameInBoth, websiteCastVi } from './website-cast.vi';
+import { websitePagesEn } from './website-pages.en';
+import { websitePagesSameInBoth, websitePagesVi } from './website-pages.vi';
 
 /** Every feature catalogue pair, in file-name order. */
 export const features: readonly FeatureCatalogues[] = [
@@ -22,6 +28,9 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
   { name: 'syncLab', file: 'sync-lab', en: syncLabEn, vi: syncLabVi, sameInBoth: [] },
+  { name: 'website', file: 'website', en: websiteEn, vi: websiteVi, sameInBoth: websiteSameInBoth },
+  { name: 'websiteCast', file: 'website-cast', en: websiteCastEn, vi: websiteCastVi, sameInBoth: websiteCastSameInBoth },
+  { name: 'websitePages', file: 'website-pages', en: websitePagesEn, vi: websitePagesVi, sameInBoth: websitePagesSameInBoth },
 ];
 
 /** The source catalogue: every key, in English. */
@@ -32,6 +41,9 @@ export const en = {
   ...shellEn,
   ...signInCodeEn,
   ...syncLabEn,
+  ...websiteEn,
+  ...websiteCastEn,
+  ...websitePagesEn,
 };
 
 /** Every key, in Vietnamese. */
@@ -42,4 +54,7 @@ export const vi = {
   ...shellVi,
   ...signInCodeVi,
   ...syncLabVi,
+  ...websiteVi,
+  ...websiteCastVi,
+  ...websitePagesVi,
 };

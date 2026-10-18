@@ -1,0 +1,127 @@
+---
+/**
+ * The field guide: an open notebook with one critter's plate, and the sixteen-critter cast below.
+ * Tapping a critter turns to its plate (`scripts/landing.ts`); the owl is open to begin with.
+ */
+import { CAST, CAST_TINT, copyFor, facesFor, type Language } from '../../lib/site';
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const t = copyFor(lang);
+const f = facesFor(lang);
+const vi = lang === 'vi';
+const first = 'owl' as const;
+const entry = (kind: (typeof CAST)[number]) => ({
+  kind,
+  plate: t('website.guide.plate', { number: String(CAST.indexOf(kind) + 1).padStart(2, '0') }),
+  name: t(`websiteCast.${kind}.name`),
+  latin: t(`websiteCast.${kind}.latin`),
+  seen: t(`websiteCast.${kind}.seen`),
+  care: t(`websiteCast.${kind}.care`),
+  quiet: t(`websiteCast.${kind}.quiet`),
+  tint: CAST_TINT[kind],
+});
+const cast = CAST.map(entry);
+const open = entry(first);
+const label = `font:600 12px/1 -apple-system,system-ui;letter-spacing:.08em;text-transform:uppercase;color:#8a7d70`;
+const answer = `font:700 clamp(26px,2.6vw,36px)/1.12 ${f.hand}`;
+---
+
+<section
+  id="critters"
+  style="padding:clamp(48px,8vw,120px) clamp(16px,5vw,72px) clamp(64px,9vw,140px);display:flex;flex-direction:column;align-items:center;gap:clamp(28px,4vw,56px)"
+>
+  <div
+    style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;max-width:1000px"
+  >
+    <div style={`font:700 clamp(19px,1.7vw,24px)/1 ${f.hand};color:#5E7F4A`}>
+      {t('website.guide.kicker')}
+    </div>
+    <h2
+      style={`margin:0;font:400 clamp(48px,7.6vw,128px)/.9 ${f.serif};letter-spacing:-.025em;text-wrap:balance`}
+    >
+      {t('website.guide.title')}
+    </h2>
+  </div>
+  <div
+    data-kf="guide"
+    data-cast={JSON.stringify(cast)}
+    aria-live="polite"
+    style="width:100%;max-width:1180px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));filter:drop-shadow(0 30px 40px rgba(60,40,20,.22));transform:rotate(-.6deg)"
+  >
+    <div
+      class="kf-page-l"
+      style="position:relative;background:#fbf6ec;padding:clamp(20px,3vw,40px);display:flex;flex-direction:column;gap:12px;box-shadow:inset -18px 0 30px -24px rgba(60,40,20,.35)"
+    >
+      <div
+        style={`display:flex;justify-content:space-between;font:700 18px/1 ${f.hand};color:#8a7d70`}
+      >
+        <span data-fg="plate">{open.plate}</span><span>{t('website.guide.volume')}</span>
+      </div>
+      <div
+        data-fg="tint"
+        style={`position:relative;height:clamp(260px,30vw,400px);border-radius:16px;background:${open.tint};overflow:hidden;transition:background .35s`}
+      >
+        <kf-art
+          data-fg="stage"
+          scene="stage"
+          kind={first}
+          style="position:absolute;inset:0;width:100%;height:100%"></kf-art>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+        <span
+          data-fg="name"
+          style={`font:400 clamp(44px,5vw,72px)/${vi ? '1.15' : '1'} ${f.serif};letter-spacing:-.02em`}
+          >{open.name}</span
+        ><span data-fg="latin" style={`font:700 clamp(19px,1.7vw,24px)/1 ${f.hand};color:#7a3f22`}
+          >{open.latin}</span
+        >
+      </div>
+    </div>
+    <div
+      class="kf-page-r"
+      style="position:relative;background:#fbf6ec;background-image:repeating-linear-gradient(transparent 0 37px,rgba(94,127,74,.17) 37px 38px);padding:clamp(24px,3.4vw,48px);display:flex;flex-direction:column;gap:22px;box-shadow:inset 18px 0 30px -24px rgba(60,40,20,.35)"
+    >
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span style={label}>{t('website.guide.seen')}</span><span data-fg="seen" style={answer}
+          >{open.seen}</span
+        >
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span style={label}>{t('website.guide.care')}</span><span data-fg="care" style={answer}
+          >{open.care}</span
+        >
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span style={label}>{t('website.guide.quiet')}</span><span data-fg="quiet" style={answer}
+          >{open.quiet}</span
+        >
+      </div>
+      <div style="margin-top:auto;font:14px/1.5 -apple-system,system-ui;color:#5b5048;max-width:420px">
+        {t('website.guide.body')}
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:14px 12px;max-width:1080px">
+    {
+      cast.map((c) => (
+        <button
+          type="button"
+          class="kf-cast-tile"
+          data-kind={c.kind}
+          aria-pressed={c.kind === first ? 'true' : 'false'}
+          style="display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:0;cursor:pointer;color:#2a221d"
+        >
+          <kf-art
+            scene="avatar"
+            kind={c.kind}
+            style="width:58px;height:58px;border-radius:29px;overflow:hidden"
+          />
+          <span style={`font:700 16px/1 ${f.hand}`}>{c.name}</span>
+        </button>
+      ))
+    }
+  </div>
+</section>

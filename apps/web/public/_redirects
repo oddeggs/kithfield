@@ -1,0 +1,3 @@
+# Invite links are /i/<code>: one static page reads the code from the address.
+/i/*     /invite     200
+/vi/i/*  /vi/invite  200

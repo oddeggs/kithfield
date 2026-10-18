@@ -10,6 +10,8 @@ export const secretNames = [
   'BETTER_AUTH_SECRET',
   // Expo's enhanced push security: sent with every push request once it is turned on.
   'EXPO_ACCESS_TOKEN',
+  // Keys the waitlist's address hashes (HMAC-SHA256), so a listed address can't be brute-forced.
+  'WAITLIST_EMAIL_KEY',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -22,6 +24,8 @@ export type EnvironmentName = 'dev' | 'prd';
 export type Bindings = Secrets & {
   readonly ENVIRONMENT: EnvironmentName;
   readonly COMMIT_SHA: string;
+  /** The website's origin (`https://kithfield.com`), for links in letters. */
+  readonly SITE_ORIGIN: string;
   /** The bundle id Apple issues identity tokens for (`com.kithfield.app[.dev]`). */
   readonly APPLE_BUNDLE_ID: string;
   /** Google OAuth client ids an identity token may name: the iOS app's and the web/server one. */
@@ -38,6 +42,8 @@ export type Bindings = Secrets & {
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Gestures at another farm's gate, per visitor. */
   readonly GATE_LIMIT: RateLimit;
+  /** At most 5 waitlist sign-ups a minute per client address. */
+  readonly WAITLIST_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;

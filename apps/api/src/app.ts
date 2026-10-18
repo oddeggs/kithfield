@@ -4,6 +4,7 @@ import { authRoutes } from './auth';
 import { cottageRoutes } from './cottage/routes';
 import type { AppEnv } from './env';
 import { farmApi } from './farm/routes';
+import { waitlistRoutes } from './web/waitlist';
 
 /** The API. The Worker owns `<host>/api/*`; the website serves everything else on the host. */
 export function createApp(): Hono<AppEnv> {
@@ -15,6 +16,7 @@ export function createApp(): Hono<AppEnv> {
   app.route('/', authRoutes());
 
   app.route('/', cottageRoutes());
+  app.route('/', waitlistRoutes());
 
   app.route('/v1', farmApi());
 

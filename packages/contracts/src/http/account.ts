@@ -133,7 +133,7 @@ export type DeleteAccountResponse = z.infer<typeof DeleteAccountResponse>;
 export const DeletionRequest = z.object({ email: z.email().max(254), lang: Lang });
 export type DeletionRequest = z.infer<typeof DeletionRequest>;
 
-/** `POST /v1/waitlist` from the website. Stored hashed. */
+/** `POST /v1/waitlist` from the website. Keyed by a hash; the email is kept until the launch letter. */
 export const WaitlistRequest = z.object({ email: z.email().max(254), lang: Lang });
 export type WaitlistRequest = z.infer<typeof WaitlistRequest>;
 

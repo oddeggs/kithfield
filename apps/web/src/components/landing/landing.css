@@ -1,0 +1,115 @@
+/*
+ * What `17 Landing` switches by viewport width in script, as media queries: the nav's links from
+ * 980px, the chapter cards and veils below 760px (stacked over the art instead of beside it), the
+ * phone, the field guide's two pages and the closing scene.
+ */
+.kf-links {
+  display: none;
+}
+@media (min-width: 980px) {
+  .kf-links {
+    display: flex;
+  }
+}
+.kf-ch {
+  left: clamp(24px, 6vw, 96px);
+  top: 0;
+  bottom: 0;
+  width: min(520px, 40vw);
+  justify-content: center;
+}
+.kf-veil-paper {
+  background: linear-gradient(
+    90deg,
+    rgba(245, 238, 226, 0.92) 0%,
+    rgba(245, 238, 226, 0.72) 30%,
+    rgba(245, 238, 226, 0) 52%
+  );
+}
+.kf-veil-night {
+  background: linear-gradient(
+    90deg,
+    rgba(20, 22, 44, 0.88) 0%,
+    rgba(20, 22, 44, 0.66) 30%,
+    rgba(20, 22, 44, 0) 54%
+  );
+}
+.kf-phone {
+  right: clamp(24px, 9vw, 160px);
+  bottom: -40px;
+  width: clamp(240px, 21vw, 320px);
+}
+.kf-join-art {
+  transform: translateX(-50%);
+}
+.kf-page-l {
+  border-radius: 18px 6px 6px 18px;
+}
+.kf-page-r {
+  border-radius: 6px 18px 18px 6px;
+}
+@media (max-width: 979.98px) {
+  .kf-page-l {
+    border-radius: 18px 18px 0 0;
+  }
+  .kf-page-r {
+    border-radius: 0 0 18px 18px;
+  }
+}
+@media (max-width: 759.98px) {
+  .kf-ch {
+    left: 20px;
+    top: 128px;
+    bottom: auto;
+    width: calc(100% - 40px);
+    justify-content: flex-start;
+  }
+  .kf-veil-paper {
+    background: linear-gradient(
+      180deg,
+      rgba(245, 238, 226, 0.94) 0%,
+      rgba(245, 238, 226, 0.82) 38%,
+      rgba(245, 238, 226, 0) 60%
+    );
+  }
+  .kf-veil-night {
+    background: linear-gradient(
+      180deg,
+      rgba(20, 22, 44, 0.92) 0%,
+      rgba(20, 22, 44, 0.75) 40%,
+      rgba(20, 22, 44, 0) 62%
+    );
+  }
+  .kf-phone {
+    right: calc(50% - 115px);
+    bottom: -120px;
+    width: 230px;
+  }
+  .kf-join-art {
+    transform: translateX(-60%);
+  }
+}
+.kf-cast-tile kf-art {
+  box-shadow: 0 0 0 1px rgba(42, 34, 29, 0.12);
+  transition:
+    transform 0.25s,
+    box-shadow 0.25s;
+}
+.kf-cast-tile span {
+  opacity: 0.7;
+}
+.kf-cast-tile[aria-pressed='true'] kf-art {
+  box-shadow:
+    0 0 0 3px #f5eee2,
+    0 0 0 5.5px #2a221d;
+  transform: translateY(-4px);
+}
+.kf-cast-tile[aria-pressed='true'] span {
+  opacity: 1;
+}
+.kf-strike {
+  transform: scaleX(0) rotate(-2deg);
+}
+[data-kf='rules'].kf-seen .kf-strike {
+  transform: scaleX(1) rotate(-2deg);
+}

@@ -556,6 +556,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@kithfield/art':
+        specifier: workspace:*
+        version: link:../../packages/art
       '@kithfield/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -572,6 +575,15 @@ importers:
       '@astrojs/check':
         specifier: 'catalog:'
         version: 0.9.10(@emnapi/runtime@1.11.3)(prettier@3.9.9)(typescript@6.0.3)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.3
+      playwright:
+        specifier: 'catalog:'
+        version: 1.58.2
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

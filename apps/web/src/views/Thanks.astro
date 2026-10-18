@@ -1,0 +1,144 @@
+---
+/**
+ * Thank you: pick a critter early. Until the letter's link is opened it asks the visitor to check
+ * their inbox; with `?confirmed=1` (from the confirm page) it says they're on the list. The pick
+ * waves; saving it with the waitlist record waits on the API (the request carries no critter yet).
+ */
+import { pageStyles } from '../components/page/styles';
+import Base from '../layouts/Base.astro';
+import { CAST, copyFor, type Language } from '../lib/site';
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const t = copyFor(lang);
+const s = pageStyles(lang);
+const first = 'fox' as const;
+const cast = CAST.map((kind) => ({
+  kind,
+  name: t(`websiteCast.${kind}.name`),
+  save: t('websitePages.thanks.save', {
+    name: t(`websiteCast.${kind}.name`),
+    kind: t(`websiteCast.${kind}.kind`),
+  }),
+}));
+const firstSave = cast.find((c) => c.kind === first)?.save ?? '';
+---
+
+<Base
+  lang={lang}
+  path="/waitlist/thanks"
+  title={`${t('websitePages.thanks.title')} · ${t('website.brand')}`}
+  noindex
+>
+  <style>
+    .kf-picker {
+      display: grid;
+      grid-template-columns: repeat(8, 72px);
+      gap: 8px;
+    }
+    @media (max-width: 759.98px) {
+      .kf-picker {
+        grid-template-columns: repeat(4, 72px);
+      }
+    }
+    .kf-pick kf-art {
+      width: 72px;
+      height: 72px;
+      border-radius: 36px;
+      overflow: hidden;
+    }
+    .kf-pick[aria-checked='true'] kf-art {
+      box-shadow:
+        0 0 0 3px #f5eee2,
+        0 0 0 5px #2a221d;
+    }
+  </style>
+  <main
+    style="padding:44px clamp(20px,6vw,56px) 52px;display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center"
+  >
+    <kf-art data-kf="pose" scene="pose" kind={first} pose="wave" style="width:180px;height:180px"
+    ></kf-art>
+    <div data-kf="kicker-confirmed" hidden style={s.hand}>{t('websitePages.thanks.kicker')}</div>
+    <div data-kf="kicker-pending" style={s.hand}>{t('websitePages.thanks.pendingKicker')}</div>
+    <p data-kf="pending" role="status" style={`${s.body};color:#5E7F4A;max-width:520px`}>
+      {t('websitePages.thanks.pending')}
+    </p>
+    <h1 style={`margin:0;font:400 38px/1.06 ${s.serif}`}>{t('websitePages.thanks.title')}</h1>
+    <p style={`${s.body};font-size:15.5px;line-height:1.55;max-width:520px`}>
+      {t('websitePages.thanks.body')}
+    </p>
+    <div class="kf-picker" role="radiogroup" aria-label={t('websitePages.thanks.title')}>
+      {
+        cast.map((c) => (
+          <button
+            type="button"
+            role="radio"
+            class="kf-pick"
+            data-kind={c.kind}
+            data-save={c.save}
+            aria-checked={c.kind === first ? 'true' : 'false'}
+            tabindex={c.kind === first ? 0 : -1}
+            aria-label={c.name}
+            style="padding:0;border:0;background:none;cursor:pointer;border-radius:36px"
+          >
+            <kf-art scene="avatar" kind={c.kind} />
+          </button>
+        ))
+      }
+    </div>
+    <button
+      type="button"
+      data-kf="save"
+      style={`${s.button};background:#5E7F4A;color:#fff;margin-top:4px`}>{firstSave}</button
+    >
+    <p data-kf="save-note" role="status" hidden style={`${s.body};max-width:520px`}>
+      {t('websitePages.thanks.saveSoon')}
+    </p>
+  </main>
+</Base>
+
+<script>
+  const pose = document.querySelector<HTMLElement>('[data-kf="pose"]');
+  const save = document.querySelector<HTMLButtonElement>('[data-kf="save"]');
+  const picks = [...document.querySelectorAll<HTMLButtonElement>('.kf-pick')];
+  const part = (name: string) => document.querySelector<HTMLElement>(`[data-kf="${name}"]`);
+
+  // Until the letter's link is opened the spot isn't saved: say so, and say it once it is.
+  if (new URLSearchParams(location.search).get('confirmed') === '1') {
+    for (const name of ['kicker-pending', 'pending']) part(name)?.setAttribute('hidden', '');
+    part('kicker-confirmed')?.removeAttribute('hidden');
+  }
+
+  const choose = (pick: HTMLButtonElement, focus: boolean): void => {
+    for (const other of picks) {
+      other.setAttribute('aria-checked', String(other === pick));
+      other.tabIndex = other === pick ? 0 : -1;
+    }
+    if (focus) pick.focus();
+    if (pose && pick.dataset.kind) pose.setAttribute('kind', pick.dataset.kind);
+    if (save) save.textContent = pick.dataset.save ?? '';
+  };
+  // A radio group: arrow keys move the pick, wrapping at the ends; Up and Down move a row.
+  const columns = (): number => (matchMedia('(max-width: 759.98px)').matches ? 4 : 8);
+  const steps: Record<string, () => number> = {
+    ArrowRight: () => 1,
+    ArrowLeft: () => -1,
+    ArrowDown: columns,
+    ArrowUp: () => -columns(),
+  };
+  picks.forEach((pick, i) => {
+    pick.addEventListener('click', () => choose(pick, false));
+    pick.addEventListener('keydown', (event) => {
+      const step = steps[event.key];
+      if (!step) return;
+      event.preventDefault();
+      const next = picks[(i + step() + picks.length) % picks.length];
+      if (next) choose(next, true);
+    });
+  });
+  save?.addEventListener('click', () => {
+    part('save-note')?.removeAttribute('hidden');
+  });
+</script>

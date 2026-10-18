@@ -1,0 +1,93 @@
+---
+/**
+ * Contact. Sending opens the visitor's own mail app with the message addressed to us, so
+ * they keep a copy and we answer from a real inbox.
+ */
+import { pageStyles } from '../components/page/styles';
+import Page from '../layouts/Page.astro';
+import { contacts, copyFor, type Language } from '../lib/site';
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const t = copyFor(lang);
+const s = pageStyles(lang);
+const topics = [
+  t('websitePages.contact.topicHelp'),
+  t('websitePages.contact.topicAccount'),
+  t('websitePages.contact.topicPurchases'),
+  t('websitePages.contact.topicSafety'),
+  t('websitePages.contact.topicOther'),
+];
+---
+
+<Page lang={lang} path="/contact" title={t('websitePages.contact.title')}>
+  <h1 style={s.title}>{t('websitePages.contact.title')}</h1>
+  <p style={s.body}>{t('websitePages.contact.lead')}</p>
+  <form
+    data-kf="contact"
+    data-to={contacts.hello}
+    style="display:flex;flex-direction:column;gap:16px"
+  >
+    <div
+      style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px"
+    >
+      <label style="display:flex;flex-direction:column;gap:6px">
+        <span style={s.label}>{t('websitePages.contact.name')}</span>
+        <input class="kf-field" name="name" autocomplete="name" maxlength="80" style={s.field} />
+      </label>
+      <label style="display:flex;flex-direction:column;gap:6px">
+        <span style={s.label}>{t('websitePages.contact.email')}</span>
+        <input
+          class="kf-field"
+          name="email"
+          type="email"
+          autocomplete="email"
+          maxlength="254"
+          style={s.field}
+        />
+      </label>
+    </div>
+    <label style="display:flex;flex-direction:column;gap:6px">
+      <span style={s.label}>{t('websitePages.contact.topic')}</span>
+      <select class="kf-field" name="topic" style={`${s.field};appearance:none;cursor:pointer`}>
+        {topics.map((topic) => <option>{topic}</option>)}
+      </select>
+    </label>
+    <label>
+      <span class="kf-sr">{t('websitePages.contact.message')}</span>
+      <textarea
+        class="kf-field"
+        name="message"
+        required
+        maxlength="4000"
+        placeholder={t('websitePages.contact.message')}
+        style={`${s.field};height:130px;padding:14px;width:calc(100% - 30px);font:15px/1.5 -apple-system,system-ui;resize:vertical`}
+      ></textarea>
+    </label>
+    <button type="submit" style={`${s.button};background:#2a221d;color:#F5EEE2`}
+      >{t('websitePages.contact.send')}</button
+    >
+  </form>
+  <div
+    style="display:flex;flex-wrap:wrap;gap:4px 20px;font:14px/1.4 -apple-system,system-ui;color:#6b5f55"
+  >
+    <span>{t('websitePages.contact.press', { email: contacts.press })}</span><span
+      >{t('websitePages.contact.safety', { email: contacts.safety })}</span
+    >
+  </div>
+</Page>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-kf="contact"]');
+  form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    const value = (name: string) => String(data.get(name) ?? '').trim();
+    const from = [value('name'), value('email')].filter(Boolean).join(' · ');
+    const subject = from ? `${value('topic')} · ${from}` : value('topic');
+    const query = new URLSearchParams({ subject, body: value('message') });
+    location.href = `mailto:${form.dataset.to ?? ''}?${query.toString().replace(/\+/g, '%20')}`;
+  });
+</script>

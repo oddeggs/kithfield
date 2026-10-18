@@ -5,3 +5,5 @@
 BETTER_AUTH_SECRET=
 # Expo's enhanced push security; empty until it is turned on for the project.
 EXPO_ACCESS_TOKEN=
+# Keys the waitlist's address hashes; at least 32 random characters (`openssl rand -base64 32`).
+WAITLIST_EMAIL_KEY=

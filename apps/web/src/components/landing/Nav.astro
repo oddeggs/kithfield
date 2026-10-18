@@ -1,0 +1,57 @@
+---
+/**
+ * The landing page's fixed nav and the firefly that follows a mouse over the evening. The scroll
+ * script (`scripts/landing.ts`) recolours the nav over the night and frosts it past the evening.
+ */
+import { SOURCE_URL, copyFor, facesFor, pathFor, type Language } from '../../lib/site';
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const t = copyFor(lang);
+const f = facesFor(lang);
+const other = lang === 'vi' ? 'en' : 'vi';
+---
+
+<nav
+  data-kf="nav"
+  style="position:fixed;top:0;left:0;right:0;z-index:50;height:64px;display:flex;align-items:center;gap:20px;padding:0 clamp(16px,4vw,48px);color:#2a221d;transition:background .3s,color .3s,box-shadow .3s"
+>
+  <a href="#top" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit"
+    ><kf-art
+      scene="appicon"
+      style="width:32px;height:32px;border-radius:9px;overflow:hidden;box-shadow:0 2px 8px -3px rgba(40,25,10,.4)"
+    ></kf-art><span style={`font:400 22px/1 ${f.serif}`}>{t('website.brand')}</span></a
+  >
+  <div style="flex:1"></div>
+  <div class="kf-links" style="gap:26px;font:500 14.5px/1 -apple-system,system-ui">
+    <a href="#evening" style="color:inherit;text-decoration:none">{t('website.nav.evening')}</a><a
+      href="#critters"
+      style="color:inherit;text-decoration:none">{t('website.nav.critters')}</a
+    ><a href="#rules" style="color:inherit;text-decoration:none">{t('website.nav.rules')}</a><a
+      href={SOURCE_URL}
+      style="color:inherit;text-decoration:none">{t('website.nav.source')}</a
+    >
+  </div>
+  <a
+    href={pathFor(other, '/')}
+    hreflang={other}
+    lang={other}
+    style="color:inherit;text-decoration:none;font:600 13px/1 -apple-system,system-ui;padding:8px 10px;border-radius:14px;border:1px solid currentColor;opacity:.75"
+    >{t('website.otherLanguage')}<span class="kf-sr"> · {t('website.otherLanguageName')}</span></a
+  ><a
+    href="#join"
+    style="height:40px;padding:0 18px;border-radius:20px;background:#E8B44E;color:#2a221d;display:flex;align-items:center;font:600 14.5px/1 -apple-system,system-ui;text-decoration:none;box-shadow:0 4px 14px -6px rgba(120,70,10,.6);white-space:nowrap"
+    >{t('website.nav.cta')}</a
+  >
+</nav>
+
+<div
+  data-kf="fly"
+  aria-hidden="true"
+  style="position:fixed;left:0;top:0;width:46px;height:46px;z-index:60;pointer-events:none;opacity:0;transition:opacity .4s;border-radius:50%;background:radial-gradient(circle,rgba(255,220,120,.55) 0%,rgba(255,220,120,.18) 45%,rgba(255,220,120,0) 70%)"
+>
+  <kf-art scene="icon" name="firefly" style="position:absolute;left:9px;top:9px;width:28px;height:28px"
+  ></kf-art>
+</div>
