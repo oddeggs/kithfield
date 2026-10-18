@@ -8,8 +8,6 @@ import {
   useReanimatedKeyboardAnimation,
 } from 'react-native-keyboard-controller';
 import Animated, {
-  useAnimatedRef,
-  useAnimatedScrollHandler,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -22,7 +20,8 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { castOf, porchOwner, visitPeer } from '../model/people';
-import type { BubbleItem, TimelineItem } from '../model/timeline';
+import { canEdit } from '../model/rows';
+import type { BubbleItem } from '../model/timeline';
 import { go } from '../routes';
 import { useChatColours } from '../ui/chat-colours';
 import { Composer, type MentionRow } from './composer';
@@ -38,15 +37,20 @@ import {
 import { RoomNotice, useRoomNotice } from './room-notice';
 import { Noticeboard, PinBar, usePinned } from './noticeboard';
 import { RoomProvider, type RoomValue } from './room-context';
-import { TimelineRow } from './timeline-row';
+import { TimelineList, type JumpRequest } from './timeline-list';
 import { useRoomData } from './use-room-data';
 import { MicButton, RecorderPanel, useVoiceRecorder } from './voice-recorder';
-import { useHideTabBar } from '../ui/use-hide-tab-bar';
+import { noteSeen } from '../ui/seen-store';
+import { useArtVisible } from '../../../ui/motion/visibility';
 import { useMe } from '../ui/use-me';
 import { TypingLine } from './lines';
-import { runsOf, sprouted, useMentionRows, useOutLine } from './room-people';
+import { sprouted, useMentionRows, useOutLine } from './room-people';
 
 const PIN_BAR = 46;
+/** The composer sits 32 points above the bottom edge (over the home indicator), as drawn. */
+const COMPOSER_BOTTOM = 32;
+/** With the keyboard up, the composer keeps 8 points above it. */
+const COMPOSER_LIFT = COMPOSER_BOTTOM - 8;
 
 export interface ChatScreenProps {
   readonly farm: string;
@@ -57,8 +61,9 @@ export interface ChatScreenProps {
   readonly edit?: number;
 }
 
-/** A farm's chat under its farm (04-03, 04-04), or a visit on its porch (04-07). */
+/** A farm's chat under its farm, or a visit on its porch. */
 export function ChatScreen(props: ChatScreenProps) {
+  // Here until the root layout provides the keyboard controller for every screen.
   return (
     <KeyboardProvider>
       <ChatRoom {...props} />
@@ -67,7 +72,6 @@ export function ChatScreen(props: ChatScreenProps) {
 }
 
 function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
-  useHideTabBar();
   const data = useRoomData(farm);
   const { palette } = useTheme();
   const colours = useChatColours();
@@ -82,70 +86,26 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
   const scrollY = useSharedValue(0);
   const height = useHeaderHeight(scrollY, size);
   const collapsed = useDerivedValue<number>(() => (height.get() <= size.min + 0.5 ? 1 : 0));
-  const list = useAnimatedRef<Animated.FlatList<TimelineItem>>();
-  const atEnd = useRef(true);
   const [replyTo, setReplyTo] = useState<BubbleItem | null>(null);
   const [editing, setEditing] = useState<BubbleItem | null>(null);
   const [board, setBoard] = useState(false);
   const [composerH, setComposerH] = useState(92);
-  const [lit, setLit] = useState<string | null>(null);
+  const [jump, setJump] = useState<JumpRequest | null>(seq === undefined ? null : { seq, id: 0 });
+  const [toNewest, setToNewest] = useState(0);
   const pinned = usePinned(farm, state?.pins ?? [], (s) => bubbles.get(s) ?? null);
   const notice = useRoomNotice(data.link, state, data.me, data.now);
   const keyboard = useReanimatedKeyboardAnimation();
 
-  // Rows that land after opening rise in; what was already there, or paged in, just sits.
-  const openedAt = useRef<number | null>(null);
-  if (openedAt.current === null && timeline.length > 0) {
-    openedAt.current = Math.max(...timeline.map((i) => ('at' in i ? i.at : 0)), 0);
-  }
-
-  const nameOf = useCallback(
-    (person: PersonId | null) => {
-      if (person === null) return '';
-      if (person === data.me) return t('chat.you');
-      const p = people.get(state?.aliases[person] ?? person);
-      return p?.name ?? t('chat.friendWhoLeft');
-    },
-    [data.me, people, state, t],
-  );
-
-  const scrollToEnd = useCallback(
-    (animated: boolean) => {
-      requestAnimationFrame(() => list.current?.scrollToEnd({ animated }));
-    },
-    [list],
-  );
-
-  const jumpTo = useCallback(
-    (target: number) => {
-      const index = timeline.findIndex((i) => i.type === 'bubble' && i.seq === target);
-      if (index < 0) {
-        void data.loadOlder();
-        return;
-      }
-      list.current?.scrollToIndex({ index, viewPosition: 0.4, animated: true });
-      const key = timeline[index]?.key ?? null;
-      setLit(key);
-      setTimeout(() => setLit((k) => (k === key ? null : k)), 1400);
-    },
-    [timeline, data, list],
-  );
-
-  // A link to a message (search, pins, a push) scrolls to it once it's loaded.
-  const wanted = useRef<number | undefined>(seq);
+  // What this phone has shown of the chat, kept on the phone only, for the chat list's honey dot.
+  const showing = useArtVisible();
   useEffect(() => {
-    wanted.current = seq;
+    if (showing && data.lastSeq > 0) noteSeen(farm, data.lastSeq);
+  }, [showing, farm, data.lastSeq]);
+
+  // A link to a message (search, pins, a push) shows it once it's paged in.
+  useEffect(() => {
+    if (seq !== undefined) setJump((j) => ({ seq, id: (j?.id ?? 0) + 1 }));
   }, [seq]);
-  useEffect(() => {
-    const target = wanted.current;
-    if (target === undefined || timeline.length === 0) return;
-    if (bubbles.has(target)) {
-      wanted.current = undefined;
-      setTimeout(() => jumpTo(target), 250);
-    } else if (data.older !== 'done') {
-      void data.loadOlder();
-    }
-  }, [timeline, bubbles, jumpTo, data]);
 
   // Reply and edit come back from the message menu as route params.
   useEffect(() => {
@@ -160,18 +120,15 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
   useEffect(() => {
     if (edit === undefined) return;
     const item = bubbles.get(edit);
-    if (item?.mine && item.body.kind === 'message') {
+    if (!item) return;
+    router.setParams({ edit: undefined });
+    if (canEdit(item, Date.now())) {
       setReplyTo(null);
       setEditing(item);
-      router.setParams({ edit: undefined });
+    } else if (item.mine) {
+      toast.show(t('chat.composer.editClosed'));
     }
-  }, [edit, bubbles]);
-
-  // New rows keep the chat at its newest when it was already there.
-  const count = timeline.length;
-  useEffect(() => {
-    if (atEnd.current) scrollToEnd(true);
-  }, [count, scrollToEnd]);
+  }, [edit, bubbles, toast, t]);
 
   // The oldest pin coming down to make room is said once, quietly.
   const pins = state?.pins ?? [];
@@ -190,15 +147,25 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
     }
   }, [pins.join(',')]);
 
+  // The room's callbacks read the latest data through a ref, so the rows below only re-render
+  // when something they draw changes.
+  const latest = useRef({ data, bubbles, people, state, t });
+  latest.current = { data, bubbles, people, state, t };
+  const nameOf = useCallback((person: PersonId | null) => {
+    const { data: d, people: p, state: st, t: tr } = latest.current;
+    if (person === null) return '';
+    if (person === d.me) return tr('chat.you');
+    return p.get(st?.aliases[person] ?? person)?.name ?? tr('chat.friendWhoLeft');
+  }, []);
   const room: RoomValue = useMemo(
     () => ({
       farm,
       me: data.me,
-      state,
+      timeZone: state?.timeZone ?? null,
       visit,
       people,
       nameOf,
-      bubbleAt: (s: number) => bubbles.get(s) ?? null,
+      bubbleAt: (s: number) => latest.current.bubbles.get(s) ?? null,
       reply: (item) => {
         setEditing(null);
         setReplyTo(item);
@@ -209,24 +176,16 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
       },
       toggleDew: (item) => {
         if (item.seq === null) return;
-        if (item.myDew !== null) void actions.takeDewBack(item.myDew);
-        else void actions.dewdrop(item.seq);
+        const a = latest.current.data.actions;
+        if (item.myDew !== null) void a.takeDewBack(item.myDew);
+        else void a.dewdrop(item.seq);
       },
-      retry: (item) => void actions.retry(item),
-      jumpTo,
-      wave: (to) => void actions.wave(to),
-      sproutedFrom: (s) => sprouted(data.events, state, s),
-      isNew: (key) => {
-        const item = timeline.find((i) => i.key === key);
-        return (
-          item !== undefined &&
-          'at' in item &&
-          openedAt.current !== null &&
-          item.at > openedAt.current
-        );
-      },
+      retry: (item) => void latest.current.data.actions.retry(item),
+      jumpTo: (s: number) => setJump((j) => ({ seq: s, id: (j?.id ?? 0) + 1 })),
+      wave: (to) => void latest.current.data.actions.wave(to),
+      sproutedFrom: (s) => sprouted(latest.current.data.events, latest.current.state, s),
     }),
-    [farm, data.me, data.events, state, visit, people, nameOf, bubbles, actions, jumpTo, timeline],
+    [farm, data.me, state?.timeZone, visit, people, nameOf],
   );
 
   const voice = useVoiceRecorder((note) => {
@@ -241,27 +200,14 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
   const owner = porchOwner(state);
   const typing = presence.typing.filter((p) => p !== data.me);
 
-  const onScroll = useAnimatedScrollHandler({
-    onScroll: (e) => {
-      scrollY.set(e.contentOffset.y);
-    },
-  });
   const sheetTop = useAnimatedStyle(() => ({ top: height.get() - SHEET_OVERLAP }));
-  const listOffset = useAnimatedStyle(() => ({ top: -(height.get() - SHEET_OVERLAP) }));
-  const spacer = useAnimatedStyle(() => ({
-    height: composerH + Math.max(0, -keyboard.height.get() - insets.bottom) + 8,
+  // The chat lifts with the keyboard, as the composer does (translated, never resized).
+  const listOffset = useAnimatedStyle(() => ({
+    top: -(height.get() - SHEET_OVERLAP),
+    transform: [{ translateY: keyboard.height.get() + keyboard.progress.get() * COMPOSER_LIFT }],
   }));
   const pinTop = pinned.length > 0 ? PIN_BAR : 0;
-
-  const rows = timeline;
-  const runs = useMemo(() => runsOf(rows), [rows]);
-  const lastSent = useMemo(() => {
-    for (let i = rows.length - 1; i >= 0; i -= 1) {
-      const r = rows[i];
-      if (r?.type === 'bubble' && r.mine && r.delivery === 'sent') return r.key;
-    }
-    return null;
-  }, [rows]);
+  const composerBottom = insets.bottom > 0 ? COMPOSER_BOTTOM : 12;
 
   const title = visit ? (peer?.name ?? t('chat.friendWhoLeft')) : (state?.name ?? '');
   const subtitle = visit
@@ -323,42 +269,17 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
           <Animated.View
             style={[{ position: 'absolute', left: 0, right: 0, height: screenH }, listOffset]}
           >
-            <Animated.FlatList
-              ref={list}
-              data={rows}
-              keyExtractor={(item) => item.key}
-              onScroll={onScroll}
-              scrollEventThrottle={16}
-              keyboardDismissMode="interactive"
-              keyboardShouldPersistTaps="handled"
-              maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
-              onStartReached={() => void data.loadOlder()}
-              onStartReachedThreshold={0.5}
-              onScrollToIndexFailed={(info) => {
-                list.current?.scrollToOffset({
-                  offset: info.averageItemLength * info.index,
-                  animated: true,
-                });
-              }}
-              onMomentumScrollEnd={(e) => {
-                const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-                atEnd.current =
-                  contentOffset.y + layoutMeasurement.height >= contentSize.height - 80;
-              }}
-              onScrollEndDrag={(e) => {
-                const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-                atEnd.current =
-                  contentOffset.y + layoutMeasurement.height >= contentSize.height - 80;
-              }}
-              onContentSizeChange={() => {
-                if (atEnd.current) scrollToEnd(false);
-              }}
-              contentContainerStyle={{
-                paddingTop: size.full - SHEET_OVERLAP + 14 + pinTop,
-                paddingHorizontal: 14,
-              }}
-              ItemSeparatorComponent={Gap}
-              ListHeaderComponent={
+            <TimelineList
+              rows={timeline}
+              now={data.now}
+              older={data.older}
+              loadOlder={() => void data.loadOlder()}
+              topSpace={size.full - SHEET_OVERLAP + 14 + pinTop}
+              bottomSpace={composerH + 8}
+              scrollY={scrollY}
+              jump={jump}
+              toNewest={toNewest}
+              top={
                 data.older === 'loading' ? (
                   <Txt
                     variant="handS"
@@ -370,27 +291,15 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
                   </Txt>
                 ) : visit ? (
                   <VisitNote name={peer?.name ?? t('chat.friendWhoLeft')} />
-                ) : undefined
+                ) : null
               }
-              ListFooterComponent={
-                <View>
-                  {typing.length > 0 ? (
-                    <View style={{ marginTop: 12 }}>
-                      <TypingLine people={typing} />
-                    </View>
-                  ) : null}
-                  <Animated.View style={spacer} />
-                </View>
+              bottom={
+                typing.length > 0 ? (
+                  <View style={{ marginTop: 12 }}>
+                    <TypingLine people={typing} />
+                  </View>
+                ) : null
               }
-              renderItem={({ item, index }) => (
-                <TimelineRow
-                  item={item}
-                  now={data.now}
-                  first={runs[index]?.first ?? true}
-                  showSent={item.key === lastSent}
-                  lit={item.key === lit}
-                />
-              )}
             />
           </Animated.View>
           {pinned.length > 0 ? (
@@ -431,7 +340,7 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
           }
         />
         <KeyboardStickyView
-          offset={{ opened: insets.bottom - 8 }}
+          offset={{ opened: COMPOSER_LIFT }}
           style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}
         >
           <View
@@ -439,7 +348,7 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
             style={{
               paddingTop: 16,
               paddingHorizontal: 12,
-              paddingBottom: Math.max(insets.bottom, 20) + 12,
+              paddingBottom: composerBottom,
               gap: 8,
               backgroundImage: colours.composerFade,
             }}
@@ -455,7 +364,7 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
                 setEditing(null);
               }}
               onSend={(text) => {
-                atEnd.current = true;
+                setToNewest((n) => n + 1);
                 if (editing?.seq != null) void actions.edit(editing.seq, text);
                 else void actions.sendText(text, replyTo?.seq ?? null);
                 setReplyTo(null);
@@ -481,10 +390,6 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
       </View>
     </RoomProvider>
   );
-}
-
-function Gap({ leadingItem }: { readonly leadingItem?: TimelineItem }) {
-  return <View style={{ height: leadingItem?.type === 'day' ? 12 : 12 }} />;
 }
 
 function VisitNote({ name }: { readonly name: string }) {

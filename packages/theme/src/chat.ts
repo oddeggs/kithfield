@@ -50,7 +50,9 @@ export interface ChatInks {
   pinStrip: string;
   /** The voice note's play button and its waveform. */
   play: string;
+  /** Bars already played (and all of them at rest), bars still to play, the live recording's tail. */
   wave: string;
+  waveRest: string;
   waveLive: string;
   /** The recorder: its dot, sheet, critter tile, shadow and the ring round the held mic. */
   recording: string;
@@ -123,9 +125,10 @@ const dayInks: ChatInks = {
   corkCard: '#fffaf0',
   corkCardShadow: '0 6px 14px -6px rgba(60,40,20,.45)',
   pinInk: '#b0482f',
-  pinStrip: 'rgba(247,241,231,.96)',
+  pinStrip: day.sheet,
   play: day.honey,
-  wave: day.ink2,
+  wave: day.ink3,
+  waveRest: '#b7aca2',
   waveLive: '#c9734e',
   recording: day.clay,
   recorderBg: day.sheet,
@@ -135,7 +138,7 @@ const dayInks: ChatInks = {
   quietShadow: '0 3px 10px -6px rgba(60,40,20,.35)',
   sheetShadow: '0 -6px 20px -12px rgba(60,40,20,.3)',
   composerFade: 'linear-gradient(rgba(245,238,226,0), #F5EEE2 30%)',
-  mentionList: 'rgba(251,247,240,.97)',
+  mentionList: '#fbf7f0',
   fieldBorder: 'rgba(42,34,29,.1)',
   fieldFocus: day.moss,
   glassFill: 'rgba(251,247,240,.78)',
@@ -180,6 +183,7 @@ const nightInks: ChatInks = {
   pinStrip: night.panel,
   play: night.honey,
   wave: night.moon2,
+  waveRest: night.dim,
   waveLive: '#e08a6c',
   recording: '#e08a6c',
   recorderBg: night.panel,
@@ -204,3 +208,17 @@ const nightInks: ChatInks = {
 };
 
 export const chatInks: Readonly<Record<Appearance, ChatInks>> = { day: dayInks, night: nightInks };
+
+/**
+ * The chat's own timings, from the design's notes: a new message rises 12 points and fades in
+ * over 180 ms; a failed bubble shakes once, 3 points; the @ list grows from the caret in 160 ms; a
+ * message shown from a link glows a moment; noticeboard cards land on twos.
+ */
+export const chatMotion = {
+  riseMs: 180,
+  risePt: 12,
+  shakeStepMs: 60,
+  shakePt: 3,
+  mentionGrowMs: 160,
+  glowMs: 1400,
+} as const;

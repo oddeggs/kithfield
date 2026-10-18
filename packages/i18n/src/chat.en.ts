@@ -93,6 +93,13 @@ export const chatEn = {
   'chat.bubble.edited': 'edited',
   'chat.bubble.didntSend': 'Didn’t send',
   'chat.bubble.tryAgain': 'Try again',
+  /** Why the farm refused a write; the ones that won't change offer no retry. */
+  'chat.refused.editClosed': 'Edits close 15 minutes after sending.',
+  'chat.refused.gone': 'That message is gone now.',
+  'chat.refused.notAllowed': 'That one isn’t yours to change.',
+  'chat.refused.paused': 'You can read along for now, and post again soon.',
+  'chat.refused.frozen': 'This farm is resting, so nothing new can go up.',
+  'chat.refused.other': 'Didn’t send',
   'chat.bubble.unsentBy': '{name} unsent a message',
   'chat.bubble.unsentYou': 'You unsent a message',
   'chat.bubble.removed': 'A message was taken down by the safety team',

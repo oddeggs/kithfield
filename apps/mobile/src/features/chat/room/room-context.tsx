@@ -1,4 +1,4 @@
-import type { FarmState, PersonId } from '@kithfield/contracts';
+import type { PersonId } from '@kithfield/contracts';
 import { createContext, useContext } from 'react';
 
 import type { Person } from '../model/people';
@@ -8,7 +8,8 @@ import type { BubbleItem } from '../model/timeline';
 export interface RoomValue {
   readonly farm: string;
   readonly me: PersonId | null;
-  readonly state: FarmState | null;
+  /** The farm's time zone, for day dividers; null until the farm is read. */
+  readonly timeZone: string | null;
   readonly visit: boolean;
   readonly people: ReadonlyMap<PersonId, Person>;
   /** A person's name as the chat says it ("You" for this person, "a friend who left"). */
@@ -23,8 +24,6 @@ export interface RoomValue {
   readonly wave: (to: PersonId) => void;
   /** Whether a plan planted from this message has sprouted. */
   readonly sproutedFrom: (seq: number) => boolean;
-  /** Rows that landed after the chat opened rise into place; older ones are simply there. */
-  readonly isNew: (key: string) => boolean;
 }
 
 const RoomContext = createContext<RoomValue | null>(null);

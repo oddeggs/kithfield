@@ -25,7 +25,6 @@ import type { LogEvent } from '../model/timeline';
 import { go } from '../routes';
 import { BackGlyph } from '../room/header';
 import { useChatColours } from '../ui/chat-colours';
-import { useHideTabBar } from '../ui/use-hide-tab-bar';
 
 const TABS: readonly MediaTab[] = ['photos', 'videos', 'links', 'voice'];
 const GAP = 3;
@@ -148,7 +147,6 @@ function Tile({
 
 /** Shared on the farm (04-14): photos, videos, links and voice notes, grouped by month. */
 export function MediaScreen({ farm }: { readonly farm: string }) {
-  useHideTabBar();
   const { palette } = useTheme();
   const { t, language } = useLocale();
   const toast = useToast();

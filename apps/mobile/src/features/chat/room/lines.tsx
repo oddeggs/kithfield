@@ -19,8 +19,7 @@ import { useRoom } from './room-context';
 export function DayDivider({ at, now }: { readonly at: number; readonly now: number }) {
   const colours = useChatColours();
   const { t, language } = useLocale();
-  const { state } = useRoom();
-  const zone = state?.timeZone ?? null;
+  const { timeZone: zone } = useRoom();
   const day = dividerDay(at, now, language, zone);
   const named =
     day === 'today' ? t('chat.day.today') : day === 'yesterday' ? t('chat.day.yesterday') : day;

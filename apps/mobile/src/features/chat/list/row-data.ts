@@ -14,8 +14,6 @@ import { isBubbleKind } from '../model/timeline';
 /** What a chat-list row needs from the farm as this phone holds it. */
 export interface RowFacts {
   readonly season: Season;
-  /** The last seq this phone has read in: news after it lights the honey dot. */
-  readonly readTo: number;
   /** Nobody has opened the farm for a fortnight: everyone's dozing. */
   readonly misty: boolean;
   /** Names by person, members and former members. */
@@ -24,7 +22,6 @@ export interface RowFacts {
 
 const same = (a: RowFacts, b: RowFacts) =>
   a.season === b.season &&
-  a.readTo === b.readTo &&
   a.misty === b.misty &&
   JSON.stringify(a.names) === JSON.stringify(b.names);
 
@@ -44,7 +41,7 @@ export function useRowFacts(farm: string, now: number): RowFacts {
           return false;
         }
       })();
-      return { season: state?.season.season ?? 'spring', readTo: r?.lastSeq ?? 0, misty, names };
+      return { season: state?.season.season ?? 'spring', misty, names };
     },
     [now],
   );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { refusalOf } from './refusals';
+import { refusalOf, retryRefused } from './refusals';
 
 describe('why a write did not send', () => {
   it('offers no retry for reasons that will not change', () => {
@@ -23,5 +23,51 @@ describe('why a write did not send', () => {
   it('names each permanent reason', () => {
     expect(refusalOf('farm_frozen').copy).toBe('chat.refused.frozen');
     expect(refusalOf('something_new').copy).toBe('chat.refused.other');
+  });
+});
+
+describe('trying a refused write again', () => {
+  const refused = { opId: 'o', kind: 'message', payload: { text: 'hi' }, reason: 'invalid' };
+
+  it('writes first and lets the refusal go only once the write is queued', async () => {
+    const calls: string[] = [];
+    await retryRefused(refused, {
+      write: () => {
+        calls.push('write');
+        return Promise.resolve(true);
+      },
+      dismiss: () => {
+        calls.push('dismiss');
+        return Promise.resolve();
+      },
+    });
+    expect(calls).toEqual(['write', 'dismiss']);
+  });
+
+  it('keeps the refusal when the write could not be queued', async () => {
+    const calls: string[] = [];
+    await retryRefused(refused, {
+      write: () => Promise.resolve(false),
+      dismiss: () => {
+        calls.push('dismiss');
+        return Promise.resolve();
+      },
+    });
+    expect(calls).toEqual([]);
+  });
+
+  it('never retries a refusal that will not change', async () => {
+    const calls: string[] = [];
+    await retryRefused(
+      { ...refused, reason: 'gone' },
+      {
+        write: () => {
+          calls.push('write');
+          return Promise.resolve(true);
+        },
+        dismiss: () => Promise.resolve(),
+      },
+    );
+    expect(calls).toEqual([]);
   });
 });

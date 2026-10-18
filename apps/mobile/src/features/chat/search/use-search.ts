@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useDataClient } from '../../../data';
 import { chatApi } from '../api/chat-api';
-import { localHits, mergeHits, type Hit } from '../model/search';
+import { goneIn, localHits, mergeHits, type Hit } from '../model/search';
 
 const DEBOUNCE_MS = 250;
 const LOCAL_LIMIT = 2000;
@@ -31,11 +31,14 @@ export function useSearch(farms: readonly string[], query: string): SearchState 
     const id = (run.current += 1);
     const timer = setTimeout(() => {
       void (async () => {
+        const gone = new Set<string>();
         const local = (
           await Promise.all(
-            farms.map(async (farm) =>
-              localHits(farm, await client.events(farm, { limit: LOCAL_LIMIT }), q),
-            ),
+            farms.map(async (farm) => {
+              const events = await client.events(farm, { limit: LOCAL_LIMIT });
+              for (const key of goneIn(farm, events)) gone.add(key);
+              return localHits(farm, events, q);
+            }),
           )
         ).flat();
         if (id !== run.current) return;
@@ -62,7 +65,7 @@ export function useSearch(farms: readonly string[], query: string): SearchState 
           )
         ).flat();
         if (id !== run.current) return;
-        setState({ status: 'done', hits: mergeHits(server, local), offline });
+        setState({ status: 'done', hits: mergeHits(server, local, gone), offline });
       })();
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);

@@ -21,6 +21,7 @@ import { hasNews } from '../model/chat-list';
 import { listTime } from '../model/format';
 import { lookOf } from '../model/people';
 import { useChatColours } from '../ui/chat-colours';
+import { useSeenTo } from '../ui/seen-store';
 import { useRowFacts, useRowLine } from './row-data';
 
 const THUMB = 52;
@@ -129,7 +130,8 @@ export function ChatRow(props: ChatRowProps) {
   const reduce = useReduceMotion();
   const facts = useRowFacts(row.farm, now);
   const line = useRowLine(row, facts, me);
-  const news = hasNews(row, me, facts.readTo);
+  // News after what this phone has shown of the chat lights the dot; the mark never leaves the phone.
+  const news = hasNews(row, me, useSeenTo(row.farm));
   // The Chats tab carries a honey dot while any unmuted chat has news.
   useTabDot('chat', news && !row.muted);
   const title =

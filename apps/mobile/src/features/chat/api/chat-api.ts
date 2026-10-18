@@ -1,5 +1,6 @@
 import {
   ErrorBody,
+  EventsPage,
   FarmNotificationsView,
   ReadUrlsResponse,
   SearchResults,
@@ -12,9 +13,10 @@ import {
 import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as SecureStore from 'expo-secure-store';
-import { z } from 'zod';
+import { type z } from 'zod';
 
 import { BEARER_KEY } from '../../../data/session';
+import { muteSettings } from '../model/mute';
 
 /*
  * The chat's own HTTP calls, coded against the contracts: search, pinning and muting a chat, and
@@ -94,9 +96,6 @@ async function command(method: 'PUT' | 'PATCH', path: string, body: unknown): Pr
 
 const farmPath = (farm: FarmId) => `/v1/farms/${encodeURIComponent(farm)}`;
 
-/** A history page with its events unchecked; each is sorted on its own. */
-const LoosePage = z.object({ events: z.array(z.unknown()).max(200), more: z.boolean() });
-
 export const chatApi = {
   /** The farm's own full-text search. */
   search: (farm: FarmId, q: string) =>
@@ -117,7 +116,7 @@ export const chatApi = {
   sharedPage: async (farm: FarmId, before: number | null) => {
     const query = new URLSearchParams({ limit: '200', kinds: 'media,link,voice,unsend' });
     if (before !== null) query.set('before', String(before));
-    return request(LoosePage, 'GET', `${farmPath(farm)}/events?${query.toString()}`);
+    return request(EventsPage, 'GET', `${farmPath(farm)}/events?${query.toString()}`);
   },
 
   /** Short-lived signed reads of media, checked against membership. */
@@ -131,19 +130,10 @@ export const chatApi = {
 
 /** Mutes a farm until turned back on, or unmutes it, keeping what knocks as it was. */
 export async function setMuted(farm: FarmId, muted: boolean): Promise<void> {
-  let knockFor: FarmNotifications['knockFor'] = {
-    plans: true,
-    doorstep: true,
-    mentions: true,
-    messages: true,
-  };
-  try {
-    knockFor = (await chatApi.notifications(farm)).knockFor;
-  } catch (error) {
-    // A server without the read keeps the defaults; anything else is a real failure.
-    if (!(error instanceof ChatApiError && error.status === 404)) throw error;
-  }
-  await chatApi.setNotifications(farm, { mutedUntil: muted ? 'always' : null, knockFor });
+  await chatApi.setNotifications(
+    farm,
+    await muteSettings(() => chatApi.notifications(farm), muted),
+  );
 }
 
 /** Uploads a local file into the farm's media; answers its key. */

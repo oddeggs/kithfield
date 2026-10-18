@@ -17,6 +17,7 @@ import { useSession } from '../../../ui/session/session';
 import { uploadFile } from '../api/chat-api';
 import { fetchPreview, firstUrl } from '../model/link-preview';
 import { mentionsIn, type Mentionable } from '../model/mentions';
+import { refusalOf, retryRefused } from '../model/refusals';
 import { peopleOf } from '../model/people';
 import { buildTimeline, type BubbleItem, type TimelineItem } from '../model/timeline';
 import type { Recorded } from './voice-recorder';
@@ -68,7 +69,12 @@ export function useRoomData(farm: string) {
       }),
     [events, replica?.pending, refused, me, state, now],
   );
-  const people = useMemo(() => peopleOf(state), [state]);
+  // Who's who changes far less often than the farm: rows re-render only when it does.
+  const cast = JSON.stringify([
+    [...(state?.members ?? []), ...(state?.former ?? [])].map((m) => [m.person, m.name, m.critter]),
+    state?.aliases ?? null,
+  ]);
+  const people = useMemo(() => peopleOf(state), [cast]);
   const bubbles = useMemo(() => {
     const map = new Map<number, BubbleItem>();
     for (const item of timeline)
@@ -104,11 +110,8 @@ export function useRoomData(farm: string) {
     async (kind: string, payload: unknown): Promise<boolean> => {
       const result = await send(kind, payload);
       if (result.status === 'refused') {
-        toast.show(
-          result.reason === 'edit_window_closed'
-            ? t('chat.composer.editClosed')
-            : t('chat.composer.refused'),
-        );
+        const { copy, retry } = refusalOf(result.reason);
+        toast.show(retry ? t('chat.composer.refused') : t(copy));
         return false;
       }
       return true;
@@ -151,8 +154,10 @@ export function useRoomData(farm: string) {
       retry: async (item: BubbleItem) => {
         const rejection = refused.find((r) => r.opId === item.opId);
         if (!rejection) return;
-        await client.dismissRejection(rejection.opId);
-        await write(rejection.kind, rejection.payload);
+        await retryRefused(rejection, {
+          write,
+          dismiss: () => client.dismissRejection(rejection.opId),
+        });
       },
       voice: async (note: Recorded, replyTo: number | null) => {
         try {

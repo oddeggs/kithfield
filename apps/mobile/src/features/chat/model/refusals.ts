@@ -25,3 +25,18 @@ export function refusalOf(reason: string): { readonly copy: RefusalCopy; readonl
     ? { copy: permanent, retry: false }
     : { copy: 'chat.refused.other', retry: true };
 }
+
+/**
+ * Tries a refused write again: writes it anew first, and lets the refusal go only once the new
+ * write is queued, so a failure to queue never loses the words. Permanent refusals stay as they are.
+ */
+export async function retryRefused(
+  refused: { readonly kind: string; readonly payload: unknown; readonly reason: string },
+  io: {
+    readonly write: (kind: string, payload: unknown) => Promise<boolean>;
+    readonly dismiss: () => Promise<void>;
+  },
+): Promise<void> {
+  if (!refusalOf(refused.reason).retry) return;
+  if (await io.write(refused.kind, refused.payload)) await io.dismiss();
+}

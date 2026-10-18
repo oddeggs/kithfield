@@ -1,4 +1,4 @@
-import { motion } from '@kithfield/theme';
+import { chatMotion, motion } from '@kithfield/theme';
 import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
 import {
@@ -26,15 +26,14 @@ import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { lookOf } from '../model/people';
+import { refusalOf } from '../model/refusals';
 import type { BubbleItem } from '../model/timeline';
+import { clock } from '../model/format';
 import { useChatColours } from '../ui/chat-colours';
 import { BubbleBody } from './bubbles';
 import { Reactions } from './reactions';
 import { useRoom } from './room-context';
 
-/** New messages rise this far as they fade in, over `RISE_MS` (04-03). */
-const RISE = 12;
-const RISE_MS = 180;
 /** How far a bubble follows a swipe right before it asks to reply. */
 const REPLY_AT = 56;
 
@@ -48,10 +47,10 @@ export function Rise({
 }) {
   const reduce = useReduceMotion();
   const shown = useSharedValue(fresh ? 0 : 1);
-  const y = useSharedValue(fresh && !reduce ? RISE : 0);
+  const y = useSharedValue(fresh && !reduce ? chatMotion.risePt : 0);
   useEffect(() => {
     if (!fresh) return;
-    const ease = { duration: RISE_MS, easing: Easing.bezier(...motion.fade.bezier) };
+    const ease = { duration: chatMotion.riseMs, easing: Easing.bezier(...motion.fade.bezier) };
     shown.set(withTiming(1, ease));
     y.set(withTiming(0, ease));
   }, [fresh, shown, y]);
@@ -68,29 +67,37 @@ function StateLine({ item, showSent }: { readonly item: BubbleItem; readonly sho
   const { retry } = useRoom();
   const small = { fontSize: 11.5, lineHeight: 12, fontWeight: '500' as const };
   if (item.delivery === 'failed') {
+    const refusal = refusalOf(item.refused ?? '');
     return (
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Txt variant="bubbleState" color={colours.failInk} style={{ fontSize: 12.5 }}>
-          {t('chat.bubble.didntSend')}
-        </Txt>
-        <Press
-          onPress={() => retry(item)}
-          haptic="tap"
-          radius={13}
-          accessibilityLabel={t('chat.bubble.tryAgain')}
-          hitSlop={9}
-          style={{
-            height: 26,
-            paddingHorizontal: 10,
-            borderRadius: 13,
-            backgroundColor: colours.failButton,
-            justifyContent: 'center',
-          }}
+        <Txt
+          variant="bubbleState"
+          multiline
+          color={colours.failInk}
+          style={{ fontSize: 12.5, flexShrink: 1 }}
         >
-          <Txt variant="bubbleState" color={colours.failButtonInk} style={{ fontSize: 12.5 }}>
-            {t('chat.bubble.tryAgain')}
-          </Txt>
-        </Press>
+          {t(refusal.copy)}
+        </Txt>
+        {refusal.retry ? (
+          <Press
+            onPress={() => retry(item)}
+            haptic="tap"
+            radius={13}
+            accessibilityLabel={t('chat.bubble.tryAgain')}
+            hitSlop={9}
+            style={{
+              height: 26,
+              paddingHorizontal: 10,
+              borderRadius: 13,
+              backgroundColor: colours.failButton,
+              justifyContent: 'center',
+            }}
+          >
+            <Txt variant="bubbleState" color={colours.failButtonInk} style={{ fontSize: 12.5 }}>
+              {t('chat.bubble.tryAgain')}
+            </Txt>
+          </Press>
+        ) : null}
       </View>
     );
   }
@@ -137,12 +144,13 @@ function useShake(failed: boolean) {
   const x = useSharedValue(0);
   useEffect(() => {
     if (!failed || reduce) return;
-    const step = { duration: 60 };
+    const step = { duration: chatMotion.shakeStepMs };
+    const d = chatMotion.shakePt;
     x.set(
       withSequence(
-        withTiming(-3, step),
-        withTiming(3, step),
-        withTiming(-2, step),
+        withTiming(-d, step),
+        withTiming(d, step),
+        withTiming(-d * 0.6, step),
         withTiming(0, step),
       ),
     );
@@ -211,7 +219,21 @@ export function BubbleRow({ item, first, showSent }: BubbleRowProps) {
   const hint = useAnimatedStyle(() => ({ opacity: Math.min(1, x.get() / REPLY_AT) }));
   // A quiet note carries its writer's name in its own header.
   const showName = !item.mine && first && !room.visit && item.body.kind !== 'quiet_note';
-  const label = `${item.mine ? t('chat.you') : room.nameOf(item.actor)}`;
+  const label = useBubbleSpeech(item, showSent);
+  const retryable = item.delivery === 'failed' && refusalOf(item.refused ?? '').retry;
+  const actions = [
+    ...(canAct
+      ? [
+          { name: 'reply', label: t('chat.bubble.swipeReply') },
+          { name: 'longpress', label: t('chat.bubble.actions') },
+          {
+            name: 'dewdrop',
+            label: item.myDew !== null ? t('chat.bubble.dewdropOff') : t('chat.bubble.dewdropOn'),
+          },
+        ]
+      : []),
+    ...(retryable ? [{ name: 'retry', label: t('chat.bubble.tryAgain') }] : []),
+  ];
 
   const column = (
     <View
@@ -247,20 +269,17 @@ export function BubbleRow({ item, first, showSent }: BubbleRowProps) {
       </Animated.View>
       <GestureDetector gesture={gesture}>
         <Animated.View
-          accessible={false}
-          accessibilityActions={
-            canAct
-              ? [
-                  { name: 'reply', label: t('chat.bubble.swipeReply') },
-                  { name: 'longpress', label: t('chat.bubble.actions') },
-                ]
-              : []
-          }
-          onAccessibilityAction={(e) => {
-            if (e.nativeEvent.actionName === 'reply') reply();
-            if (e.nativeEvent.actionName === 'longpress') menu();
-          }}
+          // One element for VoiceOver: who, what and how it stands, with its actions on it.
+          accessible
           accessibilityLabel={label}
+          accessibilityActions={actions}
+          onAccessibilityAction={(e) => {
+            const name = e.nativeEvent.actionName;
+            if (name === 'reply') reply();
+            if (name === 'longpress') menu();
+            if (name === 'dewdrop') room.toggleDew(item);
+            if (name === 'retry') room.retry(item);
+          }}
           style={[
             item.mine
               ? { alignSelf: 'flex-end', alignItems: 'flex-end', maxWidth: '86%' }
@@ -285,4 +304,33 @@ export function BubbleRow({ item, first, showSent }: BubbleRowProps) {
       </GestureDetector>
     </View>
   );
+}
+
+/** What VoiceOver says for a bubble: who, what it says, and how it stands. */
+function useBubbleSpeech(item: BubbleItem, showSent: boolean): string {
+  const { t } = useLocale();
+  const room = useRoom();
+  const who = item.mine ? t('chat.you') : room.nameOf(item.actor);
+  const body = item.body;
+  const what =
+    body.kind === 'message' || body.kind === 'quiet_note'
+      ? body.text
+      : body.kind === 'voice'
+        ? t('chat.what.voice', { duration: clock(body.voice.durationMs) })
+        : body.kind === 'link'
+          ? `${body.link.text ?? ''} ${body.link.preview?.title ?? body.link.url}`.trim()
+          : body.kind === 'media'
+            ? (body.media.caption ?? t('chat.what.photo'))
+            : t('chat.what.sticker');
+  const state =
+    item.delivery === 'failed'
+      ? t(refusalOf(item.refused ?? '').copy)
+      : item.delivery === 'sending'
+        ? t('chat.bubble.sending')
+        : item.edited
+          ? t('chat.bubble.edited')
+          : item.delivery === 'sent' && showSent
+            ? t('chat.bubble.sent')
+            : '';
+  return [who, what, state].filter((part) => part !== '').join(', ');
 }
