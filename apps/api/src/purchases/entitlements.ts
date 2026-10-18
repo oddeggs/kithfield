@@ -49,7 +49,8 @@ export const hasPerks = (state: SubState) => state !== 'lapsed';
 export const patronageOf = (row: SubRow, now: number): Patronage | null => {
   const what = patronProduct(row.product);
   if (what === null) return null;
-  const state = what.tier === 'founding' ? 'active' : stateNow(row, now);
+  // Founding Farmer never runs out with time; it follows its row, which only an Apple refund lapses.
+  const state = what.tier === 'founding' ? row.state : stateNow(row, now);
   return {
     tier: what.tier,
     via: 'own',
