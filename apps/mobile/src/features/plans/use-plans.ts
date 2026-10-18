@@ -15,6 +15,7 @@ import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useSession } from '../../ui/session/session';
 import { settlePlanted } from './planted';
+import { refusalKey } from './refusals';
 import { filePlantedStore } from './planted-file';
 
 /** The signed-in person's id, or null. */
@@ -85,7 +86,7 @@ export function usePlanSend(farm: FarmId): (kind: string, payload: unknown) => P
         show(t('plans.refused'));
         return false;
       }
-      if (result.status === 'refused') show(t('plans.refused'));
+      if (result.status === 'refused') show(t(refusalKey(result.reason)));
       return result.status === 'queued';
     },
     [send, show, t],
@@ -100,8 +101,9 @@ export function usePlanRejections(): void {
   const { t } = useLocale();
   useEffect(() => {
     const ours = rejections.filter((r) => PLAN_KINDS.includes(r.kind));
-    if (ours.length === 0) return;
-    show(t('plans.refused'));
+    const [first] = ours;
+    if (!first) return;
+    show(t(refusalKey(first.reason)));
     for (const r of ours) void client.dismissRejection(r.opId);
   }, [rejections, client, show, t]);
 }

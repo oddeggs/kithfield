@@ -11,7 +11,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics } from '../../ui/motion/haptics';
 import { Press } from '../../ui/motion/press';
 import { Txt } from '../../ui/type/text';
-import { GlassBack } from './chrome';
+import { GlassBack, useFromTop } from './chrome';
 import { formatTime } from './dates';
 import { openDirections } from './directions';
 import { Arriving, Campfire } from './hangout-art';
@@ -69,6 +69,7 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
   usePlanRejections();
   const { t } = useLocale();
   const { width, height } = useWindowDimensions();
+  const fromTop = useFromTop();
   const { show } = useToast();
   const me = useMe();
   const send = usePlanSend(farm);
@@ -119,7 +120,7 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
       <View
         style={{
           position: 'absolute',
-          top: 60,
+          top: fromTop(60),
           left: 16,
           right: 16,
           flexDirection: 'row',
@@ -141,7 +142,7 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
           </Glass>
         ) : null}
       </View>
-      <View style={{ position: 'absolute', top: 126, left: 26, right: 26 }}>
+      <View style={{ position: 'absolute', top: fromTop(126), left: 26, right: 26 }}>
         <Txt variant="displayL" color={fireside.title} accessibilityRole="header" style={{ fontSize: 38, lineHeight: 39.9 }}>
           {people.length > 0 ? t('plans.hangout.lit') : t('plans.hangout.waiting')}
         </Txt>

@@ -162,6 +162,7 @@ export const plansVi: ViCatalogue<typeof plansEn> = {
   'plans.hangout.notToday': 'Kế hoạch này không phải hôm nay, nên lửa chưa nhóm.',
 
   'plans.refused': 'Chưa gửi được. Thử lại sau một chút nhé.',
+  'plans.refusedNotAllowed': 'Chỉ người đang đội mũ mới chuyền mũ được.',
   'plans.calendarFailed': 'Không mở được lịch. Thử lại sau một chút nhé.',
 };
 

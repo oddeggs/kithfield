@@ -180,5 +180,6 @@ export const plansEn = {
 
   /* Shared */
   'plans.refused': "That didn't go through. Try again in a moment.",
+  'plans.refusedNotAllowed': 'Only whoever wears the hat can pass it on.',
   'plans.calendarFailed': "The calendar didn't open. Try again in a moment.",
 } as const satisfies EnCatalogue;
