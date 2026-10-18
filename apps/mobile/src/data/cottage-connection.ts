@@ -30,7 +30,7 @@ export interface CottageConnectionDeps {
   readonly backoff?: BackoffOptions;
   readonly keepAlive?: KeepAlive;
   readonly random?: () => number;
-  /** The session is gone (401 for a token): the app offers sign-in. */
+  /** The session is gone (401 for a token, or `session_ended`): the app offers sign-in. */
   readonly onSessionEnded: () => void;
   /** The person is banned: every socket stops. */
   readonly onBanned: () => void;
@@ -136,6 +136,9 @@ export async function createCottageConnection(deps: CottageConnectionDeps) {
       case 'error':
         if (frame.code === 'unauthorized') {
           tokens.invalidate();
+        } else if (frame.code === 'session_ended') {
+          socket.stop();
+          deps.onSessionEnded();
         } else {
           block(frame.code);
         }

@@ -22,8 +22,11 @@ import {
   type SocketPhase,
 } from './socket';
 
-/** Socket errors after which reconnecting can't help. */
-export type BlockedCode = Exclude<SocketErrorCode, 'unauthorized'>;
+/**
+ * Socket errors after which reconnecting can't help. `session_ended` isn't one: the session is
+ * over for the whole phone, not this link.
+ */
+export type BlockedCode = Exclude<SocketErrorCode, 'unauthorized' | 'session_ended'>;
 
 /** How a farm's link to the server stands, for the UI. */
 export type FarmLink =
@@ -51,7 +54,7 @@ export interface FarmConnectionDeps {
   /** Whether the farm is open in front of its person (drives `farm_opened`). */
   readonly here: () => boolean;
   readonly onLink: (link: FarmLink) => void;
-  /** The session is gone (401): the app offers sign-in. */
+  /** The session is gone (401, or `session_ended` from the farm): the app offers sign-in. */
   readonly onSessionEnded: () => void;
   /** The person is banned: every socket stops. */
   readonly onBanned: () => void;
@@ -194,7 +197,10 @@ export function createFarmConnection(deps: FarmConnectionDeps) {
     }
     if (frame.type === 'error') {
       if (frame.code === 'unauthorized') tokens.invalidate(farm);
-      else await block(frame.code);
+      else if (frame.code === 'session_ended') {
+        socket.stop();
+        deps.onSessionEnded();
+      } else await block(frame.code);
       return;
     }
     const outcome = await replica.handle(frame);

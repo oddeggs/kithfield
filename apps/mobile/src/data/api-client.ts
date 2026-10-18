@@ -1,4 +1,5 @@
 import {
+  BlockList,
   CommandResult,
   CompleteUploadResponse,
   CopyMediaResponse,
@@ -60,6 +61,8 @@ export interface ApiClientDeps {
   /** The session's bearer header. */
   readonly authHeaders: () => Promise<Record<string, string>>;
   readonly timeoutMs?: number;
+  /** A signed-in call answered 401: the session is over (signed out elsewhere, revoked). */
+  readonly onUnauthorized?: () => void;
 }
 
 export interface EventsRange {
@@ -98,11 +101,17 @@ const parseJson = (text: string): unknown => {
 /** An answer with no body (204). */
 const NoContent = z.null();
 
-/** The HTTP endpoints the data layer uses. Every answer is checked against its contract. */
-export function createApiClient(deps: ApiClientDeps) {
-  async function request<S extends z.ZodType>(
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+/**
+ * One call to the API, its answer checked against `schema` (`z.null()` for a 204). Signed in
+ * (the default), it carries the session's bearer, and a 401 means the server no longer knows the
+ * session: `onUnauthorized` hears of it before the `ApiError` is thrown.
+ */
+export function createRequest(deps: ApiClientDeps) {
+  return async function request<S extends z.ZodType>(
     schema: S,
-    method: 'GET' | 'POST' | 'PATCH',
+    method: HttpMethod,
     path: string,
     body?: unknown,
     signedIn = true,
@@ -125,6 +134,7 @@ export function createApiClient(deps: ApiClientDeps) {
       const data = parseJson(await response.text());
       if (!response.ok) {
         const error = ErrorBody.safeParse(data);
+        if (signedIn && response.status === 401) deps.onUnauthorized?.();
         throw new ApiError(response.status, error.success ? error.data.error.code : 'unknown');
       }
       const parsed = schema.safeParse(data);
@@ -134,9 +144,23 @@ export function createApiClient(deps: ApiClientDeps) {
     } finally {
       clearTimeout(timer);
     }
-  }
+  };
+}
+
+export type ApiRequest = ReturnType<typeof createRequest>;
+
+/** The HTTP endpoints the data layer uses. Every answer is checked against its contract. */
+export function createApiClient(deps: ApiClientDeps) {
+  const request = createRequest(deps);
 
   return {
+    /**
+     * Any signed-in call the methods below don't make, such as `request(BlockList, 'GET',
+     * '/v1/blocks')`; checked and failing the same way.
+     */
+    request: <S extends z.ZodType>(schema: S, method: HttpMethod, path: string, body?: unknown) =>
+      request(schema, method, path, body),
+
     /** A 5-minute socket token: for a farm's socket, or without a farm for the cottage's. */
     rtToken: (farm?: FarmId) =>
       request(RtTokenResponse, 'POST', '/v1/rt-token', farm === undefined ? {} : { farm }),
@@ -220,6 +244,9 @@ export function createApiClient(deps: ApiClientDeps) {
     acceptTerms: async (terms: TermsRequest): Promise<void> => {
       await request(NoContent, 'POST', '/v1/me/terms', terms);
     },
+
+    /** The people this person has blocked, with how to draw each, for settings. */
+    blocks: () => request(BlockList, 'GET', '/v1/blocks'),
 
     /** Opens (or reopens) the one-to-one visit with a person. */
     openVisit: (visit: OpenVisitRequest) => request(OpenVisitResponse, 'POST', '/v1/visits', visit),

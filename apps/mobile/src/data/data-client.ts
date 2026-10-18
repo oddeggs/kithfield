@@ -56,11 +56,32 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
   });
   const replica = replicas.get;
 
-  /** The session is over: every socket stops, and the app offers sign-in. */
+  /**
+   * Forgets everything this person holds on the phone: socket tokens, the tables, the replicas
+   * read from them, and what they keep elsewhere (the media queue).
+   */
+  async function wipe(): Promise<void> {
+    deps.tokens.clear();
+    await store.transaction(() => store.wipe());
+    replicas.clear();
+    links.clear();
+    rejections = [];
+    await deps.heldElsewhere
+      ?.clear()
+      .catch((error: unknown) => report(failure('wipe.held_elsewhere', error)));
+    notify();
+  }
+
+  /**
+   * The session is over (signed out from another device, revoked, expired): every socket stops,
+   * this person's data is wiped as signing out does, and the app offers sign-in.
+   */
   const sessionEnded = () => {
+    if (status.sessionEnded) return;
     open?.stop();
     cottage.stop();
     setStatus({ sessionEnded: true });
+    guard('session_ended.wipe', wipe());
   };
   const banned = () => {
     if (status.banned) return;
@@ -250,7 +271,10 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
       guard('focus', focus());
     },
 
-    /** The session ended outside the sockets (a launch found it gone): stop and offer sign-in. */
+    /**
+     * The session ended outside the sockets (a launch or a refresh found it gone, an API call
+     * answered 401): stop, wipe this person's data and offer sign-in. Once per ended session.
+     */
     endSession: () => sessionEnded(),
 
     /**
@@ -267,15 +291,7 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
       if (unsent > 0) report({ type: 'unsent_at_sign_out', count: unsent });
       holds.splice(0);
       halt();
-      deps.tokens.clear();
-      await store.transaction(() => store.wipe());
-      replicas.clear();
-      links.clear();
-      rejections = [];
-      await deps.heldElsewhere
-        ?.clear()
-        .catch((error: unknown) => report(failure('sign_out.held_elsewhere', error)));
-      notify();
+      await wipe();
       return { unsent, signedOut: true };
     },
 

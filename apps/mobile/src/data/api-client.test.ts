@@ -1,4 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
+import { BlockList } from '@kithfield/contracts';
+import { z } from 'zod';
 
 import { ApiError, createApiClient, isTransient } from './api-client';
 
@@ -197,6 +199,49 @@ describe('the way in', () => {
     expect(seen[0]?.url).toBe(`${BASE}/v1/invites/ab%2Fcd`);
     expect(seen[0]?.method).toBe('GET');
     expect(seen[0]?.headers).not.toHaveProperty('authorization');
+  });
+});
+
+describe('a session the server no longer knows', () => {
+  it('tells onUnauthorized of a signed-in call’s 401, never of a signed-out one’s', async () => {
+    let endings = 0;
+    const answers = [401, 401, 403];
+    const api = createApiClient({
+      baseUrl: BASE,
+      fetch: () =>
+        Promise.resolve(
+          new Response(JSON.stringify({ error: { code: 'unauthorized', message: 'No' } }), {
+            status: answers.shift() ?? 500,
+          }),
+        ),
+      authHeaders: () => Promise.resolve({ authorization: 'Bearer t' }),
+      onUnauthorized: () => (endings += 1),
+    });
+    await expect(api.blocks()).rejects.toMatchObject({ status: 401 });
+    expect(endings).toBe(1);
+    await expect(api.invite('code')).rejects.toMatchObject({ status: 401 });
+    await expect(api.me()).rejects.toMatchObject({ status: 403 });
+    expect(endings).toBe(1);
+  });
+});
+
+describe('any other signed-in call', () => {
+  it('lists blocks, and makes a call the client has no method for, checked the same way', async () => {
+    const blocked = { blocked: [{ person: 'p_pip', name: 'Pip', critter, at: 1 }] };
+    const { api, seen } = scripted(
+      { status: 200, body: blocked },
+      { status: 204 },
+      { status: 200, body: { nope: true } },
+    );
+    expect(await api.blocks()).toEqual(blocked);
+    expect(await api.request(z.null(), 'PUT', '/v1/blocks/p_pip')).toBeNull();
+    await expect(api.request(BlockList, 'GET', '/v1/blocks')).rejects.toBeInstanceOf(ApiError);
+    expect(seen.map((s) => `${s.method} ${s.url}`)).toEqual([
+      `GET ${BASE}/v1/blocks`,
+      `PUT ${BASE}/v1/blocks/p_pip`,
+      `GET ${BASE}/v1/blocks`,
+    ]);
+    expect(seen[1]?.headers).toMatchObject({ authorization: 'Bearer t' });
   });
 });
 

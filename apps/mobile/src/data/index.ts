@@ -34,8 +34,13 @@
  * The rest of the API: `useDataClient().api`. The profile, the farm list, planting a farm,
  * invites (`invite(code)` previews one without a session; null for a link that's gone), joining,
  * the age check (`age`: `ok` or `under_age`), the Terms, opening a visit, Quick Tend, remember-me
- * seeds, and media uploads, read URLs and copies. Each answer is checked against its contract;
- * a failure is an `ApiError` with the status and the API's code.
+ * seeds, blocks, and media uploads, read URLs and copies. Anything else signed in:
+ * `api.request(schema, method, path, body?)`. Each answer is checked against its contract; a
+ * failure is an `ApiError` with the status and the API's code.
+ *
+ * An ended session (signed out from another device: a socket's `session_ended`, or any 401 from
+ * the API or the session's refresh) stops the sockets and wipes this person's data as signing
+ * out does, the media queue included, then sets `useDataStatus().sessionEnded`.
  *
  * Sockets: `useOpenFarm(farm)` keeps a farm's socket open while a screen shows it (the last one
  * held wins). The cottage socket runs while the app is in the foreground and there is a person.
@@ -49,7 +54,13 @@
 export { startData, type DataRuntime, type StartOptions } from './native';
 export { kithfieldRules } from './farm-rules';
 export type { NetworkSwitch } from './dev-network';
-export { ApiError, type AgeAnswer, type ApiClient } from './api-client';
+export {
+  ApiError,
+  type AgeAnswer,
+  type ApiClient,
+  type ApiRequest,
+  type HttpMethod,
+} from './api-client';
 export type { DataClient, DataStatus, HeldElsewhere } from './data-client';
 export type { FarmRules } from './farm-rules';
 export type { FarmLink, BlockedCode } from './farm-connection';

@@ -65,8 +65,11 @@ const makeNetworkSwitch = __DEV__
  * Starts the data layer on the phone: opens the encrypted store, wires the session, the API and
  * the sockets, and makes sure there is a person (anonymous on first launch). Offline, a returning
  * install opens on what it holds and writes wait in the outbox; a first launch without a network
- * throws, and the caller offers to try again. A session the server no longer knows starts the
- * client with `status().sessionEnded`, so the app opens on its data and offers sign-in.
+ * throws, and the caller offers to try again. A session the server no longer knows (at launch,
+ * from a socket's `session_ended`, or a 401 from the API or the session's refresh) wipes what this
+ * person held, as signing out does, and sets `status().sessionEnded`, so the app offers sign-in.
+ * The bearer stays in the Keychain, so a relaunch finds it ended again rather than making a new
+ * anonymous person.
  */
 export async function startData<View>(
   rules: FarmRules<View>,
@@ -88,10 +91,13 @@ export async function startData<View>(
   });
   const port = authPort(auth);
   const session = createSession(port, keychain);
+  // Set once the client exists: a call answered 401 ends the session as the sockets' 401 does.
+  let endSession: () => void = () => undefined;
   const api = createApiClient({
     baseUrl: apiBase,
     fetch: netFetch,
     authHeaders: () => session.headers(),
+    onUnauthorized: () => endSession(),
   });
 
   let ended = false;
@@ -123,6 +129,10 @@ export async function startData<View>(
   // A sign-in that merged this phone into another person, or one after the session ended:
   // reconnect as whoever the session now is.
   session.onPersonChanged(() => client.personChanged());
+  // The server no longer knows the session (signed out from another device, revoked): an API
+  // call's 401, or the session's own refresh. The client wipes what the person held.
+  endSession = () => client.endSession();
+  session.onEnded(endSession);
   const resumeAfterSignIn = <T>(person: Promise<T>): Promise<T> =>
     person.then((value) => {
       if (client.status().sessionEnded) client.personChanged();

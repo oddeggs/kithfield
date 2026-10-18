@@ -119,6 +119,7 @@ export class TestPhone {
       baseUrl: 'https://test.kithfield.invalid/api',
       fetch: this.server.fetch,
       authHeaders: () => Promise.resolve({ authorization: `Bearer ${this.person}` }),
+      onUnauthorized: () => this.client.endSession(),
     });
     this.client = await createDataClient({
       db: this.db,
