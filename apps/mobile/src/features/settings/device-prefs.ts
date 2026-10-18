@@ -1,5 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
 import { PERSON_KEYS } from '../../ui/session/sign-out';
 
@@ -31,6 +31,7 @@ export function useDevicePref(pref: DevicePref): readonly [string | null, (value
     (next: string) => {
       setValue(next);
       void SecureStore.setItemAsync(KEYS[pref], next).catch(() => undefined);
+      if (pref === 'language') chooseLanguage(next);
     },
     [pref],
   );
@@ -39,3 +40,30 @@ export function useDevicePref(pref: DevicePref): readonly [string | null, (value
 
 /** The language chosen in Settings, for the app's locale at start (`LocaleProvider.storedChoice`). */
 export const storedLanguage = (): string | null => SecureStore.getItem(KEYS.language);
+
+let chosen: string | null | undefined;
+const listeners = new Set<() => void>();
+
+function chooseLanguage(language: string): void {
+  chosen = language;
+  for (const listener of listeners) listener();
+}
+
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
+};
+
+/** The language chosen in Settings, read once at start and followed as it changes. */
+export function useStoredLanguage(): string | null {
+  return useSyncExternalStore(subscribe, () => {
+    if (chosen === undefined) {
+      try {
+        chosen = storedLanguage();
+      } catch {
+        chosen = null;
+      }
+    }
+    return chosen;
+  });
+}

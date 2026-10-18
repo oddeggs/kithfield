@@ -18,6 +18,7 @@ import { useLocale } from '../locale/locale-provider';
 import { AccountProvider, useOnboarded, useRuntimeAccount } from './account';
 import { PushRegistration, pushDeps } from './push-registration';
 import { SessionProvider, signedOut, type Session } from './session';
+import { SignOutScope } from './sign-out';
 
 type Runtime = DataRuntime<unknown>;
 
@@ -137,6 +138,11 @@ export function DataSlot({
     setPhase({ kind: 'starting' });
   }, []);
 
+  const runtime = phase.kind === 'ready' ? phase.runtime : null;
+  const endSession = useCallback(async () => {
+    await runtime?.session.signOut();
+  }, [runtime]);
+
   if (phase.kind === 'starting') return null;
   if (phase.kind === 'failed') {
     return (
@@ -145,10 +151,19 @@ export function DataSlot({
       </SessionProvider>
     );
   }
-  const { runtime } = phase;
   return (
-    <DataProvider client={runtime.client} rules={kithfieldRules} network={runtime.network}>
-      <SessionBridge runtime={runtime}>{children}</SessionBridge>
+    <DataProvider
+      client={phase.runtime.client}
+      rules={kithfieldRules}
+      network={phase.runtime.network}
+    >
+      <SignOutScope
+        endSession={endSession}
+        restart={retry}
+        {...(heldElsewhere ? { clearHeld: heldElsewhere.clear } : {})}
+      >
+        <SessionBridge runtime={phase.runtime}>{children}</SessionBridge>
+      </SignOutScope>
     </DataProvider>
   );
 }

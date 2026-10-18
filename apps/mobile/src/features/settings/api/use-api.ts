@@ -1,44 +1,27 @@
-import Constants from 'expo-constants';
-import * as SecureStore from 'expo-secure-store';
 import { useEffect, useMemo } from 'react';
+import { z } from 'zod';
 
 import { useDataClient } from '../../../data';
 import { blocksPort, connectBlocks, type Blocks } from '../../../data/blocks';
-import { BEARER_KEY } from '../../../data/session';
 import { safetyApi, type SafetyApi } from '../../safety/safety-api';
-import { createRequest, type Request } from './request';
+import type { Method, Request } from './request';
 import { settingsApi, type SettingsApi } from './settings-api';
 
-const KEYCHAIN: SecureStore.SecureStoreOptions = {
-  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
-};
-
 /**
- * The session's bearer header, read where the data layer keeps it. The data layer's own API
- * client has no calls for settings and safety yet; this reads the same Keychain entry its
- * session writes, and a 401 ends the session the same way.
- */
-const authHeaders = async (): Promise<Record<string, string>> => {
-  const bearer = await SecureStore.getItemAsync(BEARER_KEY, KEYCHAIN);
-  return bearer ? { authorization: `Bearer ${bearer}` } : {};
-};
-
-/**
- * The one authenticated request every settings and safety call goes through. When the data layer
- * offers its own (on its network and session, with the same 401 handling), this is the one place
- * that changes.
+ * The one authenticated request every settings and safety call goes through: the data layer's
+ * own, on its network and session, with its 401 handling. A call that doesn't need the answer
+ * (`schema` null) accepts any body.
  */
 function useRequest(): Request {
-  const client = useDataClient();
-  return useMemo(() => {
-    const { apiBase } = Constants.expoConfig?.extra as { apiBase: string };
-    return createRequest({
-      baseUrl: apiBase,
-      fetch: (input, init) => fetch(input, init),
-      authHeaders,
-      onUnauthorized: () => client.endSession(),
-    });
-  }, [client]);
+  const { api } = useDataClient();
+  return useMemo(
+    () =>
+      (async (schema: z.ZodType | null, method: Method, path: string, body?: unknown) => {
+        const answer: unknown = await api.request(schema ?? z.unknown(), method, path, body);
+        return schema === null ? undefined : answer;
+      }) as Request,
+    [api],
+  );
 }
 
 export function useSettingsApi(): SettingsApi {

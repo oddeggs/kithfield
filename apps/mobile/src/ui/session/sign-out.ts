@@ -1,5 +1,12 @@
 import * as SecureStore from 'expo-secure-store';
-import { createContext, createElement, useCallback, useContext, type ReactNode } from 'react';
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useMemo,
+  type ReactNode,
+} from 'react';
 
 import type { DataClient } from '../../data/data-client';
 import { useDataClient } from '../../data/react';
@@ -21,6 +28,11 @@ export interface SignOutDeps {
   readonly clearKey: (key: string) => Promise<void>;
   /** Starts the data layer again from nothing. */
   readonly restart: () => void;
+  /**
+   * Clears what the person keeps outside the data layer (the media queue). The data layer's own
+   * sign-out already counts and clears it; this runs only when that couldn't finish.
+   */
+  readonly clearHeld?: () => Promise<void>;
 }
 
 export type SignOutResult =
@@ -57,9 +69,9 @@ export async function signOutSequence(
   if (!wiped) {
     const { store } = deps.client;
     await quietly(() => store.transaction(() => store.wipe()));
+    if (deps.clearHeld) await quietly(deps.clearHeld);
   }
   for (const key of Object.values(PERSON_KEYS)) await quietly(() => deps.clearKey(key));
-  // Media cleared at sign-out joins here: `await quietly(clearMediaForSignOut)`.
   deps.client.stop();
   deps.restart();
   return { status: 'signedOut' };
@@ -68,17 +80,22 @@ export async function signOutSequence(
 interface Scope {
   readonly endSession: () => Promise<void>;
   readonly restart: () => void;
+  readonly clearHeld?: () => Promise<void>;
 }
 
 const SignOutContext = createContext<Scope | null>(null);
 
 /**
- * Where the data slot hands sign-out its session and its restart:
- * `<SignOutScope endSession={() => runtime.session.signOut()} restart={retry}>`.
+ * Where the data slot hands sign-out its session, its restart and what it keeps outside the data
+ * layer: `<SignOutScope endSession={() => runtime.session.signOut()} restart={retry}>`.
  */
 export function SignOutScope(props: Scope & { readonly children: ReactNode }) {
-  const { endSession, restart, children } = props;
-  return createElement(SignOutContext.Provider, { value: { endSession, restart } }, children);
+  const { endSession, restart, clearHeld, children } = props;
+  const value = useMemo(
+    () => ({ endSession, restart, ...(clearHeld ? { clearHeld } : {}) }),
+    [endSession, restart, clearHeld],
+  );
+  return createElement(SignOutContext.Provider, { value }, children);
 }
 
 const clearKey = (key: string) => SecureStore.deleteItemAsync(key);
@@ -99,6 +116,7 @@ export function useSignOut(): (options: { anyway: boolean }) => Promise<SignOutR
               for (const key of SESSION_KEYS) await SecureStore.setItemAsync(key, '');
             }),
           restart: scope?.restart ?? (() => client.endSession()),
+          ...(scope?.clearHeld ? { clearHeld: scope.clearHeld } : {}),
         },
         options,
       ),

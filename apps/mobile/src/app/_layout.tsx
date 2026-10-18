@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import type { HeldElsewhere } from '../data';
 import { clearMediaForSignOut, MediaUploads, pendingUploadCount } from '../features/media';
+import { useStoredLanguage } from '../features/settings/device-prefs';
 import { ArtProvider, createArtStore } from '../ui/art/art-provider';
 import { ToastHost } from '../ui/components/toast';
 import { LocaleProvider } from '../ui/locale/locale-provider';
@@ -82,6 +83,8 @@ function SplashGate({ children }: { readonly children: ReactNode }) {
 }
 
 export default function RootLayout() {
+  // The person's own reading language once Settings stores one, over the device's.
+  const language = useStoredLanguage();
   // The renderer is made once, on the fonts the system already has registered.
   const [art] = useState(() => createArtStore());
   return (
@@ -90,7 +93,7 @@ export default function RootLayout() {
       <KeyboardProvider>
         <SafeAreaProvider>
           <ReduceMotionProvider>
-            <LocaleProvider>
+            <LocaleProvider storedChoice={language}>
               <ThemeProvider>
                 <ArtProvider store={art}>
                   <TabActivityProvider>

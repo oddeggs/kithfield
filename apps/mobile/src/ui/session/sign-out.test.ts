@@ -31,6 +31,10 @@ function phone(signOut: SignOutDeps['client']['signOut']) {
       return Promise.resolve();
     },
     restart: () => steps.push('restart'),
+    clearHeld: () => {
+      steps.push('clearHeld');
+      return Promise.resolve();
+    },
   };
   return { deps, steps };
 }
@@ -55,7 +59,7 @@ describe('signing out of this phone', () => {
     expect(steps).toEqual(['client.signOut force', 'endSession', ...cleared, 'stop', 'restart']);
   });
 
-  it('offline, still ends the session, wipes the tables itself and restarts', async () => {
+  it('offline, still ends the session, wipes the tables and the media queue itself and restarts', async () => {
     const { deps, steps } = phone(() => Promise.reject(new TypeError('Network request failed')));
     await expect(signOutSequence(deps, { anyway: false })).resolves.toEqual({
       status: 'signedOut',
@@ -64,6 +68,7 @@ describe('signing out of this phone', () => {
       'client.signOut check',
       'endSession',
       'wipe',
+      'clearHeld',
       ...cleared,
       'stop',
       'restart',
