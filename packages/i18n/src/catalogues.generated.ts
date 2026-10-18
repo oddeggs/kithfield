@@ -5,6 +5,8 @@ import { deletionCodeEn } from './deletion-code.en';
 import { deletionCodeVi } from './deletion-code.vi';
 import { deletionScheduledEn } from './deletion-scheduled.en';
 import { deletionScheduledVi } from './deletion-scheduled.vi';
+import { farmEn } from './farm.en';
+import { farmSameInBoth, farmVi } from './farm.vi';
 import { galleryEn } from './gallery.en';
 import { gallerySameInBoth, galleryVi } from './gallery.vi';
 import { glossaryEn } from './glossary.en';
@@ -38,6 +40,7 @@ import { websitePagesSameInBoth, websitePagesVi } from './website-pages.vi';
 export const features: readonly FeatureCatalogues[] = [
   { name: 'deletionCode', file: 'deletion-code', en: deletionCodeEn, vi: deletionCodeVi, sameInBoth: [] },
   { name: 'deletionScheduled', file: 'deletion-scheduled', en: deletionScheduledEn, vi: deletionScheduledVi, sameInBoth: [] },
+  { name: 'farm', file: 'farm', en: farmEn, vi: farmVi, sameInBoth: farmSameInBoth },
   { name: 'gallery', file: 'gallery', en: galleryEn, vi: galleryVi, sameInBoth: gallerySameInBoth },
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
   { name: 'media', file: 'media', en: mediaEn, vi: mediaVi, sameInBoth: [] },
@@ -58,6 +61,7 @@ export const features: readonly FeatureCatalogues[] = [
 export const en = {
   ...deletionCodeEn,
   ...deletionScheduledEn,
+  ...farmEn,
   ...galleryEn,
   ...glossaryEn,
   ...mediaEn,
@@ -78,6 +82,7 @@ export const en = {
 export const vi = {
   ...deletionCodeVi,
   ...deletionScheduledVi,
+  ...farmVi,
   ...galleryVi,
   ...glossaryVi,
   ...mediaVi,

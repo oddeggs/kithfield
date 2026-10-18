@@ -1,6 +1,6 @@
-import { TabPlaceholder } from '../../../ui/tab-bar/tab-placeholder';
+import { FarmHome } from '../../../features/farm/farm-home';
 
-/** Stands in until the farm screens are built here. */
-export default function FarmHome() {
-  return <TabPlaceholder title="shell.tab.farm" />;
+/** The Farm tab: the farm you're on. */
+export default function FarmTab() {
+  return <FarmHome />;
 }

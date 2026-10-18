@@ -1,5 +1,6 @@
 export * from './colour';
 export * from './font-metrics.generated';
+export * from './farm';
 export * from './fonts';
 export * from './motion';
 export * from './space';
