@@ -1,0 +1,22 @@
+{
+  "name": "@kithfield/farm",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The farm rules as pure TypeScript, run by the server, the app and the widgets",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@kithfield/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
+  }
+}
