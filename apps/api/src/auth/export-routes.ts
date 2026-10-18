@@ -1,7 +1,7 @@
 import type { ExportStatus } from '@kithfield/contracts';
 import { Hono } from 'hono';
 
-import { isLive, latestExport, linkHolds, startExport, statusOf } from './export';
+import { isLive, latestExport, linkHolds, linkSecret, startExport, statusOf } from './export';
 import { errorResponse, requireSession, type SessionEnv } from './session';
 
 /**
@@ -11,13 +11,13 @@ import { errorResponse, requireSession, type SessionEnv } from './session';
  * - `GET /v1/me/export/:id/download?exp=&sig=`: the zip, for anyone holding a link that still
  *   holds (15 minutes); 404 otherwise. No session: the signature is the permission, so the link
  *   opens in a browser or a share sheet.
- * Until `EXPORT_URL_KEY` is set, all three answer 503 `unavailable`.
+ * Until `EXPORT_URL_KEY` is set (at least 32 characters), all three answer 503 `unavailable`.
  */
 export function exportRoutes(): Hono<SessionEnv> {
   const routes = new Hono<SessionEnv>();
 
   routes.post('/v1/me/export', requireSession, async (c) => {
-    const secret = c.env.EXPORT_URL_KEY;
+    const secret = linkSecret(c.env);
     if (!secret) return errorResponse(c, 503, 'unavailable');
     const now = Date.now();
     const latest = await latestExport(c.env.DB, c.var.person);
@@ -32,7 +32,7 @@ export function exportRoutes(): Hono<SessionEnv> {
   });
 
   routes.get('/v1/me/export', requireSession, async (c) => {
-    const secret = c.env.EXPORT_URL_KEY;
+    const secret = linkSecret(c.env);
     if (!secret) return errorResponse(c, 503, 'unavailable');
     const row = await latestExport(c.env.DB, c.var.person);
     if (row === null) return errorResponse(c, 404, 'not_found');
@@ -40,7 +40,7 @@ export function exportRoutes(): Hono<SessionEnv> {
   });
 
   routes.get('/v1/me/export/:id/download', async (c) => {
-    const secret = c.env.EXPORT_URL_KEY;
+    const secret = linkSecret(c.env);
     if (!secret) return errorResponse(c, 503, 'unavailable');
     const id = c.req.param('id');
     const exp = Number(c.req.query('exp'));

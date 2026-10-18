@@ -76,7 +76,8 @@ export const exportOf = (host: FarmHost, person: PersonId): FarmExport | null =>
       kind: event.kind,
       text,
       url: event.kind === 'link' && !isTombstone(event.payload) ? event.payload.url : null,
-      media: mediaKeys(event),
+      // Only this farm's own media: a key under another farm's prefix is never the person's here.
+      media: mediaKeys(event).filter((key) => key.startsWith(`farm/${state.farm}/`)),
     });
   }
   return { farm: state.farm, kind: state.kind, name: state.name, items };

@@ -4,14 +4,16 @@ import { farmStub } from '../farm/http';
 import { type ZipEntry, writeZip, zipLength } from './export-zip';
 
 /*
- * Builds a person's keepsakes bundle: `messages.json` (what they wrote on each farm they live on,
- * as last edited), `media.json` (the keys of what they shared, and which files are in the zip),
+ * Builds a person's keepsakes bundle: `messages.json` (what they wrote on each farm they live or
+ * lived on, as last edited), `media.json` (the keys of what they shared, and which files are in the zip),
  * and the media files themselves under `media/`, streamed from R2 one at a time so memory stays
- * flat. Media past `MEDIA_CAP_BYTES` is listed but not copied.
+ * flat. Media past `MEDIA_CAP_BYTES` or `MEDIA_CAP_FILES` is listed but not copied.
  */
 
 /** Media copied into one bundle at most; the rest is listed in `media.json` only. */
 export const MEDIA_CAP_BYTES = 512 * 1024 * 1024;
+/** Media files in one bundle at most, so the zip stays within its 65,535 entries without zip64. */
+export const MEDIA_CAP_FILES = 60_000;
 
 const EXTENSIONS: Readonly<Record<string, string>> = {
   'image/jpeg': '.jpg',
@@ -29,10 +31,10 @@ const EXTENSIONS: Readonly<Record<string, string>> = {
 
 const json = (value: unknown) => new TextEncoder().encode(`${JSON.stringify(value, null, 2)}\n`);
 
-/** The farms the person lives on now, with what they wrote there. */
+/** The farms the person lives on or has lived on, with what they wrote there. */
 async function farmsOf(env: Bindings, person: string): Promise<FarmExport[]> {
   const { results } = await env.DB.prepare(
-    'SELECT farm_id FROM memberships WHERE person_id = ? AND left_at IS NULL ORDER BY joined_at',
+    'SELECT farm_id FROM memberships WHERE person_id = ? ORDER BY joined_at',
   )
     .bind(person)
     .all<{ farm_id: string }>();
@@ -62,7 +64,7 @@ export async function writeBundle(
       missing.push(key);
       continue;
     }
-    if (total + head.size > MEDIA_CAP_BYTES) {
+    if (total + head.size > MEDIA_CAP_BYTES || included.length >= MEDIA_CAP_FILES) {
       notIncluded.push(key);
       continue;
     }

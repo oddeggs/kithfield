@@ -13,6 +13,12 @@ import { registerMergeStep } from './merge-steps';
  * deletes it. Account deletion forgets them all (`forgetExports`).
  */
 
+/** The download links' key: unset or too short, and the export is unavailable. */
+export function linkSecret(env: Bindings): string | null {
+  const secret = env.EXPORT_URL_KEY;
+  return secret !== undefined && secret.length >= 32 ? secret : null;
+}
+
 /** A ready bundle is kept this long. */
 export const EXPORT_KEEP_MS = 7 * 24 * 60 * 60_000;
 /** A download link works this long. */
@@ -162,20 +168,31 @@ export async function expireExports(env: Bindings, now: number): Promise<number>
   )
     .bind(now)
     .all<{ id: string; r2_key: string }>();
-  if (results.length === 0) return 0;
-  await env.MEDIA.delete(results.map((r) => r.r2_key));
-  await env.DB.batch(
-    results.map((r) =>
-      env.DB.prepare("UPDATE exports SET state = 'expired' WHERE id = ?").bind(r.id),
-    ),
-  );
+  // R2 deletes at most 1000 keys a call.
+  for (let i = 0; i < results.length; i += 1000) {
+    const chunk = results.slice(i, i + 1000);
+    await env.MEDIA.delete(chunk.map((r) => r.r2_key));
+    await env.DB.batch(
+      chunk.map((r) =>
+        env.DB.prepare("UPDATE exports SET state = 'expired' WHERE id = ?").bind(r.id),
+      ),
+    );
+  }
   return results.length;
 }
 
 /** Account deletion: every bundle of the person's goes from R2, and their rows from D1. */
 export async function forgetExports(env: Bindings, person: string): Promise<void> {
-  const listed = await env.MEDIA.list({ prefix: `export/${person}/` });
-  const keys = listed.objects.map((o) => o.key);
+  const keys: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const listed = await env.MEDIA.list({
+      prefix: `export/${person}/`,
+      ...(cursor === undefined ? {} : { cursor }),
+    });
+    keys.push(...listed.objects.map((o) => o.key));
+    cursor = listed.truncated ? listed.cursor : undefined;
+  } while (cursor !== undefined);
   const { results } = await env.DB.prepare('SELECT r2_key FROM exports WHERE person_id = ?')
     .bind(person)
     .all<{ r2_key: string }>();
