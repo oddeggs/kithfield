@@ -8,7 +8,7 @@ import {
   type Store,
 } from '@kithfield/contracts';
 
-import { FARM_PLUS_COVERS, PARCELS } from './config';
+import { FARM_PLUS_COVERS, PARCELS, PATRON_KEEP_ALL } from './config';
 import { patronProduct } from './products';
 
 /*
@@ -129,11 +129,20 @@ export const coveredByFarmPlus = async (
   return false;
 };
 
-export const ownedItems = async (db: D1Database, person: PersonId): Promise<ArtId[]> =>
+/** Whether patron keeps count: always, unless they rest with lapsed perks (`PATRON_KEEP_ALL`). */
+export type KeepOptions = { readonly keepAll?: boolean };
+
+export const ownedItems = async (
+  db: D1Database,
+  person: PersonId,
+  withPatronKeeps = true,
+): Promise<ArtId[]> =>
   (
     await db
-      .prepare('SELECT item FROM owned_items WHERE person_id = ? ORDER BY at, item')
-      .bind(person)
+      .prepare(
+        `SELECT item FROM owned_items WHERE person_id = ? AND (? OR via <> 'patron') ORDER BY at, item`,
+      )
+      .bind(person, withPatronKeeps ? 1 : 0)
       .all<{ item: string }>()
   ).results.map((r) => r.item);
 
@@ -154,6 +163,7 @@ export const entitlementsOf = async (
   db: D1Database,
   person: PersonId,
   now: number,
+  { keepAll = PATRON_KEEP_ALL }: KeepOptions = {},
 ): Promise<Entitlements> => {
   const rows = await subscriptionRows(db, person);
   const own = bestOwn(rows, now);
@@ -185,7 +195,7 @@ export const entitlementsOf = async (
     };
   }
   if (perks) await grantParcel(db, person, now);
-  return { perks, patronage, farmPlus, owned: await ownedItems(db, person) };
+  return { perks, patronage, farmPlus, owned: await ownedItems(db, person, keepAll || perks) };
 };
 
 /** Whether the person's perks are on now (own patronage, or covered by a friend's Farm Plus). */
@@ -202,13 +212,15 @@ export const everPatron = async (db: D1Database, person: PersonId): Promise<bool
     .bind(person)
     .first()) !== null;
 
-/** The items among `items` the person doesn't own. */
+/** The items among `items` the person doesn't own (patron keeps resting with lapsed perks). */
 export const unowned = async (
   db: D1Database,
   person: PersonId,
   items: readonly string[],
+  { keepAll = PATRON_KEEP_ALL }: KeepOptions = {},
 ): Promise<string[]> => {
   if (items.length === 0) return [];
-  const owned = new Set(await ownedItems(db, person));
+  const withKeeps = keepAll || (await perksOn(db, person, Date.now()));
+  const owned = new Set(await ownedItems(db, person, withKeeps));
   return items.filter((i) => !owned.has(i));
 };

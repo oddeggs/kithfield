@@ -19,7 +19,8 @@ import {
   THEMES,
   WRAPS,
 } from './catalog';
-import { FOUNDING_ON_SALE_UNTIL } from './config';
+import { FOUNDING_ON_SALE_UNTIL, PATRON_KEEP_ALL } from './config';
+import { type KeepOptions, perksOn } from './entitlements';
 import { cartHistories } from './rotation';
 
 /* The shop's read-only views: the catalogue, a person's collection, the patron offer and wall. */
@@ -69,10 +70,18 @@ type OwnedRow = {
 };
 
 /** `GET /v1/me/collection`: what the person owns, where from, and the sets they finished. */
-export const collectionOf = async (db: D1Database, person: PersonId): Promise<Collection> => {
+export const collectionOf = async (
+  db: D1Database,
+  person: PersonId,
+  { keepAll = PATRON_KEEP_ALL }: KeepOptions = {},
+): Promise<Collection> => {
+  const withKeeps = keepAll || (await perksOn(db, person, Date.now()));
   const { results } = await db
-    .prepare('SELECT item, via, from_id, at FROM owned_items WHERE person_id = ? ORDER BY at, item')
-    .bind(person)
+    .prepare(
+      `SELECT item, via, from_id, at FROM owned_items WHERE person_id = ? AND (? OR via <> 'patron')
+       ORDER BY at, item`,
+    )
+    .bind(person, withKeeps ? 1 : 0)
     .all<OwnedRow>();
   const owned = new Set(results.map((r) => r.item));
   return {

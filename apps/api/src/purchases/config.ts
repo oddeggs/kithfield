@@ -5,6 +5,13 @@ import type { ArtId, Season } from '@kithfield/contracts';
  * default the docs name, and listed in `docs/products.md` ("Decisions pending").
  */
 
+/**
+ * What a patron keeps from the wardrobe. `true` (today's behaviour): kept items are theirs for good,
+ * patron or not. `false`: items kept as a patron rest with the perks when patronage lapses, and
+ * come back with them; bought items, gifts and parcels always stay. A founder decision pending.
+ */
+export const PATRON_KEEP_ALL = true;
+
 /** Once promises cover a theme, how long everyone has to pay their share before it closes. */
 export const THEME_PAY_WINDOW_MS = 3 * 86_400_000;
 
