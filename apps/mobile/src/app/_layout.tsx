@@ -10,6 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import type { HeldElsewhere } from '../data';
 import { clearMediaForSignOut, MediaUploads, pendingUploadCount } from '../features/media';
 import { useStoredLanguage } from '../features/settings/device-prefs';
+import { SurfacesHost } from '../features/surfaces';
 import { ArtProvider, createArtStore } from '../ui/art/art-provider';
 import { ToastHost } from '../ui/components/toast';
 import { LocaleProvider } from '../ui/locale/locale-provider';
@@ -103,6 +104,8 @@ export default function RootLayout() {
                       <DataSlot heldElsewhere={mediaQueue}>
                         {/* Resumes the media uploads at launch, not only when a chat opens. */}
                         <MediaUploads />
+                        {/* Widgets, Live Activities, lock-screen answers and shares. */}
+                        <SurfacesHost />
                         <SplashGate>
                           <Screens />
                         </SplashGate>
