@@ -105,7 +105,7 @@ export async function purgeAccount(env: Bindings, job: AccountDeletedJob): Promi
   const { person } = job;
   if (!(await stillDue(env, person, Date.now()))) return;
   for (const step of steps.values()) await step(env, person);
-  await cottageOf(env, person).deleteAccount();
+  await cottageOf(env, person).clear();
   await forgetExports(env, person);
   const apple = await env.DB.prepare(
     "SELECT account_id FROM accounts WHERE person_id = ? AND provider_id = 'apple'",

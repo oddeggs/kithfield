@@ -23,17 +23,14 @@ import type { Bindings } from '../env';
 import { profileOf } from './adapters/identity';
 import { blocks } from './blocks';
 import {
-  currentInvite,
   insertFarm,
-  liveInvite,
-  replaceInvite,
   shareAFarm,
   takeWaiting,
   waitingRequest,
-  useInvite,
   visitBetween,
   waitingList,
 } from './d1';
+import { currentInvite, liveInvite, replaceInvite, useInvite } from './d1-invites';
 import { body, fail, farmStub, inviteUrl, member, signedIn } from './http';
 import { newFarmId, newInviteCode, sha256Hex } from './ids';
 import { openInviteCode, sealInviteCode } from './invite-codes';

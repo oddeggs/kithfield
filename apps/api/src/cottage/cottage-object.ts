@@ -92,7 +92,7 @@ export class CottageDO extends DurableObject<Bindings> {
     const other = cottageOf(this.env, from);
     merge.mergeInto(this.sql, await other.exportForMerge(), this.person);
     await merge.moveActionKeys(this.env.DB, from, this.person);
-    await other.clearForMerge();
+    await other.clear();
     this.broadcast({ type: 'chats', chats: chats.chatList(this.sql, this.now) });
     await this.scheduleAlarm();
   }
@@ -101,17 +101,12 @@ export class CottageDO extends DurableObject<Bindings> {
     return merge.exportCottage(this.sql);
   }
 
-  /** Empties a cottage whose person was merged into another: sockets closed, storage gone. */
-  async clearForMerge(): Promise<void> {
+  /** Empties the cottage (merged away, or the account purged): sockets closed, storage gone. */
+  async clear(): Promise<void> {
     this.closeSockets('unauthorized');
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
     applySchema(this.sql);
-  }
-
-  /** The person's account is being deleted: sockets closed, storage gone, nothing kept. */
-  async deleteAccount(): Promise<void> {
-    await this.clearForMerge();
   }
 
   /** The person lives on this farm or visit: its kind, and its name or peer. */
