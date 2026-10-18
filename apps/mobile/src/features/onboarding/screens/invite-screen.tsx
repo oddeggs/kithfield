@@ -27,7 +27,7 @@ export function InviteScreen() {
     setLink(inviteLinkIn(text) ?? text.trim());
     setError(null);
   };
-  // Read only when the person taps Paste: the system button needs no prompt; the fallback asks.
+  // Read only when the person taps Paste (iOS asks whether to allow it), never as the sheet opens.
   const pasteByTap = () => {
     Clipboard.getStringAsync().then(pasted, () => undefined);
   };
@@ -48,37 +48,25 @@ export function InviteScreen() {
         {t('onboarding.invite.title')}
       </Txt>
       <Body>{t('onboarding.invite.body')}</Body>
-      <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
-        {Clipboard.isPasteButtonAvailable ? (
-          <Clipboard.ClipboardPasteButton
-            acceptedContentTypes={['plain-text']}
-            displayMode="iconAndLabel"
-            cornerStyle="capsule"
-            backgroundColor={palette.fillSecondary}
-            foregroundColor={palette.text}
-            onPress={(data) => {
-              if (data.type === 'text') pasted(data.text);
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <TextField
+            value={link}
+            onChangeText={(text) => {
+              setLink(text);
+              setError(null);
             }}
-            style={{ height: 36, width: 110 }}
+            placeholder={t('onboarding.invite.placeholder')}
+            accessibilityLabel={t('onboarding.invite.field')}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            returnKeyType="go"
+            onSubmitEditing={open}
           />
-        ) : (
-          <Button label={t('onboarding.invite.paste')} kind="text" onPress={pasteByTap} />
-        )}
+        </View>
+        <Button label={t('onboarding.invite.paste')} kind="text" onPress={pasteByTap} />
       </View>
-      <TextField
-        value={link}
-        onChangeText={(text) => {
-          setLink(text);
-          setError(null);
-        }}
-        placeholder={t('onboarding.invite.placeholder')}
-        accessibilityLabel={t('onboarding.invite.field')}
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType="url"
-        returnKeyType="go"
-        onSubmitEditing={open}
-      />
       <ErrorLine text={error} />
       <Button label={t('onboarding.invite.open')} onPress={open} disabled={link.trim() === ''} />
     </View>
