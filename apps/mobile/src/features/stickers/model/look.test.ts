@@ -51,6 +51,10 @@ describe('a sticker as the art draws it', () => {
       caption: 'June + Pip',
     });
     expect(attrs['cast']).toBe('hedgehog/////');
+    expect(attrs['lang']).toBe('en');
+    expect(
+      sceneOfSticker(translator('vi'), { pack: 'mine', sticker: 'miss' }, null, () => null)['lang'],
+    ).toBe('vi');
   });
 
   it('draws a rabbit when the sender isn’t known', () => {

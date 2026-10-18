@@ -6,6 +6,8 @@ import type { EnCatalogue } from './catalogue-types';
  * (`08 Stickers`, `10 On the System`). The words on the stickers themselves are `stickers.cap.*`.
  */
 export const stickersEn = {
+  /** The language the words on stickers are in, for the art's choice of hand face. */
+  'stickers.lang': 'en',
   'stickers.back': 'Back',
   'stickers.close': 'Close',
   'stickers.done': 'Done',

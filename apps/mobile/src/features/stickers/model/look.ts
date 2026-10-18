@@ -50,11 +50,13 @@ export function stickerAttrs(
   pose: string,
   caption: string,
   friends: readonly Critter[] = [],
+  lang?: string,
 ): Record<string, string> {
   return {
     ...(sender ? sceneLook(sender) : { kind: 'rabbit' }),
     pose,
     caption,
+    ...(lang ? { lang } : {}),
     ...(friends.length > 0 ? { cast: friends.map((c) => castOf(c)).join(',') } : {}),
   };
 }
@@ -89,10 +91,12 @@ export function sceneOfSticker(
     people: [sender?.name ?? null, ...friends.map((f) => f.name)],
     replyTo,
   });
+  // The words' language, so the art can write them in a hand that has their letters.
   return stickerAttrs(
     sender?.critter ?? null,
     look.pose,
     caption,
     friends.map((f) => f.critter),
+    t('stickers.lang'),
   );
 }

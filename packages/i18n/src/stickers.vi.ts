@@ -2,6 +2,7 @@ import type { ViCatalogue } from './catalogue-types';
 import type { stickersEn } from './stickers.en';
 
 export const stickersVi: ViCatalogue<typeof stickersEn> = {
+  'stickers.lang': 'vi',
   'stickers.back': 'Quay lại',
   'stickers.close': 'Đóng',
   'stickers.done': 'Xong',
