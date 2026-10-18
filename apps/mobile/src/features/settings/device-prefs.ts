@@ -1,12 +1,14 @@
 import * as SecureStore from 'expo-secure-store';
 import { useCallback, useEffect, useState } from 'react';
 
+import { PERSON_KEYS } from '../../ui/session/sign-out';
+
 /**
  * Choices that live on this phone only: AI catch-up runs on the phone, so nothing about it goes to
  * the server, and the reading language the app opens in.
  */
 const KEYS = {
-  aiCatchUp: 'kithfield.pref.aiCatchUp',
+  aiCatchUp: PERSON_KEYS.aiCatchUp,
   language: 'kithfield.pref.language',
 } as const;
 

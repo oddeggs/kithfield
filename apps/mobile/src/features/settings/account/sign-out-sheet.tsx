@@ -2,11 +2,10 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { useDataClient } from '../../../data';
-import { failure } from '../../../data/apply-events';
 import { ArtIcon } from '../../../ui/art/art-view';
 import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
+import { useSignOut } from '../../../ui/session/sign-out';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { useSettingsApi } from '../api/use-api';
@@ -16,16 +15,15 @@ import { KText } from '../kit/text';
 import { useRemote } from '../use-remote';
 
 /**
- * Signing out of this phone. Writes still waiting are sent first; any that can't be are
- * named before they are left behind. Then the phone forgets its copy and the server ends this
- * session, and the app returns to its welcome.
+ * Signing out of this phone. Writes still waiting are sent first; any that can't be are named
+ * before they are left behind. Then the session ends and the phone forgets its copy.
  */
 export function SignOutSheet() {
   const { t } = useLocale();
   const { palette } = useTheme();
   const kit = useKitColors();
   const toast = useToast();
-  const client = useDataClient();
+  const signOutPhone = useSignOut();
   const api = useSettingsApi();
   const me = useRemote(() => api.me());
   const [unsent, setUnsent] = useState(false);
@@ -35,16 +33,9 @@ export function SignOutSheet() {
   const signOut = async (force: boolean) => {
     setBusy(true);
     try {
-      const result = await client.signOut({ force });
-      if (!result.signedOut) {
-        setUnsent(true);
-        return;
-      }
-      await api
-        .endThisSession()
-        .catch((error: unknown) => client.report(failure('settings.signOut', error)));
-      router.dismissAll();
-      client.endSession();
+      const result = await signOutPhone({ anyway: force });
+      if (result.status === 'unsent') setUnsent(true);
+      else router.dismissAll();
     } catch {
       toast.show(t('settings.failed'));
     } finally {

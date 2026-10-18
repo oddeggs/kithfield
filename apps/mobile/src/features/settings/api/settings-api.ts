@@ -32,8 +32,6 @@ export function settingsApi(request: Request) {
     hibernate: (on: boolean) => request(null, 'PUT', '/v1/me/hibernate', { on }),
     farms: () => request(FarmList, 'GET', '/v1/farms'),
 
-    /** Ends this phone's session on the server (Better Auth's sign-out), so its bearer stops working. */
-    endThisSession: () => request(null, 'POST', '/auth/sign-out', {}),
     devices: () => request(DeviceList, 'GET', '/v1/devices'),
     signOutDevice: (device: string) => request(null, 'DELETE', `/v1/devices/${seg(device)}`),
     /** What the phone shows of a computer before Face ID approves its QR code. */

@@ -3,11 +3,10 @@ import { useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useDataClient } from '../../../data';
-import { failure } from '../../../data/apply-events';
 import { ArtStill } from '../../../ui/art/art-view';
 import { Button } from '../../../ui/components/button';
 import { useLocale } from '../../../ui/locale/locale-provider';
+import { useSignOut } from '../../../ui/session/sign-out';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { seasonHere } from '../format';
@@ -32,20 +31,16 @@ export function GoodbyeScreen({
   const { t } = useLocale();
   const { palette } = useTheme();
   const kit = useKitColors();
-  const client = useDataClient();
+  const signOut = useSignOut();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const zone = usePhoneZone();
   const [closing, setClosing] = useState(false);
   const close = async () => {
     setClosing(true);
-    try {
-      await client.signOut({ force: true });
-    } catch (error) {
-      client.report(failure('settings.goodbye', error));
-    }
+    // The server ended every session already; whatever is unsent can't be sent any more.
+    await signOut({ anyway: true });
     router.dismissAll();
-    client.endSession();
   };
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
