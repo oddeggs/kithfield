@@ -110,6 +110,8 @@ export const fieldGuideColours: Readonly<Record<Appearance, FieldGuideColours>> 
  * at night, when the night veil darkens the whole drawing.
  */
 export const fieldGuideWashes = {
+  /** Behind a plant's hero drawing, as the design paints its plant page. */
+  hero: '#efe4f3',
   /** Night plants (the moonflower) on the art's night blue. */
   nightPlant: '#2b2e4a',
   /** A rare bloom's weather: rain as the design paints it, frost and gold to match. */

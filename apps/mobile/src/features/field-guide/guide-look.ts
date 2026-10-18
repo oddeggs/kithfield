@@ -1,4 +1,4 @@
-import { day, fieldGuideColours, motion, type FieldGuideColours } from '@kithfield/theme';
+import { fieldGuideColours, motion, type FieldGuideColours } from '@kithfield/theme';
 
 import { useTheme } from '../../ui/theme/theme-provider';
 
@@ -21,12 +21,3 @@ export const guideMotion = {
   /** The basket fills one crop at a time. */
   basketStepMs: 150,
 } as const;
-
-const channel = (hex: string, i: number) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
-
-/** The pale wash behind a plant's hero drawing: its bloom colour, a fifth of the way from white. */
-export function heroTint(bloom: string): string {
-  if (!/^#[0-9a-f]{6}$/i.test(bloom)) return day.sheet;
-  const mixed = [0, 1, 2].map((i) => Math.round(255 + (channel(bloom, i) - 255) * 0.18));
-  return `#${mixed.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
-}

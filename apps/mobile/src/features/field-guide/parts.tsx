@@ -25,7 +25,7 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import type { ViewStyleProp } from '../../ui/style';
 import { nameOf } from '../farm/farm-copy';
-import { heroTint, useGuideLook } from './guide-look';
+import { useGuideLook } from './guide-look';
 
 /** Grey and faded: a plant the farm hasn't met yet, as a pencil sketch (`grayscale(1) opacity(.45)`). */
 const SKETCH = (() => {
@@ -158,12 +158,11 @@ export function Sway({
   );
 }
 
-/** The paper behind a plant's hero drawing, from its bloom colour (night plants on night blue). */
+/** The paper behind a plant's hero drawing: the design's wash, night plants on night blue. */
 export function useHeroTint(plant: string): string {
   const store = useArt();
   const row = store.art.internals.PL[plant];
-  if (row?.[0] === 'night') return fieldGuideWashes.nightPlant;
-  return heroTint(typeof row?.[2] === 'string' ? row[2] : '');
+  return row?.[0] === 'night' ? fieldGuideWashes.nightPlant : fieldGuideWashes.hero;
 }
 
 /** The round 44-point button at the top of a guide screen: ‹ back, or an icon from the art. */

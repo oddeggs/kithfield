@@ -28,6 +28,11 @@ describe('the field guide colours', () => {
     expect(shape(fieldGuideColours.night)).toEqual(shape(fieldGuideColours.day));
   });
 
+  it('wash a plant page’s hero as the design paints it', () => {
+    expect(fieldGuideWashes.hero).toBe('#efe4f3');
+    expect(html).toContain(`height:360px;background:${fieldGuideWashes.hero}`);
+  });
+
   it('wash a rare bloom in rain as the design paints it', () => {
     expect(html).toContain(`background:${fieldGuideWashes.rare.rain_kissed}`);
   });
