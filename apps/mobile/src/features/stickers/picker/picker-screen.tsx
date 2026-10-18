@@ -15,6 +15,7 @@ import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { useCollection, useRecents, useTogetherPeople, type RecentSticker } from '../data';
 import { offered, OWN, type PackId } from '../model/catalogue';
+import { usableRecents } from '../model/recents';
 import { sceneOfSticker, NO_CAPTION, type StickerPerson } from '../model/look';
 import { ownedPacks, packHint, type OwnedPack } from '../model/owned';
 import { farmTogether } from '../model/together';
@@ -63,12 +64,16 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
   const me = useMe();
   const { collection } = useCollection();
   const drawable = useTogetherPeople(farm);
-  const { recents, add } = useRecents(farm);
+  const { recents: allRecents, add } = useRecents(farm);
   const [tab, setTab] = useState<string>('mine');
   const [preview, setPreview] = useState<RecentSticker | null>(null);
   const [viewport, setViewport] = useState<Viewport | null>(null);
 
   const personOf = useMemo(() => peopleOf(state), [state]);
+  const recents = useMemo(
+    () => usableRecents(allRecents, drawable === null ? null : new Set(drawable)),
+    [allRecents, drawable],
+  );
   const myMember = state?.members.find((m) => m.person === me.person) ?? null;
   const sender: StickerPerson | null = myMember
     ? { name: myMember.name, critter: myMember.critter }
