@@ -195,19 +195,16 @@ export async function farmsOf(
 }
 
 /**
- * Everyone at the desk who touched a report: looked at it, claimed it, decided or approved. The
- * second look at an appeal doesn't count: that is the reviewer's own part.
+ * Everyone at the desk who made or agreed to a decision on a report. Opening it doesn't count:
+ * an appeal goes to someone who wasn't part of a decision.
  */
-export async function touchedBy(db: D1Database, report: string): Promise<Set<string>> {
+export async function involvedIn(db: D1Database, report: string): Promise<Set<string>> {
   const { results } = await db
     .prepare(
-      `SELECT moderator_id AS id FROM audit_log WHERE item = ? AND moderator_id IS NOT NULL
-         AND what NOT IN ('appeal_kept', 'appeal_undone')
-       UNION SELECT moderator_id FROM moderation_actions WHERE report_id = ?
-       UNION SELECT approved_by FROM moderation_actions WHERE report_id = ? AND approved_by IS NOT NULL
-       UNION SELECT claimed_by FROM reports WHERE id = ? AND claimed_by IS NOT NULL`,
+      `SELECT moderator_id AS id FROM moderation_actions WHERE report_id = ?
+       UNION SELECT approved_by FROM moderation_actions WHERE report_id = ? AND approved_by IS NOT NULL`,
     )
-    .bind(report, report, report, report)
+    .bind(report, report)
     .all<{ id: string }>();
   return new Set(results.map((r) => r.id));
 }

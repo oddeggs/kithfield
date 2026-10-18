@@ -10,12 +10,13 @@ import {
 } from '@kithfield/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { api } from '../farm/support/doubles';
+import { api, farmStub } from '../farm/support/doubles';
 import {
   ANA,
   desk,
   KOFI,
   notesOf,
+  SAM,
   report,
   type TestAccess,
   thursdayLot,
@@ -28,7 +29,9 @@ beforeEach(async () => {
 });
 
 /** Ana opens and decides the report; Bram asks for another look. */
-async function decided(action: 'remove_warn' | 'pause_7d' | 'dismiss' = 'remove_warn') {
+async function decided(
+  action: 'remove_warn' | 'pause_7d' | 'dismiss' | 'remove_from_farm' = 'remove_warn',
+) {
   const lot = await thursdayLot();
   const { report: id } = ReportResponse.parse(
     (
@@ -177,5 +180,107 @@ describe('appeals', () => {
     expect((await api(lot.bram, 'POST', '/v1/appeals', { action })).status).toBe(400);
     const dismissed = await decided('dismiss');
     expect((await appeal(dismissed.lot.bram, dismissed.action)).status).toBe(404);
+  });
+
+  it('counts only making or agreeing to a decision as being part of it, not opening the report', async () => {
+    await desk(access, KOFI, 'GET', '/me');
+    const lot = await thursdayLot();
+    const { report: id } = ReportResponse.parse(
+      (
+        await report(lot.june, {
+          farm: lot.farm,
+          about: { about: 'event', seq: lot.unkind },
+          reason: 'unkind',
+          alsoBlock: false,
+        })
+      ).body,
+    );
+    await desk(access, KOFI, 'GET', `/reports/${id}`);
+    const out = await desk(access, ANA, 'POST', `/reports/${id}/actions`, {
+      action: 'remove_warn',
+      rule: 3,
+      note: 'Aimed at June',
+      tellReporters: true,
+      tellMember: true,
+    });
+    const { action } = ActionResponse.parse(out.body);
+    const { appeal: appealId } = AppealResponse.parse((await appeal(lot.bram, action)).body);
+    expect((await desk(access, KOFI, 'GET', `/appeals/${appealId}`)).status).toBe(200);
+  });
+
+  it('goes to a senior who didn’t make the decision when everyone had a hand in the report', async () => {
+    const { lot, report: id, action } = await decided();
+    await desk(access, SAM, 'POST', `/reports/${id}/actions`, {
+      action: 'escalate_urgent',
+      rule: null,
+      note: 'A second pair of eyes',
+      tellReporters: false,
+      tellMember: false,
+    });
+    await desk(access, KOFI, 'POST', `/reports/${id}/actions`, {
+      action: 'freeze_farm',
+      rule: 3,
+      note: 'Cooling off',
+      tellReporters: false,
+      tellMember: false,
+    });
+    const { appeal: appealId } = AppealResponse.parse((await appeal(lot.bram, action)).body);
+    const row = AppealPage.parse((await desk(access, KOFI, 'GET', '/appeals')).body).rows.find(
+      (r) => r.appeal === appealId,
+    );
+    expect(row?.reviewer).toBeNull();
+    expect((await desk(access, ANA, 'GET', `/appeals/${appealId}`)).status).toBe(403);
+    expect((await desk(access, SAM, 'GET', `/appeals/${appealId}`)).status).toBe(403);
+    expect((await desk(access, KOFI, 'GET', `/appeals/${appealId}`)).status).toBe(200);
+  });
+
+  it('answers one of two decisions on the same appeal, and tells the person once', async () => {
+    const { lot, action } = await decided();
+    const { appeal: appealId } = AppealResponse.parse((await appeal(lot.bram, action)).body);
+    const both = await Promise.all([
+      desk(access, KOFI, 'POST', `/appeals/${appealId}/decision`, {
+        outcome: 'undo',
+        reply: 'Put back.',
+      }),
+      desk(access, KOFI, 'POST', `/appeals/${appealId}/decision`, {
+        outcome: 'keep',
+        reply: 'Stays.',
+      }),
+    ]);
+    expect(both.map((r) => r.status).sort()).toEqual([204, 409]);
+    const answered = (await notesOf(lot.bram)).filter((n) => n.note === 'appeal_answered');
+    expect(answered).toHaveLength(1);
+  });
+
+  it('can’t undo when nothing is held to put back, and leaves the appeal open', async () => {
+    const { lot, action } = await decided();
+    await farmStub(lot.farm).restoreEvent(lot.unkind);
+    const { appeal: appealId } = AppealResponse.parse((await appeal(lot.bram, action)).body);
+    const out = await desk(access, KOFI, 'POST', `/appeals/${appealId}/decision`, {
+      outcome: 'undo',
+      reply: 'Put back.',
+    });
+    expect(out.status).toBe(404);
+    const detail = AppealDetail.parse(
+      (await desk(access, KOFI, 'GET', `/appeals/${appealId}`)).body,
+    );
+    expect(detail.status).toBe('open');
+    expect((await notesOf(lot.bram)).some((n) => n.note === 'appeal_answered')).toBe(false);
+  });
+
+  it('can’t undo a removal from a farm from the desk yet', async () => {
+    const { lot, action } = await decided('remove_from_farm');
+    const { appeal: appealId } = AppealResponse.parse((await appeal(lot.bram, action)).body);
+    const undo = await desk(access, KOFI, 'POST', `/appeals/${appealId}/decision`, {
+      outcome: 'undo',
+      reply: 'Come back.',
+    });
+    expect(undo.status).toBe(409);
+    expect((await notesOf(lot.bram)).some((n) => n.note === 'appeal_answered')).toBe(false);
+    const keep = await desk(access, KOFI, 'POST', `/appeals/${appealId}/decision`, {
+      outcome: 'keep',
+      reply: 'It stays.',
+    });
+    expect(keep.status).toBe(204);
   });
 });

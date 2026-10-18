@@ -92,9 +92,13 @@ function Detail(props: { view: AppealsView; detail: AppealDetail }) {
             />
           </label>
           <div class="push" style="display:flex;gap:10px;justify-content:flex-end">
-            <button class="btn" type="submit" name="outcome" value="undo">
-              {tr('moderation.appeals.undo')}
-            </button>
+            {/* Nothing lets a removed member back in yet, so those decisions can only be kept. */}
+            {detail.decision === 'remove_from_farm' ||
+            detail.decision === 'remove_from_kithfield' ? null : (
+              <button class="btn" type="submit" name="outcome" value="undo">
+                {tr('moderation.appeals.undo')}
+              </button>
+            )}
             <button class="btn dark" type="submit" name="outcome" value="keep">
               {tr('moderation.appeals.keep')}
             </button>

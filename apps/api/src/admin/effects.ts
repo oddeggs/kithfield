@@ -112,23 +112,38 @@ export async function applyEffects(
   return { ok: true, effects: { removedEvent, pausedUntil } };
 }
 
-/** An appeal undid a decision: the event comes back, a pause or a ban ends. */
+/**
+ * Decisions an appeal can't undo from the desk yet: nothing lets a removed member back in.
+ */
+export const NOT_UNDOABLE: ReadonlySet<ModerationAction> = new Set([
+  'remove_from_farm',
+  'remove_from_kithfield',
+]);
+
+/**
+ * An appeal undid a decision: the event comes back first, then a pause ends. False when the
+ * event can't come back (its original is no longer held, after 180 days); then nothing changes.
+ */
 export async function undoEffects(
   env: Bindings,
   report: ReportRow,
   action: { id: string; action: ModerationAction; removedEvent: boolean },
   now: number,
-): Promise<void> {
+): Promise<boolean> {
   const person = report.reported;
   if (action.removedEvent && report.seq !== null) {
-    await farmStub(env, report.farm).restoreEvent(report.seq);
+    let restored: boolean;
+    try {
+      restored = (await farmStub(env, report.farm).restoreEvent(report.seq)).ok;
+    } catch {
+      restored = false;
+    }
+    if (!restored) return false;
   }
   if (action.action === 'pause_7d') {
     await liftBan(env, person, PAUSE_SCOPE, action.id, now);
     const farms = await farmsOf(env.DB, person);
     await Promise.all(farms.map((f) => farmStub(env, f.farm).pause(person, null)));
   }
-  if (action.action === 'remove_from_kithfield') {
-    await liftBan(env, person, ACCOUNT_BAN_SCOPE, action.id, now);
-  }
+  return true;
 }

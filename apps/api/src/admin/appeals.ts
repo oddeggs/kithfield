@@ -10,11 +10,11 @@ import type {
 
 import type { Bindings } from '../env';
 import { auditStatement } from './audit';
-import { undoEffects } from './effects';
+import { NOT_UNDOABLE, undoEffects } from './effects';
 import { mintId, ruleFromDb } from './ids';
 import type { Moderator } from './moderator';
 import { leaveNote } from './notes';
-import { loadReport, touchedBy } from './store';
+import { involvedIn, loadReport } from './store';
 
 /*
  * Appeals: a member asks for another look at a decision about them. It is assigned to, and only
@@ -33,9 +33,12 @@ const NOT_APPEALABLE: ReadonlySet<ModerationAction> = new Set([
 export type AppealIntake =
   { ok: true; appeal: string } | { ok: false; status: 404 | 409; code: 'not_found' | 'conflict' };
 
-/** Picks the moderator with the fewest open appeals among those who didn't touch the report. */
+/**
+ * Picks the moderator with the fewest open appeals among those who had no part in a decision on
+ * the report. With nobody left, the appeal stays unassigned for a senior who didn't decide it.
+ */
 async function pickReviewer(db: D1Database, report: string): Promise<string | null> {
-  const touched = await touchedBy(db, report);
+  const touched = await involvedIn(db, report);
   const { results } = await db
     .prepare(
       `SELECT m.id, (SELECT COUNT(*) FROM appeals p WHERE p.reviewer_id = m.id AND p.status = 'open') AS load
@@ -141,7 +144,24 @@ export type AppealRead =
   | { ok: true; appeal: AppealDetail; raw: AppealRaw }
   | { ok: false; status: 403 | 404; code: 'forbidden' | 'not_found' };
 
-/** `GET /admin/v1/appeals/:id`: 403 for anyone who touched the report. */
+/**
+ * Who may take an appeal: anyone who had no part in a decision on its report. When everyone at
+ * the desk had a part, a senior moderator who didn't make or agree to the appealed decision.
+ */
+async function mayReview(db: D1Database, moderator: Moderator, raw: AppealRaw): Promise<boolean> {
+  const involved = await involvedIn(db, raw.report_id);
+  if (!involved.has(moderator.id)) return true;
+  if (moderator.role !== 'senior' || moderator.id === raw.moderator_id) return false;
+  const decision = await db
+    .prepare('SELECT approved_by FROM moderation_actions WHERE id = ?')
+    .bind(raw.action_id)
+    .first<{ approved_by: string | null }>();
+  if (decision?.approved_by === moderator.id) return false;
+  const { results } = await db.prepare('SELECT id FROM moderators').all<{ id: string }>();
+  return results.every((m) => involved.has(m.id));
+}
+
+/** `GET /admin/v1/appeals/:id`: 403 for anyone who may not take it. */
 export async function readAppeal(
   db: D1Database,
   moderator: Moderator,
@@ -149,16 +169,7 @@ export async function readAppeal(
 ): Promise<AppealRead> {
   const raw = await db.prepare(`${SELECT} WHERE p.id = ?`).bind(id).first<AppealRaw>();
   if (raw === null) return { ok: false, status: 404, code: 'not_found' };
-  const touched = await touchedBy(db, raw.report_id);
-  if (touched.has(moderator.id)) return { ok: false, status: 403, code: 'forbidden' };
-  if (raw.reviewer_id === null) {
-    // Nobody was free when it came in: the first eligible moderator to open it takes it.
-    await db
-      .prepare('UPDATE appeals SET reviewer_id = ? WHERE id = ? AND reviewer_id IS NULL')
-      .bind(moderator.id, id)
-      .run();
-    raw.reviewer_id = moderator.id;
-  }
+  if (!(await mayReview(db, moderator, raw))) return { ok: false, status: 403, code: 'forbidden' };
   return {
     ok: true,
     raw,
@@ -190,28 +201,42 @@ export async function decideAppeal(
   const { raw } = read;
   if (raw.status !== 'open') return { ok: false, status: 409, code: 'conflict' };
   const undo = decision.outcome === 'undo';
+  const action = raw.action as ModerationAction;
+  if (undo && NOT_UNDOABLE.has(action)) return { ok: false, status: 409, code: 'conflict' };
+  const status = undo ? 'undone' : 'kept';
+  // Claim the appeal before anything changes, so a second answer can't run the undo again.
+  const claim = await env.DB.prepare(
+    "UPDATE appeals SET status = ?, reviewer_id = ?, reply = ?, decided_at = ? WHERE id = ? AND status = 'open'",
+  )
+    .bind(status, moderator.id, decision.reply, now, id)
+    .run();
+  if (claim.meta.changes !== 1) return { ok: false, status: 409, code: 'conflict' };
   if (undo) {
     const report = await loadReport(env.DB, raw.report_id);
-    const action = await env.DB.prepare('SELECT removed_event FROM moderation_actions WHERE id = ?')
+    const held = await env.DB.prepare('SELECT removed_event FROM moderation_actions WHERE id = ?')
       .bind(raw.action_id)
       .first<{ removed_event: number }>();
-    if (report === null || action === null) return { ok: false, status: 404, code: 'not_found' };
-    await undoEffects(
-      env,
-      report,
-      {
-        id: raw.action_id,
-        action: raw.action as ModerationAction,
-        removedEvent: action.removed_event === 1,
-      },
-      now,
-    );
+    const undone =
+      report !== null &&
+      held !== null &&
+      (await undoEffects(
+        env,
+        report,
+        { id: raw.action_id, action, removedEvent: held.removed_event === 1 },
+        now,
+      ));
+    if (!undone) {
+      // Nothing is held to put back any more: the appeal stays open for a different answer.
+      console.error('appeal undo found nothing to restore', { appeal: id, report: raw.report_id });
+      await env.DB.prepare(
+        "UPDATE appeals SET status = 'open', reviewer_id = ?, reply = NULL, decided_at = NULL WHERE id = ?",
+      )
+        .bind(raw.reviewer_id, id)
+        .run();
+      return { ok: false, status: 404, code: 'not_found' };
+    }
   }
-  const status = undo ? 'undone' : 'kept';
-  const results = await env.DB.batch([
-    env.DB.prepare(
-      "UPDATE appeals SET status = ?, reviewer_id = ?, reply = ?, decided_at = ? WHERE id = ? AND status = 'open'",
-    ).bind(status, moderator.id, decision.reply, now, id),
+  await env.DB.batch([
     ...(undo
       ? [
           env.DB.prepare("UPDATE moderation_actions SET status = 'undone' WHERE id = ?").bind(
@@ -228,7 +253,6 @@ export async function decideAppeal(
       reason: decision.reply.slice(0, 1000),
     }),
   ]);
-  if ((results[0]?.meta.changes ?? 0) === 0) return { ok: false, status: 409, code: 'conflict' };
   await leaveNote(
     env,
     raw.person_id,
