@@ -42,6 +42,7 @@ import { MicButton, RecorderPanel, useVoiceRecorder } from './voice-recorder';
 import { noteSeen } from '../ui/seen-store';
 import { useArtVisible } from '../../../ui/motion/visibility';
 import { fieldGuideRoutes } from '../../field-guide/routes';
+import { useInStickerNote } from '../../stickers/together/in-sticker-note';
 import { useMe } from '../ui/use-me';
 import { TypingLine } from './lines';
 import { sprouted, useMentionRows, useOutLine } from './room-people';
@@ -64,6 +65,8 @@ export interface ChatScreenProps {
 /** A farm's chat under its farm, or a visit on its porch. */
 export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
   const data = useRoomData(farm);
+  // The first time a friend draws you into a together sticker, a note says so once.
+  useInStickerNote(farm);
   const { palette } = useTheme();
   const colours = useChatColours();
   const { t } = useLocale();
