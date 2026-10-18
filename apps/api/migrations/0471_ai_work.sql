@@ -1,15 +1,32 @@
 -- What the AI features made, as an index. Never content: the words live in R2 under `ai/`, so
 -- they can be deleted with the thing they came from. Times are epoch milliseconds.
 
--- One voice note's caption in one language a friend asked for. `said` is the language Whisper
--- heard; the text (and its translation) is at `ai/voice/<farm>/<seq>/<lang>.json`.
+-- A voice note as Whisper heard it, once for every language asked: claimed (`hearing`) by the job
+-- that runs Whisper, then `heard` (the words at `ai/voice/<farm>/<seq>/said.json`) or `silent`
+-- (nothing to show, never heard again). `claimed_at` names the claim, so only its holder finishes.
+CREATE TABLE voice_transcripts (
+  farm_id TEXT NOT NULL,
+  seq INTEGER NOT NULL,
+  audio_key TEXT NOT NULL,
+  author_id TEXT NOT NULL,
+  state TEXT NOT NULL CHECK (state IN ('hearing', 'heard', 'silent')),
+  said TEXT,
+  claimed_at INTEGER NOT NULL,
+  PRIMARY KEY (farm_id, seq)
+);
+CREATE INDEX voice_transcripts_author ON voice_transcripts (author_id);
+CREATE INDEX voice_transcripts_audio ON voice_transcripts (audio_key);
+
+-- One voice note's caption in one language a friend asked for, at
+-- `ai/voice/<farm>/<seq>/<lang>.json`. `silent` is final: nothing was heard, so it is never asked
+-- of Whisper again.
 CREATE TABLE voice_captions (
   farm_id TEXT NOT NULL,
   seq INTEGER NOT NULL,
   lang TEXT NOT NULL CHECK (lang IN ('en', 'vi')),
   audio_key TEXT NOT NULL,
   author_id TEXT NOT NULL,
-  state TEXT NOT NULL CHECK (state IN ('pending', 'ready', 'failed')),
+  state TEXT NOT NULL CHECK (state IN ('pending', 'ready', 'failed', 'silent')),
   said TEXT,
   asked_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
@@ -56,12 +73,28 @@ CREATE TABLE ai_purge_owed (
 );
 
 -- A voice note's media goes when it is unsent, when its author's media is removed with them, or
--- when their account is deleted (the media index row is deleted each time). Its captions follow
--- in the same statement.
+-- when their account is deleted (the media index row is deleted each time); it is held apart when
+-- quarantined or removed by the safety team. Either way its captions and transcript are forgotten
+-- in the same statement, and the hourly sweep deletes their words.
 CREATE TRIGGER voice_captions_follow_media AFTER DELETE ON media_objects
 BEGIN
   INSERT OR IGNORE INTO ai_purge_owed (prefix, owed_at)
     SELECT 'ai/voice/' || farm_id || '/' || seq || '/', CAST(strftime('%s', 'now') AS INTEGER) * 1000
+    FROM voice_transcripts WHERE audio_key = OLD.key
+    UNION SELECT 'ai/voice/' || farm_id || '/' || seq || '/', CAST(strftime('%s', 'now') AS INTEGER) * 1000
     FROM voice_captions WHERE audio_key = OLD.key;
+  DELETE FROM voice_transcripts WHERE audio_key = OLD.key;
   DELETE FROM voice_captions WHERE audio_key = OLD.key;
+END;
+
+CREATE TRIGGER voice_captions_follow_quarantine AFTER UPDATE OF quarantined_at ON media_objects
+WHEN NEW.quarantined_at IS NOT NULL
+BEGIN
+  INSERT OR IGNORE INTO ai_purge_owed (prefix, owed_at)
+    SELECT 'ai/voice/' || farm_id || '/' || seq || '/', CAST(strftime('%s', 'now') AS INTEGER) * 1000
+    FROM voice_transcripts WHERE audio_key = NEW.key
+    UNION SELECT 'ai/voice/' || farm_id || '/' || seq || '/', CAST(strftime('%s', 'now') AS INTEGER) * 1000
+    FROM voice_captions WHERE audio_key = NEW.key;
+  DELETE FROM voice_transcripts WHERE audio_key = NEW.key;
+  DELETE FROM voice_captions WHERE audio_key = NEW.key;
 END;

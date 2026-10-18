@@ -79,6 +79,10 @@ export type Bindings = Secrets & {
   readonly DESKTOP_LINK_LIMIT: RateLimit;
   /** Reports and appeals from the app, per person. */
   readonly REPORT_LIMIT: RateLimit;
+  /** Asking for AI captions: at most 30 a minute per person. */
+  readonly AI_LIMIT: RateLimit;
+  /** Asking for AI captions: at most 120 a minute per farm. */
+  readonly AI_FARM_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;

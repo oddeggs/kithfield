@@ -1,11 +1,14 @@
+import { VoiceCaption } from '@kithfield/contracts';
 import { createExecutionContext, createMessageBatch, getQueueResult } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { expect, vi } from 'vitest';
 
-import { api, type Person } from '../../test/farm/support/doubles';
+import { op } from '../../test/farm/support/client';
+import { api, type Person, plantFarm } from '../../test/farm/support/doubles';
 import type { Bindings } from '../env';
 import worker from '../index';
 import { bytesOf, put, uploadUrl } from '../media/support.test-data';
+import { AI_CONSENT_TEXT_VERSION } from './consent';
 import { RECAP_MODEL, TRANSLATION_MODEL, WHISPER_MODEL } from './models';
 
 /*
@@ -25,8 +28,12 @@ export class ScriptedAi {
     return this;
   }
 
-  hears(text: string, language = 'en'): this {
-    return this.answer(WHISPER_MODEL, { text, transcription_info: { language } });
+  hears(text: string, language = 'en', meanwhile?: () => Promise<void>): this {
+    const heard = { text, transcription_info: { language } };
+    return this.answer(
+      WHISPER_MODEL,
+      meanwhile === undefined ? heard : () => meanwhile().then(() => heard),
+    );
   }
 
   translates(text: string): this {
@@ -48,7 +55,10 @@ export class ScriptedAi {
     this.calls.push({ model, input });
     const next = this.answers.get(model)?.shift();
     if (next === undefined) return Promise.reject(new Error(`no answer scripted for ${model}`));
-    return Promise.resolve(next);
+    // An answer may be work to do while the model "runs", answering what to send back.
+    return typeof next === 'function'
+      ? Promise.resolve((next as () => unknown)())
+      : Promise.resolve(next);
   };
 }
 
@@ -65,6 +75,10 @@ export const watchAiQueue = () => {
   vi.spyOn(env.AI_QUEUE, 'send').mockImplementation((body) => {
     sent.push(body);
     return Promise.resolve({ metadata: {} } as unknown as QueueSendResponse);
+  });
+  vi.spyOn(env.AI_QUEUE, 'sendBatch').mockImplementation((messages) => {
+    for (const m of messages) sent.push(m.body);
+    return Promise.resolve({ metadata: {} } as unknown as QueueSendBatchResponse);
   });
   return sent;
 };
@@ -93,7 +107,7 @@ export async function deliver(ai: ScriptedAi, bodies: unknown[], attempts = 1) {
 export const consent = async (person: Person, feature: string, allowed = true) => {
   const res = await api(person, 'PUT', `/v1/me/consents/${feature}`, {
     allowed,
-    textVersion: '2026-10-19',
+    textVersion: AI_CONSENT_TEXT_VERSION,
   });
   expect(res.status).toBe(204);
 };
@@ -111,3 +125,42 @@ export const voicePayload = (audio: Awaited<ReturnType<typeof uploadVoice>>) => 
   durationMs: 3000,
   waveform: [10, 80, 40],
 });
+
+/** A voice note as a forward: the same audio, said to come from another farm. */
+export const forwarded = (audio: Awaited<ReturnType<typeof uploadVoice>>) => ({
+  ...voicePayload(audio),
+  forwardedFrom: { farm: 'elsewhere0000000000000', seq: 7 },
+});
+
+/** Pip sends a voice note (or forwards one) to a farm the others live on; answers where it is. */
+export async function voiceNote(pip: Person, others: Person[], how: 'said' | 'forwarded' = 'said') {
+  const { farm, stub } = await plantFarm(pip, others);
+  const audio = await uploadVoice(pip, farm);
+  const out = await stub.command(pip.id, {
+    opId: op(1),
+    kind: 'voice',
+    payload: how === 'said' ? voicePayload(audio) : forwarded(audio),
+  });
+  expect(out).toMatchObject({ result: 'ack' });
+  return { farm, stub, audio, seq: (out as { seq: number }).seq };
+}
+
+export const ask = async (person: Person, farm: string, seq: number, lang: string) => {
+  const res = await api(person, 'POST', `/v1/farms/${farm}/voice/${seq}/caption`, { lang });
+  return { status: res.status, caption: res.status === 200 ? VoiceCaption.parse(res.body) : null };
+};
+
+export const look = async (person: Person, farm: string, seq: number, lang: string) => {
+  const res = await api(person, 'GET', `/v1/farms/${farm}/voice/${seq}/caption?lang=${lang}`);
+  return { status: res.status, caption: res.status === 200 ? VoiceCaption.parse(res.body) : null };
+};
+
+/** Every object the AI keeps for a voice note. */
+export const wordsOf = async (farm: string, seq: number) =>
+  (await env.MEDIA.list({ prefix: `ai/voice/${farm}/${seq}/` })).objects.map((o) => o.key);
+
+export const rows = (farm: string, seq: number) =>
+  env.DB.prepare('SELECT lang, state FROM voice_captions WHERE farm_id = ? AND seq = ?')
+    .bind(farm, seq)
+    .all<{ lang: string; state: string }>()
+    .then((r) => r.results);

@@ -11,7 +11,7 @@ import {
 } from '@kithfield/contracts';
 import { Hono } from 'hono';
 
-import type { SessionEnv } from '../auth';
+import { eitherBlocked, type SessionEnv } from '../auth';
 import type { Bindings } from '../env';
 import { body, type Ctx, fail, member, signedIn } from '../farm/http';
 import { hasConsent } from './consent';
@@ -23,11 +23,16 @@ import {
   type CaptionWords,
   captionKey,
   captionRow,
+  claimTranscript,
   dropCaptions,
+  finishTranscript,
   getJson,
+  type Heard,
   putJson,
-  readySibling,
-  setCaptionState,
+  releaseTranscript,
+  settleCaption,
+  transcriptKey,
+  transcriptRow,
 } from './store';
 
 /*
@@ -36,7 +41,8 @@ import {
  * `voice_notes`, a `VoiceCaptionJob` goes on the `ai` queue and the answer is `pending` until it
  * is `ready` (`GET` the same path with `?lang=`). Whisper hears it once; another language only
  * translates. A caption goes with its voice note: unsent, removed, or its author's account or
- * consent gone.
+ * consent gone. A forwarded voice note is never captioned: its voice is someone else's, who never
+ * said yes here. Nothing is captioned between two people where either blocked the other.
  */
 
 /** The voice note's payload when the event is a voice note still standing; otherwise null. */
@@ -53,23 +59,26 @@ const seqParam = (c: Ctx): number | null => {
 
 /** The caption a row stands for now. */
 async function answerFor(env: Bindings, row: CaptionRow): Promise<VoiceCaption> {
+  // Nothing was heard: shown as failed, and never heard again.
+  if (row.state === 'silent') return { state: 'failed', seq: row.seq };
   if (row.state !== 'ready') return { state: row.state, seq: row.seq };
   const words = await getJson<CaptionWords>(env, captionKey(row.farm_id, row.seq, row.lang));
   if (words === null) return { state: 'failed', seq: row.seq };
   return VoiceCaption.parse({ state: 'ready', seq: row.seq, ...words });
 }
 
+type Note = {
+  farm: string;
+  person: PersonId;
+  seq: number;
+  author: PersonId;
+  audio: string;
+  /** Never captioned here: forwarded, the author said no, or a block between the two. */
+  refused: boolean;
+};
+
 /** Finds the voice note for a caption route; on failure, the response to send. */
-async function voiceNote(c: Ctx): Promise<
-  | Response
-  | {
-      farm: string;
-      person: PersonId;
-      seq: number;
-      author: PersonId;
-      audio: string;
-    }
-> {
+async function voiceNote(c: Ctx): Promise<Response | Note> {
   const m = await member(c);
   if (m instanceof Response) return m;
   const seq = seqParam(c);
@@ -81,8 +90,18 @@ async function voiceNote(c: Ctx): Promise<
     if (event !== null) await dropCaptions(c.env, m.farm, seq);
     return fail(c, 404, 'not_found');
   }
-  return { farm: m.farm, person: m.person, seq, author: event.actor, audio: voice.audio.key };
+  const author = event.actor;
+  const refused =
+    voice.forwardedFrom !== undefined ||
+    !(await hasConsent(c.env.DB, author, 'voice_notes')) ||
+    (m.person !== author && (await eitherBlocked(c.env.DB, m.person, author)));
+  return { farm: m.farm, person: m.person, seq, author, audio: voice.audio.key, refused };
 }
+
+/** Asking for captions is limited per person and per farm; false (answer 429) once over. */
+const withinLimits = async (c: Ctx, note: Note): Promise<boolean> =>
+  (await c.env.AI_LIMIT.limit({ key: note.person })).success &&
+  (await c.env.AI_FARM_LIMIT.limit({ key: note.farm })).success;
 
 export function voiceCaptionRoutes(): Hono<SessionEnv> {
   const app = new Hono<SessionEnv>();
@@ -93,9 +112,8 @@ export function voiceCaptionRoutes(): Hono<SessionEnv> {
     const asked = await body(c, VoiceCaptionRequest);
     if (asked instanceof Response) return asked;
     const { farm, seq, author, audio } = note;
-    if (!(await hasConsent(c.env.DB, author, 'voice_notes'))) {
-      return c.json({ state: 'not_allowed', seq } satisfies VoiceCaption);
-    }
+    if (note.refused) return c.json({ state: 'not_allowed', seq } satisfies VoiceCaption);
+    if (!(await withinLimits(c, note))) return fail(c, 429, 'rate_limited');
     const now = Date.now();
     if (await askCaption(c.env.DB, { farm, seq, lang: asked.lang, audio, author }, now)) {
       const job: VoiceCaptionJob = {
@@ -110,7 +128,7 @@ export function voiceCaptionRoutes(): Hono<SessionEnv> {
       try {
         await c.env.AI_QUEUE.send(job);
       } catch {
-        await setCaptionState(c.env.DB, farm, seq, asked.lang, 'failed', null, now);
+        await settleCaption(c.env.DB, farm, seq, asked.lang, 'failed', null, now);
         return fail(c, 503, 'unavailable');
       }
     }
@@ -127,9 +145,7 @@ export function voiceCaptionRoutes(): Hono<SessionEnv> {
     if (!lang.success) return fail(c, 400, 'bad_request', ['lang']);
     const note = await voiceNote(c);
     if (note instanceof Response) return note;
-    if (!(await hasConsent(c.env.DB, note.author, 'voice_notes'))) {
-      return c.json({ state: 'not_allowed', seq: note.seq } satisfies VoiceCaption);
-    }
+    if (note.refused) return c.json({ state: 'not_allowed', seq: note.seq } satisfies VoiceCaption);
     const row = await captionRow(c.env.DB, note.farm, note.seq, lang.data);
     if (row === null) return fail(c, 404, 'not_found');
     return c.json((await answerFor(c.env, row)) satisfies VoiceCaption);
@@ -152,10 +168,102 @@ async function aReader(db: D1Database, farm: string, author: PersonId): Promise<
 
 const clip = (text: string) => text.slice(0, LIMITS.captionText);
 
+/** Another job is hearing this voice note right now; this one waits and tries again. */
+export class HearingElsewhere extends Error {
+  constructor() {
+    super('another job is hearing this voice note');
+  }
+}
+
+/** A claim on hearing a voice note older than this was left by a job that died. */
+const CLAIM_MS = 5 * 60_000;
+
+/** Whether the job's voice note is still one to caption: there, not forwarded, and theirs. */
+async function stillCaptionable(env: Bindings, job: VoiceCaptionJob): Promise<boolean> {
+  if (!(await hasConsent(env.DB, job.author, 'voice_notes'))) return false;
+  const reader = await aReader(env.DB, job.farm, job.author);
+  const event = reader === null ? null : await eventAt(env, job.farm, reader, job.seq);
+  const voice = voiceOf(event);
+  return (
+    voice !== null &&
+    voice.forwardedFrom === undefined &&
+    voice.audio.key === job.audio &&
+    event?.actor === job.author
+  );
+}
+
 /**
- * Runs a caption job. Safe to run again: a ready caption is left alone. Consent and the voice
+ * What the voice note says: heard once and kept for every language. `silent` when there is
+ * nothing to show (final); `gone` when it was forgotten meanwhile. Throws `HearingElsewhere`
+ * while another job holds the claim.
+ */
+async function hear(
+  env: Bindings,
+  ai: AiBinding,
+  job: VoiceCaptionJob,
+): Promise<Heard | 'silent' | 'gone'> {
+  const { farm, seq } = job;
+  const known = await transcriptRow(env.DB, farm, seq);
+  if (known?.state === 'silent') return 'silent';
+  if (known?.state === 'heard') {
+    const words = await getJson<Heard>(env, transcriptKey(farm, seq));
+    if (words !== null) return words;
+  }
+  const now = Date.now();
+  const claim = await claimTranscript(
+    env.DB,
+    { farm, seq, audio: job.audio, author: job.author },
+    now,
+    now - CLAIM_MS,
+  );
+  if (claim === null) throw new HearingElsewhere();
+  const object = await env.MEDIA.get(job.audio);
+  if (object === null) {
+    await dropCaptions(env, farm, seq);
+    return 'gone';
+  }
+  if (object.size > LIMITS.uploadBytes) {
+    // Larger than any upload may be: never read, never sent.
+    await object.body.cancel();
+    await finishTranscript(env.DB, farm, seq, claim, 'silent', 'und');
+    return 'silent';
+  }
+  let heard: Heard;
+  try {
+    heard = await transcribe(ai, new Uint8Array(await object.arrayBuffer()));
+  } catch (error) {
+    await releaseTranscript(env.DB, farm, seq, claim);
+    throw error;
+  }
+  const text = clip(heard.text);
+  if (text.trim() === '') {
+    // Nothing was heard (silence, or only noise): final, so it is never sent again.
+    await finishTranscript(env.DB, farm, seq, claim, 'silent', heard.said);
+    return 'silent';
+  }
+  // Consent may have been withdrawn while Whisper listened: then nothing is kept.
+  if (!(await hasConsent(env.DB, job.author, 'voice_notes'))) {
+    await dropCaptions(env, farm, seq);
+    return 'gone';
+  }
+  const held = await transcriptRow(env.DB, farm, seq);
+  if (held === null) return 'gone';
+  if (held.claimed_at !== claim) throw new HearingElsewhere();
+  const words: Heard = { said: heard.said, text };
+  await putJson(env, transcriptKey(farm, seq), words);
+  if (!(await finishTranscript(env.DB, farm, seq, claim, 'heard', heard.said))) {
+    // Forgotten (or taken over) between the check and the write: the words go.
+    await env.MEDIA.delete(transcriptKey(farm, seq));
+    return 'gone';
+  }
+  return words;
+}
+
+/**
+ * Runs a caption job. Safe to run again: only a pending caption is worked on. Consent and the voice
  * note itself are read again first; without either, the caption is forgotten and nothing is sent.
- * Throws when Workers AI or R2 fails, so the queue tries again.
+ * Every write is checked against the index afterwards, so words written for a caption forgotten
+ * meanwhile are deleted again. Throws when Workers AI or R2 fails, so the queue tries again.
  */
 export async function runVoiceCaption(
   env: Bindings,
@@ -164,48 +272,34 @@ export async function runVoiceCaption(
 ): Promise<void> {
   const { farm, seq, lang } = job;
   const row = await captionRow(env.DB, farm, seq, lang);
-  if (row === null || row.state === 'ready') return;
+  if (row?.state !== 'pending') return;
+  if (!(await stillCaptionable(env, job))) {
+    await dropCaptions(env, farm, seq);
+    return;
+  }
+  const heard = await hear(env, ai, job);
+  if (heard === 'gone') return;
+  if (heard === 'silent') {
+    await settleCaption(env.DB, farm, seq, lang, 'silent', null, Date.now());
+    return;
+  }
+  const translation =
+    heard.said === lang
+      ? null
+      : { lang, text: clip(await translate(ai, heard.text, heard.said, lang)) };
   if (!(await hasConsent(env.DB, job.author, 'voice_notes'))) {
     await dropCaptions(env, farm, seq);
     return;
   }
-  const reader = await aReader(env.DB, farm, job.author);
-  const event = reader === null ? null : await eventAt(env, farm, reader, seq);
-  const voice = voiceOf(event);
-  if (voice === null || voice.audio.key !== job.audio || event?.actor !== job.author) {
-    await dropCaptions(env, farm, seq);
-    return;
+  if ((await captionRow(env.DB, farm, seq, lang))?.state !== 'pending') return;
+  const key = captionKey(farm, seq, lang);
+  await putJson(env, key, { ...heard, translation } satisfies CaptionWords);
+  if (!(await settleCaption(env.DB, farm, seq, lang, 'ready', heard.said, Date.now()))) {
+    await env.MEDIA.delete(key);
   }
-  let heard: { said: string; text: string } | null = null;
-  const sibling = await readySibling(env.DB, farm, seq, lang);
-  if (sibling !== null) {
-    heard = await getJson<CaptionWords>(env, captionKey(farm, seq, sibling.lang));
-  }
-  if (heard === null) {
-    const object = await env.MEDIA.get(job.audio);
-    if (object === null) {
-      await dropCaptions(env, farm, seq);
-      return;
-    }
-    heard = await transcribe(ai, new Uint8Array(await object.arrayBuffer()));
-  }
-  const text = clip(heard.text);
-  if (text.trim() === '') {
-    // Nothing was heard (silence, or only noise): there are no words to show.
-    await setCaptionState(env.DB, farm, seq, lang, 'failed', heard.said, Date.now());
-    return;
-  }
-  const translation =
-    heard.said === lang ? null : { lang, text: clip(await translate(ai, text, heard.said, lang)) };
-  const words: CaptionWords = { said: heard.said, text, translation };
-  await putJson(env, captionKey(farm, seq, lang), words);
-  await setCaptionState(env.DB, farm, seq, lang, 'ready', heard.said, Date.now());
 }
 
 /** A caption job that ran out of tries: shown as `failed`, which may be asked for again. */
 export async function captionGaveUp(env: Bindings, job: VoiceCaptionJob): Promise<void> {
-  const row = await captionRow(env.DB, job.farm, job.seq, job.lang);
-  if (row?.state === 'pending') {
-    await setCaptionState(env.DB, job.farm, job.seq, job.lang, 'failed', null, Date.now());
-  }
+  await settleCaption(env.DB, job.farm, job.seq, job.lang, 'failed', null, Date.now());
 }

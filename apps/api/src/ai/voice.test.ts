@@ -1,19 +1,21 @@
-import { VoiceCaption, type VoiceCaptionJob } from '@kithfield/contracts';
+import type { VoiceCaptionJob } from '@kithfield/contracts';
 import { createExecutionContext, createMessageBatch, getQueueResult } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { op } from '../../test/farm/support/client';
-import { api, cast, type Person, plantFarm, useTestPorts } from '../../test/farm/support/doubles';
+import { cast, useTestPorts } from '../../test/farm/support/doubles';
 import worker from '../index';
 import { TRANSLATION_MODEL, WHISPER_MODEL } from './models';
 import { captionKey, sweepOwed } from './store';
 import {
+  ask,
   consent,
   deliver,
+  look,
+  rows,
   ScriptedAi,
-  uploadVoice,
-  voicePayload,
+  voiceNote,
   watchAiQueue,
 } from './support.test-data';
 
@@ -24,40 +26,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** Pip sends a voice note to a farm Fig lives on; answers where it is. */
-async function voiceNote(pip: Person, fig: Person) {
-  const { farm, stub } = await plantFarm(pip, [fig]);
-  const audio = await uploadVoice(pip, farm);
-  const out = await stub.command(pip.id, {
-    opId: op(1),
-    kind: 'voice',
-    payload: voicePayload(audio),
-  });
-  expect(out).toMatchObject({ result: 'ack' });
-  return { farm, stub, audio, seq: (out as { seq: number }).seq };
-}
-
-const ask = async (person: Person, farm: string, seq: number, lang: string) => {
-  const res = await api(person, 'POST', `/v1/farms/${farm}/voice/${seq}/caption`, { lang });
-  return { status: res.status, caption: res.status === 200 ? VoiceCaption.parse(res.body) : null };
-};
-
-const look = async (person: Person, farm: string, seq: number, lang: string) => {
-  const res = await api(person, 'GET', `/v1/farms/${farm}/voice/${seq}/caption?lang=${lang}`);
-  return { status: res.status, caption: res.status === 200 ? VoiceCaption.parse(res.body) : null };
-};
-
-const rows = (farm: string, seq: number) =>
-  env.DB.prepare('SELECT lang, state FROM voice_captions WHERE farm_id = ? AND seq = ?')
-    .bind(farm, seq)
-    .all<{ lang: string; state: string }>()
-    .then((r) => r.results);
-
 describe('voice-note captions', () => {
   it('never sends a voice note whose author has not said yes', async () => {
     const queued = watchAiQueue();
     const { pip, fig } = await cast('pip', 'fig');
-    const { farm, seq } = await voiceNote(pip, fig);
+    const { farm, seq } = await voiceNote(pip, [fig]);
     // Saying yes to the fire's captions is not saying yes to voice notes.
     await consent(pip, 'captions');
     await consent(pip, 'voice_notes', false);
@@ -73,7 +46,7 @@ describe('voice-note captions', () => {
   it('reads consent again when the job runs, and sends nothing after a no', async () => {
     const queued = watchAiQueue();
     const { pip, fig } = await cast('pip', 'fig');
-    const { farm, seq } = await voiceNote(pip, fig);
+    const { farm, seq } = await voiceNote(pip, [fig]);
     await consent(pip, 'voice_notes');
     expect((await ask(fig, farm, seq, 'en')).caption).toEqual({ state: 'pending', seq });
     expect(queued).toHaveLength(1);
@@ -88,7 +61,7 @@ describe('voice-note captions', () => {
   it('captions and translates a voice note end to end, hearing it only once', async () => {
     const queued = watchAiQueue();
     const { pip, fig, bea } = await cast('pip', 'fig', 'bea');
-    const { farm, seq, audio } = await voiceNote(pip, fig);
+    const { farm, seq, audio } = await voiceNote(pip, [fig]);
     await consent(pip, 'voice_notes');
     expect((await ask(fig, farm, seq, 'vi')).caption).toEqual({ state: 'pending', seq });
     // Asking again while it is being written queues nothing more.
@@ -147,7 +120,7 @@ describe('voice-note captions', () => {
   it('does the work once when a job is delivered twice', async () => {
     const queued = watchAiQueue();
     const { pip, fig } = await cast('pip', 'fig');
-    const { farm, seq } = await voiceNote(pip, fig);
+    const { farm, seq } = await voiceNote(pip, [fig]);
     await consent(pip, 'voice_notes');
     await ask(fig, farm, seq, 'en');
     const ai = new ScriptedAi().hears('Hello all');
@@ -160,7 +133,7 @@ describe('voice-note captions', () => {
   it('retries a failed job, then shows it as failed, which may be asked for again', async () => {
     const queued = watchAiQueue();
     const { pip, fig } = await cast('pip', 'fig');
-    const { farm, seq } = await voiceNote(pip, fig);
+    const { farm, seq } = await voiceNote(pip, [fig]);
     await consent(pip, 'voice_notes');
     await ask(fig, farm, seq, 'en');
     const silent = new ScriptedAi(); // answers nothing: every call fails
@@ -174,7 +147,7 @@ describe('voice-note captions', () => {
   it('purges the caption when the voice note is unsent', async () => {
     const queued = watchAiQueue();
     const { pip, fig } = await cast('pip', 'fig');
-    const { farm, seq, stub } = await voiceNote(pip, fig);
+    const { farm, seq, stub } = await voiceNote(pip, [fig]);
     await consent(pip, 'voice_notes');
     await ask(fig, farm, seq, 'en');
     await deliver(new ScriptedAi().hears('A secret about the picnic'), queued);
@@ -191,7 +164,7 @@ describe('voice-note captions', () => {
   it('purges the captions of a person who asks to forget, or whose account is deleted', async () => {
     const queued = watchAiQueue();
     const { pip, fig } = await cast('pip', 'fig');
-    const { farm, seq } = await voiceNote(pip, fig);
+    const { farm, seq } = await voiceNote(pip, [fig]);
     await consent(pip, 'voice_notes');
     await ask(fig, farm, seq, 'en');
     await deliver(new ScriptedAi().hears('Words to forget'), queued);
