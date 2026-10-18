@@ -87,6 +87,7 @@ export const createFarm = (created: FarmCreatedEvent): FarmState => {
     basket: null,
     seeds: [],
     pins: [],
+    aliases: {},
     doorstep: [],
     fireLitAt: null,
   };
