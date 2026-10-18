@@ -22,6 +22,12 @@ const grownBy = (state: FarmState) => ({
   fieldGuide: state.fieldGuide,
   basket: state.basket,
   members: state.members.map((m) => [
+    m.person,
+    m.critter,
+    m.role,
+    m.cloudAt,
+    m.battery,
+    m.lastWokenAt,
     m.lastTendedAt,
     m.lastOpenedAt,
     m.activeThisSeason,
@@ -92,6 +98,10 @@ const writes: [EventKind, string, object][] = [
   ['farm_opened', pip, {}],
   ['left', pip, { how: 'account_deleted' }],
   ['removed', bea, { person: pip, removeMedia: true, by: 'keeper' }],
+  ['joined', 'p_new', { name: 'New', critter: { ...critter, species: 'fox' }, via: 'invite' }],
+  ['critter_changed', pip, { critter: { ...critter, species: 'owl' }, name: 'Pipkin' }],
+  ['status', pip, { status: 'cloud', raised: true }],
+  ['status', pip, { status: 'battery', battery: 'resting' }],
 ];
 
 describe('Tombstones', () => {
@@ -129,7 +139,12 @@ describe('Tombstones', () => {
           const { events } = buildLog(kind, steps);
           const [created, ...rest] = events;
           if (created?.kind !== 'farm_created') throw new Error('no farm');
-          const removable = rest.filter((e) => e.actor !== null && e.kind !== 'joined');
+          // A removed name (from `joined`) or birthday (from `critter_changed`) can't come back on
+          // replay: the farm restores a critter change with a follow-up, and names and birthdays
+          // are personal, so these two are left to the account-deletion property below.
+          const removable = rest.filter(
+            (e) => e.actor !== null && e.kind !== 'joined' && e.kind !== 'critter_changed',
+          );
           const targets = new Set(
             picks.map((p) => removable[p % Math.max(1, removable.length)]?.seq),
           );
@@ -172,9 +187,7 @@ describe('Tombstones', () => {
         const caughtUp = reduce(
           createFarm(created),
           rest.map((e) =>
-            e.actor === person && e.kind !== 'joined' && e !== goodbye
-              ? tombstoned(e, 'author_deleted')
-              : e,
+            e.actor === person && e !== goodbye ? tombstoned(e, 'author_deleted') : e,
           ),
         );
         expect(growthOf(caughtUp)).toEqual(growthOf(live));
@@ -194,7 +207,7 @@ describe('Tombstones', () => {
     let live = reduce(createFarm(created), rest);
     const removal = log.add('unsend', null, { target: seed.seq, by: 'safety' });
     live = applyEvent(live, removal);
-    expect(live.seeds).toEqual([]);
+    expect(live.seeds.map((s) => s.unsent)).toEqual([true]);
     // The appeal puts the payload back in the log, then writes `restored`.
     const back = log.add('restored', null, { target: seed.seq });
     const byLog = { event: (seq: number) => log.events.find((e) => e.seq === seq) };
@@ -208,6 +221,8 @@ describe('Tombstones', () => {
     // A phone that took a snapshot before the restore pages the target in through its lookup.
     const before = reduce(createFarm(created), log.events.slice(1, back.seq - 1));
     expect(reduce(before, log.events.slice(back.seq - 1), byLog)).toEqual(live);
-    expect(reduce(before, log.events.slice(back.seq - 1)).seeds).toEqual([]);
+    expect(reduce(before, log.events.slice(back.seq - 1)).seeds.map((s) => s.unsent)).toEqual([
+      true,
+    ]);
   });
 });

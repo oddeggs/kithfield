@@ -13,7 +13,7 @@ import {
 } from '@kithfield/contracts';
 
 import { memberOf } from './members';
-import { isUnsentPlan, seedOf } from './plans';
+import { seedOf } from './plans';
 import { EDIT_WINDOW_MS } from './rules';
 import { farmDay } from './seasons';
 import { isBirthday, isKnownTimeZone } from './time';
@@ -122,7 +122,7 @@ const authored = (
 const planned = (state: FarmState, seq: Seq): Reason => {
   const seed = seedOf(state, seq);
   if (!seed) return 'not_found';
-  return isUnsentPlan(seed) ? 'gone' : null;
+  return seed.unsent ? 'gone' : null;
 };
 
 const ruleFor = (

@@ -3,7 +3,6 @@ import {
   type FarmEvent,
   type FarmState,
   type ParsedEvent,
-  isTombstone,
 } from '@kithfield/contracts';
 
 import {
@@ -26,11 +25,11 @@ import {
 } from './members';
 import {
   applyCheckin,
+  applyRestored,
   applyRsvp,
   applySeedChanged,
   applySeedPlanted,
   applyVote,
-  seedOf,
 } from './plans';
 import { HANGOUT_DEW, RULES_VERSION } from './rules';
 import {
@@ -39,7 +38,7 @@ import {
   applySharedRainDay,
   applyTraded,
   applyWeather,
-  farmDay,
+  eventDay,
   freshPlants,
   freshPot,
 } from './seasons';
@@ -50,7 +49,7 @@ export type FarmCreatedEvent = EventOf<'farm_created'>;
 /** The farm as its first event (seq 1) makes it. */
 export const createFarm = (created: FarmCreatedEvent): FarmState => {
   const p = created.payload;
-  const day = localDay(created.at, p.timeZone);
+  const day = created.day ?? localDay(created.at, p.timeZone);
   const season = seasonOf(day, p.hemisphere);
   const signature = p.kind === 'farm' ? signatureFor(p.farm) : null;
   return {
@@ -213,19 +212,6 @@ export interface EventLookup {
 }
 
 /**
- * Once an appeal's `restored` is applied and the target is back (paged in with its payload), this
- * puts back what the removal took off the farm: a plan seed. Growth needs nothing back, because
- * the tombstone kept its facts. Pins and doorstep items stay down.
- */
-export const applyRestored = (state: FarmState, target: FarmEvent): FarmState => {
-  if (target.kind !== 'seed_planted' || isTombstone(target.payload)) return state;
-  if (seedOf(state, target.seq)) return state;
-  const { seeds } = applySeedPlanted({ ...state, seeds: [] }, target);
-  const merged = [...state.seeds, ...seeds].sort((a, b) => a.seq - b.seq).slice(-100);
-  return { ...state, seeds: merged };
-};
-
-/**
  * Applies one event. Pure and deterministic: the same state and event give the same result on
  * every device, and the input is never changed. Events written under rules newer than this
  * reducer are skipped, and so is everything once the farm has moved to such rules.
@@ -242,7 +228,7 @@ export const applyEvent = (
   if (event.kind === 'rules_changed') return applyKind(state, event, state.today.day);
   if (!canApplyRules(state) || event.rulesVersion > RULES_VERSION) return state;
   if (event.kind === 'farm_created') return state;
-  const day = farmDay(state, event.at);
+  const day = eventDay(state, event);
   let next: FarmState = day === state.today.day ? state : { ...state, today: { day, given: [] } };
   next = withoutDelivered(next, event.at);
   if (event.kind === 'restored') {

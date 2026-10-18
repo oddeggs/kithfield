@@ -3,8 +3,11 @@
  * ships with a rules-version bump.
  */
 
-/** The highest farm rules version this reducer implements. */
-export const RULES_VERSION = 1;
+/**
+ * The highest farm rules version this reducer implements. Version 2: every event carries the
+ * farm's local `day`, and day rules read it instead of the device's time-zone data.
+ */
+export const RULES_VERSION = 2;
 
 /** Each person adds at most this much dew to each plant per farm day. */
 export const DAILY_CAP = 3;

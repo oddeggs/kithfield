@@ -10,6 +10,9 @@ import {
   LIMITS,
 } from '@kithfield/contracts';
 
+import { factsOf } from './growth';
+import { asUnsent } from './plans';
+
 /* Membership, presence and settings: who lives on the farm and how their critter looks. */
 
 export const memberOf = (state: FarmState, person: PersonId): MemberState | undefined =>
@@ -27,19 +30,28 @@ export const updateMember = (
   };
 };
 
-/** A new member moves in. A tombstoned `joined` has no name or critter to draw, so it adds no one. */
+const isCritter = (value: unknown): value is MemberState['critter'] =>
+  typeof value === 'object' && value !== null && 'species' in value;
+
+/**
+ * A new member moves in. A tombstoned `joined` (a removed name, or a deleted account) keeps the
+ * critter and how they came, and adds a nameless member.
+ */
 export const applyJoined = (state: FarmState, event: EventOf<'joined'>): FarmState => {
   const { actor: person, at, payload } = event;
-  if (isTombstone(payload) || memberOf(state, person)) return state;
-  if (state.members.length >= LIMITS.members) return state;
+  if (memberOf(state, person) || state.members.length >= LIMITS.members) return state;
+  const facts = factsOf(event);
+  const critter = facts['critter'];
+  if (!isCritter(critter)) return state;
   const member: MemberState = {
     person,
-    name: payload.name,
-    critter: payload.critter,
-    role: payload.via === 'created' && state.kind === 'farm' ? 'keeper' : 'critter',
+    name: isTombstone(payload) ? null : payload.name,
+    critter,
+    role: facts['via'] === 'created' && state.kind === 'farm' ? 'keeper' : 'critter',
     joinedAt: at,
     // Moving in isn't opening the farm: sleepiness counts from `joinedAt` until they do.
     lastOpenedAt: null,
+    lastWokenAt: null,
     lastTendedAt: null,
     hibernating: false,
     pausedUntil: null,
@@ -58,8 +70,9 @@ export const applyJoined = (state: FarmState, event: EventOf<'joined'>): FarmSta
 
 /**
  * A member leaves, is removed, or deletes their account. Their cottage stays behind as a former
- * member; a deleted account leaves no name. What was waiting for them goes, and so does what a
- * deleted account left on doorsteps and the plans it planted.
+ * member; a deleted account leaves no name. What was waiting for them goes. A deleted account's
+ * doorstep gifts go too, and its plans become unsent. A visitor who deleted their account leaves
+ * the same way on farms they only visited: nothing of theirs stays on the doorstep.
  */
 export const depart = (
   state: FarmState,
@@ -71,10 +84,11 @@ export const depart = (
   const member = memberOf(state, person);
   let former: FormerMember[] = state.former;
   if (member) {
-    const entry = {
+    const entry: FormerMember = {
       person,
       name: deleted ? null : member.name,
       critter: member.critter,
+      joinedAt: member.joinedAt,
       leftAt: at,
       how,
     };
@@ -84,13 +98,12 @@ export const depart = (
   }
   const members = state.members.filter((m) => m.person !== person);
   const fallbackHat = members[0]?.person;
-  const seeds = state.seeds
-    .filter((s) => !(deleted && s.planter === person))
-    .map((s) => {
-      if (s.hat !== person) return s;
-      const hat = members.some((m) => m.person === s.planter) ? s.planter : fallbackHat;
-      return hat ? { ...s, hat } : s;
-    });
+  const seeds = state.seeds.map((s) => {
+    const seed = deleted && s.planter === person ? asUnsent(s) : s;
+    if (seed.hat !== person) return seed;
+    const hat = members.some((m) => m.person === seed.planter) ? seed.planter : fallbackHat;
+    return hat ? { ...seed, hat } : seed;
+  });
   return {
     ...state,
     members,
@@ -129,25 +142,52 @@ export const applySettings = (state: FarmState, event: EventOf<'settings_changed
   }
 };
 
+/**
+ * A status bubble, rain cloud or social battery. A tombstoned one keeps which status it was (and
+ * the cloud or battery value, never the words), so the bubble it set clears.
+ */
 export const applyStatus = (state: FarmState, event: EventOf<'status'>): FarmState => {
-  const { actor, at, payload: p } = event;
-  if (isTombstone(p)) return state;
-  switch (p.status) {
-    case 'words':
-      return updateMember(state, actor, () => ({ status: p.text ? { text: p.text, at } : null }));
+  const { actor, at, seq, payload: p } = event;
+  const facts = factsOf(event);
+  switch (facts['status']) {
+    case 'words': {
+      const text = isTombstone(p) || p.status !== 'words' ? null : p.text;
+      return updateMember(state, actor, () => ({ status: text ? { text, at, seq } : null }));
+    }
     case 'cloud':
-      return updateMember(state, actor, () => ({ cloudAt: p.raised ? at : null }));
-    case 'battery':
-      return updateMember(state, actor, () => ({ battery: p.battery }));
+      return updateMember(state, actor, () => ({ cloudAt: facts['raised'] === true ? at : null }));
+    case 'battery': {
+      const battery = facts['battery'];
+      if (battery !== 'open' && battery !== 'resting') return state;
+      return updateMember(state, actor, () => ({ battery }));
+    }
+    default:
+      return state;
   }
 };
 
+/** An unsend clears the status bubble it targets. */
+export const withoutStatus = (state: FarmState, target: number): FarmState =>
+  state.members.some((m) => m.status?.seq === target)
+    ? {
+        ...state,
+        members: state.members.map((m) => (m.status?.seq === target ? { ...m, status: null } : m)),
+      }
+    : state;
+
+/**
+ * A change to a member's critter, name or birthday, from them or written by the farm to restore
+ * the previous values after a safety removal. A tombstoned one keeps only the critter.
+ */
 export const applyCritterChanged = (
   state: FarmState,
   event: EventOf<'critter_changed'>,
 ): FarmState => {
   const p = event.payload;
-  if (isTombstone(p)) return state;
+  if (isTombstone(p)) {
+    const critter = p.facts?.critter;
+    return critter ? updateMember(state, event.actor, () => ({ critter })) : state;
+  }
   return updateMember(state, event.actor, () => ({
     ...(p.critter ? { critter: p.critter } : {}),
     ...(p.name ? { name: p.name } : {}),

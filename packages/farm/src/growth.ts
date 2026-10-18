@@ -125,6 +125,7 @@ export const freshPlant = (plant: string): PlantState => ({
   stage: STAGE.seed,
   dew: 0,
   rare: null,
+  rareRolledOn: null,
   bloomedAt: null,
   credits: [],
 });
@@ -149,8 +150,10 @@ const variantFor = (weather: Weather): RareVariant | null =>
   RARE_VARIANTS.find((v) => v.weather === weather)?.id ?? null;
 
 /**
- * A blooming plant on a day with weather may turn rare: `hash(farm, plant, day, weather)` under
- * 0.15, or 0.40 with shared rain that day. Shared rain alone counts as rain. Once rare, it stays.
+ * Each plant gets one rare roll a season, on the first day with weather (rain, frost or heat) or
+ * shared rain on or after it blooms: `hash(farm, plant, day, weather)` under 0.15, or 0.40 with
+ * shared rain that day. Shared rain alone counts as rain. Shared rain later that same day may roll
+ * again with the higher chance; after that day the variant is fixed for the season.
  */
 export const withRareCheck = (state: FarmState, plant: string, day: LocalDate, at: EpochMs) => {
   const index = state.plants.findIndex((p) => p.plant === plant);
@@ -158,18 +161,24 @@ export const withRareCheck = (state: FarmState, plant: string, day: LocalDate, a
   const entry = PLANT_BY_ID.get(plant as CatalogPlantId);
   if (state.kind !== 'farm' || !target || !entry?.canBeRare) return state;
   if (target.stage !== STAGE.bloom || target.rare !== null) return state;
+  if (target.rareRolledOn !== null && target.rareRolledOn !== day) return state;
   const sharedRain = state.sharedRainDay === day;
   const recorded = state.weather?.day === day ? state.weather.weather : 'none';
   const weather: Weather | null = recorded !== 'none' ? recorded : sharedRain ? 'rain' : null;
   const variant = weather && variantFor(weather);
   if (!weather || !variant) return state;
   const chance = sharedRain ? RARE_CHANCE_SHARED_RAIN : RARE_CHANCE;
-  if (rareRoll(state.farm, plant, day, weather) >= chance) return state;
-  const plants = state.plants.map((p, i) => (i === index ? { ...p, rare: variant } : p));
-  return withPage(
-    { ...state, plants },
-    { plant, variant, season: state.season, foundAt: at, via: 'grown' },
-  );
+  const rare = rareRoll(state.farm, plant, day, weather) < chance ? variant : null;
+  const plants = state.plants.map((p, i) => (i === index ? { ...p, rare, rareRolledOn: day } : p));
+  const rolled = { ...state, plants };
+  if (!rare) return rolled;
+  return withPage(rolled, {
+    plant,
+    variant: rare,
+    season: state.season,
+    foundAt: at,
+    via: 'grown',
+  });
 };
 
 export interface Tend {

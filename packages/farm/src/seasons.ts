@@ -2,6 +2,7 @@ import {
   type Crop,
   type EpochMs,
   type EventOf,
+  type FarmEvent,
   type FarmState,
   type HarvestedPayload,
   type Hemisphere,
@@ -125,7 +126,15 @@ export const applyTraded = (state: FarmState, event: EventOf<'traded'>): FarmSta
   return withPage(next, page);
 };
 
-/** The farm's day for an instant: never before the day the farm has already reached. */
+/**
+ * The farm day an event counts on: the `day` the farm stamped on it, never worked out from this
+ * device's time-zone data. Only development events from before rules version 2 lack one; those
+ * fall back to the farm's time zone. Never before the day the farm has already reached.
+ */
+export const eventDay = (state: FarmState, event: FarmEvent): LocalDate =>
+  laterDay(state.today.day, event.day ?? localDay(event.at, state.timeZone));
+
+/** The farm's day at an instant, for views and chores: never before the day the farm has reached. */
 export const farmDay = (state: FarmState, at: EpochMs): LocalDate =>
   laterDay(state.today.day, localDay(at, state.timeZone));
 

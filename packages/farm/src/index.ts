@@ -5,7 +5,6 @@ export {
   type FarmCreatedEvent,
   applyEvent,
   applyParsed,
-  applyRestored,
   canApplyRules,
   createFarm,
   reduce,
@@ -23,13 +22,7 @@ export {
   stageFromDew,
   thresholdsFor,
 } from './growth';
-export {
-  type PlanConditions,
-  UNSENT_PLAN_TITLE,
-  isUnsentPlan,
-  planConditions,
-  yesesNeeded,
-} from './plans';
+export { type PlanConditions, planConditions, yesesNeeded } from './plans';
 export {
   type FarmChores,
   farmChores,

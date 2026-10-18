@@ -1,6 +1,7 @@
 import {
   type EpochMs,
   type EventOf,
+  type FarmEvent,
   type FarmState,
   type PersonId,
   type SeedState,
@@ -15,13 +16,21 @@ import { HANGOUT_PEOPLE } from './rules';
 /* Plan seeds: planting, changes, votes on days, RSVPs and check-ins at the hangout. */
 
 /**
- * The title of a plan whose planting reached this device already unsent. Its content is gone, but
- * the votes, RSVPs and check-ins on it still count until its unsend (or its planter's departure)
- * removes it, so a device catching up grows the farm exactly as one that saw it live. Never drawn.
+ * A plan whose planting was unsent or removed, perhaps before this device saw it. Its content is
+ * gone and it is never drawn, but the votes, RSVPs and check-ins on it stay, so a device catching
+ * up grows the farm exactly as one that saw it live.
  */
-export const UNSENT_PLAN_TITLE = '⁣';
-
-export const isUnsentPlan = (seed: SeedState): boolean => seed.title === UNSENT_PLAN_TITLE;
+export const asUnsent = (seed: SeedState): SeedState => ({
+  ...seed,
+  unsent: true,
+  title: null,
+  days: [],
+  place: null,
+  yeses: 'couple',
+  someday: false,
+  settleOn: null,
+  sproutedAt: null,
+});
 
 const MAX_SEEDS = 100;
 
@@ -51,7 +60,7 @@ export const planConditions = (seed: SeedState, members: number): PlanConditions
 });
 
 const withSprout = (state: FarmState, seed: SeedState, at: EpochMs): SeedState => {
-  if (seed.sproutedAt !== null || seed.someday || isUnsentPlan(seed)) return seed;
+  if (seed.sproutedAt !== null || seed.someday || seed.unsent) return seed;
   const c = planConditions(seed, state.members.length);
   return c.day && c.place && c.yeses ? { ...seed, sproutedAt: at } : seed;
 };
@@ -74,19 +83,16 @@ export const seedOf = (state: FarmState, seq: Seq): SeedState | undefined =>
 
 export const applySeedPlanted = (state: FarmState, event: EventOf<'seed_planted'>): FarmState => {
   const { seq, actor, at, payload } = event;
-  const plan = isTombstone(payload)
-    ? { title: UNSENT_PLAN_TITLE, days: [], place: null, yeses: 'couple' as const, someday: false }
-    : {
-        title: payload.title,
-        days: payload.days,
-        place: payload.place,
-        yeses: payload.yeses,
-        someday: payload.someday,
-      };
-  const seed: SeedState = {
+  // A planting that arrives tombstoned is an unsent plan from the start.
+  const unsent: SeedState = {
     seq,
     planter: actor,
-    ...plan,
+    unsent: true,
+    title: null,
+    days: [],
+    place: null,
+    yeses: 'couple',
+    someday: false,
     hat: actor,
     settleOn: null,
     votes: [],
@@ -94,6 +100,17 @@ export const applySeedPlanted = (state: FarmState, event: EventOf<'seed_planted'
     checkins: [],
     sproutedAt: null,
   };
+  const seed: SeedState = isTombstone(payload)
+    ? unsent
+    : {
+        ...unsent,
+        unsent: false,
+        title: payload.title,
+        days: payload.days,
+        place: payload.place,
+        yeses: payload.yeses,
+        someday: payload.someday,
+      };
   const seeds = [...state.seeds.filter((s) => s.seq !== seq), withSprout(state, seed, at)];
   return { ...state, seeds: seeds.slice(-MAX_SEEDS) };
 };
@@ -103,7 +120,7 @@ export const applySeedChanged = (state: FarmState, event: EventOf<'seed_changed'
   const facts = factsOf(event);
   return updateSeed(state, facts['seed'], event.at, (seed) => {
     const hat = typeof facts['hat'] === 'string' ? { hat: facts['hat'] } : {};
-    if (isTombstone(p) || isUnsentPlan(seed)) return { ...seed, ...hat };
+    if (isTombstone(p) || seed.unsent) return { ...seed, ...hat };
     return {
       ...seed,
       ...hat,
@@ -164,8 +181,34 @@ export const applyCheckin = (
   return { state: next, hangout: checkins.length === HANGOUT_PEOPLE ? checkins : [event.actor] };
 };
 
-/** An unsent or removed plan goes, with its votes and answers. */
-export const withoutSeed = (state: FarmState, seq: unknown): FarmState =>
-  state.seeds.some((s) => s.seq === seq)
-    ? { ...state, seeds: state.seeds.filter((s) => s.seq !== seq) }
+/** An unsent or removed plan keeps its votes and answers, without its content. */
+export const withUnsentSeed = (state: FarmState, seq: unknown): FarmState =>
+  state.seeds.some((s) => s.seq === seq && !s.unsent)
+    ? { ...state, seeds: state.seeds.map((s) => (s.seq === seq ? asUnsent(s) : s)) }
     : state;
+
+/**
+ * Once an appeal's `restored` is applied and the target is back (paged in with its payload), this
+ * puts back what the removal took off the farm: an unsent plan's content, keeping its votes and
+ * answers. Growth needs nothing back, because
+ * the tombstone kept its facts. Pins and doorstep items stay down.
+ */
+export const applyRestored = (state: FarmState, target: FarmEvent): FarmState => {
+  if (target.kind !== 'seed_planted' || isTombstone(target.payload)) return state;
+  const current = seedOf(state, target.seq);
+  if (current && !current.unsent) return state;
+  const { seeds } = applySeedPlanted({ ...state, seeds: [] }, target);
+  const back = seeds.map((s) =>
+    current
+      ? {
+          ...s,
+          hat: current.hat,
+          votes: current.votes,
+          rsvps: current.rsvps,
+          checkins: current.checkins,
+        }
+      : s,
+  );
+  const others = state.seeds.filter((s) => s.seq !== target.seq);
+  return { ...state, seeds: [...others, ...back].sort((a, b) => a.seq - b.seq).slice(-100) };
+};

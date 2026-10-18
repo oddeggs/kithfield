@@ -14,7 +14,7 @@ import {
 } from '@kithfield/contracts';
 
 import { FAMILIES, SLEEPY_AFTER_DAYS, plantFor } from './catalog';
-import { type PlanConditions, isUnsentPlan, planConditions } from './plans';
+import { type PlanConditions, planConditions } from './plans';
 import { CLOUD_MS, CRITTER_SLEEPY_DAYS, DAY_MS, FARM_MISTY_DAYS, STATUS_MS } from './rules';
 import { canApplyRules } from './reducer';
 import { farmDay, harvestDayOf, pendingSeason } from './seasons';
@@ -105,10 +105,10 @@ export const farmView = (state: FarmState, now: EpochMs): FarmView => {
   const { today, timeZoneUnknown } = todayOf(state, now);
   const season = state.season;
   const harvestDay = harvestDayOf(state, today);
-  // Before anyone tends or opens anything, time counts from the earliest anyone lived here.
+  // Before anyone tends or opens anything, time counts from the earliest anyone joined.
   const since = earliest([
     ...state.members.map((m) => m.joinedAt),
-    ...state.former.map((f) => f.leftAt),
+    ...state.former.map((f) => f.joinedAt),
   ]);
   const sleepyAfter = SLEEPY_AFTER_DAYS[season.season] * DAY_MS;
   const asleep = (last: EpochMs | null, after: number) => {
@@ -138,7 +138,9 @@ export const farmView = (state: FarmState, now: EpochMs): FarmView => {
   };
   const critters = state.members.map((m): CritterView => {
     const paused = m.pausedUntil !== null && m.pausedUntil > now;
-    const away = asleep(m.lastOpenedAt ?? m.joinedAt, CRITTER_SLEEPY_DAYS * DAY_MS);
+    // Opening the farm or a firefly left for them wakes a critter.
+    const woken = latest([m.lastOpenedAt, m.lastWokenAt]) ?? m.joinedAt;
+    const away = asleep(woken, CRITTER_SLEEPY_DAYS * DAY_MS);
     return {
       person: m.person,
       sleepy: away || m.hibernating || paused,
@@ -149,10 +151,10 @@ export const farmView = (state: FarmState, now: EpochMs): FarmView => {
       birthday: state.birthdaysBloom && !!m.birthday && isBirthday(m.birthday, today),
     };
   });
-  const opened = latest(state.members.map((m) => m.lastOpenedAt ?? m.joinedAt));
+  const opened = latest(state.members.map((m) => m.lastOpenedAt)) ?? since;
   const birthdays = new Set(critters.filter((c) => c.birthday).map((c) => c.person));
   const plans = state.seeds
-    .filter((s) => !isUnsentPlan(s))
+    .filter((s) => !s.unsent)
     .map((seed): PlanView => {
       const conditions = planConditions(seed, state.members.length);
       const stage = [conditions.day, conditions.place, conditions.yeses].filter(Boolean).length;

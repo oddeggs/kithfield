@@ -12,6 +12,8 @@ import {
 import { expect } from 'vitest';
 
 import { replay } from './reducer';
+import { RULES_VERSION } from './rules';
+import { localDay } from './time';
 
 /* Shared farms and logs for the farm rules tests. */
 
@@ -47,6 +49,8 @@ const opIdOf = (seq: number) => `0192f1e2-3b4c-7d5e-8f60-${seq.toString(16).padS
 export interface Log {
   readonly events: FarmEvent[];
   at: number;
+  /** The farm's time zone, which the farm stamps each event's `day` from. */
+  timeZone: string;
   add<K extends EventKind>(kind: K, actor: PersonId | null, payload: unknown): EventOf<K>;
   wait(ms: number): Log;
   state(): FarmState;
@@ -56,13 +60,15 @@ export const makeLog = (start = T0): Log => {
   const log: Log = {
     events: [],
     at: start,
+    timeZone: 'Europe/London',
     add(kind, actor, payload) {
       const seq = log.events.length + 1;
       const event = FarmEventSchema.parse({
         seq,
         opId: opIdOf(seq),
         at: log.at,
-        rulesVersion: 1,
+        day: localDay(log.at, log.timeZone),
+        rulesVersion: RULES_VERSION,
         actor,
         kind,
         payload,
@@ -95,6 +101,7 @@ export interface FarmOptions {
 export const newFarm = (options: FarmOptions = {}): Log => {
   const kind = options.kind ?? 'farm';
   const log = makeLog(options.start);
+  log.timeZone = options.timeZone ?? 'Europe/London';
   log.add('farm_created', null, {
     farm,
     kind,

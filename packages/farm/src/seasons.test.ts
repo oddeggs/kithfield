@@ -1,4 +1,3 @@
-import { type Weather } from '@kithfield/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { DAY, MINUTE, T0, bea, expectSnapshot, fig, newFarm, pip, plantOf } from './farm.test-data';
@@ -162,42 +161,66 @@ describe('Seasons, weather and chance', () => {
     expect(farmView(state, T0).harvestDay).toBe('2026-11-29');
   });
 
-  it('turns a blooming plant rare when hash(farm, plant, day, weather) is under 0.15', () => {
+  it('rolls once per plant per season, on the first weather day on or after bloom', () => {
     const log = bloomMarigold();
-    let turned = 0;
-    for (let i = 0; i < 25 && turned === 0; i++) {
-      const day = localDay(log.at, 'Europe/London');
-      const weather: Weather = (['rain', 'frost', 'heat'] as const)[i % 3] ?? 'rain';
-      log.add('weather', null, { day, weather, source: 'weatherkit' });
-      const expected = rareRoll(log.state().farm, 'marigold', day, weather) < RARE_CHANCE;
-      const rare = plantOf(log.state(), 'marigold').rare;
-      expect(rare !== null).toBe(expected);
-      if (rare) {
-        turned++;
-        expect(rare).toBe({ rain: 'rain_kissed', frost: 'frost_lace', heat: 'sun_gold' }[weather]);
-        expect(
-          log.state().fieldGuide.some((p) => p.plant === 'marigold' && p.variant === rare),
-        ).toBe(true);
-      }
+    const farmId = log.state().farm;
+    const bloomDay = localDay(plantOf(log.state(), 'marigold').bloomedAt ?? 0, 'Europe/London');
+    // A dry day with no shared rain is no roll.
+    log.add('weather', null, {
+      day: localDay(log.at, 'Europe/London'),
+      weather: 'none',
+      source: 'weatherkit',
+    });
+    expect(plantOf(log.state(), 'marigold').rareRolledOn).toBeNull();
+    log.wait(DAY);
+    const day = localDay(log.at, 'Europe/London');
+    expect(day > bloomDay).toBe(true);
+    log.add('weather', null, { day, weather: 'frost', source: 'weatherkit' });
+    const rolled = plantOf(log.state(), 'marigold');
+    expect(rolled.rareRolledOn).toBe(day);
+    const rare = rareRoll(farmId, 'marigold', day, 'frost') < RARE_CHANCE;
+    expect(rolled.rare).toBe(rare ? 'frost_lace' : null);
+    // After that day the variant is fixed for the season, whatever the weather.
+    for (let i = 0; i < 20; i++) {
       log.wait(DAY);
+      const later = localDay(log.at, 'Europe/London');
+      log.add('weather', null, { day: later, weather: 'rain', source: 'weatherkit' });
+      log.add('shared_rain', null, { day: later, people: [bea, pip, fig] });
     }
-    expect(turned).toBe(1);
+    expect(plantOf(log.state(), 'marigold')).toMatchObject({
+      rare: rolled.rare,
+      rareRolledOn: day,
+    });
+    expect(
+      log.state().fieldGuide.filter((p) => p.plant === 'marigold' && p.variant !== null),
+    ).toHaveLength(rare ? 1 : 0);
   });
 
-  it('raises the chance to 0.40 with shared rain, which counts as rain on a dry day', () => {
+  it('lets shared rain later the same day roll again at 0.40, counting as rain on a dry day', () => {
+    // Find a day whose plain roll misses but whose shared-rain roll would hit.
     const log = bloomMarigold();
-    for (let i = 0; i < 25; i++) {
-      const day = localDay(log.at, 'Europe/London');
-      const before = plantOf(log.state(), 'marigold').rare;
-      log.add('shared_rain', null, { day, people: [bea, pip, fig] });
-      const roll = rareRoll(log.state().farm, 'marigold', day, 'rain');
-      if (before === null) {
-        expect(plantOf(log.state(), 'marigold').rare).toBe(
-          roll < RARE_CHANCE_SHARED_RAIN ? 'rain_kissed' : null,
-        );
-      }
+    const farmId = log.state().farm;
+    let day = localDay(log.at, 'Europe/London');
+    while (!(
+      rareRoll(farmId, 'marigold', day, 'heat') >= RARE_CHANCE &&
+      rareRoll(farmId, 'marigold', day, 'heat') < RARE_CHANCE_SHARED_RAIN
+    )) {
       log.wait(DAY);
+      day = localDay(log.at, 'Europe/London');
     }
+    log.add('weather', null, { day, weather: 'heat', source: 'weatherkit' });
+    expect(plantOf(log.state(), 'marigold')).toMatchObject({ rare: null, rareRolledOn: day });
+    log.add('shared_rain', null, { day, people: [bea, pip, fig] });
+    expect(plantOf(log.state(), 'marigold').rare).toBe('sun_gold');
+    // On a dry day, shared rain alone rolls as rain.
+    const dry = bloomMarigold();
+    const dryDay = localDay(dry.at, 'Europe/London');
+    dry.add('shared_rain', null, { day: dryDay, people: [bea, pip, fig] });
+    const expected = rareRoll(farmId, 'marigold', dryDay, 'rain') < RARE_CHANCE_SHARED_RAIN;
+    expect(plantOf(dry.state(), 'marigold')).toMatchObject({
+      rare: expected ? 'rain_kissed' : null,
+      rareRolledOn: dryDay,
+    });
   });
 
   it('never rerolls: the same facts give the same number, on every device', () => {

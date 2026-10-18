@@ -14,8 +14,8 @@ import {
   pip,
   plantOf,
 } from './farm.test-data';
-import { UNSENT_PLAN_TITLE } from './plans';
-import { applyEvent, applyParsed, applyRestored, replay } from './reducer';
+import { applyRestored } from './plans';
+import { applyEvent, applyParsed, replay } from './reducer';
 import { farmView } from './view';
 
 const plan = {
@@ -110,10 +110,17 @@ describe('plans', () => {
   it('puts an unsent plan back when an appeal restores it', () => {
     const log = newFarm();
     const seed = log.add('seed_planted', bea, plan);
+    log.add('rsvp', pip, { seed: seed.seq, answer: 'in' });
     log.add('unsend', null, { target: seed.seq, by: 'safety' });
-    expect(log.state().seeds).toEqual([]);
+    expect(log.state().seeds.map((s) => [s.unsent, s.title, s.place, s.rsvps.length])).toEqual([
+      [true, null, null, 1],
+    ]);
+    expect(farmView(log.state(), log.at).plans).toEqual([]);
     const restored = applyRestored(log.state(), seed);
-    expect(restored.seeds.map((s) => s.title)).toEqual(['Picnic']);
+    expect(restored.seeds.map((s) => [s.unsent, s.title, s.rsvps.length])).toEqual([
+      [false, 'Picnic', 1],
+    ]);
+    expectSnapshot(restored);
     expect(applyRestored(restored, seed)).toBe(restored);
   });
 });
@@ -204,17 +211,18 @@ describe('members', () => {
       [fig, 'fig', 'left'],
       [pip, null, 'account_deleted'],
     ]);
-    expect(state.seeds).toEqual([]);
+    expect(state.seeds.map((s) => [s.unsent, s.title])).toEqual([[true, null]]);
     expect(state.doorstep).toEqual([]);
+    expect(state.former.map((f) => f.joinedAt)).toEqual([T0, T0]);
     log.add('joined', fig, { name: 'Fig', critter, via: 'invite' });
     expect(log.state().former.map((f) => f.person)).toEqual([pip]);
   });
 
-  it('counts sleepiness from the earliest anyone lived here, departed members included', () => {
+  it('counts sleepiness from the earliest join, departed members included', () => {
     const log = newFarm({ members: [bea] });
     log.wait(10 * DAY).add('left', bea, { how: 'left' });
     log.wait(6 * DAY).add('joined', pip, { name: 'Pip', critter, via: 'invite' });
-    // A former member's departure is the earliest time the snapshot still knows of.
+    // The farm's first member joined eighteen days ago, though they have since left.
     const marigold = farmView(log.state(), log.at + 2 * DAY).plants[0];
     expect(marigold?.sleepy).toBe(true);
   });
@@ -246,12 +254,12 @@ describe('Snapshots, versions and the porch pot: rules versions', () => {
     const log = newFarm();
     log.add('dewdrop', bea, {});
     const before = log.state();
-    const newer = { ...log.add('dewdrop', pip, {}), rulesVersion: 2 };
+    const newer = { ...log.add('dewdrop', pip, {}), rulesVersion: 3 };
     expect(applyEvent(before, newer)).toBe(before);
-    log.add('rules_changed', null, { from: 1, to: 2 });
+    log.add('rules_changed', null, { from: 2, to: 3 });
     log.add('dewdrop', fig, {});
     const after = log.state();
-    expect(after.rulesVersion).toBe(2);
+    expect(after.rulesVersion).toBe(3);
     expect(plantOf(after, 'marigold').dew).toBe(2);
     expect(farmView(after, log.at).rulesOutdated).toBe(true);
   });
@@ -279,7 +287,7 @@ describe('Snapshots, versions and the porch pot: rules versions', () => {
   it('never draws a plan whose planting arrived already unsent', () => {
     const log = newFarm();
     log.add('seed_planted', bea, { tombstone: 'unsent' });
-    expect(log.state().seeds[0]?.title).toBe(UNSENT_PLAN_TITLE);
+    expect(log.state().seeds[0]).toMatchObject({ unsent: true, title: null, place: null });
     expect(farmView(log.state(), log.at).plans).toEqual([]);
     expectSnapshot(log.state());
   });

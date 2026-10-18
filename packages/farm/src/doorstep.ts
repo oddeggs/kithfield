@@ -10,8 +10,8 @@ import {
 } from '@kithfield/contracts';
 
 import { factsOf } from './growth';
-import { memberOf, updateMember } from './members';
-import { withoutSeed } from './plans';
+import { memberOf, updateMember, withoutStatus } from './members';
+import { withUnsentSeed } from './plans';
 import { isBirthday } from './time';
 
 /* What waits on doorsteps, the cork board's pins, and birthday roses and cards. */
@@ -51,7 +51,7 @@ export const applyDoorstep = (
         const opened = state.doorstep.filter((d) => !(d.seq === facts['target'] && d.to === from));
         // Opening a firefly wakes the critter it was left for.
         return updateMember({ ...state, doorstep: opened }, from, () => ({
-          lastOpenedAt: event.at,
+          lastWokenAt: event.at,
         }));
       }
       return to ? withItem(state, { seq, kind: 'firefly', from, to }) : state;
@@ -95,7 +95,10 @@ export const applyPin = (state: FarmState, event: EventOf<'pin'>): FarmState => 
   return { ...state, pins };
 };
 
-/** An unsend or a removal takes the target off the cork board, the doorstep and the plans. */
+/**
+ * An unsend or a removal takes the target off the cork board, the doorstep and the status bubble,
+ * and leaves a plan unsent.
+ */
 export const applyUnsend = (state: FarmState, event: EventOf<'unsend'>): FarmState => {
   const target = factsOf(event)['target'];
   if (typeof target !== 'number') return state;
@@ -104,7 +107,7 @@ export const applyUnsend = (state: FarmState, event: EventOf<'unsend'>): FarmSta
     pins: state.pins.filter((p) => p !== target),
     doorstep: state.doorstep.filter((d) => d.seq !== target),
   };
-  return withoutSeed(next, target);
+  return withoutStatus(withUnsentSeed(next, target), target);
 };
 
 const birthdayToday = (state: FarmState, person: PersonId, day: LocalDate): boolean => {

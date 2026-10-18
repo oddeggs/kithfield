@@ -60,7 +60,11 @@ const act = fc.oneof(
     weight: 30,
     arbitrary: fc.record({ t: fc.constant('simple' as const), i: fc.nat(SIMPLE.length - 1) }),
   },
-  fc.record({ t: fc.constant('seed' as const) }),
+  fc.record({
+    t: fc.constant('seed' as const),
+    place: fc.boolean(),
+    yeses: fc.constantFrom('couple', 'most'),
+  }),
   fc.record({
     t: fc.constant('vote' as const),
     seed: fc.nat(),
@@ -143,8 +147,8 @@ export const buildLog = (kind: FarmKind, steps: readonly Step[]): Log => {
           log.add('seed_planted', who, {
             title: 'Plan',
             days: [{ date: day }],
-            place: null,
-            yeses: 'couple',
+            place: a.place ? { name: 'Park' } : null,
+            yeses: a.yeses,
             someday: false,
           }).seq,
         );
@@ -162,7 +166,6 @@ export const buildLog = (kind: FarmKind, steps: readonly Step[]): Log => {
         log.add('seed_changed', who, {
           seed: pick(seeds, a.seed),
           hat: to,
-          place: { name: 'Park' },
         });
         break;
       case 'pin':
@@ -235,7 +238,7 @@ export const buildLog = (kind: FarmKind, steps: readonly Step[]): Log => {
   return log;
 };
 
-/** Everything the farm grew: what a tombstone must leave exactly the same. */
+/** Everything a tombstone must leave the same: growth, and what the farm derives from facts. */
 export const growthOf = (state: FarmState) => ({
   plants: state.plants,
   pot: state.pot,
@@ -243,16 +246,11 @@ export const growthOf = (state: FarmState) => ({
   today: state.today,
   fieldGuide: state.fieldGuide,
   basket: state.basket,
-  members: state.members.map((m) => [
-    m.person,
-    m.lastTendedAt,
-    m.lastOpenedAt,
-    m.activeThisSeason,
-    m.hibernating,
-  ]),
+  members: state.members,
   former: state.former,
+  roses: state.roses,
   doorstep: state.doorstep,
   pins: state.pins,
-  seeds: state.seeds.map((s) => [s.seq, s.planter, s.hat, s.votes, s.rsvps, s.checkins]),
+  seeds: state.seeds,
   fireLitAt: state.fireLitAt,
 });
