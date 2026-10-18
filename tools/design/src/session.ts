@@ -17,7 +17,10 @@ import { routeThroughCache } from './net-cache';
 export const FROZEN_TIME = Date.UTC(2026, 9, 24, 9, 41, 0);
 /** Animated art is drawn at this many seconds in: late enough that reveals have finished. */
 export const ART_T = 4.5;
-/** The instant the art engine itself uses when art holds still. */
+/**
+ * The instant the art engine itself uses when art holds still: its frame loop in
+ * design/kithfield-art.js calls `el.draw(motion && !still ? t : 1.2)`.
+ */
 export const ART_STILL_T = 1.2;
 
 export interface SessionOptions {

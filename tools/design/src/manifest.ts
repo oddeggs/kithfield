@@ -27,9 +27,10 @@ export interface RenderIndex {
 }
 
 export const SCHEME: Record<RenderKind, string> = {
-  screen: '<id>.png per data-screen-label, <id>.<variant>.png per tweak; @3x up to 500 css px wide, @2x wider',
+  screen:
+    '<id>.png per data-screen-label, <id>.<variant>.png per tweak; @3x up to 500 css px wide, @2x wider',
   section: '<file-slug>/<section-slug>.png per section of a file without screen labels; @2x',
-  page: '<file-slug>/<width>/<section-slug>[-NN].png, one viewport per scroll stop; 390 @3x, 834 @2x, 1440 @1x',
+  page: '<file-slug>/<width>/<section-slug>[-NN].png, one viewport per scroll stop; 390 @3x, 834 @2x, 1440 @2x',
 };
 
 function sortRecord<T>(record: Record<string, T>): Record<string, T> {

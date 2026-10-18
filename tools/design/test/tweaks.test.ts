@@ -64,7 +64,11 @@ describe('variants', () => {
 
   it('compares a combination with the defaults and each single tweak it builds on', () => {
     const combo = variants.find((v) => v.suffix === 'winter.night');
-    expect(combo && parentVariants(combo, variants).map((v) => v.suffix)).toEqual(['', 'night', 'winter']);
+    expect(combo && parentVariants(combo, variants).map((v) => v.suffix)).toEqual([
+      '',
+      'night',
+      'winter',
+    ]);
     const single = variants.find((v) => v.suffix === 'summer');
     expect(single && parentVariants(single, variants).map((v) => v.suffix)).toEqual(['']);
   });

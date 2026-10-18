@@ -84,7 +84,12 @@ export async function renderDesign(options: RunOptions): Promise<RunSummary> {
     cacheDir: options.cacheDir,
     offline: options.offline,
   });
-  const job: RenderJob = { session, origin: server.origin, outDir: options.outDir, tokens: options.tokens };
+  const job: RenderJob = {
+    session,
+    origin: server.origin,
+    outDir: options.outDir,
+    tokens: options.tokens,
+  };
   const entries: RenderEntry[] = [];
   const failures: string[] = [];
   try {
@@ -119,7 +124,9 @@ export async function renderDesign(options: RunOptions): Promise<RunSummary> {
       files.flatMap((f) =>
         f.labels
           .map((l) => parseLabel(l)?.id ?? '')
-          .filter((id) => id && (fileSelected(f.slug, options.tokens) || idSelected(id, options.tokens))),
+          .filter(
+            (id) => id && (fileSelected(f.slug, options.tokens) || idSelected(id, options.tokens)),
+          ),
       ),
     ),
   ].sort();

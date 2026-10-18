@@ -25,18 +25,20 @@ export interface PageWidth {
 export const PAGE_WIDTHS: readonly PageWidth[] = [
   { width: 390, height: 844, scale: 3 },
   { width: 834, height: 1194, scale: 2 },
-  { width: 1440, height: 900, scale: 1 },
+  { width: 1440, height: 900, scale: 2 },
 ];
 
 /**
  * One stop per viewport height through each section, so a tall pinned section (whose stage
- * changes as you scroll) is captured at several points. Stops past the end of the page are
- * clamped to the last scrollable offset; empty sections are skipped.
+ * changes as you scroll) is captured at several points. Each stop sits `topInset` above the
+ * section, so a fixed nav of that height does not cover the section's top. Stops outside the
+ * page are clamped to the scrollable range; empty sections are skipped.
  */
 export function scrollStops(
   sections: readonly SectionBox[],
   viewportHeight: number,
   pageHeight: number,
+  topInset = 0,
 ): ScrollStop[] {
   const maxY = Math.max(0, pageHeight - viewportHeight);
   const visible = sections.filter((s) => s.height >= 1);
@@ -46,7 +48,9 @@ export function scrollStops(
     const slug = slugs[i] ?? 'section';
     const count = Math.max(1, Math.ceil((section.height - 1) / viewportHeight));
     for (let k = 0; k < count; k++) {
-      const y = Math.round(Math.min(maxY, section.top + k * viewportHeight));
+      const y = Math.round(
+        Math.max(0, Math.min(maxY, section.top + k * viewportHeight - topInset)),
+      );
       const name = count === 1 ? slug : `${slug}-${String(k + 1).padStart(2, '0')}`;
       stops.push({ name, y });
     }

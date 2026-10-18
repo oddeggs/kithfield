@@ -13,15 +13,18 @@ import { PAGE_WIDTHS, scrollStops } from './stops';
  * `<file-slug>/<width>/<stop>.png`. Scroll-driven scenes run their scroll handlers on the paused
  * clock, so each stop shows the stage exactly as it sits at that offset.
  */
-export async function renderScrollingPage(job: RenderJob, file: DesignFile): Promise<RenderEntry[]> {
+export async function renderScrollingPage(
+  job: RenderJob,
+  file: DesignFile,
+): Promise<RenderEntry[]> {
   const url = `${job.origin}/${encodeURIComponent(file.name)}`;
   const entries: RenderEntry[] = [];
   for (const size of PAGE_WIDTHS) {
     const viewport = { width: size.width, height: size.height };
     const page = await openDesignPage(job.session, viewport, size.scale, url);
     try {
-      const { sections, pageHeight } = await page.evaluate(pageSections);
-      for (const stop of scrollStops(sections, size.height, pageHeight)) {
+      const { sections, pageHeight, topInset } = await page.evaluate(pageSections);
+      for (const stop of scrollStops(sections, size.height, pageHeight, topInset)) {
         await page.evaluate(jumpTo, stop.y);
         await settle(page, true);
         const id = `${file.slug}/${size.width}/${stop.name}`;

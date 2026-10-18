@@ -12,12 +12,11 @@ import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { diffHashes, hashPngs, treeDigest } from './hashes';
-import { DRIFT_TOLERANCE, decodePng, pixelDrift } from './png';
+import { DETERMINISM_TOLERANCE, decodePng, pixelDrift } from './png';
 import { type RunOptions, type RunSummary, renderDesign } from './run';
 import { parseOnly } from './select';
 
 const root = resolve(import.meta.dirname, '../../..');
-
 
 const { values } = parseArgs({
   args: process.argv.slice(2).filter((arg) => arg !== '--'),
@@ -33,7 +32,9 @@ const { values } = parseArgs({
 
 const base: RunOptions = {
   designDir: join(root, 'design'),
-  outDir: values.out ? resolve(process.env['INIT_CWD'] ?? process.cwd(), values.out) : join(root, 'design/renders'),
+  outDir: values.out
+    ? resolve(process.env['INIT_CWD'] ?? process.cwd(), values.out)
+    : join(root, 'design/renders'),
   cacheDir: join(import.meta.dirname, '../node_modules/.cache/kithfield-design'),
   tokens: parseOnly(values.only),
   offline: values.offline,
@@ -73,20 +74,21 @@ async function main(): Promise<number> {
     const diff = diffHashes(a, b);
     console.log(`\n${diff.same} of ${a.size} PNGs byte-identical across two runs`);
     console.log(`digest ${treeDigest(a)} / ${treeDigest(b)}`);
-    // Byte-identical is the goal. A handful of pixels can still flip by a level or two where
-    // Chromium's compositor antialiases a rotated edge; that drift is reported, and tolerated
-    // up to DRIFT_TOLERANCE of a render's pixels.
+    // Byte-identical is the goal. A handful of pixels can still differ (an antialiased rotated
+    // edge, a system-font glyph placed a pixel apart); that drift is reported, and tolerated up
+    // to DETERMINISM_TOLERANCE of a render's pixels.
     let beyond = 0;
     for (const path of diff.changed) {
       const read = (run: string): Buffer => readFileSync(join(scratch, run, path));
       const d = pixelDrift(decodePng(read('first')), decodePng(read('second')));
-      if (d.share > DRIFT_TOLERANCE) beyond++;
+      if (d.share > DETERMINISM_TOLERANCE) beyond++;
       console.log(
         `drift: ${path} (${d.differing} pixels, ${(d.share * 100).toFixed(4)}%, ` +
-          `by at most ${d.max}/255)${d.share > DRIFT_TOLERANCE ? ' OVER TOLERANCE' : ''}`,
+          `by at most ${d.max}/255)${d.share > DETERMINISM_TOLERANCE ? ' OVER TOLERANCE' : ''}`,
       );
     }
-    for (const path of [...diff.onlyInFirst, ...diff.onlyInSecond]) console.log(`only once: ${path}`);
+    for (const path of [...diff.onlyInFirst, ...diff.onlyInSecond])
+      console.log(`only once: ${path}`);
     console.log(`(${((Date.now() - started) / 1000).toFixed(0)}s)`);
     return beyond || diff.onlyInFirst.length || diff.onlyInSecond.length ? 1 : 0;
   } finally {

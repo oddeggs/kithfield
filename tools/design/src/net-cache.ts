@@ -42,7 +42,11 @@ async function fulfillFromCache(route: Route, cacheDir: string, offline: boolean
   const bodyPath = join(cacheDir, `${key}.body`);
   try {
     const meta = JSON.parse(readFileSync(metaPath, 'utf8')) as CachedResponse;
-    await route.fulfill({ status: meta.status, headers: meta.headers, body: readFileSync(bodyPath) });
+    await route.fulfill({
+      status: meta.status,
+      headers: meta.headers,
+      body: readFileSync(bodyPath),
+    });
     return;
   } catch {
     // Not cached yet.

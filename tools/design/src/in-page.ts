@@ -152,16 +152,23 @@ export function tagScreens(): TargetInfo[] {
 }
 
 /**
- * Tags the sections of a canvas file: the blocks under `<main>` after the file's own header.
- * The label is the section's id, or its title (the first line of text) when it has none.
+ * Tags the sections of a canvas file: the blocks under `<main>` after the file's own header,
+ * leaving out footnotes (blocks under 80 px, or only paragraphs). The label is the section's id,
+ * or its title (the first line of text) when it has none.
  */
 export function tagSections(): TargetInfo[] {
   const main = document.querySelector('main');
   if (!main) return [];
-  const blocks = [...main.children].filter(
-    (el): el is HTMLElement => el instanceof HTMLElement && el.offsetHeight > 0,
-  );
-  return blocks.slice(1).map((el, index) => {
+  const blocks = [...main.children]
+    .filter((el): el is HTMLElement => el instanceof HTMLElement && el.offsetHeight > 0)
+    .slice(1)
+    .filter(
+      (el) =>
+        el.offsetHeight >= 80 &&
+        el.tagName !== 'P' &&
+        !(el.children.length > 0 && [...el.children].every((child) => child.tagName === 'P')),
+    );
+  return blocks.map((el, index) => {
     el.setAttribute('data-render-target', String(index));
     const title = (el.innerText.split('\n').find((line) => line.trim()) ?? '').trim();
     return { index, label: el.id || title, width: el.offsetWidth, height: el.offsetHeight };
@@ -174,8 +181,19 @@ export interface PageSection {
   height: number;
 }
 
-/** The top-level `<section>` blocks of a scrolling page, with their document offsets. */
-export function pageSections(): { sections: PageSection[]; pageHeight: number } {
+/**
+ * The top-level `<section>` blocks of a scrolling page, with their document offsets, and the
+ * height of the bar pinned across the top of the viewport (a fixed or sticky nav), if any.
+ */
+export function pageSections(): { sections: PageSection[]; pageHeight: number; topInset: number } {
+  let topInset = 0;
+  for (const el of document.querySelectorAll<HTMLElement>('body *')) {
+    const position = getComputedStyle(el).position;
+    if (position !== 'fixed' && position !== 'sticky') continue;
+    const box = el.getBoundingClientRect();
+    const bar = box.top <= 0 && box.width >= innerWidth * 0.9 && box.height < innerHeight / 3;
+    if (bar) topInset = Math.max(topInset, Math.round(box.bottom));
+  }
   const sections = [...document.querySelectorAll<HTMLElement>('section')]
     .filter((el) => !el.parentElement?.closest('section'))
     .map((el) => {
@@ -183,17 +201,26 @@ export function pageSections(): { sections: PageSection[]; pageHeight: number } 
       const title = (el.innerText.split('\n').find((line) => line.trim()) ?? '').trim();
       return { label: el.id || title, top: box.top + scrollY, height: box.height };
     });
-  return { sections, pageHeight: document.documentElement.scrollHeight };
+  return { sections, pageHeight: document.documentElement.scrollHeight, topInset };
 }
 
 /**
- * Scrolls a tagged target to the top-left of the viewport. Content at fractional offsets
- * rasterises differently at different scroll offsets, so each capture starts from the same one
- * instead of wherever the previous capture left the page.
+ * Scrolls a tagged target to the top-left of the viewport and returns its capture box: the
+ * rounded origin and the layout size. Content at fractional offsets rasterises differently at
+ * different scroll offsets, so each capture starts from the same one instead of wherever the
+ * previous capture left the page.
  */
-export function bringToTop(index: number): void {
-  const el = document.querySelector(`[data-render-target="${index}"]`);
-  el?.scrollIntoView({ block: 'start', inline: 'start', behavior: 'instant' });
+export function bringToTop(index: number): { x: number; y: number; width: number; height: number } {
+  const el = document.querySelector<HTMLElement>(`[data-render-target="${index}"]`);
+  if (!el) throw new Error(`No render target ${index}`);
+  el.scrollIntoView({ block: 'start', inline: 'start', behavior: 'instant' });
+  const box = el.getBoundingClientRect();
+  return {
+    x: Math.round(box.x),
+    y: Math.round(box.y),
+    width: el.offsetWidth,
+    height: el.offsetHeight,
+  };
 }
 
 /** Jumps (no smooth scrolling) to a vertical offset. */

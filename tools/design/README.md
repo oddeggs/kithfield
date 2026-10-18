@@ -7,7 +7,7 @@ regenerated, not committed; only `design/renders/compare/` is kept in git.
 ## Run
 
 ```sh
-pnpm exec playwright install chromium-headless-shell   # once per machine
+pnpm --filter @kithfield/design exec playwright install chromium-headless-shell   # once per machine
 pnpm --filter @kithfield/design render                 # everything (about 6 min)
 pnpm --filter @kithfield/design render -- --only 04-01,16,01-foundations
 pnpm --filter @kithfield/design render -- --check-determinism --only 04,17-landing
@@ -25,7 +25,8 @@ If `playwright install` stalls while unpacking (seen with Node 26), unzip the ar
 - `--offline` renders from the network cache only (see Determinism).
 - `--concurrency <n>` design files in parallel (default 4).
 - `--check-determinism` renders the selection twice into temporary folders and fails unless every
-  PNG matches (byte for byte, or within the drift tolerance below); `--keep` keeps both runs.
+  PNG matches (byte for byte, or within 0.05% of its pixels; see Determinism); `--keep` keeps both
+  runs.
 - `compare` writes `design/renders/compare/<name>.side.png` (render left, screenshot scaled to the
   render's width right) and `<name>.diff.png` (pixels over the threshold in red), and prints the
   mean difference out of 255.
@@ -37,11 +38,15 @@ If `playwright install` stalls while unpacking (seen with Node 26), unzip the ar
 | A frame with `data-screen-label="04-01 Farm home"` | `04-01.png` | @3x up to 500 CSS px wide (phones), @2x wider (web, iPad, desktop frames such as `17-01`) |
 | The same frame under tweaks | `04-01.night.png`, `04-01.winter.png`, `04-01.winter.night.png` | as above |
 | A section of a canvas file with no screen labels (`00 Cover`, `01 Foundations`, `02 Cast`) | `01-foundations/<section>.png`, `<section>.<variant>.png` | @2x |
-| A scrolling page (`17 Landing`, `17 Landing VI`), one viewport per stop | `17-landing/<width>/<section>[-NN].png` | 390×844 @3x, 834×1194 @2x, 1440×900 @1x |
+| A scrolling page (`17 Landing`, `17 Landing VI`), one viewport per stop | `17-landing/<width>/<section>[-NN].png` | 390×844 @3x, 834×1194 @2x, 1440×900 @2x |
 
 Section slugs come from the section's `id` (`colour`, `components`, `dev-notes`), or its title when
-it has none. Page stops step one viewport at a time through each `<section>`, so the pinned,
+it has none; footnotes (blocks under 80 px, or only paragraphs) are skipped. Page stops step one
+viewport at a time through each `<section>`, each placed just below the fixed nav, so the pinned,
 scroll-driven `evening` section appears as `evening-01` … `evening-07`.
+
+Every PNG is exactly its index entry's `width × scale` by `height × scale` device pixels: frames
+are captured by their rounded box, not by an element screenshot that rounds outwards.
 
 `design/renders/index.json` maps each id (`04-01`, `01-foundations/colour`,
 `17-landing/1440/critters`) to its file, source `.dc.html`, title, CSS size, scale and variants.
@@ -77,11 +82,13 @@ renders already freeze animation.
   cached in `tools/design/node_modules/.cache/kithfield-design` on first fetch and replayed byte
   for byte afterwards, so later runs are stable and work offline (`--offline`).
 - Chromium runs with software raster, one raster thread, an sRGB profile and memory pressure off.
-  Canvas files are laid out in a 1600×4200 viewport, taller than any frame, because a capture
-  larger than the viewport takes another raster path that changes later captures; and each page
-  gets one whole-viewport capture, thrown away, before the real ones.
-- `--check-determinism` expects byte-identical PNGs. Should a few pixels ever differ (a level or
-  two on an antialiased edge), it reports them as drift and tolerates up to 0.01% of a render's
-  pixels; the same tolerance keeps such drift from ever creating a tweak variant.
+  Canvas files are laid out in a 4200 px tall viewport (2400 px wide for the files with wide
+  frames, 1600 otherwise), larger than any frame, because a capture outside the viewport takes
+  another raster path that changes later captures; and each page gets one whole-viewport
+  capture, thrown away, before the real ones.
+- `--check-determinism` expects byte-identical PNGs. A few pixels can still differ between runs
+  (an antialiased rotated edge in `13`, the system-font back chevron in `08` placed a pixel apart);
+  it reports that as drift and tolerates up to 0.05% of a render's pixels. A tweak variant is
+  kept only when it changes more than 0.1% of a screen's pixels, so drift never makes one.
 - Renders depend on the pinned Chromium and on this Mac's system fonts (SF Pro for UI text):
   compare renders made on the same machine and Playwright version.

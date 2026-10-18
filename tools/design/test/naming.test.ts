@@ -21,7 +21,10 @@ describe('screen labels', () => {
 
   it('accepts a bare id and collapses whitespace in the title', () => {
     expect(parseLabel('  17-01  ')).toEqual({ id: '17-01', title: '' });
-    expect(parseLabel('12-12 Vietnamese\n  screen')).toEqual({ id: '12-12', title: 'Vietnamese screen' });
+    expect(parseLabel('12-12 Vietnamese\n  screen')).toEqual({
+      id: '12-12',
+      title: 'Vietnamese screen',
+    });
   });
 
   it('rejects an empty label', () => {
@@ -29,7 +32,8 @@ describe('screen labels', () => {
   });
 
   it('reads labels from a source as written', () => {
-    const html = '<div data-screen-label="03-01 Welcome"></div><div data-screen-label="03-02 Pick"></div>';
+    const html =
+      '<div data-screen-label="03-01 Welcome"></div><div data-screen-label="03-02 Pick"></div>';
     expect(labelsInSource(html)).toEqual(['03-01 Welcome', '03-02 Pick']);
   });
 });
@@ -50,13 +54,20 @@ describe('slugs and file names', () => {
   });
 
   it('numbers repeated slugs instead of overwriting', () => {
-    expect(uniqueSlugs(['intro', 'colour', 'intro', ''])).toEqual(['intro', 'colour', 'intro-2', 'section']);
+    expect(uniqueSlugs(['intro', 'colour', 'intro', ''])).toEqual([
+      'intro',
+      'colour',
+      'intro-2',
+      'section',
+    ]);
   });
 
   it('names defaults and variants', () => {
     expect(renderFileName('04-01')).toBe('04-01.png');
     expect(renderFileName('04-01', 'winter.night')).toBe('04-01.winter.night.png');
-    expect(renderFileName('01-foundations/colour', 'summer')).toBe('01-foundations/colour.summer.png');
+    expect(renderFileName('01-foundations/colour', 'summer')).toBe(
+      '01-foundations/colour.summer.png',
+    );
   });
 
   it('renders phone frames at 3x and wider frames at 2x', () => {

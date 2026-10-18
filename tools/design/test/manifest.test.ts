@@ -27,7 +27,9 @@ describe('the index', () => {
   });
 
   it('refuses an id that appears twice', () => {
-    expect(() => buildIndex([entry('04-01'), entry('04-01', '12 States.dc.html')])).toThrow(/04-01/);
+    expect(() => buildIndex([entry('04-01'), entry('04-01', '12 States.dc.html')])).toThrow(
+      /04-01/,
+    );
   });
 
   it('merges a partial run into the previous index', () => {
@@ -57,6 +59,24 @@ describe('scroll stops', () => {
       { name: 'evening-03', y: 2000 },
       { name: 'critters', y: 2500 },
       { name: 'join', y: 2600 },
+    ]);
+  });
+});
+
+describe('scroll stops under a fixed nav', () => {
+  it('places each stop the nav height above its section, never above the page', () => {
+    const stops = scrollStops(
+      [
+        { label: 'hero', top: 0, height: 900 },
+        { label: 'rules', top: 900, height: 600 },
+      ],
+      1000,
+      3000,
+      64,
+    );
+    expect(stops).toEqual([
+      { name: 'hero', y: 0 },
+      { name: 'rules', y: 836 },
     ]);
   });
 });

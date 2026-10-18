@@ -70,7 +70,7 @@ export async function compose(args: { a: string; b: string; threshold: number })
       Math.abs((pa[i + 1] ?? 0) - (pb[i + 1] ?? 0)),
       Math.abs((pa[i + 2] ?? 0) - (pb[i + 2] ?? 0)),
     );
-    const grey = 255 - ((255 - ((pa[i] ?? 0) + (pa[i + 1] ?? 0) + (pa[i + 2] ?? 0)) / 3) * 0.25);
+    const grey = 255 - (255 - ((pa[i] ?? 0) + (pa[i + 1] ?? 0) + (pa[i + 2] ?? 0)) / 3) * 0.25;
     const hot = delta > args.threshold;
     if (hot) changed++;
     out.data[i] = hot ? 230 : grey;
@@ -89,7 +89,6 @@ export async function compose(args: { a: string; b: string; threshold: number })
     pixels: w * h,
   };
 }
-
 
 const dataUrl = (png: Buffer): string => `data:image/png;base64,${png.toString('base64')}`;
 

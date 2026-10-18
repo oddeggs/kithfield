@@ -6,19 +6,32 @@ import { type Page } from 'playwright';
 import { type DesignFile } from './design-file';
 import { type TargetInfo, bringToTop, tagScreens, tagSections } from './in-page';
 import { type RenderEntry } from './manifest';
-import { WIDE_SCALE, parseLabel, renderFileName, scaleForWidth, titleSlug, uniqueSlugs } from './naming';
+import {
+  WIDE_SCALE,
+  parseLabel,
+  renderFileName,
+  scaleForWidth,
+  titleSlug,
+  uniqueSlugs,
+} from './naming';
 import { fileSelected, idSelected } from './select';
-import { DRIFT_TOLERANCE, decodePng, pixelDrift } from './png';
+import { VARIANT_MIN_SHARE, decodePng, pixelDrift } from './png';
 import { type Session, applyTweaks, closeDesignPage, openDesignPage } from './session';
 import { parentVariants, tweakVariants } from './tweaks';
 
 /**
- * Canvas files are laid out at this viewport; frames have fixed sizes, so the width only affects
- * sections. It is taller than any frame or section (the tallest, the cover's map, is 4000 px):
- * a capture larger than the viewport takes another raster path in Chromium, which then changes
- * how later captures rasterise.
+ * Canvas files are laid out in a viewport larger than any frame or section (the widest frame is
+ * about 2070 px, the tallest section, the cover's map, 4000 px): a capture that leaves the
+ * viewport takes another raster path in Chromium, which then changes how later captures
+ * rasterise. Frames have fixed sizes, so the width only moves them; sections reflow with it, so
+ * section files keep the narrower width.
  */
-const CANVAS_VIEWPORT = { width: 1600, height: 4200 };
+const CANVAS_HEIGHT = 4200;
+
+function canvasViewport(file: DesignFile, scale: number): { width: number; height: number } {
+  const width = file.mode === 'screens' && scale === WIDE_SCALE ? 2400 : 1600;
+  return { width, height: CANVAS_HEIGHT };
+}
 
 export interface RenderJob {
   session: Session;
@@ -66,18 +79,21 @@ function tag(page: Page, file: DesignFile): Promise<TargetInfo[]> {
   return file.mode === 'screens' ? page.evaluate(tagScreens) : page.evaluate(tagSections);
 }
 
+/**
+ * Captures a target at exactly its CSS size: an element screenshot rounds a fractional box
+ * outwards (a 852 px frame at 852.33 comes out a device pixel or two taller), so the clip is the
+ * box's rounded origin and its layout size.
+ */
 async function capture(page: Page, index: number): Promise<Buffer> {
-  await page.evaluate(bringToTop, index);
-  return page
-    .locator(`[data-render-target="${index}"]`)
-    .screenshot({ animations: 'disabled', caret: 'hide', timeout: 60_000 });
+  const clip = await page.evaluate(bringToTop, index);
+  return page.screenshot({ clip, animations: 'disabled', caret: 'hide', timeout: 60_000 });
 }
 
-/** A real difference, not the few pixels of compositor drift two identical renders can show. */
+/** A real difference, not the few pixels of drift two renders of the same state can show. */
 function differs(before: Buffer | undefined, after: Buffer): boolean {
   if (!before) return true;
   if (before.equals(after)) return false;
-  return pixelDrift(decodePng(before), decodePng(after)).share > DRIFT_TOLERANCE;
+  return pixelDrift(decodePng(before), decodePng(after)).share > VARIANT_MIN_SHARE;
 }
 
 function write(outDir: string, rel: string, png: Buffer): void {
@@ -100,7 +116,7 @@ export async function renderCanvasFile(job: RenderJob, file: DesignFile): Promis
   const pageAt = async (scale: number): Promise<Page> => {
     const open = pages.get(scale);
     if (open) return open;
-    const page = await openDesignPage(job.session, CANVAS_VIEWPORT, scale, url);
+    const page = await openDesignPage(job.session, canvasViewport(file, scale), scale, url);
     pages.set(scale, page);
     return page;
   };

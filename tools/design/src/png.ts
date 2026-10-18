@@ -25,7 +25,7 @@ export function decodePng(png: Uint8Array): Pixels {
   let height = 0;
   let channels = 0;
   const chunks: Uint8Array[] = [];
-  for (let at = 8; at < png.length; ) {
+  for (let at = 8; at < png.length;) {
     const length = view.getUint32(at);
     const type = String.fromCharCode(...png.subarray(at + 4, at + 8));
     const body = png.subarray(at + 8, at + 8 + length);
@@ -54,7 +54,15 @@ export function decodePng(png: Uint8Array): Pixels {
       const c = x >= channels && y > 0 ? (data[row - stride + x - channels] ?? 0) : 0;
       const v = raw[src + x] ?? 0;
       const predicted =
-        filter === 1 ? a : filter === 2 ? b : filter === 3 ? (a + b) >> 1 : filter === 4 ? paeth(a, b, c) : 0;
+        filter === 1
+          ? a
+          : filter === 2
+            ? b
+            : filter === 3
+              ? (a + b) >> 1
+              : filter === 4
+                ? paeth(a, b, c)
+                : 0;
       data[row + x] = (v + predicted) & 0xff;
     }
   }
@@ -89,5 +97,11 @@ export function pixelDrift(a: Pixels, b: Pixels): PixelDrift {
   return { differing, share: pixels ? differing / pixels : 0, max };
 }
 
-/** Renders that differ in no more than this share of pixels (0.01%) are the same render. */
-export const DRIFT_TOLERANCE = 0.0001;
+/**
+ * Two runs of the same render may differ in up to this share of pixels (0.05%) and still pass the
+ * determinism check: a few antialiased edges or a glyph that Chromium places a pixel apart.
+ */
+export const DETERMINISM_TOLERANCE = 0.0005;
+
+/** A tweak variant is kept only when it changes more than this share of a screen's pixels (0.1%). */
+export const VARIANT_MIN_SHARE = 0.001;
