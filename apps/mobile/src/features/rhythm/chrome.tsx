@@ -21,7 +21,7 @@ const CIRCLE = sizes.circle;
 
 /** The round glass back button. */
 export function BackButton({ onPress }: { readonly onPress: () => void }) {
-  const { t } = useLocale();
+  const { t, fontLocale } = useLocale();
   const { palette } = useTheme();
   return (
     <Press
@@ -36,7 +36,11 @@ export function BackButton({ onPress }: { readonly onPress: () => void }) {
         border={palette.glassButton.border}
         style={{ width: CIRCLE, height: CIRCLE, alignItems: 'center', justifyContent: 'center' }}
       >
-        <Txt variant="chevron" color={palette.text} style={{ fontSize: 26, marginTop: -3 }}>
+        <Txt
+          variant="chevron"
+          color={palette.text}
+          style={[typeAt('body', 26, 26, fontLocale), { marginTop: -3 }]}
+        >
           ‹
         </Txt>
       </Glass>
@@ -132,7 +136,7 @@ export function TitlePill({
         )}
       </View>
       {subtitle ? (
-        <Txt variant="note" color={palette.body} style={{ fontSize: 12, lineHeight: 14.4 }}>
+        <Txt variant="note" color={palette.body} style={typeAt('caption', 12, 14.4, fontLocale)}>
           {subtitle}
         </Txt>
       ) : null}

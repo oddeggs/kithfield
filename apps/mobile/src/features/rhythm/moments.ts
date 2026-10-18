@@ -66,3 +66,9 @@ export function todayWeather(
     source: typeof source === 'string' ? source : null,
   };
 }
+
+/** What the weather screen shows: today's weather, a calm day, or a farm with no town to follow. */
+export const weatherKind = (
+  weather: TodayWeather | null,
+  hasTown: boolean,
+): RealWeather | 'none' | 'noTown' => weather?.weather ?? (hasTown ? 'none' : 'noTown');

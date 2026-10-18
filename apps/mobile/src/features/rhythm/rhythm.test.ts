@@ -6,9 +6,9 @@ import { translator } from '@kithfield/i18n';
 import type { StoredEvent } from '../../data';
 import { DAY, farmLog } from '../farm/farm-log.test-data';
 import { birthdayBloom } from './birthday';
-import { say } from './copy';
-import { outcomeOf } from './gate-gestures';
-import { sharedRainToday, showSharedRain, todayWeather } from './moments';
+import { handText, inSentence, rainNames, say } from './copy';
+import { gateOps, outcomeOf } from './gate-gestures';
+import { sharedRainToday, showSharedRain, todayWeather, weatherKind } from './moments';
 import { captionKey, progressKey } from './project-copy';
 import { recapCopy, reasonKey } from './recap-copy';
 import { pressableHangouts, pressedArt, snapArt } from './scrapbook-model';
@@ -104,6 +104,12 @@ describe('shared rain and the weather', () => {
     });
     expect(todayWeather(state, view, [])?.source).toBeNull();
     expect(todayWeather(state, farmView(state, log.at + DAY), events)).toBeNull();
+  });
+
+  it('shows a calm farm without weather, never a made-up rain', () => {
+    expect(weatherKind({ weather: 'frost', city: 'Leeds', source: null }, true)).toBe('frost');
+    expect(weatherKind(null, true)).toBe('none');
+    expect(weatherKind(null, false)).toBe('noTown');
   });
 });
 
@@ -242,5 +248,37 @@ describe('gestures at a friend’s gate', () => {
     expect(outcomeOf({ result: 'rejected', opId: op, reason: 'not_member' })).toMatchObject({
       gone: true,
     });
+  });
+});
+
+describe('words the rhythm screens put together', () => {
+  it('puts you into the list of who is under the shared rain, in both languages', () => {
+    expect(rainNames(en, ['Pip', 'Fig', 'Bea'], true)).toBe('Pip, Fig, Bea and you');
+    expect(rainNames(en, ['Pip'], true)).toBe('Pip and you');
+    expect(rainNames(en, ['Pip', 'Fig', 'Bea'], false)).toBe('Pip, Fig and Bea');
+    expect(rainNames(vi, ['Pip', 'Fig'], true)).toBe('Pip, Fig và bạn');
+  });
+
+  it('keeps a farm name that starts with "The" lower case mid-sentence in English', () => {
+    expect(inSentence('The Thursday Lot', 'en')).toBe('the Thursday Lot');
+    expect(inSentence('Fern Hollow', 'en')).toBe('Fern Hollow');
+    expect(inSentence('The Lot', 'vi')).toBe('The Lot');
+  });
+
+  it('writes the hand-lettered face with a straight apostrophe', () => {
+    expect(handText('Pip’s at the gate')).toBe("Pip's at the gate");
+  });
+});
+
+describe('one op id per gesture at a gate', () => {
+  it('reuses a gesture’s op id until the farm has answered it', () => {
+    let n = 0;
+    const ops = gateOps(() => `op-${++n}`);
+    expect(ops.idFor('wave')).toBe('op-1');
+    // Sent but unanswered (offline, a timeout): the retry carries the same op id.
+    expect(ops.idFor('wave')).toBe('op-1');
+    expect(ops.idFor('firefly')).toBe('op-2');
+    ops.answered('wave');
+    expect(ops.idFor('wave')).toBe('op-3');
   });
 });

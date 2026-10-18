@@ -21,6 +21,7 @@ import { NightVeil, Panel } from '../farm/panel';
 import { backToFarm } from '../farm/routes';
 import { typeAt } from '../farm/type-at';
 import { ActionButton } from './chrome';
+import { handText } from './copy';
 import { useLoad, useRhythmApi } from './rhythm-api';
 import { fruitWords } from './visit-screen';
 
@@ -54,6 +55,7 @@ function CropCard({
   readonly hint?: string;
 }) {
   const { palette, appearance } = useTheme();
+  const { fontLocale } = useLocale();
   const colours = rhythmColours[appearance];
   const body = (
     <>
@@ -70,7 +72,12 @@ function CropCard({
       <Txt variant="buttonSmall" align="center" numberOfLines={1}>
         {title}
       </Txt>
-      <Txt variant="note" align="center" color={palette.secondary} style={{ fontSize: 12 }}>
+      <Txt
+        variant="note"
+        align="center"
+        color={palette.secondary}
+        style={typeAt('caption', 12, 12, fontLocale)}
+      >
         {line}
       </Txt>
     </>
@@ -247,18 +254,18 @@ function Swap({
             justifyContent: 'center',
           }}
         >
-          <Txt variant="chevron" style={{ fontSize: 24, marginTop: -3 }}>
+          <Txt variant="chevron" style={[typeAt('body', 24, 24, fontLocale), { marginTop: -3 }]}>
             ‹
           </Txt>
         </Press>
         <View style={{ alignItems: 'center' }} accessible accessibilityRole="header">
-          <Txt variant="trayTitle" style={{ fontSize: 17, lineHeight: 20.4 }}>
+          <Txt variant="trayTitle" style={typeAt('button', 17, 20.4, fontLocale)}>
             {t('rhythm.trade.header', { name })}
           </Txt>
           <Txt
             variant="note"
             color={palette.secondary}
-            style={{ fontSize: 12.5, lineHeight: 16.25 }}
+            style={typeAt('caption', 12.5, 16.25, fontLocale)}
           >
             {t('rhythm.trade.subtitle', { fruits })}
           </Txt>
@@ -268,7 +275,7 @@ function Swap({
       <Panel top={384 * k} style={{ paddingHorizontal: 20, zIndex: 20 }}>
         <View>
           <Txt variant="handL" color={colours.hand} style={typeAt('handL', 17, 18.7, fontLocale)}>
-            {t('rhythm.trade.eyebrow', { name })}
+            {handText(t('rhythm.trade.eyebrow', { name }))}
           </Txt>
           <Txt variant="displayM" multiline accessibilityRole="header">
             {t('rhythm.trade.title')}
@@ -291,7 +298,7 @@ function Swap({
             variant="chevron"
             color={colours.swapArrow}
             importantForAccessibility="no"
-            style={{ fontSize: 24, lineHeight: 24 }}
+            style={typeAt('body', 24, 24, fontLocale)}
           >
             ⇄
           </Txt>

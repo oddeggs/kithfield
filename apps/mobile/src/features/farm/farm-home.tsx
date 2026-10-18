@@ -17,6 +17,9 @@ import { useSession } from '../../ui/session/session';
 import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
 import { useYouCritter } from '../../ui/tab-bar/tab-activity';
 import { useSunPlace, useTheme } from '../../ui/theme/theme-provider';
+// The farm's rhythm (birthdays, shared rain, weather, the project, the harvest letter).
+import { RhythmSheetRows, RhythmWeatherChip, useRhythmMoments } from '../rhythm/farm-entries';
+import { rhythmRoutes } from '../rhythm/routes';
 import { lookOf } from './farm-bake';
 import { seasonLabel } from './farm-copy';
 import { FarmHeader } from './farm-header';
@@ -28,9 +31,6 @@ import { farmRoutes } from './routes';
 import { sceneHeight } from './scene-layout';
 import { useNow } from './use-now';
 import { useFarmFlags, useValley } from './valley-store';
-// The farm's rhythm (birthdays, shared rain, weather, the project, the harvest letter).
-import { RhythmSheetRows, RhythmWeatherChip, useRhythmMoments } from '../rhythm/farm-entries';
-import { rhythmRoutes } from '../rhythm/routes';
 
 /** The sheet overlaps the bottom of the farm by this much (the farm is drawn 540 tall, the sheet rests at 500). */
 const OVERLAP = 40;

@@ -17,8 +17,8 @@ import { NightVeil, Panel } from '../farm/panel';
 import { typeAt } from '../farm/type-at';
 import { useNow } from '../farm/use-now';
 import { WeatherAttributionRow } from './attribution';
-import { say } from './copy';
-import { todayWeather, type RealWeather, type TodayWeather } from './moments';
+import { handText, say } from './copy';
+import { todayWeather, weatherKind, type RealWeather, type TodayWeather } from './moments';
 
 const W = 393;
 
@@ -37,7 +37,7 @@ export function WeatherChip({
   readonly weather: TodayWeather;
   readonly onPress?: () => void;
 }) {
-  const { t } = useLocale();
+  const { t, fontLocale } = useLocale();
   const { palette } = useTheme();
   const label = say(t, `rhythm.weather.${weather.weather}`);
   const chip = (
@@ -54,7 +54,7 @@ export function WeatherChip({
       }}
     >
       <ArtIcon name={WEATHER_ICON[weather.weather]} size={20} color={palette.text} />
-      <Txt variant="buttonSmall" color={palette.text} style={{ fontSize: 13, lineHeight: 13 }}>
+      <Txt variant="buttonSmall" color={palette.text} style={typeAt('button', 13, 13, fontLocale)}>
         {t('rhythm.weather.chip', { weather: label, city: weather.city })}
       </Txt>
     </Glass>
@@ -64,6 +64,8 @@ export function WeatherChip({
     <Press
       onPress={onPress}
       radius={18}
+      // The 36-point chip takes touches 44 points tall.
+      hitSlop={{ top: 4, bottom: 4 }}
       accessibilityRole="button"
       accessibilityLabel={t('rhythm.weather.chipLabel', { weather: label, city: weather.city })}
     >
@@ -89,7 +91,8 @@ export function WeatherScreen({ farm }: { readonly farm: FarmId }) {
   const view = useFarmView<FarmView>(farm, now);
   const events = useFarmEvents(farm, 100);
   const weather = state && view ? todayWeather(state, view, events) : null;
-  const kind = weather?.weather ?? 'rain';
+  // No weather today (or no town to take it from) is a calm farm, never a made-up rain.
+  const kind = weatherKind(weather, state?.place != null);
   const city = weather?.city ?? state?.place?.city ?? '';
 
   return (
@@ -149,7 +152,7 @@ export function WeatherScreen({ farm }: { readonly farm: FarmId }) {
           color={colours.gateChip.fg}
           style={typeAt('handL', 17, 17, fontLocale)}
         >
-          {say(t, `rhythm.weather.${kind}.eyebrow`)}
+          {handText(say(t, `rhythm.weather.${kind}.eyebrow`))}
         </Txt>
         <Txt
           variant="displayM"
@@ -163,15 +166,17 @@ export function WeatherScreen({ farm }: { readonly farm: FarmId }) {
           variant="sheetBody"
           multiline
           color={palette.body}
-          style={{ fontSize: 14.5, lineHeight: 21 }}
+          style={typeAt('body', 14.5, 21, fontLocale)}
         >
           {say(t, `rhythm.weather.${kind}.body`)}
         </Txt>
         <View style={{ flex: 1 }} />
-        <WeatherAttributionRow
-          source={weather?.source ?? 'weatherkit'}
-          style={{ marginBottom: 34 }}
-        />
+        {weather ? (
+          <WeatherAttributionRow
+            source={weather.source ?? 'weatherkit'}
+            style={{ marginBottom: 34 }}
+          />
+        ) : null}
       </Panel>
     </View>
   );

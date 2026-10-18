@@ -18,6 +18,7 @@ import { Txt } from '../../ui/type/text';
 import { typeAt } from '../farm/type-at';
 import { useNow } from '../farm/use-now';
 import { BackButton } from './chrome';
+import { handText } from './copy';
 import { useRhythmApi } from './rhythm-api';
 import {
   pageTilt,
@@ -126,12 +127,12 @@ function PageCard({
             numberOfLines={2}
             style={typeAt('handS', 17, 17.85, fontLocale)}
           >
-            {page.title}
+            {handText(page.title)}
           </Txt>
           <Txt
             variant="note"
             color={palette.muted}
-            style={{ fontSize: 12, lineHeight: 12, marginTop: 4 }}
+            style={[typeAt('caption', 12, 12, fontLocale), { marginTop: 4 }]}
           >
             {date}
           </Txt>
@@ -183,7 +184,7 @@ function PressCard({
         style={{ position: 'absolute', top: 10, left: 8, opacity: 0.55 }}
       />
       <Txt variant="handS" style={typeAt('handS', 17, 17.85, fontLocale)}>
-        {t('rhythm.scrapbook.press')}
+        {handText(t('rhythm.scrapbook.press'))}
       </Txt>
       <Txt variant="note" multiline color={palette.muted}>
         {from}

@@ -11,6 +11,12 @@ import { Txt } from '../../ui/type/text';
 import type { ViewStyleProp } from '../../ui/style';
 import { useLoad, useRhythmApi } from './rhythm-api';
 
+/**
+ * Apple's page of weather data sources: the link shows wherever the weather does, even before
+ * (or without) the server's cached attribution.
+ */
+export const APPLE_LEGAL_URL = 'https://weatherkit.apple.com/legal-attribution.html';
+
 /** The provider's mark is shown this tall, never altered or recoloured. */
 const MARK_H = 14;
 
@@ -91,9 +97,9 @@ export function WeatherAttributionRow({
           />
         ) : null}
       </View>
-      {attribution ? (
+      {
         <Press
-          onPress={() => void WebBrowser.openBrowserAsync(attribution.legalUrl)}
+          onPress={() => void WebBrowser.openBrowserAsync(attribution?.legalUrl ?? APPLE_LEGAL_URL)}
           darken={false}
           accessibilityRole="link"
           accessibilityLabel={t('rhythm.weather.sources')}
@@ -107,7 +113,7 @@ export function WeatherAttributionRow({
             {t('rhythm.weather.sources')}
           </Txt>
         </Press>
-      ) : null}
+      }
     </View>
   );
 }

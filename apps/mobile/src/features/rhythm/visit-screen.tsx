@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fruitColour, rhythmColours } from '@kithfield/theme';
+import { fruitColour, motion, rhythmColours } from '@kithfield/theme';
 
 import { useFarm } from '../../data';
 import { ArtStill } from '../../ui/art/art-view';
@@ -22,7 +22,7 @@ import { Txt } from '../../ui/type/text';
 import { NightVeil, Panel } from '../farm/panel';
 import { SpeechBubble } from '../farm/speech-bubble';
 import { ActionButton, Faces, IconChip, TitlePill, TopBar } from './chrome';
-import { say } from './copy';
+import { handText, say } from './copy';
 import { atGate } from './gate-calls';
 import type { GateOutcome } from './gate-gestures';
 import { useLoad, useRhythmApi } from './rhythm-api';
@@ -46,7 +46,8 @@ function WalkIn({ farm, k }: { readonly farm: FarmId; readonly k: number }) {
   const shown = useSharedValue(reduce ? 0 : 1);
   useEffect(() => {
     if (reduce) shown.set(fadeTo(1));
-    else x.set(withDelay(300, sheetTo(0, false)));
+    // The critter sets off once the farm has faded in.
+    else x.set(withDelay(motion.fade.durationMs, sheetTo(0, false)));
   }, [reduce, shown, x]);
   const walk = useAnimatedStyle(() => ({
     opacity: shown.get(),
@@ -159,7 +160,7 @@ function Gate({
       <WalkIn farm={from} k={k} />
       {ripe ? (
         <SpeechBubble
-          text={t('rhythm.visit.ripe', { fruits })}
+          text={handText(t('rhythm.visit.ripe', { fruits }))}
           tail="right"
           running={false}
           style={{ position: 'absolute', left: 250 * k, top: 148 * k }}

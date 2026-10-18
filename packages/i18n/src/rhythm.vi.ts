@@ -7,6 +7,7 @@ export const rhythmVi: ViCatalogue<typeof rhythmEn> = {
   'rhythm.loadFailed': 'Chưa kết nối được với nông trại. Kiểm tra mạng rồi thử lại nhé.',
   'rhythm.tryAgain': 'Thử lại',
   'rhythm.someone': 'một người bạn',
+  'rhythm.you': 'bạn',
 
   'rhythm.birthday.pill': 'Sinh nhật {name}',
   'rhythm.birthday.pillYou': 'Sinh nhật bạn',
@@ -60,7 +61,7 @@ export const rhythmVi: ViCatalogue<typeof rhythmEn> = {
   'rhythm.rain.pill': 'Mưa chung',
   'rhythm.rain.title': 'Mưa chung!',
   'rhythm.rain.body':
-    '{names} và bạn đều đang ở đây giờ này. Hiếm có và thật dễ thương. Gửi gì lúc này cũng thấm ngay vào nông trại.',
+    '{names} đều đang ở đây giờ này. Hiếm có và thật dễ thương. Gửi gì lúc này cũng thấm ngay vào nông trại.',
   'rhythm.rain.bodyAll':
     '{names} đều đã ở đây giờ này. Hiếm có và thật dễ thương. Gửi gì lúc này cũng thấm ngay vào nông trại.',
   'rhythm.rain.voice': 'Phòng trò chuyện',
@@ -165,6 +166,14 @@ export const rhythmVi: ViCatalogue<typeof rhythmEn> = {
     'Nông trại theo thời tiết ở thị trấn của người giữ trại. Ren sương trên từng chiếc lá, và đêm nay có thể nở một bông hoa hiếm.',
   'rhythm.weather.heat.body':
     'Nông trại theo thời tiết ở thị trấn của người giữ trại. Ai cũng tìm bóng râm, và đêm nay có thể nở một bông hoa vàng nắng.',
+  'rhythm.weather.none.eyebrow': 'một ngày êm ả',
+  'rhythm.weather.none.title': 'Hôm nay {city} êm ả',
+  'rhythm.weather.none.body':
+    'Nông trại theo thời tiết ở thị trấn của người giữ trại. Khi nơi đó mưa, có sương giá hay nắng gắt, bạn sẽ thấy ở đây.',
+  'rhythm.weather.noTown.eyebrow': 'chưa có thị trấn',
+  'rhythm.weather.noTown.title': 'Nông trại tự giữ thời tiết của mình',
+  'rhythm.weather.noTown.body':
+    'Người giữ trại có thể chọn một thị trấn trong cài đặt nông trại, và nông trại sẽ theo thời tiết ở đó.',
   'rhythm.weather.data': 'Dữ liệu thời tiết',
   'rhythm.weather.sources': 'Các nguồn dữ liệu khác',
   'rhythm.weather.mark': 'Dữ liệu thời tiết của {service}',

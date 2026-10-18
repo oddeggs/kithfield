@@ -12,6 +12,8 @@ export const rhythmEn = {
     'We couldn’t reach the farm just now. Check your connection, then try again.',
   'rhythm.tryAgain': 'Try again',
   'rhythm.someone': 'a friend',
+  /** You, last in a list of who is here: "Pip, Fig and you". */
+  'rhythm.you': 'you',
 
   /* A birthday bloom */
   'rhythm.birthday.pill': '{name}’s birthday',
@@ -68,7 +70,7 @@ export const rhythmEn = {
   'rhythm.rain.pill': 'Shared rain',
   'rhythm.rain.title': 'Shared rain!',
   'rhythm.rain.body':
-    '{names} and you are all here this hour. Rare and lovely. Anything you send now soaks right into the farm.',
+    '{names} are all here this hour. Rare and lovely. Anything you send now soaks right into the farm.',
   'rhythm.rain.bodyAll':
     '{names} were all here this hour. Rare and lovely. Anything you send now soaks right into the farm.',
   'rhythm.rain.voice': 'Voice room',
@@ -177,6 +179,14 @@ export const rhythmEn = {
     'The farm follows the weather in the keeper’s town. Frost lace on every leaf, and something rare might bloom tonight.',
   'rhythm.weather.heat.body':
     'The farm follows the weather in the keeper’s town. Everyone’s in the shade, and a sun-gold bloom might open tonight.',
+  'rhythm.weather.none.eyebrow': 'a calm day',
+  'rhythm.weather.none.title': 'It’s calm in {city} today',
+  'rhythm.weather.none.body':
+    'The farm follows the weather in the keeper’s town. When it rains, frosts or bakes there, you’ll see it here.',
+  'rhythm.weather.noTown.eyebrow': 'no town yet',
+  'rhythm.weather.noTown.title': 'The farm keeps its own weather',
+  'rhythm.weather.noTown.body':
+    'The keeper can set a town in farm settings, and the farm will follow the weather there.',
   'rhythm.weather.data': 'Weather data',
   'rhythm.weather.sources': 'Other data sources',
   'rhythm.weather.mark': '{service} weather data',

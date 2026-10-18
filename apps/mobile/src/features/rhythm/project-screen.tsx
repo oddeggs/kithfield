@@ -19,7 +19,7 @@ import { backToFarm } from '../farm/routes';
 import { typeAt } from '../farm/type-at';
 import { useNow } from '../farm/use-now';
 import { ActionButton, Faces, TitlePill, TopBar } from './chrome';
-import { say } from './copy';
+import { handText, say } from './copy';
 import { captionKey, projectKeys, projectProgress, type ProjectWhen } from './project-copy';
 
 const W = 393;
@@ -112,7 +112,7 @@ export function ProjectScreen({ farm }: { readonly farm: FarmId }) {
             multiline
             style={[typeAt('handL', 18, 18, fontLocale), { flex: 1 }]}
           >
-            {project ? say(t, captionKey(project, when)) : ''}
+            {project ? handText(say(t, captionKey(project, when))) : ''}
           </Txt>
           <Faces critters={critters} size={24} ring={palette.sheet} overlap={7} />
         </View>

@@ -14,18 +14,20 @@ import { Press } from '../../ui/motion/press';
 import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
-import { listOf, nameOf } from '../farm/farm-copy';
+import { nameOf } from '../farm/farm-copy';
 import { NightVeil, Panel } from '../farm/panel';
 import { useNow } from '../farm/use-now';
 import { ActionButton, Faces, TitlePill } from './chrome';
+import { rainNames } from './copy';
 import { sharedRainToday } from './moments';
 import { rhythmRoutes } from './routes';
 
 const W = 393;
 
 /**
- * Shared rain: three or more of you on the farm within ten minutes. Purely a moment: the rain
- * already watered everyone's Gatherings plant; anything sent now is ordinary care.
+ * Shared rain: three or more of you on the farm within ten minutes. The farm writes it, and it
+ * grows a Gatherings tend for each person under it (`docs/farm-model.md` §6); this screen is the
+ * moment it shows, and anything sent from here is ordinary care.
  */
 export function RainScreen({ farm }: { readonly farm: FarmId }) {
   const { t } = useLocale();
@@ -45,9 +47,11 @@ export function RainScreen({ farm }: { readonly farm: FarmId }) {
 
   const people = (view && sharedRainToday(events, view.today)) ?? [];
   const others = people.filter((p) => p !== me);
-  const names = listOf(
+  const withMe = me !== null && people.includes(me);
+  const names = rainNames(
     t,
     others.map((p) => nameOf(t, state, p)),
+    withMe,
   );
   const critters = people.flatMap((p) => {
     const m = state?.members.find((x) => x.person === p);
@@ -102,9 +106,7 @@ export function RainScreen({ farm }: { readonly farm: FarmId }) {
           {t('rhythm.rain.title')}
         </Txt>
         <Txt variant="sheetBody" multiline color={palette.body}>
-          {me !== null && people.includes(me)
-            ? t('rhythm.rain.body', { names })
-            : t('rhythm.rain.bodyAll', { names })}
+          {withMe ? t('rhythm.rain.body', { names }) : t('rhythm.rain.bodyAll', { names })}
         </Txt>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <ActionButton

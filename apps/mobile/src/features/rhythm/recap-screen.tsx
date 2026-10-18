@@ -16,6 +16,7 @@ import { Txt } from '../../ui/type/text';
 import { nameOf } from '../farm/farm-copy';
 import { typeAt } from '../farm/type-at';
 import { ActionButton, BackButton, Faces } from './chrome';
+import { handText, inSentence } from './copy';
 import { recapCopy } from './recap-copy';
 import { useLoad, useRhythmApi } from './rhythm-api';
 import { rhythmRoutes } from './routes';
@@ -35,7 +36,7 @@ function weekLabel(week: LocalDate, language: string): string {
 
 /** The Sunday harvest: the week's letter, its best pollinator and thanks to quiet friends. */
 export function RecapScreen({ farm, week }: { readonly farm: FarmId; readonly week?: LocalDate }) {
-  const { t, language } = useLocale();
+  const { t, language, fontLocale } = useLocale();
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
   const api = useRhythmApi();
@@ -56,8 +57,8 @@ export function RecapScreen({ farm, week }: { readonly farm: FarmId; readonly we
       >
         <BackButton onPress={() => router.back()} />
         {recap.status === 'ready' ? (
-          <Txt variant="handS" color={palette.muted} style={{ fontSize: 17, lineHeight: 18.7 }}>
-            {weekLabel(recap.value.week, language)}
+          <Txt variant="handS" color={palette.muted} style={typeAt('handS', 17, 18.7, fontLocale)}>
+            {handText(weekLabel(recap.value.week, language))}
           </Txt>
         ) : null}
         <View style={{ width: 44 }} />
@@ -87,7 +88,7 @@ function RecapCard({
   readonly recap: WeeklyRecap;
   readonly top: number;
 }) {
-  const { t, fontLocale } = useLocale();
+  const { t, fontLocale, language } = useLocale();
   const { palette, appearance } = useTheme();
   const colours = rhythmColours[appearance];
   const insets = useSafeAreaInsets();
@@ -96,7 +97,9 @@ function RecapCard({
   const critterOf = (p: PersonId) =>
     (state?.members.find((m) => m.person === p) ?? state?.former.find((m) => m.person === p))
       ?.critter ?? null;
-  const copy = recapCopy(t, recap, state?.name ?? '', (p) => nameOf(t, state, p));
+  const copy = recapCopy(t, recap, inSentence(state?.name ?? '', language), (p) =>
+    nameOf(t, state, p),
+  );
   const cardW = width - 32;
   const pollinatorCritter = copy.pollinator ? critterOf(copy.pollinator.person) : null;
   const thanked = (copy.thanks?.people ?? []).flatMap((p) => {
@@ -135,7 +138,7 @@ function RecapCard({
               color={colours.recapEyebrow}
               style={typeAt('handL', 18, 19.8, fontLocale)}
             >
-              {t('rhythm.recap.eyebrow')}
+              {handText(t('rhythm.recap.eyebrow'))}
             </Txt>
             <Txt
               variant="displayM"
@@ -167,7 +170,7 @@ function RecapCard({
                     color={colours.recapEyebrow}
                     style={typeAt('handS', 16, 16, fontLocale)}
                   >
-                    {t('rhythm.recap.pollinator')}
+                    {handText(t('rhythm.recap.pollinator'))}
                   </Txt>
                   <Txt
                     variant="displayM"
@@ -180,7 +183,7 @@ function RecapCard({
                     variant="notice"
                     multiline
                     color={colours.recapBody}
-                    style={{ marginTop: 2, lineHeight: 18.2 }}
+                    style={[typeAt('caption', 13.5, 18.2, fontLocale), { marginTop: 2 }]}
                   >
                     {copy.pollinator.reason}
                   </Txt>
@@ -216,7 +219,7 @@ function RecapCard({
                 variant="code"
                 multiline
                 color={palette.secondary}
-                style={{ flex: 1, fontWeight: '500', lineHeight: 16.25 }}
+                style={[typeAt('caption', 12.5, 16.25, fontLocale), { flex: 1, fontWeight: '500' }]}
               >
                 {copy.byAi ? t('rhythm.recap.ai') : t('rhythm.recap.local')}{' '}
                 <Txt
