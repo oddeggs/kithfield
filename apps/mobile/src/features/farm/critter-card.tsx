@@ -112,10 +112,15 @@ export function CritterCard({
   const visit = chats.find((c) => c.farmKind === 'visit' && c.with?.person === person);
   const c = member.critter;
 
+  // The card closes as you go, so coming back finds the farm with its tab bar, not the card.
+  const toPorch = (porch: FarmId) => {
+    if (router.canGoBack()) router.back();
+    router.navigate(farmRoutes.chat(porch));
+  };
   // Their porch: the visit you already share, or one opened (or reopened) for the two of you.
   const openPorch = async () => {
     if (visit) {
-      router.navigate(farmRoutes.chat(visit.farm));
+      toPorch(visit.farm);
       return;
     }
     if (opening) return;
@@ -126,7 +131,7 @@ export function CritterCard({
         timeZone: deviceTimeZone(getCalendars()[0]?.timeZone),
         hemisphere: hemisphereOf(getLocales()[0]?.regionCode),
       });
-      router.navigate(farmRoutes.chat(opened.farm));
+      toPorch(opened.farm);
     } catch {
       toast.show(t('farm.card.visitFailed'));
     } finally {
