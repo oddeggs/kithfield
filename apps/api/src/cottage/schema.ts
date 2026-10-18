@@ -69,6 +69,20 @@ export const COTTAGE_SCHEMA = [
   )`,
 ] as const;
 
+/** Columns added after a table first shipped, each added once. */
+const ADDED_COLUMNS = [
+  // What may push the person from this farm (`FarmNotifications.knockFor`), as JSON; null is the
+  // defaults.
+  ['farms', 'knock_for', 'TEXT'],
+] as const;
+
 export function applySchema(sql: SqlStorage): void {
   for (const statement of COTTAGE_SCHEMA) sql.exec(statement);
+  for (const [table, column, type] of ADDED_COLUMNS) {
+    const has = sql
+      .exec<{ name: string }>(`SELECT name FROM pragma_table_info('${table}')`)
+      .toArray()
+      .some((row) => row.name === column);
+    if (!has) sql.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  }
 }

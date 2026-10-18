@@ -174,6 +174,21 @@ describe('settings and hibernating', () => {
     const { settings } = await cottageOf(env, freshPerson()).settings();
     expect(settings).toMatchObject({ quietHours: null, inTogetherStickers: true });
   });
+
+  it('says whether the app has sent the person’s time zone yet', async () => {
+    const person = freshPerson();
+    const cottage = cottageOf(env, person);
+    expect(await cottage.settings()).toMatchObject({
+      zoneKnown: false,
+      settings: { timeZone: 'UTC' },
+    });
+    await api('/v1/me/settings', json(person, 'PATCH', { lang: 'vi' }));
+    expect((await cottage.settings()).zoneKnown).toBe(false);
+    await api('/v1/me/settings', json(person, 'PATCH', { timeZone: 'UTC' }));
+    expect((await cottage.settings()).zoneKnown).toBe(true);
+    await api('/v1/me/settings', json(person, 'PATCH', { nudges: 'off' }));
+    expect((await cottage.settings()).zoneKnown).toBe(true);
+  });
 });
 
 describe('remember-me seeds', () => {

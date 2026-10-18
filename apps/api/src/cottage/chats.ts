@@ -3,6 +3,7 @@ import {
   type CottageDelivery,
   type CottageFarm,
   FarmKind,
+  FarmNotifications,
   VisitPeer,
 } from '@kithfield/contracts';
 
@@ -66,9 +67,45 @@ export function knowsFarm(sql: SqlStorage, farm: string): boolean {
   );
 }
 
-/** Mutes a farm until a time, or unmutes it with null. Nobody can see that you muted. */
-export function setMuted(sql: SqlStorage, farm: string, until: number | null): void {
-  sql.exec('UPDATE farms SET muted_until = ? WHERE farm = ?', until, farm);
+/** What may push the person from a farm, per kind of push (the 11-08 "Knock for" toggles). */
+export type KnockFor = FarmNotifications['knockFor'];
+
+/** Until the person changes them: plans, the doorstep and mentions on; every message off. */
+export const DEFAULT_KNOCK_FOR: KnockFor = {
+  plans: true,
+  doorstep: true,
+  mentions: true,
+  messages: false,
+};
+
+/** The farm's "always" mute, as the farm writes it in D1 and the cottage keeps it. */
+export const MUTED_ALWAYS = Number.MAX_SAFE_INTEGER;
+
+/**
+ * The person's own notification settings for a farm, as the farm object passes them on after
+ * `PUT /v1/farms/:id/notifications`. `always` (or `MUTED_ALWAYS`) mutes until turned back on.
+ */
+export function setNotifications(sql: SqlStorage, farm: string, settings: FarmNotifications): void {
+  const until = settings.mutedUntil === 'always' ? MUTED_ALWAYS : settings.mutedUntil;
+  sql.exec(
+    `INSERT INTO farms (farm, muted_until, knock_for) VALUES (?, ?, ?)
+     ON CONFLICT (farm) DO UPDATE SET muted_until = excluded.muted_until,
+       knock_for = excluded.knock_for`,
+    farm,
+    until,
+    JSON.stringify(settings.knockFor),
+  );
+}
+
+/** What may push the person from a farm; the defaults for a farm without settings. */
+export function knockForOf(sql: SqlStorage, farm: string | null): KnockFor {
+  if (farm === null) return DEFAULT_KNOCK_FOR;
+  const row = sql
+    .exec<{ json: string | null }>('SELECT knock_for AS json FROM farms WHERE farm = ?', farm)
+    .toArray()[0];
+  if (row?.json == null) return DEFAULT_KNOCK_FOR;
+  const parsed = FarmNotifications.shape.knockFor.safeParse(JSON.parse(row.json));
+  return parsed.success ? parsed.data : DEFAULT_KNOCK_FOR;
 }
 
 export function setPinned(sql: SqlStorage, farm: string, pinned: boolean): void {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { budgetKey, candidateFor, collapseKeyFor, tag } from '../src/push/catalogue';
+import { budgetKey, candidateFor, collapseKeyFor, knockAllows, tag } from '../src/push/catalogue';
 import {
   type DecideInput,
   decide,
@@ -17,6 +17,7 @@ const base: DecideInput = {
   category: 'farm',
   at: NOON,
   muted: false,
+  knockAllowed: true,
   hibernating: false,
   connected: false,
   quiet: quietWindows(null, 'UTC'),
@@ -89,6 +90,43 @@ describe('decide', () => {
       last: false,
     });
     expect(decide({ ...reminder, hibernating: true }).action).toBe('skip');
+  });
+});
+
+describe('"Knock for" on a farm', () => {
+  const on = { plans: true, doorstep: true, mentions: true, messages: false };
+
+  it('skips a kind of push the person turned off there, after a mute', () => {
+    expect(decide({ ...base, knockAllowed: false })).toEqual({
+      action: 'skip',
+      reason: 'knock_off',
+    });
+    expect(decide({ ...base, knockAllowed: false, muted: true }).action).toBe('skip');
+  });
+
+  it('maps each push to its toggle: plans, the doorstep, mentions and every message', () => {
+    const job = (kind: string, key: string, forYou = true) => ({
+      kind,
+      copy: { key, params: {} },
+      forYou,
+    });
+    expect(
+      knockAllows({ ...on, doorstep: false }, job('firefly', 'push.doorstep.firefly'), 'doorstep'),
+    ).toBe(false);
+    expect(knockAllows({ ...on, mentions: false }, job('message', 'push.mention'), 'mention')).toBe(
+      false,
+    );
+    expect(knockAllows(on, job('message', 'push.mention', false), 'mention')).toBe(false);
+    expect(
+      knockAllows({ ...on, messages: true }, job('message', 'push.mention', false), 'mention'),
+    ).toBe(true);
+    expect(
+      knockAllows({ ...on, plans: false }, job('seed_changed', 'push.planSprouted'), 'farm'),
+    ).toBe(false);
+    // Who moved in and knocks aren't among the toggles.
+    const off = { plans: false, doorstep: false, mentions: false, messages: false };
+    expect(knockAllows(off, job('joined', 'push.joined'), 'farm')).toBe(true);
+    expect(knockAllows(off, job('knock', 'push.knock'), 'knock')).toBe(true);
   });
 });
 
