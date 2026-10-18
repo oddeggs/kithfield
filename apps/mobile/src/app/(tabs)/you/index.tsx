@@ -1,6 +1,5 @@
-import { TabPlaceholder } from '../../../ui/tab-bar/tab-placeholder';
+import { YouScreen } from '../../../features/settings/you/you-screen';
 
-/** Stands in until the You screens are built here. */
 export default function YouHome() {
-  return <TabPlaceholder title="shell.tab.you" />;
+  return <YouScreen />;
 }
