@@ -32,7 +32,7 @@ export interface UrgentMediaReport {
   readonly at: number;
 }
 
-/** Opens the report and answers its id. The moderation lane registers it. */
+/** Opens the report and answers its id. The moderation API registers it. */
 export type UrgentReportOpener = (env: Bindings, report: UrgentMediaReport) => Promise<string>;
 
 let opener: UrgentReportOpener | null = null;
