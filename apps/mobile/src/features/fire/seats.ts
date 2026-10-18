@@ -36,6 +36,8 @@ export const FIRE_AT = { x: 0.5, y: 0.62 } as const;
 /** Where a critter comes up the path from, and heads home to (`fire2`'s walk and home). */
 export const PATH_END = { x: 0.97, y: 0.5 } as const;
 export const PATH_HOME = { x: 0.98, y: 0.49 } as const;
+/** Where the walk home joins the path (`fire2`'s `home` starts here). */
+export const PATH_FOOT = { x: 0.62, y: 0.64 } as const;
 
 /** Seats by person id: an index into `SLOTS`. */
 export type Seating = Readonly<Record<string, number>>;

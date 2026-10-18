@@ -31,7 +31,7 @@ import {
   type FireState,
   type SeatPoses,
 } from './fire-art';
-import { FIRE_AT, PATH_END, PATH_HOME, SLOTS } from './seats';
+import { FIRE_AT, PATH_END, PATH_FOOT, PATH_HOME, SLOTS } from './seats';
 
 /*
  * The fire room's scene: the campfire as a still, the fire flickering over it on its own loop, and
@@ -56,6 +56,8 @@ const ARRIVE_MS = 2000;
 /** Heading home: three swings of a wave, then three seconds up the path. */
 const WAVE_MS = 900;
 const HOME_MS = 3000;
+/** The share of the walk home spent getting to the foot of the path. */
+const FOOT_AT = 0.3;
 /** Talking leans the critter 2° toward the fire. */
 const LEAN = (2 * Math.PI) / 180;
 /** The flame settles to embers over four seconds as the last person leaves. */
@@ -84,6 +86,7 @@ function CritterSprite({
   height,
   clock,
   level,
+  reduce,
   onGone,
 }: {
   readonly c: SceneCritter;
@@ -92,9 +95,10 @@ function CritterSprite({
   readonly height: number;
   readonly clock: SharedValue<number>;
   readonly level: SharedValue<number>;
+  /** Passed in: the canvas draws its children outside the app's React context. */
+  readonly reduce: boolean;
   readonly onGone: (id: string) => void;
 }) {
-  const reduce = useReduceMotion();
   const slot = SLOTS[c.seat] ?? SLOTS[0];
   const sx = (slot?.x ?? 0.5) * width;
   const sy = (slot?.y ?? 0.6) * height;
@@ -136,6 +140,8 @@ function CritterSprite({
   const ey = PATH_END.y * height;
   const hx = PATH_HOME.x * width;
   const hy = PATH_HOME.y * height;
+  const footX = PATH_FOOT.x * width;
+  const footY = PATH_FOOT.y * height;
   const asleep = c.weak;
   const toward = asleep ? poses.dozing : poses.toward;
   const leftWard = dir === -1 ? poses.toward : poses.away;
@@ -172,11 +178,20 @@ function CritterSprite({
       // Lips: a talking critter bobs with their voice.
       y -= level.get() * Math.abs(Math.sin(t * 10)) * 3;
     } else {
+      // To the foot of the path first, then up it, smaller as it goes (`fire2`'s walk home).
       const p = onTwos(s - 2, HOME_MS);
-      const fromX = sx + (hx - sx) * 0.15;
-      x = fromX + (hx - fromX) * p;
-      y = sy + (hy - sy) * p - Math.abs(Math.sin(t * 6)) * 3;
-      scale = 0.95 + (0.55 - 0.95) * p;
+      const hop = Math.abs(Math.sin(t * 6)) * 3;
+      if (p < FOOT_AT) {
+        const q = p / FOOT_AT;
+        x = sx + (footX - sx) * q;
+        y = sy + (footY - sy) * q - hop;
+        scale = 1 + (0.95 - 1) * q;
+      } else {
+        const q = (p - FOOT_AT) / (1 - FOOT_AT);
+        x = footX + (hx - footX) * q;
+        y = footY + (hy - footY) * q - hop;
+        scale = 0.95 + (0.55 - 0.95) * q;
+      }
     }
     const br = breathOf(t, ph, asleep);
     const talk = s >= 1 && s <= 2 ? level.get() * 0.04 : 0;
@@ -337,6 +352,7 @@ export function FireScene({
                   height={height}
                   clock={clock}
                   level={levelOf(c.id)}
+                  reduce={reduce}
                   onGone={onGone}
                 />
               ) : null;

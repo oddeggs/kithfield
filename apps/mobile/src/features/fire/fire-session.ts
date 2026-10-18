@@ -14,6 +14,7 @@ import {
   RoomEvent,
   Track,
 } from 'livekit-client';
+import { LogBox } from 'react-native';
 import { makeMutable, type SharedValue } from 'react-native-reanimated';
 
 import { addRow, lineFrom, type CaptionRow } from './caption-lines';
@@ -30,6 +31,9 @@ let globalsReady = false;
 /** LiveKit's WebRTC globals, once per app run. */
 export function readyCalls(): void {
   if (globalsReady) return;
+  // A camera that reports no size (the simulator's) is drawn at LiveKit's default; it says so as
+  // an error on every check, which would cover the room in development.
+  LogBox.ignoreLogs(['could not determine track dimensions']);
   registerGlobals();
   globalsReady = true;
 }
@@ -156,6 +160,7 @@ export class FireSession {
 
   /** Sits down, listening or joined in; both arrive muted. Answers whether it worked. */
   async sit(mode: FireMode): Promise<boolean> {
+    this.closed = false;
     this.setStatus('connecting');
     try {
       const { url, token } = await this.deps.token(mode);
@@ -165,6 +170,7 @@ export class FireSession {
         await this.room.disconnect();
         return false;
       }
+      if (this.levelTimer !== null) clearInterval(this.levelTimer);
       this.levelTimer = setInterval(() => this.readLevels(), LEVEL_MS);
       this.setStatus('live');
       return true;

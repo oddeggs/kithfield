@@ -293,11 +293,7 @@ export function CaptionsSheet({
           scrim,
         ]}
       >
-        <Pressable
-          style={{ flex: 1 }}
-          onPress={onClose}
-          accessibilityLabel={t('fire.captions.notNow')}
-        />
+        <Pressable style={{ flex: 1 }} onPress={onClose} accessible={false} />
       </Animated.View>
       <Animated.View
         accessibilityViewIsModal

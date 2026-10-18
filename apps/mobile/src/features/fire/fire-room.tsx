@@ -1,5 +1,4 @@
 import { type FarmId, type LanguageTag, OWN_PACK } from '@kithfield/contracts';
-import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
@@ -16,7 +15,7 @@ import { useGestureSend } from '../gestures/send';
 import { CAPTION_LANGS, CaptionsCard, CaptionsSheet } from './captions';
 import { CircleOverlay, FLOAT_MS, type CirclePerson, type Float } from './circle-overlay';
 import { useFireApi } from './fire-api';
-import { FireHeader, GlassRound, useHeaderTop, type ChipKind } from './fire-chrome';
+import { FireHeader, GlassRound, leaveRoom, useHeaderTop, type ChipKind } from './fire-chrome';
 import {
   JoinPanel,
   LeavePanel,
@@ -102,6 +101,13 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
     else if (phase === 'unlit' && lit) setPhase('joining');
   }, [lit, phase]);
   const [busy, setBusy] = useState(false);
+  // A sitting that drops for good (not just reconnecting) takes you back to pull up a log again.
+  useEffect(() => {
+    const gone = snap.status === 'failed' || snap.status === 'closed';
+    if (!gone || (phase !== 'room' && phase !== 'leaving')) return;
+    setPhase('joining');
+    if (snap.status === 'failed') toast.show(t('fire.error.connect'));
+  }, [snap.status, phase, toast, t]);
 
   const nameOf = useCallback(
     (id: string) =>
@@ -249,7 +255,7 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
     const last = roomPeople.filter((p) => !p.you).length === 0;
     setPhase('walking');
     await session.leave();
-    setTimeout(() => (last ? setPhase('quiet') : router.back()), WALK_HOME_MS);
+    setTimeout(() => (last ? setPhase('quiet') : leaveRoom()), WALK_HOME_MS);
   };
 
   /* Drawing */
@@ -287,7 +293,9 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
             ? 'talking'
             : p.mode === 'listen'
               ? 'listening'
-              : 'muted';
+              : p.mic
+                ? 'plain'
+                : 'muted';
       const note =
         chip === 'paused'
           ? t('fire.chip.paused')
@@ -406,7 +414,7 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
         />
       ) : null}
       {phase === 'unlit' ? (
-        <UnlitPanel onLight={() => void light()} onNotTonight={() => router.back()} busy={busy} />
+        <UnlitPanel onLight={() => void light()} onNotTonight={() => leaveRoom()} busy={busy} />
       ) : phase === 'joining' ? (
         <JoinPanel
           you={yourName}
@@ -437,7 +445,7 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
       ) : phase === 'leaving' || phase === 'walking' ? (
         <LeavePanel you={yourName} onWalk={() => void walkHome()} onStay={() => setPhase('room')} />
       ) : phase === 'quiet' ? (
-        <QuietPanel onBack={() => router.back()} />
+        <QuietPanel onBack={() => leaveRoom()} />
       ) : null}
       <CaptionsSheet
         open={sheet}

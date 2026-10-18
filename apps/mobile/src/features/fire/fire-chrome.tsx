@@ -18,10 +18,19 @@ import { fireLook, fireSize } from './look';
  * at the bottom, its buttons, and the name chips over the critters.
  */
 
-/** The design's top inset for the header (58 on a 852-point phone), from the safe area. */
+/** The safe area's top on the phone the design is drawn for (iPhone 16). */
+const DESIGN_TOP_INSET = 59;
+
+/** Where the header's top sits, as the design places it under this phone's own status bar. */
 export function useHeaderTop(): number {
   const { top } = useSafeAreaInsets();
-  return Math.max(top, 47) + 11;
+  return top + (fireSize.headerTop - DESIGN_TOP_INSET);
+}
+
+/** Back to the farm: the screen under the room, or the farm tab when the room was opened by a link. */
+export function leaveRoom(): void {
+  if (router.canGoBack()) router.back();
+  else router.replace('/farm');
 }
 
 /** A round glass button over the scene. */
@@ -87,7 +96,7 @@ export function FireHeader({
         zIndex: 12,
       }}
     >
-      <GlassRound label={t('fire.back')} onPress={() => router.back()} testID="fire-back">
+      <GlassRound label={t('fire.back')} onPress={leaveRoom} testID="fire-back">
         <Txt
           variant="body"
           color={fireLook.text}

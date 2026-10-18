@@ -93,7 +93,7 @@ export function headerLine(t: Translate, h: HeaderInput): string {
       return t('fire.sub.settling');
     case 'joining':
       return count === 0
-        ? t('fire.sub.unlit', { farm: h.farmName })
+        ? h.farmName
         : nameList(
             t,
             h.people.filter((p) => !p.you).map((p) => h.nameOf(p.id)),
