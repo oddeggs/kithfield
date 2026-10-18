@@ -6,7 +6,7 @@ import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { ACCESSORIES, critterOf, kindOf, lookOf, MARKS, type CritterChoice } from './critters';
-import { useRing } from './kit';
+import { useRing } from './fades';
 
 /** The coats of this critter, as swatches with their names. */
 export function CoatOptions({

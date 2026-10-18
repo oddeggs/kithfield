@@ -1,4 +1,3 @@
-import { Canvas, LinearGradient, Rect, vec } from '@shopify/react-native-skia';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -13,33 +12,14 @@ import { Txt } from '../../../ui/type/text';
 import { routes } from '../flow';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
-import {
-  Body,
-  ErrorLine,
-  FadeUp,
-  Title,
-  TopBar,
-  useBottom,
-  useDesignTop,
-  useSceneAttrs,
-} from '../kit';
+import { FadeUp, PaperFade } from '../fades';
+import { Body, ErrorLine, Title, TopBar, useBottom, useDesignTop, useSceneAttrs } from '../kit';
 import { useProgress } from '../progress';
 import { appleSheet, googleSheet, SheetCancelled, type SheetAnswer } from '../social';
 
 /** Where a sentence's two links go, split around their placeholders. */
 const RULES = '\u0001';
 const PRIVACY = '\u0002';
-
-/** The art fades into the paper behind the title. */
-function PaperFade({ width, top, colour }: { width: number; top: number; colour: string }) {
-  return (
-    <Canvas style={{ position: 'absolute', left: 0, top, width, height: 140 }} pointerEvents="none">
-      <Rect x={0} y={0} width={width} height={140}>
-        <LinearGradient start={vec(0, 0)} end={vec(0, 98)} colors={[`${colour}00`, colour]} />
-      </Rect>
-    </Canvas>
-  );
-}
 
 /**
  * A key to the gate: Apple, Google or an email code upgrade the phone's anonymous person.
@@ -97,7 +77,7 @@ export function SignInScreen() {
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       {/* Held at the moment the rabbit is up and about, as the design shows it. */}
       <SceneArt scene="welcome" width={width} height={top(420)} attrs={scene} t={4} />
-      <PaperFade width={width} top={top(300)} colour={palette.background} />
+      <PaperFade width={width} top={top(300)} height={140} />
       <TopBar onBack={() => router.back()} overArt />
       <View style={{ position: 'absolute', top: top(418), left: 28, right: 28, gap: 8 }}>
         <Title size={32}>{t('onboarding.signIn.title')}</Title>

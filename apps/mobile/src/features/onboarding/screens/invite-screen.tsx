@@ -8,7 +8,7 @@ import { TextField } from '../../../ui/components/text-field';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
-import { inviteCodeIn, looksLikeInvite } from '../invite-code';
+import { inviteCodeIn, inviteLinkIn } from '../invite-code';
 import { Body, ErrorLine } from '../kit';
 
 /**
@@ -25,7 +25,10 @@ export function InviteScreen() {
   useEffect(() => {
     let live = true;
     Clipboard.getStringAsync().then(
-      (text) => live && looksLikeInvite(text) && setLink((now) => now || text.trim()),
+      (text) => {
+        const found = live ? inviteLinkIn(text) : null;
+        if (found) setLink((now) => now || found);
+      },
       () => undefined,
     );
     return () => {

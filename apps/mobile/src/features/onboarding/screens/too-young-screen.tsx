@@ -2,6 +2,7 @@ import { View } from 'react-native';
 
 import { EmptyState } from '../../../ui/components/state-shell';
 import { useLocale } from '../../../ui/locale/locale-provider';
+import { roseAttrs, useSceneAttrs } from '../kit';
 import { SceneArt } from '../scene-art';
 import { useTheme } from '../../../ui/theme/theme-provider';
 
@@ -12,10 +13,11 @@ import { useTheme } from '../../../ui/theme/theme-provider';
 export function TooYoungScreen() {
   const { t } = useLocale();
   const { palette } = useTheme();
+  const scene = useSceneAttrs();
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <EmptyState
-        art={<SceneArt scene="plant" width={160} height={170} attrs={{ name: 'rose', stage: 1 }} />}
+        art={<SceneArt scene="plant" width={160} height={170} attrs={roseAttrs(scene, 1)} />}
         title={t('onboarding.tooYoung.title')}
         body={t('onboarding.tooYoung.body')}
       />

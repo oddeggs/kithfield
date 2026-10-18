@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { inviteCodeIn, looksLikeInvite } from './invite-code';
+import { inviteCodeIn, inviteLinkIn } from './invite-code';
 
 describe('invite links', () => {
   it('finds the code in a pasted link or a bare code', () => {
@@ -18,8 +18,10 @@ describe('invite links', () => {
     expect(inviteCodeIn('https://example.com/about')).toBeNull();
   });
 
-  it('offers only farm links from the clipboard', () => {
-    expect(looksLikeInvite('https://kithfield.com/i/abcd1234')).toBe(true);
-    expect(looksLikeInvite('abcd1234')).toBe(false);
+  it('offers only the farm link from the clipboard', () => {
+    expect(inviteLinkIn('Come be a critter?\nhttps://kithfield.com/i/abcd1234')).toBe(
+      'https://kithfield.com/i/abcd1234',
+    );
+    expect(inviteLinkIn('abcd1234')).toBeNull();
   });
 });

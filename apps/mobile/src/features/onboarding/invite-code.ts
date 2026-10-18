@@ -14,7 +14,7 @@ export function inviteCodeIn(pasted: string): string | null {
   return CODE.test(text) ? text : null;
 }
 
-/** True when the text looks like a farm link worth offering from the clipboard. */
-export function looksLikeInvite(text: string): boolean {
-  return /kithfield[^\s]*\/i\/[A-Za-z0-9-]{4,64}/.test(text);
+/** The farm link in what the clipboard holds (often a whole invite message), or null. */
+export function inviteLinkIn(text: string): string | null {
+  return /\S*kithfield\S*\/i\/[A-Za-z0-9-]{4,64}/.exec(text)?.[0] ?? null;
 }

@@ -1,19 +1,15 @@
 import { day, layout, night } from '@kithfield/theme';
 import { getLocales } from 'expo-localization';
-import { useEffect, useMemo, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withDelay } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArtIcon } from '../../ui/art/art-view';
 import { Glass } from '../../ui/components/glass';
 import { useLocale } from '../../ui/locale/locale-provider';
-import { fadeTo } from '../../ui/motion/motion';
 import { Press } from '../../ui/motion/press';
-import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
-import type { ViewStyleProp } from '../../ui/style';
 import { seasonNow } from './calendar';
 
 /** The design draws these screens on a 393×852 phone whose safe area starts 59 points down. */
@@ -292,39 +288,7 @@ export function BottomBar({
   );
 }
 
-/**
- * Fades up into place after `delay` ms (`motion.fade`), as the sign-in buttons arrive one after
- * another. Under Reduce Motion it only fades.
- */
-export function FadeUp({
-  delay = 0,
-  style,
-  children,
-}: {
-  readonly delay?: number;
-  readonly style?: ViewStyleProp;
-  readonly children: ReactNode;
-}) {
-  const reduce = useReduceMotion();
-  const shown = useSharedValue(0);
-  useEffect(() => {
-    shown.set(withDelay(delay, fadeTo(1)));
-  }, [delay, shown]);
-  const animated = useAnimatedStyle(() => ({
-    opacity: shown.get(),
-    transform: [{ translateY: reduce ? 0 : (1 - shown.get()) * 8 }],
-  }));
-  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
-}
-
-const RINGS = {
-  day: { on: '0 0 0 2.5px #F5EEE2, 0 0 0 4.5px #2a221d', off: '0 0 0 1px rgba(42,34,29,.12)' },
-  night: { on: '0 0 0 2.5px #1B1F3D, 0 0 0 4.5px #F4ECDA', off: '0 0 0 1px rgba(255,255,255,.14)' },
-} as const;
-
-/** The selection ring of the critter picker: a paper gap, then ink. It snaps; it never tweens. */
-export function useRing(): (on: boolean, off?: string) => string {
-  const { appearance } = useTheme();
-  const rings = RINGS[appearance];
-  return (on, off) => (on ? rings.on : (off ?? rings.off));
+/** The rose of the age check: on its paper by day, straight on the night sky after dark. */
+export function roseAttrs(scene: { night: boolean }, stage: number) {
+  return { name: 'rose', stage, ...(scene.night ? { color: 'none' } : {}) };
 }

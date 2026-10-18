@@ -12,7 +12,8 @@ import { crittersShaped, kindOf, pickSpecies, SHAPES, type Shape } from '../crit
 import { routes } from '../flow';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
-import { BottomBar, StepDots, Title, TopBar, useDesignTop, useRing, useSceneAttrs } from '../kit';
+import { useRing } from '../fades';
+import { BottomBar, StepDots, Title, TopBar, useDesignTop, useSceneAttrs } from '../kit';
 
 /** A shape filter: small, ink when chosen. */
 function ShapeChip({

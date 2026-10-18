@@ -24,7 +24,17 @@ import { countryOf } from '../calendar';
 import { afterSignIn, routes } from '../flow';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
-import { Body, BottomBar, ErrorLine, Title, TopBar, useDesignTop, useInks } from '../kit';
+import {
+  Body,
+  BottomBar,
+  ErrorLine,
+  Title,
+  TopBar,
+  useDesignTop,
+  useInks,
+  useSceneAttrs,
+  roseAttrs,
+} from '../kit';
 import { PickerSheet, type PickerOption } from '../picker-sheet';
 import { useProgress } from '../progress';
 
@@ -97,6 +107,7 @@ export function AgeScreen() {
   const { t } = useLocale();
   const { palette } = useTheme();
   const top = useDesignTop();
+  const scene = useSceneAttrs();
   const data = useDataClient();
   const account = useAccount();
   const { api, update } = useFlow();
@@ -163,7 +174,7 @@ export function AgeScreen() {
         scene="plant"
         width={160}
         height={170}
-        attrs={{ name: 'rose', stage: 3 }}
+        attrs={roseAttrs(scene, 3)}
         style={{ position: 'absolute', top: top(96), left: 116 }}
       />
       <View style={{ position: 'absolute', top: top(280), left: 20, right: 20, gap: 12 }}>
@@ -185,6 +196,7 @@ export function AgeScreen() {
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
+            gap: 12,
             paddingVertical: 12,
             paddingHorizontal: 14,
             borderRadius: 16,

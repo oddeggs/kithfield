@@ -9,7 +9,8 @@ import { Txt } from '../../../ui/type/text';
 import { hasSignIn, resumeAt, routes } from '../flow';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
-import { useDesignTop, useInks, useSceneAttrs } from '../kit';
+import { PaperFade } from '../fades';
+import { useInks, useSceneAttrs } from '../kit';
 import { useProgress } from '../progress';
 
 /**
@@ -22,7 +23,6 @@ export function WelcomeScreen() {
   const { palette } = useTheme();
   const inks = useInks();
   const { width } = useWindowDimensions();
-  const top = useDesignTop();
   const scene = useSceneAttrs();
   const { update } = useFlow();
   const progress = useProgress();
@@ -52,25 +52,34 @@ export function WelcomeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SceneArt scene="gate" width={width} height={610} attrs={scene} />
-      <View style={{ position: 'absolute', top: top(584), left: 28, right: 28, gap: 12 }}>
-        <Txt
-          variant="displayXL"
-          accessibilityRole="header"
-          style={{ fontSize: 46, lineHeight: 46, letterSpacing: -0.46 }}
-        >
-          {t('shell.appName')}
-        </Txt>
-        <Txt variant="body" multiline color={inks.list} style={{ fontSize: 17, lineHeight: 24.65 }}>
-          {t('onboarding.welcome.body')}
-        </Txt>
-      </View>
-      <View style={{ position: 'absolute', left: 24, right: 24, bottom: 44, gap: 6 }}>
-        <Button label={t('onboarding.welcome.start')} onPress={start} haptic="tap" />
-        <Button
-          label={t('onboarding.welcome.invite')}
-          kind="text"
-          onPress={() => router.push(routes.invite)}
-        />
+      <PaperFade width={width} top={470} height={140} />
+      {/* The words sit just above the buttons, so a longer language grows upward. */}
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 44 }}>
+        <View style={{ paddingHorizontal: 28, gap: 12, marginBottom: 7 }}>
+          <Txt
+            variant="displayXL"
+            accessibilityRole="header"
+            style={{ fontSize: 46, lineHeight: 46, letterSpacing: -0.46 }}
+          >
+            {t('shell.appName')}
+          </Txt>
+          <Txt
+            variant="body"
+            multiline
+            color={inks.list}
+            style={{ fontSize: 17, lineHeight: 24.65 }}
+          >
+            {t('onboarding.welcome.body')}
+          </Txt>
+        </View>
+        <View style={{ paddingHorizontal: 24, gap: 6 }}>
+          <Button label={t('onboarding.welcome.start')} onPress={start} haptic="tap" />
+          <Button
+            label={t('onboarding.welcome.invite')}
+            kind="text"
+            onPress={() => router.push(routes.invite)}
+          />
+        </View>
       </View>
     </View>
   );

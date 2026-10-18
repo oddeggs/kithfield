@@ -147,12 +147,7 @@ export function PlantScreen() {
             <Txt variant="handL" multiline style={{ fontSize: 19, lineHeight: 21.85 }}>
               {t('onboarding.farm.message', { name })}
             </Txt>
-            <Txt
-              variant="code"
-              mono
-              color={palette.secondary}
-              numberOfLines={1}
-            >
+            <Txt variant="code" mono color={palette.secondary} numberOfLines={1}>
               {state.planted ? shownLink(state.planted.invite.url) : t('onboarding.farm.linkSoon')}
             </Txt>
           </View>
