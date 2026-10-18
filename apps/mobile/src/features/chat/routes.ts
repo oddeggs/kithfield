@@ -21,8 +21,15 @@ export const go = {
   viewer: (farm: string, seq: number, index: number) =>
     router.push(href('/(cover)/chat-viewer', { farm, seq: String(seq), index: String(index) })),
   media: (farm: string) => router.push(href('/(tabs)/chat/media', { farm })),
-  messageMenu: (farm: string, seq: number) =>
-    router.push(href('/(modal)/gestures-message', { farm, seq: String(seq) })),
+  /** `top`: the bubble's top on screen, so the menu lifts it from where it is. */
+  messageMenu: (farm: string, seq: number, top: number | null) =>
+    router.push(
+      href('/(modal)/gestures-message', {
+        farm,
+        seq: String(seq),
+        ...(top === null ? {} : { top: String(Math.round(top)) }),
+      }),
+    ),
   tray: (farm: string) => router.push(href('/(modal)/gestures-tray', { farm })),
   critter: (farm: string, person: string) =>
     router.push(href('/(modal)/farm-critter', { farm, person })),

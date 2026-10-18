@@ -320,12 +320,15 @@ export function ViewerScreen({
               label={t('chat.viewer.reply')}
               onPress={() => {
                 router.back();
-                go.chatWith(farm, { reply: String(current.seq) });
+                go.chatWith(farm, { replyTo: String(current.seq) });
               }}
             >
               <ArtIcon name="reply" size={22} color={INK} />
             </Circle>
-            <Circle label={t('chat.viewer.more')} onPress={() => go.messageMenu(farm, current.seq)}>
+            <Circle
+              label={t('chat.viewer.more')}
+              onPress={() => go.messageMenu(farm, current.seq, null)}
+            >
               <ArtIcon name="more" size={22} color={INK} />
             </Circle>
           </View>

@@ -114,7 +114,7 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
     if (item) {
       setEditing(null);
       setReplyTo(item);
-      router.setParams({ reply: undefined });
+      router.setParams({ replyTo: undefined });
     }
   }, [reply, bubbles]);
   useEffect(() => {
@@ -170,9 +170,9 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
         setEditing(null);
         setReplyTo(item);
       },
-      openMenu: (item) => {
+      openMenu: (item, top) => {
         if (item.seq === null) return;
-        go.messageMenu(farm, item.seq);
+        go.messageMenu(farm, item.seq, top);
       },
       toggleDew: (item) => {
         if (item.seq === null) return;

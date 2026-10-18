@@ -16,6 +16,7 @@ import { castOf } from '../model/people';
 import type { BubbleItem } from '../model/timeline';
 import { go } from '../routes';
 import { useChatColours } from '../ui/chat-colours';
+import { FileBubble } from './gesture-seams';
 import { useRoom } from './room-context';
 import { VoiceBubble } from './voice-bubble';
 
@@ -267,10 +268,15 @@ function MediaTile({
   );
 }
 
+const isVisual = (ref: MediaRef) => ref.mime.startsWith('image/') || ref.mime.startsWith('video/');
+
 function MediaBubble({ item, media }: { readonly item: BubbleItem; readonly media: MediaPayload }) {
-  const shown = media.items.slice(0, 4);
+  // Photos and video in a grid, by their place in the message (the viewer counts them so).
+  const visual = media.items.map((ref, index) => ({ ref, index })).filter((m) => isVisual(m.ref));
+  const files = media.items.filter((ref) => !isVisual(ref));
+  const shown = visual.slice(0, 4);
   const single = shown.length === 1;
-  const first = shown[0];
+  const first = shown[0]?.ref;
   const w = 206;
   // The bubble's hairline sits inside its width.
   const inner = w - 2;
@@ -280,13 +286,23 @@ function MediaBubble({ item, media }: { readonly item: BubbleItem; readonly medi
       : 132;
   return (
     <BubbleShell item={item} padded={false} width={w}>
+      {files.map((ref) => (
+        <FileBubble
+          key={ref.key || ref.name}
+          name={ref.name ?? ''}
+          mime={ref.mime}
+          bytes={ref.bytes}
+          mine={item.mine}
+          mediaKey={ref.key}
+        />
+      ))}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 2 }}>
-        {shown.map((ref, i) => (
+        {shown.map(({ ref, index }) => (
           <MediaTile
-            key={ref.key}
+            key={ref.key || String(index)}
             item={item}
             media={ref}
-            index={i}
+            index={index}
             width={single ? inner : (inner - 2) / 2}
             height={single ? h : shown.length === 2 ? 132 : 102}
           />

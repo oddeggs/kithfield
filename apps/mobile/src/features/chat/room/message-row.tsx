@@ -9,6 +9,8 @@ import {
 } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
+  measure,
+  useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
@@ -31,7 +33,7 @@ import type { BubbleItem } from '../model/timeline';
 import { clock } from '../model/format';
 import { useChatColours } from '../ui/chat-colours';
 import { BubbleBody } from './bubbles';
-import { Reactions } from './reactions';
+import { ReactionRow } from './gesture-seams';
 import { useRoom } from './room-context';
 
 /** How far a bubble follows a swipe right before it asks to reply. */
@@ -181,7 +183,9 @@ export function BubbleRow({ item, first, showSent }: BubbleRowProps) {
   const person = item.actor ? room.people.get(item.actor) : undefined;
   const canAct = item.seq !== null;
   const reply = () => room.reply(item);
-  const menu = () => room.openMenu(item);
+  // The menu opens over the bubble where it sits, so it is told the bubble's top on screen.
+  const bubble = useAnimatedRef<Animated.View>();
+  const menu = (top: number | null) => room.openMenu(item, top);
   const tick = () => haptics.select();
   const pan = usePanGesture({
     enabled: canAct,
@@ -210,8 +214,9 @@ export function BubbleRow({ item, first, showSent }: BubbleRowProps) {
     minDuration: 350,
     onActivate: () => {
       'worklet';
+      const box = measure(bubble);
       scheduleOnRN(haptics.tap);
-      scheduleOnRN(menu);
+      scheduleOnRN(menu, box === null ? null : box.pageY);
     },
   });
   const gesture = useExclusiveGestures(pan, long);
@@ -249,10 +254,10 @@ export function BubbleRow({ item, first, showSent }: BubbleRowProps) {
           {room.nameOf(item.actor)}
         </Txt>
       ) : null}
-      <Animated.View style={shake}>
+      <Animated.View ref={bubble} style={shake}>
         <BubbleBody item={item} />
       </Animated.View>
-      <Reactions item={item} />
+      <ReactionRow item={item} />
       {item.mine || item.edited ? <StateLine item={item} showSent={showSent} /> : null}
     </View>
   );
@@ -276,7 +281,7 @@ export function BubbleRow({ item, first, showSent }: BubbleRowProps) {
           onAccessibilityAction={(e) => {
             const name = e.nativeEvent.actionName;
             if (name === 'reply') reply();
-            if (name === 'longpress') menu();
+            if (name === 'longpress') menu(null);
             if (name === 'dewdrop') room.toggleDew(item);
             if (name === 'retry') room.retry(item);
           }}

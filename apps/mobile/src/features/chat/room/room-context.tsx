@@ -17,7 +17,8 @@ export interface RoomValue {
   /** Finds a bubble by seq, for the quote at the top of a reply. */
   readonly bubbleAt: (seq: number) => BubbleItem | null;
   readonly reply: (item: BubbleItem) => void;
-  readonly openMenu: (item: BubbleItem) => void;
+  /** `top`: the bubble's top on screen, for the menu to open over it. */
+  readonly openMenu: (item: BubbleItem, top: number | null) => void;
   readonly toggleDew: (item: BubbleItem) => void;
   readonly retry: (item: BubbleItem) => void;
   readonly jumpTo: (seq: number) => void;
