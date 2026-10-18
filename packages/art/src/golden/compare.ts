@@ -5,10 +5,17 @@ export interface Diff {
   /** Share of pixels where some channel differs by more than 16. */
   over16: number;
   max: number;
+  /** The worst 32-px tile: its mean absolute difference over premultiplied RGB, 0–255 units. */
+  worstTile: number;
 }
 
-/** The pass mark: a mean difference of at most 2/255 per scene. */
+export const TILE = 32;
+
+/** The pass marks, in 0–255 units: the whole scene's mean, and its worst 32-px tile. */
 export const GOLDEN_MEAN_LIMIT = 2;
+export const GOLDEN_TILE_LIMIT = 3;
+/** Text is rasterised by each platform's own font engine, so its tiles get more room. */
+export const GOLDEN_TEXT_TILE_LIMIT = 8;
 
 /** Premultiplies unpremultiplied RGBA (as `getImageData` returns it), in place. */
 export function premultiply(rgba: Uint8Array): Uint8Array {
@@ -20,7 +27,27 @@ export function premultiply(rgba: Uint8Array): Uint8Array {
   return rgba;
 }
 
-export function diff(a: Uint8Array, b: Uint8Array): Diff {
+/** The worst tile's mean RGB difference: catches a local change a whole-image mean dilutes. */
+export function worstTile(a: Uint8Array, b: Uint8Array, width: number, height: number): number {
+  let worst = 0;
+  for (let ty = 0; ty < height; ty += TILE) {
+    for (let tx = 0; tx < width; tx += TILE) {
+      let sum = 0;
+      let n = 0;
+      for (let y = ty; y < Math.min(height, ty + TILE); y++) {
+        for (let x = tx; x < Math.min(width, tx + TILE); x++) {
+          const i = (y * width + x) * 4;
+          for (let c = 0; c < 3; c++) sum += Math.abs((a[i + c] ?? 0) - (b[i + c] ?? 0));
+          n += 3;
+        }
+      }
+      if (n > 0 && sum / n > worst) worst = sum / n;
+    }
+  }
+  return worst;
+}
+
+export function diff(a: Uint8Array, b: Uint8Array, width = 0, height = 0): Diff {
   if (a.length !== b.length) throw new Error(`size mismatch: ${a.length} vs ${b.length}`);
   let sum = 0;
   let max = 0;
@@ -35,7 +62,8 @@ export function diff(a: Uint8Array, b: Uint8Array): Diff {
     if (px > max) max = px;
     if (px > 16) over++;
   }
-  return { mean: sum / a.length, over16: over / (a.length / 4), max };
+  const tile = width > 0 && height > 0 ? worstTile(a, b, width, height) : 0;
+  return { mean: sum / a.length, over16: over / (a.length / 4), max, worstTile: tile };
 }
 
 /** A visual diff: the reference greyed, differences in red scaled by `gain`. */

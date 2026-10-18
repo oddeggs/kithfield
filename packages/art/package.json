@@ -16,13 +16,16 @@
     "bake": "tsx src/node/bake-cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "golden": "tsx src/golden/cli.ts"
+    "golden": "vitest run --config vitest.golden.config.ts",
+    "golden:report": "tsx src/golden/cli.ts"
   },
   "dependencies": {
     "@kithfield/theme": "workspace:*",
     "@shopify/react-native-skia": "catalog:"
   },
   "devDependencies": {
+    "eslint": "catalog:",
+    "globals": "catalog:",
     "playwright": "catalog:",
     "vitest": "catalog:"
   }

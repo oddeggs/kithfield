@@ -3,15 +3,15 @@
  * `<id>.chrome.png`, `<id>.skia.png` and `<id>.diff.png` for the scenes over the limit (or all of
  * them with `--all`). `--only <substring>` narrows the set.
  *
- *   pnpm --filter @kithfield/art golden [--only farm] [--out /tmp/goldens] [--all]
+ *   pnpm --filter @kithfield/art golden:report [--only farm] [--out /tmp/goldens] [--all]
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { loadNodeSkia } from '../node';
 import { AlphaType, ColorType, ImageFormat } from '../canvas2d/skia-enums';
-import { diffImage, GOLDEN_MEAN_LIMIT } from './compare';
-import { runGoldens } from './run';
+import { diffImage } from './compare';
+import { gateFailures, runGoldens } from './run';
 
 const arg = (name: string) => {
   const i = process.argv.indexOf(name);
@@ -43,10 +43,11 @@ let failed = 0;
 const results = await runGoldens(
   (s) => !only || s.id.includes(only),
   (r) => {
-    const pass = r.mean <= GOLDEN_MEAN_LIMIT && r.errors.length === 0;
+    const failures = gateFailures(r);
+    const pass = failures.length === 0;
     if (!pass) failed++;
     console.log(
-      `${pass ? 'ok  ' : 'FAIL'} ${r.scene.id.padEnd(34)} mean ${r.mean.toFixed(3)}  >16 ${(r.over16 * 100).toFixed(2)}%  max ${r.max}${r.errors.length ? `  errors: ${r.errors.join('; ')}` : ''}`,
+      `${pass ? 'ok  ' : 'FAIL'} ${r.scene.id.padEnd(34)} mean ${r.mean.toFixed(3)}  tile ${r.worstTile.toFixed(2)}  >16 ${(r.over16 * 100).toFixed(2)}%  max ${r.max}${pass ? '' : `  ${failures.join('; ')}`}`,
     );
     if (outDir && (all || !pass)) {
       writeFileSync(join(outDir, `${r.scene.id}.chrome.png`), png(r.chrome, r.width, r.height));

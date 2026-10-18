@@ -9,6 +9,8 @@ export interface GoldenScene {
   dpr: number;
   t: number;
   attrs: SceneAttrs;
+  /** The scene draws text, which each platform's font engine rasterises a little differently. */
+  text?: boolean;
 }
 
 const CAST = [
@@ -89,8 +91,9 @@ export const GOLDEN_SCENES: readonly GoldenScene[] = [
     scene(`critter-${kind}-asleep`, 'stage', 160, 160, { kind, state: 'sleep' }),
   ]),
   ...SEASONS.map((season) => scene(`farm-${season}-day`, 'farm', 360, 480, { season })),
-  scene('farm-spring-night', 'farm', 360, 480, { season: 'spring', night: true }),
-  scene('farm-winter-night', 'farm', 360, 480, { season: 'winter', night: true, firefly: true }),
+  ...SEASONS.map((season) =>
+    scene(`farm-${season}-night`, 'farm', 360, 480, { season, night: true, firefly: true }),
+  ),
   scene('farm-rain', 'farm', 360, 480, { season: 'summer', rain: true }),
   scene('fire-campfire', 'campfire', 360, 480, { season: 'autumn' }),
   scene('fire-small', 'firesmall', 240, 180, { season: 'summer' }),
@@ -104,17 +107,24 @@ export const GOLDEN_SCENES: readonly GoldenScene[] = [
       scene(`plant-${name}-${stage}`, 'plant', 120, 120, { name, stage }),
     ),
   ),
-  scene('plant-moonflower-sleepy-night', 'plant', 120, 120, { name: 'moonflower', stage: 5 }),
+  scene('plant-clover-sleepy-night', 'plant', 120, 120, {
+    name: 'clover',
+    stage: 5,
+    state: 'night',
+  }),
   scene('plant-rose-pot-rain', 'plant', 120, 120, {
     name: 'rose',
     stage: 3,
     state: 'rain',
     pot: true,
   }),
-  scene('sticker-wave', 'sticker', 200, 200, { pose: 'wave', kind: 'rabbit', caption: 'hi!' }),
+  {
+    ...scene('sticker-wave', 'sticker', 200, 200, { pose: 'wave', kind: 'rabbit', caption: 'hi!' }),
+    text: true,
+  },
   scene('icon-tinted', 'icon2', 180, 180, { kind: 'fox', state: 'tinted' }),
   scene('icon-mono', 'icon2', 180, 180, { kind: 'cat', state: 'mono' }),
-  scene('evening-en', 'evening', 360, 480, { progress: 0.85 }),
-  scene('evening-vi', 'evening', 360, 480, { progress: 0.85, lang: 'vi' }),
+  { ...scene('evening-en', 'evening', 360, 480, { progress: 0.85 }), text: true },
+  { ...scene('evening-vi', 'evening', 360, 480, { progress: 0.85, lang: 'vi' }), text: true },
   scene('widget-night', 'widget', 340, 160, { season: 'winter', lit: 'rabbit,frog,owl' }),
 ];

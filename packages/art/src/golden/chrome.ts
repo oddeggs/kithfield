@@ -48,6 +48,13 @@ ${fontCss()}
 html,body{margin:0;background:transparent}
 </style><script src="${ORIGIN}/kithfield-art.js"></script><script>${HARNESS}</script></head><body></body></html>`;
 
+const CHROME_ARGS = [
+  '--disable-gpu',
+  '--disable-accelerated-2d-canvas',
+  '--force-color-profile=srgb',
+  '--font-render-hinting=none',
+];
+
 /**
  * The original renderer in headless Chrome, drawing on the browser's own canvas. Software
  * rasterisation and an sRGB profile keep it deterministic.
@@ -58,15 +65,17 @@ export class ChromeArt {
     private readonly page: Page,
   ) {}
 
+  /**
+   * Launches Chromium, or connects to a Playwright server at `KF_ART_PLAYWRIGHT_WS` (to compare
+   * against Linux Chrome, as CI does, from a Mac: `playwright run-server` in the Playwright image).
+   */
   static async launch(): Promise<ChromeArt> {
-    const browser = await chromium.launch({
-      args: [
-        '--disable-gpu',
-        '--disable-accelerated-2d-canvas',
-        '--force-color-profile=srgb',
-        '--font-render-hinting=none',
-      ],
-    });
+    const ws = process.env['KF_ART_PLAYWRIGHT_WS'];
+    const browser = ws
+      ? await chromium.connect(ws, {
+          headers: { 'x-playwright-launch-options': JSON.stringify({ args: CHROME_ARGS }) },
+        })
+      : await chromium.launch({ args: CHROME_ARGS });
     const page = await browser.newPage();
     const fonts = themeFontDir();
     await page.route(`${ORIGIN}/**`, async (route) => {
