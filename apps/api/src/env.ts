@@ -10,6 +10,8 @@ export const secretNames = [
   'BETTER_AUTH_SECRET',
   // Expo's enhanced push security: sent with every push request once it is turned on.
   'EXPO_ACCESS_TOKEN',
+  // Keys the waitlist's address hashes (HMAC-SHA256), so a listed address can't be brute-forced.
+  'WAITLIST_EMAIL_KEY',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -36,6 +38,8 @@ export type Bindings = Secrets & {
   readonly MEDIA: R2Bucket;
   /** At most 20 sign-in nonces a minute per client address. */
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
+  /** At most 5 waitlist sign-ups a minute per client address. */
+  readonly WAITLIST_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;
