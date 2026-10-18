@@ -1,4 +1,4 @@
-import type { AiFeature, ConsentList } from '@kithfield/contracts';
+import type { AiFeature } from '@kithfield/contracts';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, type ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -19,7 +19,7 @@ import { SettingRow } from '../kit/setting-row';
 import { KText } from '../kit/text';
 import { openPage, siteUrl } from '../links';
 import { useRemote } from '../use-remote';
-import { AI_FEATURES, AI_PROVIDER, CONSENT_TEXT_VERSION } from './consent';
+import { AI_FEATURES, allowedIn, answerConsent } from './consent';
 
 function Section({ label, children }: { readonly label: string; readonly children: ReactNode }) {
   return (
@@ -29,9 +29,6 @@ function Section({ label, children }: { readonly label: string; readonly childre
     </View>
   );
 }
-
-const allowedIn = (list: ConsentList | null, feature: AiFeature) =>
-  list?.consents.find((c) => c.feature === feature)?.allowed ?? false;
 
 /**
  * AI and your data: every switch, off until the person says yes. Turning an outside AI on
@@ -46,9 +43,7 @@ export function AiScreen() {
   const insets = useSafeAreaInsets();
   const top = useDesignTop();
   const api = useSettingsApi();
-  const consents = useRemote(() =>
-    AI_PROVIDER === null ? Promise.resolve({ consents: [] }) : api.consents(),
-  );
+  const consents = useRemote(() => api.consents());
   const [catchUp, setCatchUp] = useDevicePref('aiCatchUp');
   useFocusEffect(
     useCallback(() => {
@@ -65,7 +60,7 @@ export function AiScreen() {
     consents.set((list) => ({
       consents: list.consents.map((c) => (c.feature === feature ? { ...c, allowed: false } : c)),
     }));
-    api.setConsent(feature, { allowed: false, textVersion: CONSENT_TEXT_VERSION }).catch(() => {
+    answerConsent(api, feature, false).catch(() => {
       if (before) consents.set(() => before);
       toast.show(t('settings.failed'));
     });
@@ -74,14 +69,15 @@ export function AiScreen() {
     const asked = (consents.data?.consents ?? []).map((c) => c.feature);
     const features = asked.length > 0 ? asked : AI_FEATURES;
     Promise.all(features.map((f) => api.forgetConsent(f))).then(
-      () => toast.show(t('settings.ai.forgotten')),
+      () => toast.show(t('ai.data.forgotten')),
       () => toast.show(t('settings.failed')),
     );
   };
-  // Without a provider nothing is sent out, so its section and the deletion request are left out.
-  const provider = AI_PROVIDER ?? '';
+  const provider = t('ai.provider');
   const captions = allowedIn(consents.data, 'captions');
+  const voiceNotes = allowedIn(consents.data, 'voice_notes');
   const recap = allowedIn(consents.data, 'recap');
+  const waiting = consents.data === null && !consents.failed;
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
@@ -127,58 +123,68 @@ export function AiScreen() {
             }
           />
         </Section>
-        {AI_PROVIDER === null ? null : (
-          <>
-            <Section label={t('settings.ai.outside', { provider })}>
-              <SettingRow
-                icon="mic"
-                roomy
-                title={t('settings.ai.captions')}
-                subtitle={captions ? t('settings.ai.captionsOn') : t('settings.ai.captionsOff')}
-                trailing={
-                  <Toggle
-                    value={captions}
-                    onChange={(v) => set('captions', v)}
-                    label={t('settings.ai.captions')}
-                    disabled={consents.data === null && !consents.failed}
-                  />
-                }
+        <Section label={t('settings.ai.outside', { provider })}>
+          <SettingRow
+            icon="mic"
+            roomy
+            title={t('settings.ai.captions')}
+            subtitle={captions ? t('settings.ai.captionsOn') : t('settings.ai.captionsOff')}
+            trailing={
+              <Toggle
+                value={captions}
+                onChange={(v) => set('captions', v)}
+                label={t('settings.ai.captions')}
+                disabled={waiting}
               />
-              <SettingRow
-                icon="envelope"
-                roomy
-                title={t('settings.ai.recap')}
-                subtitle={recap ? t('settings.ai.recapOn') : t('settings.ai.recapOff')}
-                trailing={
-                  <Toggle
-                    value={recap}
-                    onChange={(v) => set('recap', v)}
-                    label={t('settings.ai.recap')}
-                    disabled={consents.data === null && !consents.failed}
-                  />
-                }
+            }
+          />
+          <SettingRow
+            icon="ear"
+            roomy
+            title={t('ai.data.voiceNotes')}
+            subtitle={voiceNotes ? t('ai.data.voiceNotesOn') : t('ai.data.voiceNotesOff')}
+            trailing={
+              <Toggle
+                value={voiceNotes}
+                onChange={(v) => set('voice_notes', v)}
+                label={t('ai.data.voiceNotes')}
+                disabled={waiting}
               />
-            </Section>
-            <View
-              style={{
-                borderRadius: 20,
-                backgroundColor: palette.card,
-                borderWidth: 1,
-                borderColor: palette.hairline,
-                padding: 14,
-                gap: 10,
-              }}
-            >
-              <KText kind="rowTitle" style={{ fontSize: 15, lineHeight: 18.8 }}>
-                {t('settings.ai.takeBack')}
-              </KText>
-              <KText kind="card" multiline color={kit.body2} style={{ lineHeight: 18.9 }}>
-                {t('settings.ai.takeBackText', { provider })}
-              </KText>
-              <Pill label={t('settings.ai.forget')} height={42} onPress={forget} />
-            </View>
-          </>
-        )}
+            }
+          />
+          <SettingRow
+            icon="envelope"
+            roomy
+            title={t('settings.ai.recap')}
+            subtitle={recap ? t('settings.ai.recapOn') : t('settings.ai.recapOff')}
+            trailing={
+              <Toggle
+                value={recap}
+                onChange={(v) => set('recap', v)}
+                label={t('settings.ai.recap')}
+                disabled={waiting}
+              />
+            }
+          />
+        </Section>
+        <View
+          style={{
+            borderRadius: 20,
+            backgroundColor: palette.card,
+            borderWidth: 1,
+            borderColor: palette.hairline,
+            padding: 14,
+            gap: 10,
+          }}
+        >
+          <KText kind="rowTitle" style={{ fontSize: 15, lineHeight: 18.8 }}>
+            {t('settings.ai.takeBack')}
+          </KText>
+          <KText kind="card" multiline color={kit.body2} style={{ lineHeight: 18.9 }}>
+            {t('ai.data.takeBackText', { provider })}
+          </KText>
+          <Pill label={t('settings.ai.forget')} height={42} onPress={forget} />
+        </View>
         <View
           style={{
             flexDirection: 'row',

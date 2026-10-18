@@ -6,7 +6,7 @@ import { Toggle } from '../../../ui/components/toggle';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
-import { AI_PROVIDER, aiDataCount } from '../ai/consent';
+import { aiDataCount } from '../ai/consent';
 import { useSettingsApi } from '../api/use-api';
 import { useDevicePref } from '../device-prefs';
 import { HOUSE_HOURS, clockTime, zoneName } from '../format';
@@ -37,11 +37,10 @@ export function SettingsScreen() {
   const api = useSettingsApi();
   const { settings, change } = useMeSettings();
   const [catchUp, setCatchUp] = useDevicePref('aiCatchUp');
-  const consents = useRemote(() =>
-    AI_PROVIDER === null ? Promise.resolve({ consents: [] }) : api.consents(),
-  );
+  const consents = useRemote(() => api.consents());
   const catchUpOn = catchUp === 'on';
-  const aiCount = aiDataCount(AI_PROVIDER, catchUpOn, consents.data?.consents ?? []);
+  // Counted once the answers are in, so the row never shows everything off while they load.
+  const aiCount = consents.data === null ? null : aiDataCount(catchUpOn, consents.data.consents);
 
   const quiet = settings?.quietHours ?? null;
   const quietValue = quiet

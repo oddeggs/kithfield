@@ -195,30 +195,19 @@ export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.consent.plus': 'PLUS',
   'settings.consent.sent': 'Những gì được gửi',
   'settings.consent.use': 'Họ được làm gì với nó',
-  'settings.consent.never': 'Không bao giờ dùng để huấn luyện, không bao giờ giữ quá 30 ngày.',
   'settings.consent.privacy': 'Chính sách quyền riêng tư',
   'settings.consent.captions.eyebrow': 'trước khi bật',
   'settings.consent.captions.title': 'Phụ đề dùng một AI bên ngoài',
-  'settings.consent.captions.lead':
-    'Để làm phụ đề và dịch bên đống lửa, giọng nói được gửi đến {provider}, một dịch vụ AI chúng mình hợp tác. Đây là chính xác những gì xảy ra.',
   'settings.consent.captions.sent':
     'Âm thanh giọng nói từ đống lửa này, chỉ khi phụ đề đang bật, và chỉ từ những người bạn cũng đã đồng ý.',
   'settings.consent.captions.use': 'Chuyển thành chữ và dịch.',
   'settings.consent.captions.stays': 'Những gì ở lại đây',
-  'settings.consent.captions.staysText':
-    'Trò chuyện, ảnh, danh bạ và vị trí của bạn không bao giờ được gửi. Phụ đề biến mất khi lửa tắt.',
   'settings.consent.captions.others':
     'Bạn bè nói không sẽ không bao giờ có phụ đề. Lời họ hiện thành một dấu “…” lặng lẽ.',
   'settings.consent.captions.yes': 'Cho phép phụ đề',
   'settings.consent.captions.no': 'Để sau',
   'settings.consent.recap.eyebrow': 'một lá thư nhỏ, mỗi chủ nhật',
   'settings.consent.recap.title': 'Để AI giúp viết thư tóm tắt chủ nhật nhé?',
-  'settings.consent.recap.lead':
-    'Để viết một lá thư ngắn về tuần qua ở {farm}, tin nhắn của nông trại được gửi đến {provider}.',
-  'settings.consent.recap.leadAll':
-    'Để viết một lá thư ngắn về tuần qua ở các nông trại của bạn, tin nhắn ở đó được gửi đến {provider}.',
-  'settings.consent.recap.sent':
-    'Chữ trong tin nhắn tuần này, chỉ từ những người bạn đã đồng ý. Không có ảnh, tin nhắn thoại, lần ghé thăm hay tên người ngoài nông trại.',
   'settings.consent.recap.use': 'Viết lá thư.',
   'settings.consent.recap.ifNo': 'Nếu bạn nói không',
   'settings.consent.recap.ifNoText':
@@ -236,10 +225,7 @@ export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.ai.recapOn': 'Cho phép · lời bạn giúp viết lá thư',
   'settings.ai.recapOff': 'Không cho phép · lời bạn không có trong lá thư',
   'settings.ai.takeBack': 'Rút lại',
-  'settings.ai.takeBackText':
-    'Tắt một mục sẽ ngừng gửi ngay lập tức. Bạn cũng có thể yêu cầu {provider} và chúng mình xoá những gì đã gửi.',
   'settings.ai.forget': 'Yêu cầu xoá',
-  'settings.ai.forgotten': 'Chúng mình đã yêu cầu xoá. Việc này có thể mất đến 30 ngày.',
   'settings.ai.which': 'Chúng mình dùng AI nào, và vì sao',
 
   'settings.farm.title': 'Cài đặt nông trại',

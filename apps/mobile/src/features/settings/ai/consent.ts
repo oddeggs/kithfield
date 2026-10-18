@@ -1,39 +1,40 @@
 import type { AiFeature, ConsentList } from '@kithfield/contracts';
-import Constants from 'expo-constants';
+
+import type { SettingsApi } from '../api/settings-api';
 
 /**
  * The version of the consent wording people say yes or no to, stored with each answer. Change it
- * whenever the sheets' text changes, so earlier answers are known to be to older words.
+ * whenever the sheets' text changes, with the api's `AI_CONSENT_TEXT_VERSION`: a yes counts only
+ * when it was given to the words in force.
  */
-export const CONSENT_TEXT_VERSION = '2026-10-18';
+export const CONSENT_TEXT_VERSION = '2026-10-19';
 
-/** The provider named in the app's config (`extra.aiProvider`), or null when none is. */
-export function providerFrom(extra: unknown): string | null {
-  const named = (extra as { aiProvider?: unknown } | null | undefined)?.aiProvider;
-  return typeof named === 'string' && named.trim() !== '' ? named.trim() : null;
-}
+/** The features that send words or voices to the outside AI (`ai.provider`), each asked first. */
+export const AI_FEATURES: readonly AiFeature[] = ['captions', 'voice_notes', 'recap'];
 
-/**
- * The outside AI's name, as the sheets show it. Until a provider is chosen (and matched in the
- * Privacy Policy and the App Privacy labels) it is null: nothing asks to send anything out.
- */
-export const AI_PROVIDER: string | null = providerFrom(Constants.expoConfig?.extra);
+export const isAiFeature = (s: unknown): s is AiFeature =>
+  s === 'captions' || s === 'voice_notes' || s === 'recap';
 
-export const AI_FEATURES: readonly AiFeature[] = ['captions', 'recap'];
+/** Whether the person said yes to `feature`, to the words in force: an older yes asks again. */
+export const allowedIn = (list: ConsentList | null, feature: AiFeature): boolean =>
+  list?.consents.some(
+    (c) => c.feature === feature && c.allowed && c.textVersion === CONSENT_TEXT_VERSION,
+  ) ?? false;
 
-export const isAiFeature = (s: unknown): s is AiFeature => s === 'captions' || s === 'recap';
-
-/**
- * How many AI switches are off, for the Settings row: AI catch-up on the phone and each outside
- * feature. Null while there is no provider, so the row shows no count.
- */
+/** How many AI switches are off, for the Settings row: AI catch-up on the phone and each feature. */
 export function aiDataCount(
-  provider: string | null,
   catchUpOn: boolean,
   consents: ConsentList['consents'],
-): { off: number; all: number } | null {
-  if (provider === null) return null;
+): { off: number; all: number } {
   const all = 1 + AI_FEATURES.length;
-  const on = (catchUpOn ? 1 : 0) + consents.filter((c) => c.allowed).length;
+  const list = { consents };
+  const on = (catchUpOn ? 1 : 0) + AI_FEATURES.filter((f) => allowedIn(list, f)).length;
   return { off: all - on, all };
 }
+
+/** Records a yes or a no to `feature`, given to the words in force. */
+export const answerConsent = (
+  api: Pick<SettingsApi, 'setConsent'>,
+  feature: AiFeature,
+  allowed: boolean,
+): Promise<void> => api.setConsent(feature, { allowed, textVersion: CONSENT_TEXT_VERSION });
