@@ -14,6 +14,8 @@ import {
 import { ArtStill } from '../art/art-view';
 import { ErrorState } from '../components/state-shell';
 import { useLocale } from '../locale/locale-provider';
+import { AccountProvider, useOnboarded, useRuntimeAccount } from './account';
+import { PushRegistration, pushDeps } from './push-registration';
 import { SessionProvider, signedOut, type Session } from './session';
 
 type Runtime = DataRuntime<unknown>;
@@ -31,7 +33,10 @@ type Phase =
   | { readonly kind: 'ready'; readonly runtime: Runtime }
   | { readonly kind: 'failed' };
 
-/** The session as the shell reads it: signed in while the data layer has a person it can use. */
+/**
+ * The session as the shell reads it: signed in while the data layer has a person it can use, and
+ * onboarded once that person is through the way in.
+ */
 function SessionBridge({
   runtime,
   children,
@@ -45,14 +50,23 @@ function SessionBridge({
     const off = runtime.session.onPersonChanged((_from, to) => setPerson(to));
     return () => void off();
   }, [runtime]);
-  const session = useMemo<Session>(
-    () =>
-      sessionEnded || person === null
-        ? signedOut
-        : { status: 'signedIn', person: { id: person.person } },
-    [sessionEnded, person],
+  const id = sessionEnded || person === null ? null : person.person;
+  const { onboarded, recheck } = useOnboarded(runtime, id);
+  // A person the server removed (the age check) is dropped here too, so nothing acts as them.
+  const dropped = useCallback(() => setPerson(null), []);
+  const account = useRuntimeAccount(runtime, id, recheck, dropped);
+  const push = useMemo(() => pushDeps(runtime), [runtime]);
+  const session = useMemo<Session>(() => {
+    if (id === null) return signedOut;
+    if (onboarded === null) return { status: 'loading', person: { id }, onboarded: false };
+    return { status: 'signedIn', person: { id }, onboarded };
+  }, [id, onboarded]);
+  return (
+    <AccountProvider account={account}>
+      <PushRegistration person={onboarded ? id : null} deps={push} />
+      <SessionProvider session={session}>{children}</SessionProvider>
+    </AccountProvider>
   );
-  return <SessionProvider session={session}>{children}</SessionProvider>;
 }
 
 /** A first launch that couldn't reach the server: there is nothing to open yet, so offer a retry. */

@@ -33,9 +33,10 @@ const mediaQueue: HeldElsewhere = {
 
 function Screens() {
   const { appearance, palette } = useTheme();
-  const { status } = useSession();
+  const { status, onboarded } = useSession();
   const { height: screenH } = useWindowDimensions();
-  const signedIn = status === 'signedIn';
+  // The tabs for someone signed in and through the way in; onboarding for everyone else.
+  const inside = status === 'signedIn' && onboarded;
   return (
     <>
       <StatusBar style={appearance === 'night' ? 'light' : 'dark'} animated />
@@ -45,10 +46,10 @@ function Screens() {
         // `app/README.md`. Decided here, before the screen mounts, as native sheets need.
         screenOptions={({ route }) => screenOptionsFor(route.name, { screenH, palette })}
       >
-        <Stack.Protected guard={signedIn}>
+        <Stack.Protected guard={inside}>
           <Stack.Screen name="(tabs)" />
         </Stack.Protected>
-        <Stack.Protected guard={!signedIn}>
+        <Stack.Protected guard={!inside}>
           <Stack.Screen name="(onboarding)" />
         </Stack.Protected>
         <Stack.Protected guard={__DEV__}>

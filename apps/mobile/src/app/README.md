@@ -10,7 +10,7 @@ screens there without editing a shared file.
 | `(tabs)/chat/` | Chat | The Chats tab's stack |
 | `(tabs)/seedbed/` | Plans | The Seed bed tab's stack |
 | `(tabs)/you/` | Settings and safety | The You tab's stack |
-| `(onboarding)/` | Onboarding | Shown instead of the tabs to someone not signed in. Replace `welcome.tsx` (the URL `/welcome`; `index.tsx` would collide with the app's own `/`) |
+| `(onboarding)/` | Onboarding | Shown instead of the tabs to someone not onboarded yet. Starts at `welcome.tsx` (the URL `/welcome`; `index.tsx` would collide with the app's own `/`) |
 | `(modal)/` | Any feature | A sheet over the app: name files `<feature>-<screen>.tsx` (`plans-plant.tsx`). A sheet with its own heights, an overlay or a gesture scene is listed in `SHEETS` |
 | `(cover)/` | Any feature | Full screen over everything (search, the photo viewer, the fire room): `<feature>-<screen>.tsx` (`chat-search.tsx`) |
 | `(dev)/` | The shell | Development-only screens (the component gallery, the sync, media, sheet, art and gestures labs). Each is listed inside the root layout's `Stack.Protected guard={__DEV__}` and requires its screen only under `__DEV__`, so none ships |
@@ -20,9 +20,12 @@ screens there without editing a shared file.
 - **Tabs.** Each tab folder has a `_layout.tsx` with a native `Stack` on the theme's background. The
   floating tab bar sits over every tab's screens, so a screen runs to the bottom edge and pads its
   scrolling content with `tabBarClearance(insets.bottom)` from `ui/tab-bar/tab-bar`.
-- **Sign-in gate.** The root layout shows `(tabs)` to someone signed in and `(onboarding)` otherwise
-  (`Stack.Protected`, reading `useSession()` from `ui/session/session`). The splash stays up while
-  the session is `loading`.
+- **Onboarding gate.** The root layout shows `(tabs)` to someone signed in and onboarded (a name
+  and critter, old enough, the Terms in force accepted) and `(onboarding)` otherwise
+  (`Stack.Protected`, reading `useSession()` from `ui/session/session`). The phone remembers who it
+  saw onboarded, so a launch never waits on the server; a person it hasn't seen is checked with
+  `GET /v1/me` once, under the splash. The splash stays up while the session is `loading`.
+  Onboarding signs in and ends with `useAccount().recheck()` (`ui/session/account`).
 - **Modals and covers.** The root stack presents any route in `(modal)` as a page sheet and any in
   `(cover)` as a full-screen modal. Don't give these groups a `_layout.tsx`: their files must stay
   direct routes of the root stack. They are for signed-in screens; onboarding's own sheets live in

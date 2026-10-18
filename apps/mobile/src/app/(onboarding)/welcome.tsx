@@ -1,6 +1,4 @@
-import { TabPlaceholder } from '../../ui/tab-bar/tab-placeholder';
+import { WelcomeScreen } from '../../features/onboarding/screens/welcome-screen';
 
-/** Stands in until the onboarding screens are built here. */
-export default function Welcome() {
-  return <TabPlaceholder title="shell.appName" />;
-}
+/** The gate: start a farm, or come in with an invite. */
+export default WelcomeScreen;

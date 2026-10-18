@@ -13,6 +13,10 @@ import { mediaEn } from './media.en';
 import { mediaVi } from './media.vi';
 import { moderationEn } from './moderation.en';
 import { moderationSameInBoth, moderationVi } from './moderation.vi';
+import { onboardingEn } from './onboarding.en';
+import { onboardingSameInBoth, onboardingVi } from './onboarding.vi';
+import { onboardingCrittersEn } from './onboarding-critters.en';
+import { onboardingCrittersVi } from './onboarding-critters.vi';
 import { pushEn } from './push.en';
 import { pushSameInBoth, pushVi } from './push.vi';
 import { shellEn } from './shell.en';
@@ -38,6 +42,8 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
   { name: 'media', file: 'media', en: mediaEn, vi: mediaVi, sameInBoth: [] },
   { name: 'moderation', file: 'moderation', en: moderationEn, vi: moderationVi, sameInBoth: moderationSameInBoth },
+  { name: 'onboarding', file: 'onboarding', en: onboardingEn, vi: onboardingVi, sameInBoth: onboardingSameInBoth },
+  { name: 'onboardingCritters', file: 'onboarding-critters', en: onboardingCrittersEn, vi: onboardingCrittersVi, sameInBoth: [] },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
@@ -56,6 +62,8 @@ export const en = {
   ...glossaryEn,
   ...mediaEn,
   ...moderationEn,
+  ...onboardingEn,
+  ...onboardingCrittersEn,
   ...pushEn,
   ...shellEn,
   ...signInCodeEn,
@@ -74,6 +82,8 @@ export const vi = {
   ...glossaryVi,
   ...mediaVi,
   ...moderationVi,
+  ...onboardingVi,
+  ...onboardingCrittersVi,
   ...pushVi,
   ...shellVi,
   ...signInCodeVi,
