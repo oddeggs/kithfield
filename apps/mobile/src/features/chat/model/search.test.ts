@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { filterHits, highlight, localHits, mergeHits, type Hit } from './search';
+import { filterHits, goneIn, highlight, localHits, mergeHits, type Hit } from './search';
 import type { LogEvent } from './timeline';
 
 const ev = (seq: number, actor: string, kind: string, payload: unknown): LogEvent => ({
@@ -67,5 +67,15 @@ describe('search', () => {
       { text: 'ngoại', hit: true },
       { text: ' nhé', hit: false },
     ]);
+  });
+
+  it('drops the farm’s hits for messages this phone knows were unsent', () => {
+    const server: Hit[] = [
+      { farm: 'f', seq: 5, at: 5000, actor: 'bea', kind: 'message', text: 'picnic gone' },
+      { farm: 'f', seq: 1, at: 1000, actor: 'mo', kind: 'message', text: 'an old picnic' },
+    ];
+    const merged = mergeHits(server, localHits('f', events, 'picnic'), goneIn('f', events));
+    expect(merged.map((h) => h.seq)).not.toContain(5);
+    expect(merged.map((h) => h.seq)).toContain(1);
   });
 });

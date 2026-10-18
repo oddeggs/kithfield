@@ -105,10 +105,31 @@ export function localHits(farm: string, events: readonly LogEvent[], query: stri
   return hits;
 }
 
-/** The server's hits and this phone's, once each, newest first. The phone's words win (edits). */
-export function mergeHits(server: readonly Hit[], local: readonly Hit[]): Hit[] {
+/** `farm:seq` of every message this phone knows was unsent or taken down. */
+export function goneIn(farm: string, events: readonly LogEvent[]): Set<string> {
+  const gone = new Set<string>();
+  for (const e of events) {
+    if (isTombstone(e.payload)) {
+      gone.add(`${farm}:${e.seq}`);
+      continue;
+    }
+    const target = obj(e.payload)['target'];
+    if (e.kind === 'unsend' && typeof target === 'number') gone.add(`${farm}:${target}`);
+  }
+  return gone;
+}
+
+/**
+ * The server's hits and this phone's, once each, newest first. The phone's words win (edits), and
+ * a hit for something this phone knows is gone is dropped (the server may not have caught up).
+ */
+export function mergeHits(
+  server: readonly Hit[],
+  local: readonly Hit[],
+  gone: ReadonlySet<string> = new Set(),
+): Hit[] {
   const byKey = new Map<string, Hit>();
-  for (const h of server) byKey.set(`${h.farm}:${h.seq}`, h);
+  for (const h of server) if (!gone.has(`${h.farm}:${h.seq}`)) byKey.set(`${h.farm}:${h.seq}`, h);
   for (const h of local) byKey.set(`${h.farm}:${h.seq}`, h);
   return [...byKey.values()].sort((a, b) => b.at - a.at || b.seq - a.seq);
 }

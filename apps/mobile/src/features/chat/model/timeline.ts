@@ -188,7 +188,7 @@ export function buildTimeline(input: TimelineInput): TimelineItem[] {
   const zone = state?.timeZone ?? null;
   const who = (actor: string | null) => (actor === null ? null : keptId(state, actor));
   const landed = new Set(input.events.map((e) => e.opId));
-  const drafts: Draft[] = input.events
+  const logged: Draft[] = input.events
     .filter((e) => e.known)
     .map((e) => ({
       seq: e.seq,
@@ -201,9 +201,10 @@ export function buildTimeline(input: TimelineInput): TimelineItem[] {
       delivery: who(e.actor) === me && me !== null ? 'sent' : null,
       refused: null,
     }));
+  const local: Draft[] = [];
   for (const w of input.unsent) {
     if (landed.has(w.opId)) continue;
-    drafts.push({
+    local.push({
       seq: null,
       opId: w.opId,
       actor: me,
@@ -217,7 +218,7 @@ export function buildTimeline(input: TimelineInput): TimelineItem[] {
   }
   for (const r of input.refused) {
     if (landed.has(r.opId) || !isBubbleKind(r.kind)) continue;
-    drafts.push({
+    local.push({
       seq: null,
       opId: r.opId,
       actor: me,
@@ -229,12 +230,13 @@ export function buildTimeline(input: TimelineInput): TimelineItem[] {
       refused: r.reason,
     });
   }
+  const drafts = mergeByTime(logged, local);
 
   // What acts on other events: edits, unsends, reactions, dewdrops. Later ones win.
   const edits = new Map<number, string>();
   const unsends = new Map<number, 'author' | 'safety'>();
   const reactions = new Map<number, Map<PersonId, string>>();
-  const dews = new Map<number, Map<PersonId, number | null>>();
+  const dews = new Map<number, Map<PersonId, (number | null)[]>>();
   for (const d of drafts) {
     if (isTombstone(d.payload)) continue;
     const p = obj(d.payload);
@@ -250,26 +252,37 @@ export function buildTimeline(input: TimelineInput): TimelineItem[] {
       reactions.set(target, by);
     }
     if (d.kind === 'dewdrop' && d.actor !== null) {
-      const by = dews.get(target) ?? new Map<PersonId, number | null>();
-      if (!by.has(d.actor)) by.set(d.actor, d.seq);
+      const by = dews.get(target) ?? new Map<PersonId, (number | null)[]>();
+      by.set(d.actor, [...(by.get(d.actor) ?? []), d.seq]);
       dews.set(target, by);
     }
   }
-  // A dewdrop taken back is an unsend of the dewdrop: drop it from its message.
+  // A dewdrop taken back is an unsend of the dewdrop: each person's latest one still standing
+  // counts, so one given again after being taken back shows again.
+  const dewOf = new Map<number, Map<PersonId, number | null>>();
   for (const [target, by] of dews) {
-    for (const [person, seq] of by) if (seq !== null && unsends.has(seq)) by.delete(person);
-    if (by.size === 0) dews.delete(target);
+    const standing = new Map<PersonId, number | null>();
+    for (const [person, seqs] of by) {
+      const kept = seqs.filter((seq) => seq === null || !unsends.has(seq));
+      if (kept.length > 0) standing.set(person, kept.at(-1) ?? null);
+    }
+    if (standing.size > 0) dewOf.set(target, standing);
   }
   const pins = new Set(state?.pins ?? []);
+  // A nap is only known to be long when the loaded log shows when it began.
   const lastOpened = new Map<PersonId, number>();
-  for (const m of state?.members ?? []) lastOpened.set(m.person, m.joinedAt);
 
   const items: TimelineItem[] = [];
   let day: string | null = null;
+  const days = new Set<string>();
   const divide = (d: Draft) => {
     if (d.day === day) return;
     day = d.day;
-    items.push({ type: 'day', key: `day:${d.day}`, at: d.at, day: d.day });
+    // A day shown twice (a clock that disagrees with the farm's) keeps its rows apart by key.
+    let key = `day:${d.day}`;
+    for (let i = 2; days.has(key); i += 1) key = `day:${d.day}:${i}`;
+    days.add(key);
+    items.push({ type: 'day', key, at: d.at, day: d.day });
   };
 
   for (const d of drafts) {
@@ -311,7 +324,7 @@ export function buildTimeline(input: TimelineInput): TimelineItem[] {
       const edit = d.seq === null ? undefined : edits.get(d.seq);
       const shown: BubbleBody =
         edit !== undefined && body.kind === 'message' ? { kind: 'message', text: edit } : body;
-      const dewBy = d.seq === null ? undefined : dews.get(d.seq);
+      const dewBy = d.seq === null ? undefined : dewOf.get(d.seq);
       const reactedBy = d.seq === null ? undefined : reactions.get(d.seq);
       const grouped = new Map<string, PersonId[]>();
       for (const [person, reaction] of reactedBy ?? []) {
@@ -360,6 +373,23 @@ export function buildTimeline(input: TimelineInput): TimelineItem[] {
     }
   }
   return items;
+}
+
+/**
+ * The farm's log in its order, with this phone's own writes placed among it by when they were
+ * made: a write refused yesterday sits in yesterday, not after today's messages.
+ */
+function mergeByTime(logged: readonly Draft[], local: readonly Draft[]): Draft[] {
+  const pending = [...local].sort((a, b) => a.at - b.at);
+  const out: Draft[] = [];
+  let i = 0;
+  for (const d of logged) {
+    while (i < pending.length && (pending[i]?.at ?? Infinity) < d.at)
+      out.push(pending[i++] as Draft);
+    out.push(d);
+  }
+  while (i < pending.length) out.push(pending[i++] as Draft);
+  return out;
 }
 
 function lineOf(

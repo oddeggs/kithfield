@@ -223,4 +223,99 @@ describe('the chat timeline', () => {
       buildTimeline({ ...base, state: visit, events }).filter((i) => i.type === 'line'),
     ).toEqual([]);
   });
+
+  it('leaves a gap for a message unsent after it was edited', () => {
+    const items = buildTimeline({
+      ...base,
+      events: [
+        ev(2, 'bea', 'message', { tombstone: 'unsent' }),
+        ev(3, 'bea', 'edit', { tombstone: 'unsent' }),
+        ev(4, 'bea', 'unsend', { target: 2, by: 'author' }),
+      ],
+    });
+    expect(bubbles(items)).toHaveLength(0);
+    expect(items.filter((i) => i.type === 'unsent')).toMatchObject([{ seq: 2 }]);
+    const live = buildTimeline({
+      ...base,
+      events: [
+        ev(2, 'bea', 'message', { text: 'a' }),
+        ev(3, 'bea', 'edit', { target: 2, text: 'b' }),
+        ev(4, 'bea', 'unsend', { target: 2, by: 'author' }),
+      ],
+    });
+    expect(bubbles(live)).toHaveLength(0);
+  });
+
+  it('draws an edit this phone has not sent yet at once', () => {
+    const items = buildTimeline({
+      ...base,
+      events: [ev(2, 'me', 'message', { text: 'helo' })],
+      unsent: [
+        {
+          opId: 'e',
+          kind: 'edit',
+          payload: { target: 2, text: 'hello' },
+          createdAt: T0 + 5000,
+          acked: false,
+        },
+      ],
+    });
+    expect(bubbles(items)[0]).toMatchObject({ body: { text: 'hello' }, edited: true });
+  });
+
+  it('places writes by time across days and never repeats a day', () => {
+    const day1 = Date.UTC(2026, 9, 15, 12);
+    const day2 = Date.UTC(2026, 9, 16, 12);
+    const items = buildTimeline({
+      ...base,
+      now: day2 + HOUR,
+      events: [
+        ev(2, 'bea', 'message', { text: 'one' }, day1),
+        ev(3, 'bea', 'message', { text: 'two' }, day2),
+      ],
+      refused: [
+        {
+          opId: 'r',
+          farm: 'f',
+          kind: 'message',
+          payload: { text: 'late' },
+          reason: 'invalid',
+          at: day1 + HOUR,
+        },
+      ],
+    });
+    const keys = items.map((i) => i.key);
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(items.map((i) => (i.type === 'bubble' ? i.body : { row: i.type }))).toMatchObject([
+      { row: 'day' },
+      { text: 'one' },
+      { text: 'late' },
+      { row: 'day' },
+      { text: 'two' },
+    ]);
+  });
+
+  it('welcomes nobody back from a nap the loaded log does not show the start of', () => {
+    const state = {
+      kind: 'farm',
+      members: [{ person: 'otis', joinedAt: T0 - 30 * 24 * HOUR }],
+      pins: [],
+      aliases: {},
+    } as never;
+    const items = buildTimeline({ ...base, state, events: [ev(9, 'otis', 'farm_opened', {}, T0)] });
+    expect(items.filter((i) => i.type === 'back')).toEqual([]);
+  });
+
+  it('keeps a dewdrop given again after one was taken back', () => {
+    const items = buildTimeline({
+      ...base,
+      events: [
+        ev(2, 'bea', 'message', { text: 'hi' }),
+        ev(3, 'me', 'dewdrop', { target: 2 }),
+        ev(4, 'me', 'unsend', { target: 3, by: 'author' }),
+        ev(5, 'me', 'dewdrop', { target: 2 }),
+      ],
+    });
+    expect(bubbles(items)[0]).toMatchObject({ dew: ['me'], myDew: 5 });
+  });
 });
