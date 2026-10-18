@@ -24,16 +24,6 @@ import { useMe } from './use-plans';
 
 const CHOICES: readonly NudgeChoice[] = ['morning', 'evening', 'weekend'];
 
-/**
- * The sheet rises over the chat to where the design draws it (its top 214 points down on an
- * 852-point screen), leaving the farm's strip in view, with the sheet's own grabber.
- */
-export const REMEMBER_SHEET = {
-  presentation: 'formSheet' as const,
-  sheetAllowedDetents: [(852 - 214) / 852],
-  sheetGrabberVisible: false,
-  sheetCornerRadius: 30,
-};
 const TITLE_MAX = 80;
 
 /** A section label as the sheet sets it: small capitals, a little apart. */
