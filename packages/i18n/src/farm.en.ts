@@ -228,7 +228,7 @@ export const farmEn = {
   'farm.card.report': 'Report {name}',
   'farm.card.block': 'Block {name}',
   'farm.card.cancel': 'Cancel',
-  'farm.card.visitSoon': 'Porches open from a shared chat for now. Say hello there first.',
+  'farm.card.visitFailed': 'The porch didn’t open just now. Try again in a moment.',
   'farm.card.leave': 'Leave {farm}',
 
   /* Your bubble */

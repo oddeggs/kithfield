@@ -218,8 +218,7 @@ export const farmVi: ViCatalogue<typeof farmEn> = {
   'farm.card.report': 'Báo cáo {name}',
   'farm.card.block': 'Chặn {name}',
   'farm.card.cancel': 'Hủy',
-  'farm.card.visitSoon':
-    'Hiện giờ hiên nhà mở từ một cuộc trò chuyện chung. Hãy chào ở đó trước nhé.',
+  'farm.card.visitFailed': 'Hiên nhà chưa mở được lúc này. Thử lại sau chút nhé.',
   'farm.card.leave': 'Rời {farm}',
 
   'farm.bubble.title': 'Bong bóng của bạn',

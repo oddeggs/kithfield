@@ -373,11 +373,4 @@ export const settingsEn = {
   'settings.notify.kind.messages': 'Message knocks',
   'settings.notify.kind.birthdays': 'Birthday knocks',
   'settings.notify.kind.nudges': 'Nudges',
-  'settings.leave.title': 'Leave {farm}?',
-  'settings.leave.body':
-    'Your cottage will doze with a “gone wandering” sign. Nobody gets a notification; friends will simply notice the lamp is out.',
-  'settings.leave.note':
-    'You can come back any time with an invite. Your critter keeps everything they own.',
-  'settings.leave.action': 'Leave quietly',
-  'settings.leave.stay': 'Stay',
 } as const satisfies EnCatalogue;

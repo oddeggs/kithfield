@@ -73,7 +73,7 @@ export function MembersScreen({ farm }: { readonly farm: FarmId }) {
         label: t('settings.farm.leave'),
         icon: 'door',
         danger: true,
-        act: () => go('/(modal)/settings-leave', { farm }),
+        act: () => go('/(tabs)/farm/leave', { farm }),
       },
       makeHelper: {
         label: t('settings.members.makeHelper'),

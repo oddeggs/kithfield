@@ -2,9 +2,11 @@ import type { FarmId, PersonId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
 import { radii } from '@kithfield/theme';
 import { router } from 'expo-router';
+import { getCalendars, getLocales } from 'expo-localization';
+import { useState } from 'react';
 import { ActionSheetIOS, View } from 'react-native';
 
-import { useCottage, useFarm, useFarmView } from '../../data';
+import { useCottage, useDataClient, useFarm, useFarmView } from '../../data';
 import { ArtIcon, ArtLoop } from '../../ui/art/art-view';
 import { Button } from '../../ui/components/button';
 import { ListGroup, ListRow } from '../../ui/components/list-row';
@@ -13,6 +15,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
+import { deviceTimeZone, hemisphereOf } from './calendar';
 import { say } from './farm-copy';
 import { farmRoutes } from './routes';
 import { useNow } from './use-now';
@@ -86,6 +89,8 @@ export function CritterCard({
   const state = useFarm(farm)?.state ?? null;
   const view = useFarmView<FarmView>(farm, now);
   const { chats } = useCottage();
+  const client = useDataClient();
+  const [opening, setOpening] = useState(false);
   const member = state?.members.find((m) => m.person === person) ?? null;
   const critter = view?.critters.find((c) => c.person === person) ?? null;
   if (!state || !member) return null;
@@ -103,6 +108,28 @@ export function CritterCard({
           : t('farm.state.out'));
   const visit = chats.find((c) => c.farmKind === 'visit' && c.with?.person === person);
   const c = member.critter;
+
+  // Their porch: the visit you already share, or one opened (or reopened) for the two of you.
+  const openPorch = async () => {
+    if (visit) {
+      router.navigate(farmRoutes.chat(visit.farm));
+      return;
+    }
+    if (opening) return;
+    setOpening(true);
+    try {
+      const opened = await client.api.openVisit({
+        person,
+        timeZone: deviceTimeZone(getCalendars()[0]?.timeZone),
+        hemisphere: hemisphereOf(getLocales()[0]?.regionCode),
+      });
+      router.navigate(farmRoutes.chat(opened.farm));
+    } catch {
+      toast.show(t('farm.card.visitFailed'));
+    } finally {
+      setOpening(false);
+    }
+  };
 
   const more = () =>
     ActionSheetIOS.showActionSheetWithOptions(
@@ -171,11 +198,7 @@ export function CritterCard({
         label={t('farm.card.visit', { name })}
         icon="door"
         kind="go"
-        onPress={() =>
-          visit
-            ? router.navigate(farmRoutes.chat(visit.farm))
-            : toast.show(t('farm.card.visitSoon'))
-        }
+        onPress={() => void openPorch()}
       />
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <ActionTile

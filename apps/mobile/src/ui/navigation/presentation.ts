@@ -49,7 +49,6 @@ export const SHEETS: Readonly<Record<string, SheetSpec>> = {
   '(modal)/safety-appeal': fit,
   '(modal)/settings-sign-out': fit,
   '(modal)/settings-consent': fit,
-  '(modal)/settings-leave': fit,
   '(modal)/settings-remove': fit,
   // The gesture overlays draw their own scrim, blur and sheet on the UI thread.
   '(modal)/gestures-message': overlay,

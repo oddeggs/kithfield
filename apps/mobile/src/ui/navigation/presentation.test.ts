@@ -58,7 +58,6 @@ describe('sheet routes', () => {
       '(modal)/safety-appeal',
       '(modal)/settings-sign-out',
       '(modal)/settings-consent',
-      '(modal)/settings-leave',
       '(modal)/settings-remove',
     ]) {
       expect(screenOptionsFor(route, ctx)).toMatchObject({

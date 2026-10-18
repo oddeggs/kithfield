@@ -360,13 +360,6 @@ export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.notify.kind.messages': 'Tiếng gõ về tin nhắn',
   'settings.notify.kind.birthdays': 'Tiếng gõ sinh nhật',
   'settings.notify.kind.nudges': 'Lời nhắc',
-  'settings.leave.title': 'Rời {farm}?',
-  'settings.leave.body':
-    'Căn nhà của bạn sẽ ngủ gật với tấm biển “đã đi lang thang”. Không ai nhận thông báo; bạn bè chỉ đơn giản thấy đèn đã tắt.',
-  'settings.leave.note':
-    'Bạn có thể quay lại bất cứ lúc nào bằng một lời mời. Bạn thú giữ mọi thứ mình có.',
-  'settings.leave.action': 'Lặng lẽ rời đi',
-  'settings.leave.stay': 'Ở lại',
 };
 
 /** Language names are written in their own language, and these words are the same in both. */

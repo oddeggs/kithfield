@@ -169,7 +169,7 @@ export function FarmSettingsScreen({ farm }: { readonly farm: FarmId }) {
           title={t('settings.farm.leave')}
           danger
           chevron={false}
-          onPress={() => go('/(modal)/settings-leave', params)}
+          onPress={() => go('/(tabs)/farm/leave', { farm })}
         />
       </Group>
     </Page>
