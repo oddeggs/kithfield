@@ -49,6 +49,12 @@ export const claimGift = async (db: D1Database, c: GiftClaim, now: number): Prom
          WHERE id = ?2 AND op_id = ?3 AND state = 'given'`,
       )
       .bind(now, c.gift, c.opId),
+    // Remembers whether this claim is what gave the item (the insert above wasn't ignored).
+    db
+      .prepare(
+        `UPDATE gifts SET granted = max(granted, changes()) WHERE id = ? AND op_id = ? AND state = 'given'`,
+      )
+      .bind(c.gift, c.opId),
   ]);
   return (claimed?.meta.changes ?? 0) > 0;
 };
@@ -60,13 +66,13 @@ export const releaseGift = async (db: D1Database, c: GiftClaim): Promise<void> =
       .prepare(
         `DELETE FROM owned_items WHERE via = 'gift' AND EXISTS (
            SELECT 1 FROM gifts g WHERE g.id = ?1 AND g.op_id = ?2 AND g.state = 'given'
-             AND owned_items.person_id = g.to_id AND owned_items.item = g.item
+             AND g.granted = 1 AND owned_items.person_id = g.to_id AND owned_items.item = g.item
              AND owned_items.from_id = g.from_id)`,
       )
       .bind(c.gift, c.opId),
     db
       .prepare(
-        `UPDATE gifts SET state = 'paid', op_id = NULL, given_at = NULL
+        `UPDATE gifts SET state = 'paid', op_id = NULL, given_at = NULL, granted = 0
          WHERE id = ? AND op_id = ? AND state = 'given'`,
       )
       .bind(c.gift, c.opId),
