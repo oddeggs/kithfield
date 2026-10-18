@@ -104,7 +104,10 @@ export function OpenedScreen({ farm, seq }: { readonly farm: string; readonly se
         );
       });
       if (!done) await send('gift', { action: 'opened', gift: gift.gift });
-    })();
+    })().catch(() => {
+      // Not opened this time: it is tried again the next time the gift is opened.
+      opened.current = false;
+    });
   }, [gift, me.person, client, farm, send]);
 
   const stickers = useMemo(() => (pack ? offered(pack) : []), [pack]);

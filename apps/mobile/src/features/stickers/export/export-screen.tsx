@@ -65,7 +65,7 @@ export function ExportScreen() {
   }, [client]);
 
   const name = me.name ?? t('stickers.someone');
-  const worn = wornName(t, critter);
+  const worn = wornName(t, critter, true);
   const count = stickers.length;
 
   const save = () => {
