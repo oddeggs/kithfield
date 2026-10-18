@@ -9,6 +9,9 @@ import {
   type GateGesture,
   type OpId,
   type PersonId,
+  type RejectReason,
+  type SocketErrorCode,
+  type FarmEvent,
   PING,
   PONG,
   type RuleRef,
@@ -41,10 +44,12 @@ export class FarmDO extends DurableObject<Bindings> {
     super(ctx, env);
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(PING, PONG));
     this.host = new FarmHost(ctx, env, farmPorts);
+    // A farm on older rules moves to this server's before anything else reaches it.
+    void ctx.blockConcurrencyWhile(() => this.host.wake());
   }
 
   /** The farm socket. The token comes in the first frame (`hello`), never the URL. */
-  override fetch(request: Request): Response {
+  override async fetch(request: Request): Promise<Response> {
     if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
       return Response.json({ error: { code: 'bad_request' } }, { status: 426 });
     }
@@ -52,7 +57,9 @@ export class FarmDO extends DurableObject<Bindings> {
     if (farm === undefined) return Response.json({ error: { code: 'not_found' } }, { status: 404 });
     const { 0: client, 1: server } = new WebSocketPair();
     this.ctx.acceptWebSocket(server);
-    attach(server, fresh(farm));
+    attach(server, fresh(farm, this.host.now()));
+    this.host.expectHello();
+    await this.host.schedule();
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -75,11 +82,14 @@ export class FarmDO extends DurableObject<Bindings> {
   }
 
   override async alarm(): Promise<void> {
-    const { events, arrived } = await runAlarm(this.host.farm, farmPorts(), this.env);
-    this.host.publish(events);
-    await this.host.settle(events);
-    for (const seq of arrived) await this.host.arrived(seq);
-    await this.host.schedule();
+    const events: FarmEvent[] = [];
+    try {
+      await runAlarm(this.host, events);
+    } finally {
+      // Whatever was written is told and settled, and the alarm set again, even after a failure.
+      this.host.publish(events);
+      await this.host.settle(events);
+    }
   }
 
   /* Called by the API's routes. */
@@ -113,25 +123,47 @@ export class FarmDO extends DurableObject<Bindings> {
     return written.result;
   }
 
+  /** The answer a write already got, if any. */
+  answered(opId: OpId): CommandResult | null {
+    const prior = this.host.store.outcome(opId);
+    if (prior === null) return null;
+    return 'seq' in prior
+      ? { result: 'ack', opId, seq: prior.seq }
+      : { result: 'rejected', opId, reason: prior.reason };
+  }
+
   /** A command that didn't parse still gets an answer, kept for its op id. */
   rejectInvalid(opId: OpId): CommandResult {
     return this.host.farm.rejectInvalid(opId).result;
   }
 
-  page(query: EventsQuery): WirePage {
-    return pageEvents(this.host.store, query);
+  /** Whether a person lives here now, by the farm's own state (D1 only mirrors it). */
+  private livesHere(person: PersonId): boolean {
+    const actor = this.host.farm.actorOf(person);
+    return this.host.farm.state?.members.some((m) => m.person === actor) === true;
   }
 
-  search(q: string): SearchResults {
-    return searchEvents(this.host.store, q);
+  /** History, for members only; null for anyone else. */
+  page(person: PersonId, query: EventsQuery): WirePage | null {
+    return this.livesHere(person) ? pageEvents(this.host.store, query) : null;
+  }
+
+  /** Search, for members only; null for anyone else. */
+  search(person: PersonId, q: string): SearchResults | null {
+    return this.livesHere(person) ? searchEvents(this.host.store, q) : null;
+  }
+
+  /** Closes a person's sockets, as after a ban or an account deletion. */
+  closeSockets(person: PersonId, code: SocketErrorCode): void {
+    this.host.closeSockets(person, code);
   }
 
   join(person: PersonId, profile: Profile, approved: boolean): Promise<actions.JoinOutcome> {
     return actions.joinFarm(this.host, person, profile, approved);
   }
 
-  gate(): FarmGate | null {
-    return actions.gateView(this.host);
+  gate(visitor: PersonId): FarmGate | null {
+    return actions.gateView(this.host, visitor);
   }
 
   atGate(
@@ -147,8 +179,23 @@ export class FarmDO extends DurableObject<Bindings> {
     return actions.basketCrop(this.host, plant);
   }
 
-  recordTrade(opId: OpId, actor: PersonId, payload: TradedPayload): Promise<CommandResult> {
-    return actions.recordTrade(this.host, opId, actor, payload);
+  /** Why a trade with another farm can't be written here now, or null. Writes nothing. */
+  canTrade(otherFarm: string, actor: PersonId): RejectReason | null {
+    return actions.canTrade(this.host, otherFarm, actor);
+  }
+
+  recordTrade(
+    opId: OpId,
+    actor: PersonId,
+    payload: TradedPayload,
+    half?: actions.TradeHalf,
+  ): Promise<CommandResult> {
+    return actions.recordTrade(this.host, opId, actor, payload, half);
+  }
+
+  /** The visitor's farm wrote its half of a trade: nothing is owed any more. */
+  tradeHalfDone(opId: OpId): void {
+    this.host.store.tradeHalfDone(opId);
   }
 
   setHibernating(person: PersonId, on: boolean): Promise<void> {

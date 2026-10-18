@@ -7,7 +7,17 @@ import { noWeather } from '../../src/farm/adapters/weather';
 import { cottageOf } from '../../src/cottage/stub';
 import type { FarmDO } from '../../src/farm/farm-object';
 import { op } from './support/client';
-import { api, cast, type Person, plantFarm, type TestPorts, useTestPorts } from './support/doubles';
+import {
+  api,
+  cast,
+  type Person,
+  plantFarm,
+  type TestPorts,
+  useTestPorts,
+  pageOf,
+  searchOf,
+  settled,
+} from './support/doubles';
 
 let ports: TestPorts;
 let pip: Person;
@@ -18,8 +28,10 @@ beforeEach(async () => {
 
 type Stub = DurableObjectStub<FarmDO>;
 
-const alarmAt = (stub: Stub) =>
-  runInDurableObject(stub, (_farm, state) => state.storage.getAlarm());
+const alarmAt = async (stub: Stub) => {
+  await settled(stub);
+  return runInDurableObject(stub, (_farm, state) => state.storage.getAlarm());
+};
 
 /** Moves the clock to the object's alarm and runs it. */
 const fire = async (stub: Stub) => {
@@ -31,7 +43,7 @@ const fire = async (stub: Stub) => {
 };
 
 const farmWritten = async (stub: Stub) =>
-  (await stub.page({ after: 2, limit: 50 })).events
+  (await pageOf(stub, { after: 2, limit: 50 })).events
     .map((e) => FarmEvent.parse(e))
     .filter((e) => e.actor === null);
 
@@ -129,12 +141,14 @@ describe('slow posts', () => {
       result: 'ack',
       seq: 4,
     });
-    const post = FarmEvent.parse((await stub.page({ after: 3, limit: 1 })).events[0]);
+    const post = FarmEvent.parse((await pageOf(stub, { after: 3, limit: 1 })).events[0]);
     expect(post.payload).toMatchObject({ deliverAt: Date.UTC(2054, 9, 19, 0, 0) }); // 07:00 in Ho Chi Minh City
     const before = await cottageOf(env, fig.id).chatList();
     expect(before.find((row) => row.farm === farm)?.kind).toBe('joined');
 
+    expect((await searchOf(stub, 'later')).results).toEqual([]);
     expect(await fire(stub)).toBe(Date.UTC(2054, 9, 19, 0, 0));
+    expect((await searchOf(stub, 'later')).results.map((r) => r.seq)).toEqual([4]);
     const after = await cottageOf(env, fig.id).chatList();
     expect(after.find((row) => row.farm === farm)).toMatchObject({
       seq: 4,
@@ -148,9 +162,9 @@ describe('slow posts', () => {
     const { stub } = await plantFarm(pip, [fig]);
     const payload = { to: fig.id, text: 'for the weekend', when: 'weekend' as const };
     await stub.command(pip.id, { opId: op(1), kind: 'slow_post', payload });
-    const post = FarmEvent.parse((await stub.page({ after: 3, limit: 1 })).events[0]);
-    expect(post.payload).toMatchObject({ deliverAt: Date.UTC(2054, 9, 24, 9, 0) }); // Saturday 09:00 UTC
-    ports.clock.at = Date.UTC(2054, 9, 24, 9, 0);
+    const post = FarmEvent.parse((await pageOf(stub, { after: 3, limit: 1 })).events[0]);
+    expect(post.payload).toMatchObject({ deliverAt: Date.UTC(2054, 9, 24, 8, 0) }); // Saturday 09:00 farm time (London, BST)
+    ports.clock.at = Date.UTC(2054, 9, 24, 8, 0);
     const recall = await stub.command(pip.id, {
       opId: op(2),
       kind: 'unsend',

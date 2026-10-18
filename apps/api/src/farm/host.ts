@@ -4,15 +4,16 @@ import {
   type FarmState,
   isTombstone,
   type PersonId,
+  type SocketErrorCode,
 } from '@kithfield/contracts';
 
 import type { Bindings } from '../env';
 import { cottage } from './adapters/cottage';
-import { ensureWeather, nextWake, resetWeather } from './alarms';
+import { ensureWeather, HELLO_DEADLINE_MS, nextWake, resetWeather, RETRY_MS } from './alarms';
 import { replyTarget } from './content';
-import { endMembership, setRole, updateFarm, upsertMembership } from './d1';
 import { Farm, type Written } from './farm';
 import { departed, handOff } from './handoff';
+import { mirrorMembership } from './mirror';
 import type { FarmPorts } from './ports';
 import { attachmentOf, connected, envelope, joined, refuse, send } from './sockets';
 import { FarmStore } from './store';
@@ -21,13 +22,28 @@ import { tombstoneEvent, tombstoneMediaOf } from './tombstones';
 /** `farm_opened` is written at most once an hour per person. */
 const OPENED_EVERY_MS = 60 * 60_000;
 
+/** Runs one step after a commit; a failure is logged and never stops the steps after it. */
+const step = async (what: string, work: () => Promise<unknown>): Promise<boolean> => {
+  try {
+    await work();
+    return true;
+  } catch (error) {
+    console.error(`farm ${what} failed`, {
+      error: error instanceof Error ? error.message : 'unknown',
+    });
+    return false;
+  }
+};
+
 /**
  * Everything around a commit: telling the sockets, the follow-ups the farm writes itself (a new
- * keeper, `hibernate` for someone who joins hibernating), keeping D1's memberships in step,
- * handing each member's cottage the news, deleting media, and keeping the alarm on the next wake.
+ * keeper, `hibernate` for someone who joins hibernating), keeping D1's mirror of the memberships
+ * in step, the alarm, media deletes, and handing each member's cottage the news.
  */
 export class FarmHost {
   readonly farm: Farm;
+  private flushing: Promise<void> | null = null;
+  private flushAgain = false;
 
   constructor(
     readonly ctx: DurableObjectState,
@@ -50,6 +66,24 @@ export class FarmHost {
     return joined(this.ctx.getWebSockets(), closing);
   }
 
+  /** Closes a person's sockets (or everyone's) with `error {code}`. */
+  closeSockets(person: PersonId | null, code: SocketErrorCode): void {
+    const ids = person === null ? null : new Set(this.store.idsOf(this.farm.actorOf(person)));
+    for (const ws of this.ctx.getWebSockets()) {
+      const who = attachmentOf(ws).person;
+      if (ids === null || (who !== null && ids.has(who))) refuse(ws, code);
+    }
+  }
+
+  /** On wake: move to newer rules if this server has them, and tell everyone. */
+  async wake(): Promise<void> {
+    if (this.farm.state !== null) this.store.prune(this.now());
+    const changed = this.farm.upgradeRules();
+    if (changed === null) return;
+    this.publish([changed]);
+    await this.settle([changed]);
+  }
+
   /**
    * Runs in a command's transaction: an unsend tombstones its target, and a removal with
    * `removeMedia` tombstones that person's media. Collects the media keys to delete.
@@ -58,7 +92,7 @@ export class FarmHost {
     return (event: FarmEvent): void => {
       if (isTombstone(event.payload)) return;
       if (event.kind === 'unsend' && event.payload.by === 'author') {
-        media.push(...tombstoneEvent(this.store, event.payload.target, 'unsent'));
+        media.push(...tombstoneEvent(this.store, event.payload.target, 'unsent', event.at));
       }
       if (event.kind === 'removed' && event.payload.removeMedia) {
         media.push(...tombstoneMediaOf(this.store, event.payload.person));
@@ -66,15 +100,18 @@ export class FarmHost {
     };
   }
 
-  /** A phone's command: a slow post is timed in its recipient's own time zone, from their cottage. */
+  /**
+   * A phone's command. A slow post is timed in its recipient's own time zone, asked of their
+   * cottage only for a write that hasn't been answered yet.
+   */
   async command(cmd: FarmCommand, person: PersonId, media: string[]): Promise<Written> {
-    const recipientZone =
-      cmd.kind === 'slow_post'
-        ? await cottage
-            .settingsOf(this.env, cmd.payload.to)
-            .then((s) => s.timeZone)
-            .catch(() => undefined)
-        : undefined;
+    const fresh = cmd.kind === 'slow_post' && this.store.outcome(cmd.opId) === null;
+    const recipientZone = fresh
+      ? await cottage
+          .settingsOf(this.env, cmd.payload.to)
+          .then((s) => s.timeZone ?? undefined)
+          .catch(() => undefined)
+      : undefined;
     return this.farm.command(cmd, person, {
       then: this.effectsOf(media),
       ...(recipientZone === undefined ? {} : { recipientZone }),
@@ -89,9 +126,19 @@ export class FarmHost {
     }
     for (const event of events) {
       const gone = departed(event);
-      if (gone === null) continue;
-      for (const ws of sockets) if (attachmentOf(ws).person === gone) refuse(ws, 'not_member');
+      if (gone !== null) this.closeSockets(gone, 'not_member');
     }
+  }
+
+  /** Writes and publishes at once: a follow-up is seen right after what caused it. */
+  private follow(
+    actor: PersonId | null,
+    kind: FarmEvent['kind'],
+    payload: unknown,
+  ): FarmEvent | null {
+    const event = this.farm.write(actor, kind, payload, this.now());
+    if (event !== null) this.publish([event]);
+    return event;
   }
 
   /** A farm always has a keeper: when the last one goes, the longest-standing member becomes it. */
@@ -99,8 +146,11 @@ export class FarmHost {
     if (state.kind !== 'farm' || state.members.some((m) => m.role === 'keeper')) return null;
     const next = [...state.members].sort((a, b) => a.joinedAt - b.joinedAt)[0];
     if (next === undefined) return null;
-    const payload = { setting: 'role', person: next.person, role: 'keeper' };
-    return this.farm.write(null, 'settings_changed', payload, this.now());
+    return this.follow(null, 'settings_changed', {
+      setting: 'role',
+      person: next.person,
+      role: 'keeper',
+    });
   }
 
   /** Someone who joins while hibernating gets `hibernate {on: true}` right after their `joined`. */
@@ -109,37 +159,75 @@ export class FarmHost {
     const person = event.actor;
     const settings = await cottage.settingsOf(this.env, person).catch(() => null);
     if (settings?.hibernating !== true) return null;
-    return this.farm.write(person, 'hibernate', { on: true }, this.now());
+    return this.follow(person, 'hibernate', { on: true });
   }
 
-  /** The work after a commit: follow-ups, D1, the weather, the alarm, the cottages and media. */
+  /**
+   * The work after a commit. Follow-ups and D1's membership mirror are done before returning, so a
+   * hello right after a join works; each step runs even if another failed. The cottages hear after
+   * the caller has its answer, and the alarm retries what they missed.
+   */
   async settle(events: readonly FarmEvent[], media: readonly string[] = []): Promise<void> {
     const extra: FarmEvent[] = [];
-    // Written before anything awaits, so the keeper follows the departure directly.
-    const left = events.some((e) => departed(e) !== null);
     const state0 = this.farm.state;
-    const keeper = left && state0 !== null ? this.handOverKeeper(state0) : null;
-    if (keeper !== null) extra.push(keeper);
+    // Written before anything awaits, so the keeper follows the departure directly.
+    if (state0 !== null && events.some((e) => departed(e) !== null)) {
+      const keeper = this.handOverKeeper(state0);
+      if (keeper !== null) extra.push(keeper);
+    }
     for (const event of events) {
-      const hibernate = await this.stillHibernating(event);
+      const hibernate = await this.stillHibernating(event).catch(() => null);
       if (hibernate !== null) extra.push(hibernate);
     }
-    this.publish(extra);
     const all = [...events, ...extra];
-    const state = this.farm.state;
-    if (state === null) return;
-    for (const event of all) await this.syncMemberships(state, event);
-    if (all.some((e) => e.kind === 'settings_changed' && !isTombstone(e.payload))) {
-      resetWeather(this.store, state, this.now());
+    for (const event of all) {
+      const ok = await step('membership mirror', () => this.mirror(event));
+      if (!ok) this.store.setTimer(`d1sync:${event.seq}`, this.now() + RETRY_MS);
     }
-    await this.schedule();
-    const open = connected(this.sockets());
-    for (const event of all.filter((e) => e.kind !== 'slow_post')) {
-      await handOff(this.env, state, event, open, this.repliedTo(event));
+    if (all.some((e) => e.kind === 'settings_changed' && !isTombstone(e.payload))) {
+      await step('weather', () => {
+        const state = this.farm.state;
+        if (state !== null) resetWeather(this.store, state, this.now());
+        return Promise.resolve();
+      });
     }
     if (media.length > 0) {
-      this.ctx.waitUntil(this.env.MEDIA.delete([...media]).catch(() => undefined));
+      await step('media delete', () => this.env.MEDIA.delete([...media]));
     }
+    await step('schedule', () => this.schedule());
+    this.ctx.waitUntil(this.flush());
+  }
+
+  /** Sends the cottages everything still owed; one run at a time, again if more was owed meanwhile. */
+  flush(): Promise<void> {
+    if (this.flushing !== null) {
+      this.flushAgain = true;
+      return this.flushing;
+    }
+    this.flushing = (async () => {
+      do {
+        this.flushAgain = false;
+        await step('cottage handoff', () => this.flushOnce());
+      } while (this.flushAgain);
+      this.flushing = null;
+    })();
+    return this.flushing;
+  }
+
+  private async flushOnce(): Promise<void> {
+    const state = this.farm.state;
+    const owed = this.store.owedDeliveries();
+    if (state === null || owed.length === 0) return;
+    const events = owed.flatMap((seq) => {
+      const parsed = FarmEvent.safeParse(this.store.event(seq));
+      return parsed.success ? [parsed.data] : [];
+    });
+    const failed = await handOff(this.env, state, events, connected(this.sockets()), (e) =>
+      this.repliedTo(e),
+    );
+    for (const seq of owed) if (!failed.has(seq)) this.store.delivered(seq);
+    // The alarm leaves its retry slot once nothing is owed, or keeps it for what failed.
+    await this.schedule();
   }
 
   private repliedTo(event: FarmEvent): PersonId | null {
@@ -156,34 +244,38 @@ export class FarmHost {
     else if ((await this.ctx.storage.getAlarm()) !== next) await this.ctx.storage.setAlarm(next);
   }
 
-  private async syncMemberships(state: FarmState, event: FarmEvent): Promise<void> {
-    const db: D1Database = this.env.DB;
-    const farm = state.farm;
-    if (isTombstone(event.payload)) return;
-    if (event.kind === 'joined' && event.actor !== null) {
-      const role = state.members.find((m) => m.person === event.actor)?.role ?? 'critter';
-      await upsertMembership(db, farm, event.actor, role, event.at);
-    } else if (event.kind === 'left' && event.actor !== null) {
-      await endMembership(db, farm, event.actor, event.at);
-    } else if (event.kind === 'removed') {
-      await endMembership(db, farm, event.payload.person, event.at);
-    } else if (event.kind === 'settings_changed') {
-      const p = event.payload;
-      if (p.setting === 'name') await updateFarm(db, farm, { name: p.name });
-      if (p.setting === 'land') await updateFarm(db, farm, { land: p.land });
-      if (p.setting === 'role') {
-        await setRole(db, farm, p.person, p.role);
-        if (p.role === 'keeper') await updateFarm(db, farm, { keeper: p.person });
-      }
-    }
+  /** Keeps D1's mirror of one event's membership change; throws if D1 fails. */
+  async mirror(event: FarmEvent): Promise<void> {
+    const state = this.farm.state;
+    if (state !== null) await mirrorMembership(this.env.DB, state, event);
   }
 
-  /** A slow post has arrived: its cottages hear about it now. */
-  async arrived(seq: number): Promise<void> {
-    const state = this.farm.state;
-    const parsed = FarmEvent.safeParse(this.store.event(seq));
-    if (state === null || !parsed.success || isTombstone(parsed.data.payload)) return;
-    await handOff(this.env, state, parsed.data, connected(this.sockets()), null);
+  /** A slow post has arrived: its cottages are owed its news now, and search finds it now. */
+  arrived(seq: number): void {
+    const post = this.store.event(seq);
+    if (post === null || isTombstone(post.payload)) return;
+    const text = (post.payload as { text?: unknown }).text;
+    this.ctx.storage.transactionSync(() => {
+      this.store.oweDelivery(seq);
+      if (typeof text === 'string') this.store.index(seq, text);
+    });
+  }
+
+  /** A socket must say hello soon after it opens; the alarm checks. */
+  expectHello(): void {
+    this.store.addTimer('hello', this.now() + HELLO_DEADLINE_MS);
+  }
+
+  /** Closes sockets opened before `openedBefore` that never said hello. */
+  closeUnnamed(openedBefore: number): void {
+    let waiting = false;
+    for (const ws of this.ctx.getWebSockets()) {
+      const a = attachmentOf(ws);
+      if (a.person !== null) continue;
+      if (a.openedAt <= openedBefore) refuse(ws, 'unauthorized');
+      else waiting = true;
+    }
+    if (waiting) this.store.addTimer('hello', this.now() + HELLO_DEADLINE_MS);
   }
 
   /** Presence: writes `farm_opened` at most hourly, then shared rain when the rules say so. */
@@ -195,13 +287,12 @@ export class FarmHost {
     const last = this.store.lastAt('farm_opened', actor);
     if (last !== null && now - last < OPENED_EVERY_MS) return;
     const events: FarmEvent[] = [];
-    const opened = this.farm.write(actor, 'farm_opened', {}, now);
+    const opened = this.follow(actor, 'farm_opened', {});
     if (opened !== null) events.push(opened);
     const after = this.farm.state;
     const rain = after === null ? null : this.ports().rules.farmChores(after, now).sharedRain;
-    const rained = rain === null ? null : this.farm.write(null, 'shared_rain', rain, now);
+    const rained = rain === null ? null : this.follow(null, 'shared_rain', rain);
     if (rained !== null) events.push(rained);
-    this.publish(events);
     await this.settle(events);
   }
 }

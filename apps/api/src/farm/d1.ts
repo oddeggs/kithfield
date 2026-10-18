@@ -214,3 +214,69 @@ export const takeWaiting = async (
     .first<WaitingRow>();
   return row === null ? null : waitingOf(row);
 };
+
+/* Visiting: who may come to a farm's gate, and where people have been. */
+
+/**
+ * Whether `visitor` lives on another farm with at least one member of `farm`: friends of friends
+ * may visit; strangers may not.
+ */
+export const knowsSomeoneOn = async (
+  db: D1Database,
+  visitor: PersonId,
+  farm: FarmId,
+): Promise<boolean> =>
+  (await db
+    .prepare(
+      `SELECT 1 FROM memberships v
+       JOIN memberships o ON o.farm_id = v.farm_id AND o.person_id <> v.person_id AND o.left_at IS NULL
+       JOIN memberships t ON t.person_id = o.person_id AND t.farm_id = ? AND t.left_at IS NULL
+       WHERE v.person_id = ? AND v.left_at IS NULL AND v.farm_id <> ? LIMIT 1`,
+    )
+    .bind(farm, visitor, farm)
+    .first()) !== null;
+
+/** Whether two people live on a farm together now. */
+export const shareAFarm = async (db: D1Database, a: PersonId, b: PersonId): Promise<boolean> =>
+  (await db
+    .prepare(
+      `SELECT 1 FROM memberships x JOIN memberships y ON y.farm_id = x.farm_id
+       JOIN farms f ON f.id = x.farm_id AND f.kind = 'farm'
+       WHERE x.person_id = ? AND y.person_id = ? AND x.left_at IS NULL AND y.left_at IS NULL LIMIT 1`,
+    )
+    .bind(a, b)
+    .first()) !== null;
+
+export const noteVisitor = async (db: D1Database, person: PersonId, farm: FarmId, at: number) => {
+  await db
+    .prepare('INSERT OR IGNORE INTO farm_visitors (person_id, farm_id, first_at) VALUES (?, ?, ?)')
+    .bind(person, farm, at)
+    .run();
+};
+
+/** A waiting request, read without removing it. */
+export const waitingRequest = async (
+  db: D1Database,
+  farm: FarmId,
+  person: PersonId,
+): Promise<Waiting | null> => {
+  const row = await db
+    .prepare(
+      'SELECT person_id, name, critter, asked_at FROM farm_waiting WHERE farm_id = ? AND person_id = ?',
+    )
+    .bind(farm, person)
+    .first<WaitingRow>();
+  return row === null ? null : waitingOf(row);
+};
+
+/** Every farm a person lives on or has visited: where an account deletion has work to do. */
+export const farmsTouchedBy = async (db: D1Database, person: PersonId): Promise<FarmId[]> => {
+  const { results } = await db
+    .prepare(
+      `SELECT farm_id FROM memberships WHERE person_id = ?
+       UNION SELECT farm_id FROM farm_visitors WHERE person_id = ?`,
+    )
+    .bind(person, person)
+    .all<{ farm_id: string }>();
+  return results.map((r) => r.farm_id);
+};

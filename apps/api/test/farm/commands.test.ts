@@ -13,6 +13,8 @@ import {
   profile,
   type TestPorts,
   useTestPorts,
+  pageOf,
+  farmStub,
 } from './support/doubles';
 
 let ports: TestPorts;
@@ -74,7 +76,7 @@ describe('a write', () => {
       payload: { text: 'again' },
     });
     expect(again).toEqual({ status: 200, body: { result: 'ack', opId: op(1), seq: 4 } });
-    expect((await stub.page({ limit: 50 })).events).toHaveLength(4);
+    expect((await pageOf(stub, { limit: 50 })).events).toHaveLength(4);
   });
 
   it('is rejected with a reason, and a repeat keeps the first answer even when it would pass now', async () => {
@@ -212,6 +214,15 @@ describe('a write', () => {
     expect(await reply.json()).toEqual({ result: 'ack', opId: op(4), seq: 5 });
     const page = await farmStubPage(farm);
     expect(page.at(-1)).toMatchObject({ kind: 'message', actor: fig.id });
+    const settingsByKey = await exports.default.fetch(
+      `https://dev.kithfield.com/api/v1/farms/${farm}/cmd`,
+      {
+        method: 'POST',
+        headers: { 'Kithfield-Action-Key': actionKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ opId: op(6), kind: 'left', payload: {} }),
+      },
+    );
+    expect(settingsByKey.status).toBe(403);
     const forged = await exports.default.fetch(
       `https://dev.kithfield.com/api/v1/farms/${farm}/cmd`,
       {
@@ -225,9 +236,7 @@ describe('a write', () => {
 });
 
 const farmStubPage = async (farm: string) =>
-  (await env.FARM.get(env.FARM.idFromName(farm)).page({ limit: 50 })).events.map((e) =>
-    FarmEvent.parse(e),
-  );
+  (await pageOf(farmStub(farm), { limit: 50 })).events.map((e) => FarmEvent.parse(e));
 
 describe('presence and typing', () => {
   it('shares who is here and writing, never stores it, and writes farm_opened at most hourly', async () => {
@@ -246,7 +255,7 @@ describe('presence and typing', () => {
       pipSocket.send({ type: 'presence', here: true });
       await pipSocket.drain();
     }
-    const opened = (await stub.page({ limit: 50, kinds: ['farm_opened'] })).events;
+    const opened = (await pageOf(stub, { limit: 50, kinds: ['farm_opened'] })).events;
     expect(opened.map((e) => e.at)).toEqual([ports.clock.at - 61 * 60_000, ports.clock.at]);
 
     figSocket.close();
@@ -263,7 +272,7 @@ describe('presence and typing', () => {
       await socket.drain();
       ports.clock.advance(60_000);
     }
-    const rain = (await stub.page({ limit: 50, kinds: ['shared_rain'] })).events;
+    const rain = (await pageOf(stub, { limit: 50, kinds: ['shared_rain'] })).events;
     const people = [pip.id, fig.id, bea.id];
     expect(rain.map((e) => [e.actor, (e.payload as { people: string[] }).people.sort()])).toEqual([
       [null, people.sort()],

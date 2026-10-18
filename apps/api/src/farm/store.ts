@@ -1,32 +1,23 @@
-import type {
-  EventEnvelope,
-  EventKind,
-  FarmEvent,
-  FarmState,
-  OpId,
-  RejectReason,
-} from '@kithfield/contracts';
+import type { EventEnvelope, EventKind, FarmEvent, FarmState, OpId } from '@kithfield/contracts';
 
 import {
+  actorIn,
   envelopeOf,
   type EventRow,
   kindFilter,
   type Outcome,
-  SCHEMA,
   type SearchHit,
-  type Timer,
 } from './store-rows';
+import { FarmTables } from './store-side';
 
 /*
- * The farm object's SQLite storage: the log, every write's outcome (rejections too), the snapshot,
- * search, timers, merged-away ids, and payloads held back after a safety removal for an appeal.
+ * The farm object's SQLite storage: the ordered log, the reducer's snapshot and the search index,
+ * over the side tables in `FarmTables`. Queries by person take every id merged into them.
  */
 
-export class FarmStore {
-  constructor(private readonly sql: SqlStorage) {
-    for (const statement of SCHEMA) sql.exec(statement);
-  }
+const DAY_MS = 86_400_000;
 
+export class FarmStore extends FarmTables {
   head(): number {
     return (
       this.sql.exec<{ seq: number | null }>('SELECT max(seq) AS seq FROM events').one().seq ?? 0
@@ -37,20 +28,7 @@ export class FarmStore {
     const applied = this.sql
       .exec<{ seq: number }>('SELECT seq FROM events WHERE op_id = ?', opId)
       .toArray()[0];
-    if (applied !== undefined) return { seq: applied.seq };
-    const rejected = this.sql
-      .exec<{ reason: RejectReason }>('SELECT reason FROM rejections WHERE op_id = ?', opId)
-      .toArray()[0];
-    return rejected === undefined ? null : { reason: rejected.reason };
-  }
-
-  reject(opId: OpId, reason: RejectReason, at: number): void {
-    this.sql.exec(
-      'INSERT OR IGNORE INTO rejections (op_id, reason, at) VALUES (?, ?, ?)',
-      opId,
-      reason,
-      at,
-    );
+    return applied !== undefined ? { seq: applied.seq } : this.rejection(opId);
   }
 
   insert(event: FarmEvent): void {
@@ -67,13 +45,31 @@ export class FarmStore {
     );
   }
 
-  /** Friends `actor` knocked for on a farm day; a recalled knock still counts. */
-  knockedOn(actor: string, day: string): string[] {
+  private rows(sql: string, ...args: (string | number)[]): EventEnvelope[] {
+    return this.sql
+      .exec<EventRow>(sql, ...args)
+      .toArray()
+      .map(envelopeOf);
+  }
+
+  event(seq: number): EventEnvelope | null {
+    return this.rows('SELECT * FROM events WHERE seq = ?', seq)[0] ?? null;
+  }
+
+  /** Events from a person under any of their ids, oldest first. */
+  byActor(person: string): EventEnvelope[] {
+    const ids = this.idsOf(person);
+    return this.rows(`SELECT * FROM events WHERE ${actorIn(ids)} ORDER BY seq`, ...ids);
+  }
+
+  /** Friends a person knocked for on a farm day; a recalled knock still counts. */
+  knockedOn(person: string, day: string): string[] {
+    const ids = this.idsOf(person);
     return this.sql
       .exec<{ to: string }>(
         `SELECT DISTINCT coalesce(json_extract(payload, '$.to'), json_extract(payload, '$.facts.to')) AS "to"
-         FROM events WHERE kind = 'knock' AND actor = ? AND day = ?`,
-        actor,
+         FROM events WHERE kind = 'knock' AND ${actorIn(ids)} AND day = ?`,
+        ...ids,
         day,
       )
       .toArray()
@@ -81,48 +77,36 @@ export class FarmStore {
       .filter((to) => typeof to === 'string');
   }
 
-  /** Whether `actor` has sat by the fire since `since`. */
-  satSince(actor: string, since: number): boolean {
-    return (
-      this.sql
-        .exec(
-          `SELECT 1 FROM events WHERE kind = 'fire' AND actor = ? AND at >= ?
-           AND coalesce(json_extract(payload, '$.state'), json_extract(payload, '$.facts.state')) = 'sat' LIMIT 1`,
-          actor,
-          since,
-        )
-        .toArray().length > 0
+  /** Whether a person has sat by the fire since `since`. */
+  satSince(person: string, since: number): boolean {
+    const ids = this.idsOf(person);
+    const sql = `SELECT 1 FROM events WHERE kind = 'fire' AND ${actorIn(ids)} AND at >= ?
+      AND coalesce(json_extract(payload, '$.state'), json_extract(payload, '$.facts.state')) = 'sat' LIMIT 1`;
+    return this.sql.exec(sql, ...ids, since).toArray().length > 0;
+  }
+
+  /** Whether a visitor has already left something at the gate on a farm day. */
+  gatedOn(person: string, day: string): boolean {
+    const ids = this.idsOf(person);
+    const sql = `SELECT 1 FROM events WHERE kind = 'gate' AND ${actorIn(ids)} AND day = ? LIMIT 1`;
+    return this.sql.exec(sql, ...ids, day).toArray().length > 0;
+  }
+
+  /** Whether this farm traded with another farm in the last `days` days. */
+  tradedWith(otherFarm: string, now: number, days: number): boolean {
+    const sql = `SELECT 1 FROM events WHERE kind = 'traded' AND at >= ?
+      AND json_extract(payload, '$.otherFarm') = ? LIMIT 1`;
+    return this.sql.exec(sql, now - days * DAY_MS, otherFarm).toArray().length > 0;
+  }
+
+  /** Trades on this farm made with a visitor (they are `with`, the local member the actor). */
+  tradesWith(person: string): EventEnvelope[] {
+    const ids = this.idsOf(person);
+    const placeholders = ids.map(() => '?').join(',');
+    return this.rows(
+      `SELECT * FROM events WHERE kind = 'traded' AND json_extract(payload, '$.with') IN (${placeholders}) ORDER BY seq`,
+      ...ids,
     );
-  }
-
-  /** A merged-away person's id and who they became. */
-  aliases(): Map<string, string> {
-    const rows = this.sql.exec<{ from_person: string; into_person: string }>(
-      'SELECT * FROM aliases',
-    );
-    return new Map(rows.toArray().map((r) => [r.from_person, r.into_person]));
-  }
-
-  addAlias(from: string, into: string): void {
-    this.sql.exec(
-      'INSERT OR REPLACE INTO aliases (from_person, into_person) VALUES (?, ?)',
-      from,
-      into,
-    );
-    this.sql.exec('UPDATE aliases SET into_person = ? WHERE into_person = ?', into, from);
-  }
-
-  event(seq: number): EventEnvelope | null {
-    const row = this.sql.exec<EventRow>('SELECT * FROM events WHERE seq = ?', seq).toArray()[0];
-    return row === undefined ? null : envelopeOf(row);
-  }
-
-  /** Events from `actor`, oldest first. */
-  byActor(actor: string): EventEnvelope[] {
-    return this.sql
-      .exec<EventRow>('SELECT * FROM events WHERE actor = ? ORDER BY seq', actor)
-      .toArray()
-      .map(envelopeOf);
   }
 
   /** Events of one kind whose payload points at `target`. */
@@ -132,34 +116,15 @@ export class FarmStore {
 
   /** Events of one kind whose payload has `field` equal to `value`, oldest first. */
   withField(kind: EventKind, field: string, value: number | string): EventEnvelope[] {
-    return this.sql
-      .exec<EventRow>(
-        'SELECT * FROM events WHERE kind = ? AND json_extract(payload, ?) = ? ORDER BY seq',
-        kind,
-        `$.${field}`,
-        value,
-      )
-      .toArray()
-      .map(envelopeOf);
+    const sql = 'SELECT * FROM events WHERE kind = ? AND json_extract(payload, ?) = ? ORDER BY seq';
+    return this.rows(sql, kind, `$.${field}`, value);
   }
 
-  /** When `actor` last wrote an event of this kind. */
-  lastAt(kind: EventKind, actor: string): number | null {
-    return this.sql
-      .exec<{ at: number | null }>(
-        'SELECT max(at) AS at FROM events WHERE kind = ? AND actor = ?',
-        kind,
-        actor,
-      )
-      .one().at;
-  }
-
-  /** Events of a kind since `at`, oldest first. */
-  kindSince(kind: EventKind, at: number): EventEnvelope[] {
-    return this.sql
-      .exec<EventRow>('SELECT * FROM events WHERE kind = ? AND at >= ? ORDER BY seq', kind, at)
-      .toArray()
-      .map(envelopeOf);
+  /** When a person last wrote an event of this kind, under any of their ids. */
+  lastAt(kind: EventKind, person: string): number | null {
+    const ids = this.idsOf(person);
+    const sql = `SELECT max(at) AS at FROM events WHERE kind = ? AND ${actorIn(ids)}`;
+    return this.sql.exec<{ at: number | null }>(sql, kind, ...ids).one().at;
   }
 
   replacePayload(seq: number, payload: unknown): void {
@@ -174,31 +139,24 @@ export class FarmStore {
     before?: number,
   ): EventEnvelope[] {
     const f = kindFilter(kinds);
-    return this.sql
-      .exec<EventRow>(
-        `SELECT * FROM events WHERE seq > ? AND seq < ?${f.sql} ORDER BY seq LIMIT ?`,
-        after,
-        before ?? Number.MAX_SAFE_INTEGER,
-        ...f.args,
-        limit,
-      )
-      .toArray()
-      .map(envelopeOf);
+    return this.rows(
+      `SELECT * FROM events WHERE seq > ? AND seq < ?${f.sql} ORDER BY seq LIMIT ?`,
+      after,
+      before ?? Number.MAX_SAFE_INTEGER,
+      ...f.args,
+      limit,
+    );
   }
 
   /** Up to `limit` events before `before` (or the newest), oldest first. */
   before(before: number | null, limit: number, kinds?: readonly EventKind[]): EventEnvelope[] {
     const f = kindFilter(kinds);
-    return this.sql
-      .exec<EventRow>(
-        `SELECT * FROM events WHERE seq < ?${f.sql} ORDER BY seq DESC LIMIT ?`,
-        before ?? Number.MAX_SAFE_INTEGER,
-        ...f.args,
-        limit,
-      )
-      .toArray()
-      .map(envelopeOf)
-      .reverse();
+    return this.rows(
+      `SELECT * FROM events WHERE seq < ?${f.sql} ORDER BY seq DESC LIMIT ?`,
+      before ?? Number.MAX_SAFE_INTEGER,
+      ...f.args,
+      limit,
+    ).reverse();
   }
 
   loadSnapshot(): { seq: number; state: FarmState } | null {
@@ -214,34 +172,6 @@ export class FarmStore {
       seq,
       JSON.stringify(state),
     );
-  }
-
-  /** Sets a timer, moving it if one with that key is waiting. */
-  setTimer(key: string, due: number): void {
-    this.sql.exec('INSERT OR REPLACE INTO timers (key, due) VALUES (?, ?)', key, due);
-  }
-
-  /** Adds a timer unless one with that key is already waiting. */
-  addTimer(key: string, due: number): void {
-    this.sql.exec('INSERT OR IGNORE INTO timers (key, due) VALUES (?, ?)', key, due);
-  }
-
-  deleteTimer(key: string): void {
-    this.sql.exec('DELETE FROM timers WHERE key = ?', key);
-  }
-
-  deleteTimers(prefix: string): void {
-    this.sql.exec('DELETE FROM timers WHERE key LIKE ?', `${prefix}%`);
-  }
-
-  dueTimers(now: number): Timer[] {
-    return this.sql
-      .exec<Timer>('SELECT key, due FROM timers WHERE due <= ? ORDER BY due', now)
-      .toArray();
-  }
-
-  nextDue(): number | null {
-    return this.sql.exec<{ due: number | null }>('SELECT min(due) AS due FROM timers').one().due;
   }
 
   index(seq: number, body: string): void {
@@ -264,20 +194,5 @@ export class FarmStore {
         limit,
       )
       .toArray();
-  }
-
-  hold(seq: number, payload: unknown): void {
-    this.sql.exec(
-      'INSERT OR REPLACE INTO held (seq, payload) VALUES (?, ?)',
-      seq,
-      JSON.stringify(payload),
-    );
-  }
-
-  /** A held payload, removed from the hold. */
-  release(seq: number): unknown {
-    const sql = 'DELETE FROM held WHERE seq = ? RETURNING payload';
-    const row = this.sql.exec<{ payload: string }>(sql, seq).toArray()[0];
-    return row === undefined ? undefined : (JSON.parse(row.payload) as unknown);
   }
 }

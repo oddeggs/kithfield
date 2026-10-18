@@ -24,13 +24,13 @@ const tombstoneOne = (
   seq: number,
   why: Why,
   rule: RuleRef | undefined,
-  hold: boolean,
+  holdAt: number | null,
 ): string[] => {
   const envelope = store.event(seq);
   if (envelope === null || isTombstone(envelope.payload)) return [];
   const event = FarmEvent.parse(envelope);
   if (event.kind === 'settings_changed' || event.actor === null) return [];
-  if (hold) store.hold(seq, event.payload);
+  if (holdAt !== null) store.hold(seq, event.payload, holdAt);
   store.replacePayload(seq, tombstoneOf(event, why, rule));
   store.unindex(seq);
   return mediaKeys(event);
@@ -44,28 +44,31 @@ export const tombstoneEvent = (
   store: FarmStore,
   seq: number,
   why: Why,
+  at: number,
   rule?: RuleRef,
 ): string[] => {
-  const hold = why === 'removed';
+  const hold = why === 'removed' ? at : null;
   const keys = tombstoneOne(store, seq, why, rule, hold);
   for (const edit of store.pointingAt('edit', seq))
     keys.push(...tombstoneOne(store, edit.seq, why, rule, hold));
   return keys;
 };
 
-/** Tombstones everything a person wrote here, apart from `keep`. Returns their media keys. */
+/**
+ * Tombstones everything a person wrote here under any of their ids, apart from `keep`, and the
+ * trades a member made here with them as a visitor (which name them). Returns their media keys.
+ */
 export const tombstoneAuthor = (store: FarmStore, person: PersonId, keep: number): string[] =>
-  store
-    .byActor(person)
+  [...store.byActor(person), ...store.tradesWith(person)]
     .filter((event) => event.seq !== keep)
-    .flatMap((event) => tombstoneOne(store, event.seq, 'author_deleted', undefined, false));
+    .flatMap((event) => tombstoneOne(store, event.seq, 'author_deleted', undefined, null));
 
 /** Tombstones a person's photos, video, voice notes and files (a removal with `removeMedia`). */
 export const tombstoneMediaOf = (store: FarmStore, person: PersonId): string[] =>
   store
     .byActor(person)
     .filter((event) => event.kind === 'media' || event.kind === 'voice')
-    .flatMap((event) => tombstoneOne(store, event.seq, 'removed', undefined, false));
+    .flatMap((event) => tombstoneOne(store, event.seq, 'removed', undefined, null));
 
 /** Puts held payloads back (the target and its edits) and reindexes them. False if nothing was held. */
 export const restoreEvent = (store: FarmStore, seq: number): boolean => {

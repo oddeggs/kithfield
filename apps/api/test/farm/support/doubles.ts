@@ -1,9 +1,13 @@
-import type { Critter, WeatherSource } from '@kithfield/contracts';
+import type { Critter, EventsQuery, WeatherSource } from '@kithfield/contracts';
+import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { expect } from 'vitest';
 
 import { call, signInAnonymously } from '../../../src/auth/testing/client';
 import type { CreateInput } from '../../../src/farm/actions';
+import type { FarmDO } from '../../../src/farm/farm-object';
+import { pageEvents, searchEvents } from '../../../src/farm/history';
+import type { FarmHost } from '../../../src/farm/host';
 import { farmRules } from '../../../src/farm/adapters/rules';
 import type { Clock, FarmPorts, WeatherProvider } from '../../../src/farm/ports';
 import { configureFarmPorts } from '../../../src/farm/wiring';
@@ -146,3 +150,24 @@ export const plantFarm = async (
   for (const person of others) await stub.join(person.id, profile(person), true);
   return { farm, stub };
 };
+
+type Inside = { host: FarmHost };
+
+/** The farm's log as a test reads it, whoever lives there: straight from the object's store. */
+export const pageOf = (stub: DurableObjectStub<FarmDO>, query: Partial<EventsQuery> = {}) =>
+  runInDurableObject(stub, (farm) =>
+    pageEvents((farm as unknown as Inside).host.store, { limit: 50, ...query }),
+  );
+
+/** Search as a test reads it. */
+export const searchOf = (stub: DurableObjectStub<FarmDO>, q: string) =>
+  runInDurableObject(stub, (farm) => searchEvents((farm as unknown as Inside).host.store, q));
+
+/** The object's host, for tests that look inside. */
+export const hostOf = <T>(
+  stub: DurableObjectStub<FarmDO>,
+  look: (host: FarmHost) => T | Promise<T>,
+) => runInDurableObject(stub, (farm) => look((farm as unknown as Inside).host));
+
+/** Waits until the farm has handed everything owed to the cottages (sent after each answer). */
+export const settled = (stub: DurableObjectStub<FarmDO>) => hostOf(stub, (host) => host.flush());

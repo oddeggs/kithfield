@@ -44,7 +44,7 @@ export const removeEvent = async (
   if (isTombstone(envelope.payload)) return { ok: false, reason: 'gone' };
   const original = FarmEvent.parse(envelope);
   const written = host.farm.write(null, 'unsend', { target, by: 'safety' }, host.now(), () => {
-    tombstoneEvent(host.store, target, 'removed', rule);
+    tombstoneEvent(host.store, target, 'removed', host.now(), rule);
   });
   if (written === null) return { ok: false, reason: 'not_found' };
   const state = host.farm.state;
@@ -109,7 +109,8 @@ export const freeze = (host: FarmHost, on: boolean): Promise<SafetyOutcome> =>
  * so the farm grows the same.
  */
 export const deleteAccount = async (host: FarmHost, person: PersonId): Promise<void> => {
-  if (!isMember(host, person) && host.store.byActor(person).length === 0) return;
+  const traces = host.store.byActor(person).length + host.store.tradesWith(person).length;
+  if (!isMember(host, person) && traces === 0) return;
   const media: string[] = [];
   const left = host.farm.write(person, 'left', { how: 'account_deleted' }, host.now(), (event) => {
     media.push(...tombstoneAuthor(host.store, person, event.seq));

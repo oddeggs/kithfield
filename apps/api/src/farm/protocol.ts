@@ -7,7 +7,6 @@ import {
 } from '@kithfield/contracts';
 
 import { socketPerson } from './adapters/identity';
-import { roleOf } from './d1';
 import type { FarmHost } from './host';
 import { attach, attachmentOf, refuse, send, who } from './sockets';
 
@@ -24,7 +23,9 @@ const catchUp = (host: FarmHost, ws: WebSocket, lastSeq: number): void => {
   const head = host.farm.head;
   if (state === null) return;
   let from = lastSeq;
-  if (lastSeq === 0 || lastSeq > head || head - lastSeq > LIMITS.snapshotGap) {
+  // Below the resync point the farm's state changed outside the log (a person merge).
+  const stale = lastSeq < host.store.resyncBelow();
+  if (lastSeq === 0 || stale || lastSeq > head || head - lastSeq > LIMITS.snapshotGap) {
     send(ws, { type: 'snapshot', seq: head, state });
     from = head;
   }
@@ -44,11 +45,12 @@ const hello = async (host: FarmHost, ws: WebSocket, frame: Hello): Promise<void>
   const { farm } = attachmentOf(ws);
   const person = await socketPerson(host.env, frame.token, farm);
   if (person === null) return refuse(ws, 'unauthorized');
-  if (host.farm.state?.farm !== farm) return refuse(ws, 'farm_gone');
-  if ((await roleOf(host.env.DB, farm, person)) === null) return refuse(ws, 'not_member');
-  // Nothing awaits from here on, so no event can slip between the catch-up and live delivery.
+  // Nothing awaits from here on, so no event can slip between the checks, the catch-up and live
+  // delivery. Membership is the farm's own: D1 only mirrors it.
   const state = host.farm.state;
-  if (state === null) return refuse(ws, 'farm_gone');
+  if (state === null || state.farm !== farm) return refuse(ws, 'farm_gone');
+  const actor = host.farm.actorOf(person);
+  if (!state.members.some((m) => m.person === actor)) return refuse(ws, 'not_member');
   if (frame.rulesVersion < state.rulesVersion) return refuse(ws, 'rules_outdated');
   attach(ws, { ...attachmentOf(ws), person });
   catchUp(host, ws, frame.lastSeq);

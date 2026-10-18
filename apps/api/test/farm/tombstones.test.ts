@@ -3,7 +3,7 @@ import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { op, TestSocket } from './support/client';
-import { cast, plantFarm, profile, useTestPorts } from './support/doubles';
+import { cast, plantFarm, profile, useTestPorts, pageOf, searchOf } from './support/doubles';
 
 beforeEach(() => {
   useTestPorts();
@@ -22,10 +22,10 @@ const photo = async (farm: string, name: string) => {
 type Stub = Awaited<ReturnType<typeof plantFarm>>['stub'];
 
 const eventAt = async (stub: Stub, seq: number) =>
-  FarmEvent.parse((await stub.page({ after: seq - 1, limit: 1 })).events[0]);
+  FarmEvent.parse((await pageOf(stub, { after: seq - 1, limit: 1 })).events[0]);
 
 const tail = async (stub: Stub, count: number) =>
-  (await stub.page({ limit: count })).events.map((e) => FarmEvent.parse(e));
+  (await pageOf(stub, { limit: count })).events.map((e) => FarmEvent.parse(e));
 
 describe('unsend', () => {
   it('turns the target into a tombstone that keeps its facts, with its edits and media', async () => {
@@ -109,13 +109,13 @@ describe('safety removals', () => {
     expect((await eventAt(stub, 4)).payload).toEqual({ tombstone: 'removed', rule: 3 });
     expect(await env.MEDIA.head(pic.key)).not.toBeNull();
     expect(await stub.removeEvent(4, 3)).toEqual({ ok: false, reason: 'gone' });
-    expect((await stub.search('allotment')).results).toEqual([]);
+    expect((await searchOf(stub, 'allotment')).results).toEqual([]);
 
     expect(await stub.restoreEvent(4)).toEqual({ ok: true, seq: 6 });
     const restored = (await socket.next('event')).event;
     expect(restored).toMatchObject({ kind: 'restored', actor: null, payload: { target: 4 } });
     expect((await eventAt(stub, 4)).payload).toEqual(pic.payload);
-    expect((await stub.search('allotment')).results.map((r) => r.seq)).toEqual([4]);
+    expect((await searchOf(stub, 'allotment')).results.map((r) => r.seq)).toEqual([4]);
     expect(await stub.restoreEvent(4)).toEqual({ ok: false, reason: 'not_found' });
     socket.close();
   });
@@ -192,7 +192,10 @@ describe('safety removals', () => {
     expect((await eventAt(stub, 4)).payload).toEqual({ tombstone: 'removed' });
     expect(await env.MEDIA.head(pic.key)).toBeNull();
     expect(await stub.freeze(true)).toMatchObject({ ok: true });
-    const kinds = (await stub.page({ after: 4, limit: 10 })).events.map((e) => [e.kind, e.actor]);
+    const kinds = (await pageOf(stub, { after: 4, limit: 10 })).events.map((e) => [
+      e.kind,
+      e.actor,
+    ]);
     expect(kinds).toEqual([
       ['settings_changed', null],
       ['removed', null],
@@ -219,7 +222,7 @@ describe('account deletion', () => {
       event: { seq: 8, kind: 'left', actor: fig.id, payload: { how: 'account_deleted' } },
     });
     expect(await socket.next('error')).toEqual({ type: 'error', code: 'not_member' });
-    const events = (await stub.page({ limit: 20 })).events.map((e) => FarmEvent.parse(e));
+    const events = (await pageOf(stub, { limit: 20 })).events.map((e) => FarmEvent.parse(e));
     const payloads = Object.fromEntries(events.map((e) => [e.seq, e.payload]));
     expect(payloads[3]).toEqual({
       tombstone: 'author_deleted',
@@ -252,6 +255,6 @@ describe('account deletion', () => {
       payload: { how: 'account_deleted' },
     });
     await stub.deleteAccount((await cast('mo')).mo.id);
-    expect((await stub.page({ limit: 10 })).events).toHaveLength(4);
+    expect((await pageOf(stub, { limit: 10 })).events).toHaveLength(4);
   });
 });

@@ -13,17 +13,25 @@ import type {
  */
 
 /** `farm` is the farm the socket was opened for, from its URL; `person` is set by hello. */
-export type Attachment = { farm: string; person: PersonId | null; here: boolean; typing: boolean };
+export type Attachment = {
+  farm: string;
+  person: PersonId | null;
+  here: boolean;
+  typing: boolean;
+  /** When the socket opened, for the hello deadline. */
+  openedAt: number;
+};
 
-export const fresh = (farm: string): Attachment => ({
+export const fresh = (farm: string, openedAt: number): Attachment => ({
   farm,
   person: null,
   here: false,
   typing: false,
+  openedAt,
 });
 
 export const attachmentOf = (ws: WebSocket): Attachment =>
-  (ws.deserializeAttachment() as Attachment | null) ?? fresh('');
+  (ws.deserializeAttachment() as Attachment | null) ?? fresh('', 0);
 
 export const attach = (ws: WebSocket, attachment: Attachment): void =>
   ws.serializeAttachment(attachment);

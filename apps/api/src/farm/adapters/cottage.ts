@@ -1,4 +1,10 @@
-import type { CottageDelivery, CottageFarm, PersonId, TimeZone } from '@kithfield/contracts';
+import type {
+  CottageDelivery,
+  CottageFarm,
+  FarmNotifications,
+  PersonId,
+  TimeZone,
+} from '@kithfield/contracts';
 
 import { cottageOf } from '../../cottage/stub';
 import type { Bindings } from '../../env';
@@ -14,14 +20,22 @@ export const cottage = {
   /** The person left or was removed. */
   leaveFarm: (env: Bindings, person: PersonId, farm: string) =>
     cottageOf(env, person).leaveFarm(farm),
-  /** Whether the person hibernates, and their own time zone (slow posts arrive in it). */
+  /**
+   * Whether the person hibernates, and their own time zone once their app has sent it (slow posts
+   * arrive in it); null before then.
+   */
   async settingsOf(
     env: Bindings,
     person: PersonId,
-  ): Promise<{ hibernating: boolean; timeZone: TimeZone }> {
-    const { settings, hibernating } = await cottageOf(env, person).settings();
-    return { hibernating, timeZone: settings.timeZone };
+  ): Promise<{ hibernating: boolean; timeZone: TimeZone | null }> {
+    const { settings, hibernating, zoneKnown } = await cottageOf(env, person).settings();
+    return { hibernating, timeZone: zoneKnown ? settings.timeZone : null };
   },
-  muteFarm: (env: Bindings, person: PersonId, farm: string, until: number | null) =>
-    cottageOf(env, person).muteFarm(farm, until),
+  /** Mute and the per-kind push toggles for one farm. */
+  setFarmNotifications: (
+    env: Bindings,
+    person: PersonId,
+    farm: string,
+    settings: FarmNotifications,
+  ) => cottageOf(env, person).setFarmNotifications(farm, settings),
 };

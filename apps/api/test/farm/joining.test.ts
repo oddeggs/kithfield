@@ -19,18 +19,22 @@ import {
 } from '../../src/auth/testing/client';
 import { cottageOf } from '../../src/cottage/stub';
 import { consumeDeletion } from '../../src/deletion';
-import { op } from './support/client';
+import { op, TestSocket } from './support/client';
 import {
   api,
   cast,
   critter,
   farmStub,
+  newPerson,
   type Person,
   plantFarm,
   profile,
   type TestPorts,
   useTestPorts,
+  pageOf,
+  hostOf,
 } from './support/doubles';
+import { configureFarmPorts } from '../../src/farm/wiring';
 
 let ports: TestPorts;
 beforeEach(() => {
@@ -62,7 +66,9 @@ describe('planting and joining', () => {
     const { farm, invite } = await plant(pip);
     expect(invite.url).toBe(`https://dev.kithfield.com/i/${invite.code}`);
     expect(await membership(farm, pip.id)).toEqual({ role: 'keeper', left_at: null });
-    const events = (await farmStub(farm).page({ limit: 10 })).events.map((e) => FarmEvent.parse(e));
+    const events = (await pageOf(farmStub(farm), { limit: 10 })).events.map((e) =>
+      FarmEvent.parse(e),
+    );
     expect(events.map((e) => [e.seq, e.kind, e.actor])).toEqual([
       [1, 'farm_created', null],
       [2, 'joined', pip.id],
@@ -155,7 +161,14 @@ describe('planting and joining', () => {
 
 describe('visits', () => {
   it('opens one visit per pair, finds it again from either side, and shows each the other', async () => {
-    const { pip, fig } = await cast('pip', 'fig');
+    const { pip, fig, kit } = await cast('pip', 'fig', 'kit');
+    const stranger = await api(pip, 'POST', '/v1/visits', {
+      person: kit.id,
+      timeZone: 'UTC',
+      hemisphere: 'north',
+    });
+    expect(stranger.status).toBe(404);
+    await plantFarm(pip, [fig]);
     const opened = await api(pip, 'POST', '/v1/visits', {
       person: fig.id,
       timeZone: 'Europe/London',
@@ -175,7 +188,7 @@ describe('visits', () => {
       land: 'porch',
     });
     const list = FarmList.parse((await api(pip, 'GET', '/v1/farms')).body);
-    expect(list.farms).toEqual([
+    expect(list.farms.filter((f) => f.kind === 'visit')).toEqual([
       expect.objectContaining({
         farm,
         kind: 'visit',
@@ -183,7 +196,7 @@ describe('visits', () => {
       }),
     ]);
     const chats = await cottageOf(env, fig.id).chatList();
-    expect(chats).toEqual([
+    expect(chats.filter((row) => row.farmKind === 'visit')).toEqual([
       expect.objectContaining({
         farm,
         farmKind: 'visit',
@@ -192,6 +205,52 @@ describe('visits', () => {
     ]);
     const self = { person: pip.id, timeZone: 'UTC', hemisphere: 'north' };
     expect((await api(pip, 'POST', '/v1/visits', self)).status).toBe(400);
+  });
+});
+
+describe('a visit planted half way', () => {
+  it('is planted again when either of them opens it', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    await plantFarm(pip, [fig]);
+    const pair = [pip.id, fig.id].sort().join(':');
+    // Its D1 row exists, but the farm object never got its first events.
+    await env.DB.prepare(
+      "INSERT INTO farms (id, kind, name, land, keeper_id, created_at, pair) VALUES ('halfplanted1', 'visit', NULL, 'porch', NULL, 1, ?)",
+    )
+      .bind(pair)
+      .run();
+    const opened = await api(fig, 'POST', '/v1/visits', {
+      person: pip.id,
+      timeZone: 'UTC',
+      hemisphere: 'north',
+    });
+    expect(opened.body).toEqual({ farm: 'halfplanted1' });
+    expect((await farmStub('halfplanted1').state())?.members.map((m) => m.person).sort()).toEqual(
+      [pip.id, fig.id].sort(),
+    );
+  });
+});
+
+describe('a full farm', () => {
+  it('keeps a waiting request the keeper approves, until there is room', async () => {
+    const { pip, kit } = await cast('pip', 'kit');
+    const { farm, invite } = await plant(pip);
+    const stub = farmStub(farm);
+    await stub.command(pip.id, {
+      opId: op(1),
+      kind: 'settings_changed',
+      payload: { setting: 'approval', on: true },
+    });
+    await api(kit, 'POST', `/v1/invites/${invite.code}/join`, profile(kit));
+    const others = await Promise.all(Array.from({ length: 23 }, (_, n) => newPerson(`friend${n}`)));
+    for (const other of others) await stub.join(other.id, profile(other), true);
+    expect(
+      (await api(pip, 'POST', `/v1/farms/${farm}/waiting/${kit.id}`, { approve: true })).status,
+    ).toBe(409);
+    const waiting = WaitingList.parse(
+      (await api(pip, 'GET', `/v1/farms/${farm}/waiting`)).body,
+    ).waiting;
+    expect(waiting.map((w) => w.person)).toEqual([kit.id]);
   });
 });
 
@@ -218,10 +277,18 @@ describe('notifications', () => {
   });
 });
 
-describe('the gate and trading', () => {
-  it('shows visitors the farm, never its chat, and takes their gestures', async () => {
-    const { pip, fig, kit } = await cast('pip', 'fig', 'kit');
-    const { farm } = await plantFarm(pip, [fig]);
+/** Pip and Fig's farm, and Kit, who lives with Fig on another farm: a friend of a friend. */
+const neighbours = async () => {
+  const { pip, fig, kit, mo } = await cast('pip', 'fig', 'kit', 'mo');
+  const home = await plantFarm(pip, [fig]);
+  const next = await plantFarm(kit, [fig]);
+  return { pip, fig, kit, mo, home, next };
+};
+
+describe('the gate', () => {
+  it('shows friends of friends the farm, never its chat, and takes their gestures', async () => {
+    const { pip, fig, kit, home } = await neighbours();
+    const { farm } = home;
     const gate = FarmGate.parse((await api(kit, 'GET', `/v1/farms/${farm}/gate`)).body);
     expect(gate.critters.map((c) => c.name)).toEqual(['Pip', 'Fig']);
     const firefly = {
@@ -233,45 +300,79 @@ describe('the gate and trading', () => {
       opId: op(1),
       seq: 4,
     });
-    const lost = { opId: op(2), gesture: { gesture: 'firefly', to: kit.id } };
-    expect((await api(kit, 'POST', `/v1/farms/${farm}/gate`, lost)).body).toMatchObject({
-      reason: 'not_found',
-    });
+    const visited = await env.DB.prepare('SELECT farm_id FROM farm_visitors WHERE person_id = ?')
+      .bind(kit.id)
+      .all();
+    expect(visited.results).toEqual([{ farm_id: farm }]);
     const own = { opId: op(3), gesture: { gesture: 'wave' } };
-    expect((await api(fig, 'POST', `/v1/farms/${farm}/gate`, own)).body).toMatchObject({
-      reason: 'not_allowed',
-    });
+    expect((await api(fig, 'POST', `/v1/farms/${farm}/gate`, own)).status).toBe(404);
+    expect((await api(pip, 'GET', `/v1/farms/${farm}/gate`)).status).toBe(404);
   });
 
-  it('writes a swap of harvested crops on both farms, each with its own trader, once a season', async () => {
-    const { pip, mo, kit } = await cast('pip', 'mo', 'kit');
-    const home = await plantFarm(pip);
-    const away = await plantFarm(mo, [kit]);
-    // Five days of dewdrops bring each farm's dew plant to bloom; harvest day puts it in the basket.
-    for (let day = 0; day < 5; day++) {
+  it('is closed to strangers, and to people removed from the farm', async () => {
+    const { mo, kit, home, pip } = await neighbours();
+    expect((await api(mo, 'GET', `/v1/farms/${home.farm}/gate`)).status).toBe(404);
+    const wave = { opId: op(1), gesture: { gesture: 'wave' } };
+    expect((await api(mo, 'POST', `/v1/farms/${home.farm}/gate`, wave)).status).toBe(404);
+    await home.stub.join(kit.id, profile(kit), true);
+    await home.stub.command(pip.id, {
+      opId: op(2),
+      kind: 'removed',
+      payload: { person: kit.id, removeMedia: false },
+    });
+    expect((await api(kit, 'GET', `/v1/farms/${home.farm}/gate`)).status).toBe(404);
+    const after = await api(kit, 'POST', `/v1/farms/${home.farm}/gate`, { ...wave, opId: op(3) });
+    expect(after.body).toMatchObject({ result: 'rejected', reason: 'not_allowed' });
+  });
+
+  it('takes one gesture a farm day from each visitor, and limits how fast they come', async () => {
+    const { kit, home } = await neighbours();
+    const wave = (n: number) =>
+      api(kit, 'POST', `/v1/farms/${home.farm}/gate`, {
+        opId: op(n, 9),
+        gesture: { gesture: 'wave' },
+      });
+    expect((await wave(1)).body).toMatchObject({ result: 'ack' });
+    expect((await wave(2)).body).toMatchObject({ result: 'rejected', reason: 'limit_reached' });
+    ports.clock.advance(24 * 60 * 60_000);
+    expect((await wave(3)).body).toMatchObject({ result: 'ack' });
+    const answers = [];
+    for (let n = 4; n < 12; n++) answers.push((await wave(n)).status);
+    expect(answers).toContain(429);
+  });
+});
+
+/** Five days of dewdrops bring a farm's dew plant to bloom; harvest day puts it in the basket. */
+const growMarigolds = async (farms: { stub: ReturnType<typeof farmStub>; person: Person }[]) => {
+  for (let day = 0; day < 5; day++) {
+    for (const [i, { stub, person }] of farms.entries()) {
       for (let n = 0; n < 3; n++) {
-        await home.stub.command(pip.id, {
-          opId: op(day * 10 + n, 1),
-          kind: 'dewdrop',
-          payload: {},
-        });
-        await away.stub.command(kit.id, {
-          opId: op(day * 10 + n, 2),
+        await stub.command(person.id, {
+          opId: op(day * 10 + n, i + 1),
           kind: 'dewdrop',
           payload: {},
         });
       }
-      ports.clock.advance(24 * 60 * 60_000);
     }
-    for (const { stub } of [home, away]) {
-      ports.clock.at = (await runInDurableObject(stub, (_f, s) => s.storage.getAlarm())) ?? 0;
-      await runDurableObjectAlarm(stub);
-    }
-    const crop = (await home.stub.state())?.basket?.crops[0];
-    expect(crop?.plant).toBe('marigold');
+    ports.clock.advance(24 * 60 * 60_000);
+  }
+  for (const { stub } of farms) {
+    ports.clock.at = (await runInDurableObject(stub, (_f, s) => s.storage.getAlarm())) ?? 0;
+    await runDurableObjectAlarm(stub);
+  }
+};
+
+describe('trading', () => {
+  it('writes a swap on both farms, each with its own trader, once in 90 days', async () => {
+    const { pip, kit, home, next } = await neighbours();
+    await growMarigolds([
+      { stub: home.stub, person: pip },
+      { stub: next.stub, person: kit },
+    ]);
+    expect((await home.stub.state())?.basket?.crops[0]?.plant).toBe('marigold');
     const trade = {
       opId: op(1),
-      from: away.farm,
+      from: next.farm,
       with: pip.id,
       give: 'marigold',
       take: 'marigold',
@@ -282,49 +383,110 @@ describe('the gate and trading', () => {
       first.body,
     );
     const last = async (stub: typeof home.stub) =>
-      FarmEvent.parse((await stub.page({ limit: 1 })).events[0]);
+      FarmEvent.parse((await pageOf(stub, { limit: 1 })).events[0]);
     expect(await last(home.stub)).toMatchObject({
       kind: 'traded',
       actor: pip.id,
-      payload: { with: kit.id, otherFarm: away.farm },
+      payload: { with: kit.id, otherFarm: next.farm },
     });
-    expect(await last(away.stub)).toMatchObject({
+    expect(await last(next.stub)).toMatchObject({
       kind: 'traded',
       actor: kit.id,
       payload: { with: pip.id, otherFarm: home.farm },
     });
     const again = await api(kit, 'POST', `/v1/farms/${home.farm}/trade`, { ...trade, opId: op(2) });
     expect(again.body).toMatchObject({ result: 'rejected', reason: 'limit_reached' });
-    expect(
-      (await api(pip, 'POST', `/v1/farms/${home.farm}/trade`, { ...trade, opId: op(3) })).status,
-    ).toBe(403);
+    expect(await home.stub.answered(op(2))).toBeNull();
+    ports.clock.advance(91 * 24 * 60 * 60_000);
+    expect(await home.stub.canTrade(next.farm, pip.id)).toBeNull();
+  });
+
+  it('finishes a trade whose second half failed, so it is never left on one farm', async () => {
+    const { pip, kit, home, next } = await neighbours();
+    await growMarigolds([
+      { stub: home.stub, person: pip },
+      { stub: next.stub, person: kit },
+    ]);
+    const real = ports.rules;
+    // The visitor's farm can't write for a moment: its half fails after the visited farm's lands.
+    ports.rules = {
+      ...real,
+      applyEvent: (state, event, lookup) => {
+        if (event.kind === 'traded' && state.farm === next.farm) throw new Error('unavailable');
+        return real.applyEvent(state, event, lookup);
+      },
+    };
+    configureFarmPorts(ports);
+    const trade = {
+      opId: op(1),
+      from: next.farm,
+      with: pip.id,
+      give: 'marigold',
+      take: 'marigold',
+    };
+    expect((await api(kit, 'POST', `/v1/farms/${home.farm}/trade`, trade)).status).toBe(503);
+    expect((await pageOf(next.stub, { limit: 1 })).events[0]).not.toMatchObject({ kind: 'traded' });
+    ports.rules = real;
+    configureFarmPorts(ports);
+    ports.clock.advance(2 * 60_000);
+    await runDurableObjectAlarm(home.stub);
+    expect((await pageOf(next.stub, { limit: 1 })).events[0]).toMatchObject({
+      kind: 'traded',
+      actor: kit.id,
+      opId: op(1),
+    });
+    expect(await hostOf(home.stub, (h) => h.store.tradeHalves())).toEqual([]);
   });
 });
 
-describe('merging people', () => {
-  it('moves an anonymous person’s farms to the account they signed in to, and keeps their words theirs', async () => {
-    const email = `farm.${crypto.randomUUID().slice(0, 8)}@example.com`;
-    const letters = watchLetters();
-    await sendCode(email);
-    const returning = await readSignIn(await signInWithCode(email, letters.codeFor(email)));
-    const { pip, fig } = await cast('pip', 'fig');
-    const { farm, stub } = await plantFarm(pip, [fig]);
-    await stub.command(fig.id, { opId: op(1), kind: 'message', payload: { text: 'hello' } });
-
-    await sendCode(email, { token: fig.token });
-    await readSignIn(await signInWithCode(email, letters.codeFor(email), { token: fig.token }));
-    const into = returning.user.id;
-    expect(await membership(farm, into)).toEqual({ role: 'critter', left_at: null });
-    expect(await membership(farm, fig.id)).toBeNull();
-
-    const job = { kind: 'person_merged', from: fig.id, into, at: ports.clock.at };
+/** A returning account (email sign-in) that `person` signs in to from an anonymous install. */
+const returningAccount = async () => {
+  const email = `farm.${crypto.randomUUID().slice(0, 8)}@example.com`;
+  const letters = watchLetters();
+  await sendCode(email);
+  const returning = await readSignIn(await signInWithCode(email, letters.codeFor(email)));
+  const mergeInto = async (anonymous: Person) => {
+    await sendCode(email, { token: anonymous.token });
+    await readSignIn(
+      await signInWithCode(email, letters.codeFor(email), { token: anonymous.token }),
+    );
+    const job = {
+      kind: 'person_merged',
+      from: anonymous.id,
+      into: returning.user.id,
+      at: ports.clock.at,
+    };
     await consumeDeletion(
       createMessageBatch('kithfield-deletion-dev', [
         { id: 'm1', timestamp: new Date(), attempts: 1, body: job },
       ]),
       env,
     );
+  };
+  return { id: returning.user.id, token: returning.token, mergeInto };
+};
+
+describe('merging people', () => {
+  it('moves an anonymous person’s farms to the account they signed in to, and keeps their words theirs', async () => {
+    const returning = await returningAccount();
+    const { pip, fig } = await cast('pip', 'fig');
+    const { farm, stub } = await plantFarm(pip, [fig]);
+    await stub.command(fig.id, { opId: op(1), kind: 'message', payload: { text: 'hello' } });
+    const socket = await TestSocket.open(farm);
+    await socket.hello(pip, farm, 4);
+
+    await returning.mergeInto(fig);
+    const into = returning.id;
+    expect(await membership(farm, into)).toEqual({ role: 'critter', left_at: null });
+    expect(await membership(farm, fig.id)).toBeNull();
     expect((await stub.state())?.members.map((m) => m.person)).toEqual([pip.id, into]);
+    // Every phone says hello again, and one holding the farm from before the merge takes the moved snapshot.
+    expect((await socket.waitClosed()).reason).toBe('unauthorized');
+    const again = await TestSocket.open(farm);
+    const caught = await again.hello(pip, farm, 4);
+    expect(caught.snapshot?.state.members.map((m) => m.person)).toEqual([pip.id, into]);
+    again.close();
+
     const edit = await stub.command(into, {
       opId: op(2),
       kind: 'edit',
@@ -333,6 +495,26 @@ describe('merging people', () => {
     expect(edit).toMatchObject({ result: 'ack', seq: 5 });
     const old = await stub.command(fig.id, { opId: op(3), kind: 'dewdrop', payload: {} });
     expect(old).toMatchObject({ result: 'ack' });
-    expect((await stub.page({ limit: 1 })).events[0]).toMatchObject({ actor: into });
+    expect((await pageOf(stub, { limit: 1 })).events[0]).toMatchObject({ actor: into });
+
+    // Deleting the account tombstones what they wrote under either id.
+    await stub.deleteAccount(into);
+    const message = FarmEvent.parse((await pageOf(stub, { after: 3, limit: 1 })).events[0]);
+    expect(message).toMatchObject({
+      seq: 4,
+      actor: fig.id,
+      payload: { tombstone: 'author_deleted' },
+    });
+  });
+
+  it('keeps the higher role when both people lived on the farm, so it never loses its keeper', async () => {
+    const returning = await returningAccount();
+    const { pip } = await cast('pip');
+    const { farm, stub } = await plantFarm(pip);
+    await stub.join(returning.id, { name: 'Wren', critter: critter('owl') }, true);
+    await returning.mergeInto(pip);
+    const members = (await stub.state())?.members.map((m) => [m.person, m.role]);
+    expect(members).toEqual([[returning.id, 'keeper']]);
+    expect(await membership(farm, returning.id)).toEqual({ role: 'keeper', left_at: null });
   });
 });

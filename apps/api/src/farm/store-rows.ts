@@ -15,13 +15,25 @@ export const SCHEMA = [
   )`,
   'CREATE INDEX IF NOT EXISTS events_by_actor ON events (actor, seq)',
   'CREATE INDEX IF NOT EXISTS events_by_kind ON events (kind, seq)',
+  'CREATE INDEX IF NOT EXISTS events_by_kind_actor ON events (kind, actor, at)',
   'CREATE TABLE IF NOT EXISTS rejections (op_id TEXT PRIMARY KEY, reason TEXT NOT NULL, at INTEGER NOT NULL)',
   'CREATE TABLE IF NOT EXISTS snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), seq INTEGER NOT NULL, state TEXT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS timers (key TEXT PRIMARY KEY, due INTEGER NOT NULL)',
-  'CREATE TABLE IF NOT EXISTS held (seq INTEGER PRIMARY KEY, payload TEXT NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS held (seq INTEGER PRIMARY KEY, payload TEXT NOT NULL, at INTEGER NOT NULL)',
   'CREATE TABLE IF NOT EXISTS aliases (from_person TEXT PRIMARY KEY, into_person TEXT NOT NULL)',
+  // Phones that hold less than `below` take a snapshot: the farm's state changed outside the log.
+  'CREATE TABLE IF NOT EXISTS resync (id INTEGER PRIMARY KEY CHECK (id = 1), below INTEGER NOT NULL)',
+  // Committed events whose news hasn't reached every member's cottage yet.
+  'CREATE TABLE IF NOT EXISTS deliveries (seq INTEGER PRIMARY KEY)',
+  // A trade's second half, written on the visitor's own farm, until it lands.
+  `CREATE TABLE IF NOT EXISTS trade_halves (
+    op_id TEXT PRIMARY KEY, other_farm TEXT NOT NULL, actor TEXT NOT NULL, payload TEXT NOT NULL
+  )`,
   "CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5 (body, tokenize = 'unicode61 remove_diacritics 2')",
 ];
+
+/** `actor IN (…)` for a person and the ids merged into them. */
+export const actorIn = (ids: readonly string[]) => `actor IN (${ids.map(() => '?').join(',')})`;
 
 export type EventRow = {
   seq: number;
@@ -48,6 +60,8 @@ export const envelopeOf = (row: EventRow): EventEnvelope => ({
 export type Outcome = { seq: number } | { reason: RejectReason };
 
 export type Timer = { key: string; due: number };
+
+export type TradeHalf = { opId: string; otherFarm: string; actor: string; payload: unknown };
 
 export type SearchHit = {
   seq: number;

@@ -8,6 +8,6 @@ CREATE TABLE farm_merges (
   PRIMARY KEY (from_person, into_person, farm_id)
 );
 
--- What knocks for the person on this farm (`FarmNotifications.knockFor`), as JSON; NULL is the
--- default (everything knocks).
+-- Which kinds of news may push the person from this farm (`FarmNotifications.knockFor`: plans,
+-- doorstep, mentions, messages), as JSON; NULL is the default (all of them).
 ALTER TABLE memberships ADD COLUMN knock_for TEXT;

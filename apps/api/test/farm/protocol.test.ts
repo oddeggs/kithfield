@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { FarmDO } from '../../src/farm/farm-object';
 import { messageFrame, op, TestSocket } from './support/client';
-import { cast, plantFarm, socketToken, useTestPorts } from './support/doubles';
+import { cast, plantFarm, socketToken, useTestPorts, pageOf } from './support/doubles';
 
 beforeEach(() => {
   useTestPorts();
@@ -53,7 +53,9 @@ describe('hello', () => {
   it('starts the log with farm_created at seq 1, and stamps every event with its farm day', async () => {
     const { pip } = await cast('pip');
     const { stub } = await plantFarm(pip);
-    const events = (await stub.page({ after: 0, limit: 10 })).events.map((e) => FarmEvent.parse(e));
+    const events = (await pageOf(stub, { after: 0, limit: 10 })).events.map((e) =>
+      FarmEvent.parse(e),
+    );
     expect(events.map((e) => [e.seq, e.kind, e.actor, e.day, e.rulesVersion])).toEqual([
       [1, 'farm_created', null, '2054-10-18', RULES_VERSION],
       [2, 'joined', pip.id, '2054-10-18', RULES_VERSION],

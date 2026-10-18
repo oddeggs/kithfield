@@ -12,6 +12,10 @@ import { farmStub } from './http';
  */
 
 /** The farms' D1 rows, as statements for the merge's one batch. */
+/** A role's rank in SQL: the kept person keeps the higher of two. */
+const rank = (column: string) =>
+  `(CASE ${column} WHEN 'keeper' THEN 2 WHEN 'helper' THEN 1 ELSE 0 END)`;
+
 export const farmMergeStatements = (db: D1Database, { from, into, now }: PersonMerge) => {
   // A visit's pair is its two people sorted and joined with ':'; ?1 is replaced by ?2 in it.
   const startsWith = `substr(pair, 1, length(?1) + 1) = ?1 || ':'`;
@@ -28,7 +32,10 @@ export const farmMergeStatements = (db: D1Database, { from, into, now }: PersonM
       .prepare(
         `INSERT INTO memberships (person_id, farm_id, role, joined_at, left_at, muted_until, knock_for)
          SELECT ?, farm_id, role, joined_at, left_at, muted_until, knock_for FROM memberships WHERE person_id = ?
-         ON CONFLICT (person_id, farm_id) DO UPDATE SET left_at = CASE
+         ON CONFLICT (person_id, farm_id) DO UPDATE SET role = CASE
+           WHEN ${rank('excluded.role')} > ${rank('memberships.role')} THEN excluded.role
+           ELSE memberships.role END,
+         left_at = CASE
            WHEN memberships.left_at IS NULL OR excluded.left_at IS NULL THEN NULL
            ELSE max(memberships.left_at, excluded.left_at) END`,
       )

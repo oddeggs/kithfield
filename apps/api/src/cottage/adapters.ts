@@ -6,7 +6,7 @@ import { hibernateOnFarms } from '../farm/hibernate';
 
 /*
  * Where the cottage meets code built alongside it: sign-in (sessions and socket tokens) and the
- * farms (writing `hibernate` on each, through their farm objects). The production wiring is set here at MODULE scope, so every isolate
+ * farms (writing `hibernate`). The production wiring is set here at MODULE scope, so every isolate
  * that loads this file, the Durable Objects' included, gets it. Tests swap in named doubles with
  * `useCottageAdapters`; the Workers test pool runs tests and objects in one isolate.
  */

@@ -25,7 +25,9 @@ import {
   insertFarm,
   liveInvite,
   replaceInvite,
+  shareAFarm,
   takeWaiting,
+  waitingRequest,
   useInvite,
   visitBetween,
   waitingList,
@@ -75,6 +77,10 @@ export const joiningRoutes = (): Hono<SessionEnv> => {
     return c.json({ farm, invite } satisfies CreateFarmResponse, 201);
   });
 
+  /**
+   * `POST /v1/visits`: the porch between two people who live on a farm together. Opening it again
+   * plants it again if an earlier try failed half way; planting is safe to repeat.
+   */
   app.post('/visits', signedIn, async (c) => {
     const person = c.get('person');
     const req = await body(c, OpenVisitRequest);
@@ -82,17 +88,35 @@ export const joiningRoutes = (): Hono<SessionEnv> => {
     if (req.person === person) return fail(c, 400, 'bad_request', ['person']);
     if (!isKnownTimeZone(req.timeZone)) return fail(c, 400, 'bad_request', ['timeZone']);
     if (await isBlocked(c.env, person, req.person)) return fail(c, 404, 'not_found');
-    const pair = [person, req.person].sort().join(':');
-    const existing = await visitBetween(c.env.DB, pair);
-    if (existing !== null) return c.json({ farm: existing.id } satisfies OpenVisitResponse);
+    if (!(await shareAFarm(c.env.DB, person, req.person))) return fail(c, 404, 'not_found');
     const [mine, theirs] = await Promise.all([
       profileOf(c.env, person),
       profileOf(c.env, req.person),
     ]);
     if (mine === null) return fail(c, 403, 'forbidden');
     if (theirs === null) return fail(c, 404, 'not_found');
+    const pair = [person, req.person].sort().join(':');
+    const plant = (farm: string) =>
+      farmStub(c.env, farm).create({
+        farm,
+        kind: 'visit',
+        name: null,
+        land: VISIT_LAND,
+        timeZone: req.timeZone,
+        hemisphere: req.hemisphere,
+        keeper: null,
+        pair,
+        members: [
+          { person, profile: mine, via: 'visit' },
+          { person: req.person, profile: theirs, via: 'visit' },
+        ],
+      });
+    const existing = await visitBetween(c.env.DB, pair);
+    if (existing !== null) {
+      await plant(existing.id);
+      return c.json({ farm: existing.id } satisfies OpenVisitResponse);
+    }
     const farm = newFarmId();
-    // The pair is unique: when two opens race, the second finds the first one's visit.
     const row = {
       id: farm,
       kind: 'visit' as const,
@@ -102,24 +126,15 @@ export const joiningRoutes = (): Hono<SessionEnv> => {
       pair,
       at: Date.now(),
     };
+    // The pair is unique: when two opens race, the second finds the first one's visit.
     if (!(await insertFarm(c.env.DB, row))) {
       const raced = await visitBetween(c.env.DB, pair);
-      if (raced !== null) return c.json({ farm: raced.id } satisfies OpenVisitResponse);
+      if (raced !== null) {
+        await plant(raced.id);
+        return c.json({ farm: raced.id } satisfies OpenVisitResponse);
+      }
     }
-    await farmStub(c.env, farm).create({
-      farm,
-      kind: 'visit',
-      name: null,
-      land: VISIT_LAND,
-      timeZone: req.timeZone,
-      hemisphere: req.hemisphere,
-      keeper: null,
-      pair,
-      members: [
-        { person, profile: mine, via: 'visit' },
-        { person: req.person, profile: theirs, via: 'visit' },
-      ],
-    });
+    await plant(farm);
     return c.json({ farm } satisfies OpenVisitResponse, 201);
   });
 
@@ -185,18 +200,16 @@ export const joiningRoutes = (): Hono<SessionEnv> => {
     if (req instanceof Response) return req;
     const person = PersonId.safeParse(c.req.param('person'));
     if (!person.success) return fail(c, 404, 'not_found');
-    const waiting = await takeWaiting(c.env.DB, m.farm, person.data);
+    const waiting = await waitingRequest(c.env.DB, m.farm, person.data);
     if (waiting === null) return fail(c, 404, 'not_found');
     if (req.approve) {
       const { name, critter } = waiting;
       const outcome = await farmStub(c.env, m.farm).join(person.data, { name, critter }, true);
-      if ('error' in outcome)
-        return fail(
-          c,
-          outcome.error === 'farm_full' ? 409 : 403,
-          outcome.error === 'farm_full' ? 'farm_full' : 'forbidden',
-        );
+      // A full farm keeps the request: the keeper can let them in once there's room.
+      if ('error' in outcome && outcome.error === 'farm_full') return fail(c, 409, 'farm_full');
+      if ('error' in outcome) return fail(c, 403, 'forbidden');
     }
+    await takeWaiting(c.env.DB, m.farm, person.data);
     return c.body(null, 204);
   });
 

@@ -6,7 +6,7 @@ import type { SessionEnv } from '../auth';
 import { cottage } from './adapters/cottage';
 import { body, fail, member, signedIn } from './http';
 
-/* The caller's farms: the valley switcher and how each farm may knock for them. */
+/* The caller's farms: the valley switcher, and which kinds of news each farm may push. */
 
 /** "Muted until turned back on", as the cottage and D1 keep it. */
 const ALWAYS = Number.MAX_SAFE_INTEGER;
@@ -64,7 +64,7 @@ export const meRoutes = (): Hono<SessionEnv> => {
     return c.json(FarmList.parse({ farms }));
   });
 
-  /** `PUT /v1/farms/:id/notifications`: mute and what knocks. Only the caller's cottage hears it. */
+  /** `PUT /v1/farms/:id/notifications`: mute, and which kinds of news may push. Only the caller hears it. */
   app.put('/farms/:id/notifications', signedIn, async (c) => {
     const m = await member(c);
     if (m instanceof Response) return m;
@@ -77,7 +77,7 @@ export const meRoutes = (): Hono<SessionEnv> => {
       .bind(until, JSON.stringify(req.knockFor), m.farm, m.person)
       .run();
     try {
-      await cottage.muteFarm(c.env, m.person, m.farm, until);
+      await cottage.setFarmNotifications(c.env, m.person, m.farm, req);
     } catch {
       return fail(c, 503, 'unavailable');
     }

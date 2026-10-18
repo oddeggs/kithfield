@@ -11,9 +11,10 @@ import {
   type TimeZone,
 } from '@kithfield/contracts';
 import { type CommandContext, type EventLookup, localDay } from '@kithfield/farm';
+import { ZodError } from 'zod';
 
-import { addDays, localYmd, nextLocalHour, weekday, zonedInstant } from './calendar';
 import { searchText } from './content';
+import { payloadOf } from './drafts';
 import { mintOpId } from './ids';
 import type { FarmPorts } from './ports';
 import type { FarmStore } from './store';
@@ -34,33 +35,8 @@ export type CommandOptions = {
   recipientZone?: TimeZone;
 };
 
-/** Slow posts arrive at 07:00 the next morning, or 09:00 on the coming Saturday, the friend's time. */
-const MORNING_HOUR = 7;
-const WEEKEND_HOUR = 9;
-const SATURDAY = 6;
-
+/** The fire goes out this long after the last person leaves the room. */
 export const fireOutAfterMs = 3 * 60_000;
-
-const deliverAt = (when: 'morning' | 'weekend', now: number, tz: TimeZone): number => {
-  if (when === 'morning') return nextLocalHour(now, MORNING_HOUR, tz);
-  let day = localYmd(now, tz);
-  for (;;) {
-    const at = zonedInstant(day, WEEKEND_HOUR, tz);
-    if (weekday(day) === SATURDAY && at > now) return at;
-    day = addDays(day, 1);
-  }
-};
-
-/** What a phone's command becomes in the log. */
-const payloadOf = (cmd: FarmCommand, now: number, tz: TimeZone): unknown => {
-  if (cmd.kind === 'unsend') return { ...cmd.payload, by: 'author' };
-  if (cmd.kind === 'removed') return { ...cmd.payload, by: 'keeper' };
-  if (cmd.kind === 'left') return { how: 'left' };
-  if (cmd.kind === 'slow_post') {
-    return { ...cmd.payload, deliverAt: deliverAt(cmd.payload.when, now, tz) };
-  }
-  return cmd.payload;
-};
 
 /**
  * The farm's log and the reducer's state over it. Every write is one synchronous step: assign the
@@ -111,7 +87,6 @@ export class Farm {
 
   private load(): void {
     if (this.loaded) return;
-    const { rules } = this.ports();
     const snapshot = this.store.loadSnapshot();
     let state = snapshot?.state ?? null;
     let seq = snapshot?.seq ?? 0;
@@ -127,10 +102,15 @@ export class Farm {
     this.current = state;
     this.seq = seq;
     this.loaded = true;
-    if (state !== null && rules.RULES_VERSION > state.rulesVersion) {
-      const change = { from: state.rulesVersion, to: rules.RULES_VERSION };
-      this.write(null, 'rules_changed', change, this.ports().clock.now());
-    }
+  }
+
+  /** On wake: a farm whose rules are older than this server's moves to them with `rules_changed`. */
+  upgradeRules(): FarmEvent | null {
+    const state = this.state;
+    const { rules } = this.ports();
+    if (state === null || rules.RULES_VERSION <= state.rulesVersion) return null;
+    const change = { from: state.rulesVersion, to: rules.RULES_VERSION };
+    return this.write(null, 'rules_changed', change, this.ports().clock.now());
   }
 
   private reduce(state: FarmState | null, event: FarmEvent): FarmState {
@@ -168,6 +148,8 @@ export class Farm {
       this.store.insert(event);
       // Reduced once the event is stored, so a `restored` finds its target's payload put back.
       then?.(event);
+      // Slow posts reach the cottages when they arrive, not when sent.
+      if (event.kind !== 'slow_post') this.store.oweDelivery(event.seq);
       const next = this.reduce(state, event);
       this.store.saveSnapshot(event.seq, next);
       const words = searchText(event);
@@ -234,10 +216,10 @@ export class Farm {
       const event = this.commit({ ...draft, opId }, at, then);
       return { result: { result: 'ack', opId, seq: event.seq }, event };
     } catch (error) {
-      console.warn('write refused', {
-        kind: draft.kind,
-        error: error instanceof Error ? error.message : 'unknown',
-      });
+      // Only a write that fails its schema is answered for good; anything else (a fault, a time
+      // zone this server can't read) is thrown, so nothing is stored and the phone tries again.
+      if (!(error instanceof ZodError)) throw error;
+      console.warn('write refused', { kind: draft.kind, issues: error.issues.length });
       return reject('invalid');
     }
   }
@@ -279,10 +261,16 @@ export class Farm {
     );
   }
 
-  /** Replaces the state outside the log, as when a merged person's id is moved; kept in the snapshot. */
-  replaceState(next: FarmState): void {
+  /**
+   * Replaces the state outside the log, as when a merged person's id is moved: kept in the snapshot,
+   * with `alongside` in the same transaction.
+   */
+  replaceState(next: FarmState, alongside: () => void = () => undefined): void {
     this.load();
-    this.transact(() => this.store.saveSnapshot(this.seq, next));
+    this.transact(() => {
+      this.store.saveSnapshot(this.seq, next);
+      alongside();
+    });
     this.current = next;
   }
 
