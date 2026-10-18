@@ -1,8 +1,9 @@
 import { FarmServerFrame, PROTOCOL_VERSION } from '@kithfield/contracts';
+import { RULES_VERSION } from '@kithfield/farm';
 import { exports } from 'cloudflare:workers';
 import { expect } from 'vitest';
 
-import { tokenFor } from './doubles';
+import { type Person, socketToken } from './doubles';
 
 type Frame = Exclude<FarmServerFrame, { type: 'unknown' }>;
 type Of<T extends Frame['type']> = Extract<Frame, { type: T }>;
@@ -89,14 +90,9 @@ export class TestSocket {
   }
 
   /** Says hello and reads the catch-up: an optional snapshot, then event batches until `more` is false. */
-  async hello(person: string, farm: string, lastSeq = 0, rulesVersion = 1) {
-    this.send({
-      type: 'hello',
-      protocol: PROTOCOL_VERSION,
-      token: tokenFor(person, farm),
-      lastSeq,
-      rulesVersion,
-    });
+  async hello(person: Person, farm: string, lastSeq = 0, rulesVersion = RULES_VERSION) {
+    const token = await socketToken(person, farm);
+    this.send({ type: 'hello', protocol: PROTOCOL_VERSION, token, lastSeq, rulesVersion });
     const first = await this.next();
     if (first.type === 'error') return { error: first.code, snapshot: null, batches: [] };
     const snapshot = first.type === 'snapshot' ? first : null;

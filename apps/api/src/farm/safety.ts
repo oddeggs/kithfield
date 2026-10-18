@@ -1,11 +1,12 @@
 import {
   type EpochMs,
-  type FarmEvent,
+  FarmEvent,
   isTombstone,
   type PersonId,
   type RuleRef,
 } from '@kithfield/contracts';
 
+import { followUpFor } from './followups';
 import type { FarmHost } from './host';
 import { restoreEvent, tombstoneAuthor, tombstoneEvent } from './tombstones';
 
@@ -27,21 +28,33 @@ const done = async (
   return { ok: true, seq: event.seq };
 };
 
-/** Removes an event under a rule: `unsend {by: safety}`, and the target becomes a tombstone. */
-export const removeEvent = (
+/**
+ * Removes an event under a rule: `unsend {by: safety}`, and the target becomes a tombstone. A
+ * removed critter change, status or plan edit is followed by one restoring what came before.
+ */
+export const removeEvent = async (
   host: FarmHost,
   target: number,
   rule: RuleRef,
 ): Promise<SafetyOutcome> => {
-  const event = host.store.event(target);
-  if (event === null || event.actor === null || event.kind === 'settings_changed') {
-    return Promise.resolve({ ok: false, reason: 'not_found' });
+  const envelope = host.store.event(target);
+  if (envelope === null || envelope.actor === null || envelope.kind === 'settings_changed') {
+    return { ok: false, reason: 'not_found' };
   }
-  if (isTombstone(event.payload)) return Promise.resolve({ ok: false, reason: 'gone' });
+  if (isTombstone(envelope.payload)) return { ok: false, reason: 'gone' };
+  const original = FarmEvent.parse(envelope);
   const written = host.farm.write(null, 'unsend', { target, by: 'safety' }, host.now(), () => {
     tombstoneEvent(host.store, target, 'removed', rule);
   });
-  return done(host, written);
+  if (written === null) return { ok: false, reason: 'not_found' };
+  const state = host.farm.state;
+  const follow = state === null ? null : followUpFor(host.store, original, state, host.now());
+  const restoring =
+    follow === null ? null : host.farm.write(follow.actor, follow.kind, follow.payload, host.now());
+  const events = restoring === null ? [written] : [written, restoring];
+  host.publish(events);
+  await host.settle(events);
+  return { ok: true, seq: written.seq };
 };
 
 /** An appeal undid a removal: the held payload goes back and the farm writes `restored`. */
@@ -90,27 +103,16 @@ export const freeze = (host: FarmHost, on: boolean): Promise<SafetyOutcome> =>
   done(host, host.farm.write(null, 'settings_changed', { setting: 'frozen', on }, host.now()));
 
 /**
- * Account deletion: a member leaves with `left {how: account_deleted}` and everything they wrote
- * becomes a tombstone; on a farm they only visited, their gate and trade events do. Their media is
- * deleted. Facts stay, so the farm grows the same.
+ * Account deletion: the person leaves with `left {how: account_deleted}` and everything they wrote
+ * here becomes a tombstone, their media deleted. On a farm they only visited, that is their gate
+ * and trade events, and the `left` tells phones there to tombstone what they hold too. Facts stay,
+ * so the farm grows the same.
  */
 export const deleteAccount = async (host: FarmHost, person: PersonId): Promise<void> => {
+  if (!isMember(host, person) && host.store.byActor(person).length === 0) return;
   const media: string[] = [];
-  if (isMember(host, person)) {
-    const left = host.farm.write(
-      person,
-      'left',
-      { how: 'account_deleted' },
-      host.now(),
-      (event) => {
-        media.push(...tombstoneAuthor(host.store, person, event.seq));
-      },
-    );
-    if (left !== null) {
-      await done(host, left, media);
-      return;
-    }
-  }
-  host.ctx.storage.transactionSync(() => media.push(...tombstoneAuthor(host.store, person, 0)));
-  if (media.length > 0) await host.env.MEDIA.delete(media);
+  const left = host.farm.write(person, 'left', { how: 'account_deleted' }, host.now(), (event) => {
+    media.push(...tombstoneAuthor(host.store, person, event.seq));
+  });
+  await done(host, left, media);
 };

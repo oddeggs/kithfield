@@ -6,6 +6,7 @@ import {
   PROTOCOL_VERSION,
 } from '@kithfield/contracts';
 
+import { socketPerson } from './adapters/identity';
 import { roleOf } from './d1';
 import type { FarmHost } from './host';
 import { attach, attachmentOf, refuse, send, who } from './sockets';
@@ -41,7 +42,7 @@ const hello = async (host: FarmHost, ws: WebSocket, frame: Hello): Promise<void>
   if (frame.protocol !== PROTOCOL_VERSION) return refuse(ws, 'protocol_unsupported');
   // The token comes first, so nobody learns whether a farm exists without one for it.
   const { farm } = attachmentOf(ws);
-  const person = await host.ports().identity.socketPerson(host.env, frame.token, farm);
+  const person = await socketPerson(host.env, frame.token, farm);
   if (person === null) return refuse(ws, 'unauthorized');
   if (host.farm.state?.farm !== farm) return refuse(ws, 'farm_gone');
   if ((await roleOf(host.env.DB, farm, person)) === null) return refuse(ws, 'not_member');
@@ -60,7 +61,7 @@ const command = async (host: FarmHost, ws: WebSocket, cmd: FarmCommand): Promise
   const person = attachmentOf(ws).person;
   if (person === null) return refuse(ws, 'unauthorized');
   const media: string[] = [];
-  const written = host.farm.command(cmd, person, host.effectsOf(media));
+  const written = await host.command(cmd, person, media);
   if (written.event !== null) host.publish([written.event]);
   const r = written.result;
   send(

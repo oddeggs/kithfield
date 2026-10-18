@@ -1,15 +1,27 @@
-import type { CottageDelivery, PersonId } from '@kithfield/contracts';
+import type { CottageDelivery, CottageFarm, PersonId, TimeZone } from '@kithfield/contracts';
 
+import { cottageOf } from '../../cottage/stub';
 import type { Bindings } from '../../env';
-import type { CottageNotifier } from '../ports';
 
-/** The cottage's side of the handoff: one call per member per committed event. */
-type CottageInbox = { deliver(delivery: CottageDelivery): Promise<void> };
-
-/** Calls the member's `CottageDO` (one per person, addressed by person id). */
-export const cottageNotifier: CottageNotifier = {
-  async deliver(env: Bindings, person: PersonId, delivery: CottageDelivery): Promise<void> {
-    const stub = env.COTTAGE.get(env.COTTAGE.idFromName(person));
-    await (stub as unknown as CottageInbox).deliver(delivery);
+/** The farm object's calls to each member's cottage (one `CottageDO` per person). */
+export const cottage = {
+  /** A committed event, for the chat list and push. */
+  deliver: (env: Bindings, person: PersonId, delivery: CottageDelivery) =>
+    cottageOf(env, person).deliver(delivery),
+  /** The farm's row: on joining, a rename, or a visit peer's change. */
+  upsertFarm: (env: Bindings, person: PersonId, farm: CottageFarm) =>
+    cottageOf(env, person).upsertFarm(farm),
+  /** The person left or was removed. */
+  leaveFarm: (env: Bindings, person: PersonId, farm: string) =>
+    cottageOf(env, person).leaveFarm(farm),
+  /** Whether the person hibernates, and their own time zone (slow posts arrive in it). */
+  async settingsOf(
+    env: Bindings,
+    person: PersonId,
+  ): Promise<{ hibernating: boolean; timeZone: TimeZone }> {
+    const { settings, hibernating } = await cottageOf(env, person).settings();
+    return { hibernating, timeZone: settings.timeZone };
   },
+  muteFarm: (env: Bindings, person: PersonId, farm: string, until: number | null) =>
+    cottageOf(env, person).muteFarm(farm, until),
 };

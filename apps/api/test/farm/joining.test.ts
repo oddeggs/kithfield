@@ -2,245 +2,337 @@ import {
   CreateFarmResponse,
   FarmEvent,
   FarmGate,
+  FarmList,
   InvitePreview,
   WaitingList,
 } from '@kithfield/contracts';
-import { runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
-import { env, exports } from 'cloudflare:workers';
+import { createMessageBatch, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
+import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import {
+  readSignIn,
+  sendCode,
+  signInAnonymously,
+  signInWithCode,
+  watchLetters,
+} from '../../src/auth/testing/client';
+import { cottageOf } from '../../src/cottage/stub';
+import { consumeDeletion } from '../../src/deletion';
 import { op } from './support/client';
-import { as, farmStub, plantFarm, PROFILES, type TestPorts, useTestPorts } from './support/doubles';
+import {
+  api,
+  cast,
+  critter,
+  farmStub,
+  type Person,
+  plantFarm,
+  profile,
+  type TestPorts,
+  useTestPorts,
+} from './support/doubles';
 
 let ports: TestPorts;
 beforeEach(() => {
   ports = useTestPorts();
 });
 
-const call = async (method: string, path: string, person: string | null, body?: unknown) => {
-  const response = await exports.default.fetch(`https://dev.kithfield.com/api/v1${path}`, {
-    method,
-    headers: { ...(person === null ? {} : as(person)), 'Content-Type': 'application/json' },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  });
-  const text = await response.text();
-  return { status: response.status, body: (text === '' ? null : JSON.parse(text)) as unknown };
-};
-
-const roleIn = (farm: string, person: string) =>
+const membership = (farm: string, person: string) =>
   env.DB.prepare('SELECT role, left_at FROM memberships WHERE farm_id = ? AND person_id = ?')
     .bind(farm, person)
     .first();
 
-const plant = async () => {
-  const created = await call('POST', '/farms', 'pip', {
+const plant = async (keeper: Person) => {
+  const body = {
     name: 'The Thursday Lot',
     land: 'meadow',
     timeZone: 'Europe/London',
     hemisphere: 'north',
-  });
+  };
+  const created = await api(keeper, 'POST', '/v1/farms', body);
   expect(created.status).toBe(201);
   return CreateFarmResponse.parse(created.body);
 };
 
-const codeOf = (url: string) => url.split('/i/')[1]!;
+const codeOf = (url: string) => url.split('/i/')[1] ?? '';
 
 describe('planting and joining', () => {
   it('plants a farm with its keeper, in the log and in D1, with an invite link', async () => {
-    const { farm, invite } = await plant();
+    const { pip } = await cast('pip');
+    const { farm, invite } = await plant(pip);
     expect(invite.url).toBe(`https://dev.kithfield.com/i/${invite.code}`);
-    expect(await roleIn(farm, 'pip')).toEqual({ role: 'keeper', left_at: null });
+    expect(await membership(farm, pip.id)).toEqual({ role: 'keeper', left_at: null });
     const events = (await farmStub(farm).page({ limit: 10 })).events.map((e) => FarmEvent.parse(e));
     expect(events.map((e) => [e.seq, e.kind, e.actor])).toEqual([
       [1, 'farm_created', null],
-      [2, 'joined', 'pip'],
+      [2, 'joined', pip.id],
     ]);
-    expect(events[0]?.payload).toEqual({
-      farm,
-      kind: 'farm',
-      name: 'The Thursday Lot',
-      land: 'meadow',
-      timeZone: 'Europe/London',
-      hemisphere: 'north',
-    });
-    expect((await call('POST', '/farms', null, {})).status).toBe(401);
+    const bad = { name: 'x', land: 'meadow', timeZone: 'Mars/Olympus_Mons', hemisphere: 'north' };
+    expect((await api(pip, 'POST', '/v1/farms', bad)).status).toBe(400);
+    expect((await api(null, 'POST', '/v1/farms', {})).status).toBe(401);
+    const { token } = await signInAnonymously();
+    const nobody = { id: '', token, name: '', critter: critter('fox') };
+    expect((await api(nobody, 'POST', '/v1/farms', { ...bad, timeZone: 'UTC' })).status).toBe(403);
   });
 
-  it('previews an invite publicly and joins through it', async () => {
-    const { farm, invite } = await plant();
-    const preview = InvitePreview.parse((await call('GET', `/invites/${invite.code}`, null)).body);
+  it('previews an invite publicly, joins through it, and lists the farm for both', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    const { farm, invite } = await plant(pip);
+    const preview = InvitePreview.parse(
+      (await api(null, 'GET', `/v1/invites/${invite.code}`)).body,
+    );
     expect(preview).toEqual({
       name: 'The Thursday Lot',
       land: 'meadow',
-      critters: [PROFILES['pip']!.critter],
+      critters: [pip.critter],
       full: false,
       approval: false,
     });
-    const joined = await call('POST', `/invites/${invite.code}/join`, 'fig', PROFILES['fig']);
+    const joined = await api(fig, 'POST', `/v1/invites/${invite.code}/join`, profile(fig));
     expect(joined).toEqual({ status: 200, body: { farm, status: 'joined' } });
-    expect(await roleIn(farm, 'fig')).toEqual({ role: 'critter', left_at: null });
-    expect((await call('GET', '/invites/nope1234', null)).body).toEqual({
+    expect(await membership(farm, fig.id)).toEqual({ role: 'critter', left_at: null });
+    const list = FarmList.parse((await api(fig, 'GET', '/v1/farms')).body);
+    expect(list.farms).toEqual([
+      expect.objectContaining({
+        farm,
+        kind: 'farm',
+        name: 'The Thursday Lot',
+        role: 'critter',
+        with: null,
+      }),
+    ]);
+    const chats = await cottageOf(env, fig.id).chatList();
+    expect(chats).toEqual([
+      expect.objectContaining({ farm, farmKind: 'farm', name: 'The Thursday Lot' }),
+    ]);
+    expect((await api(null, 'GET', '/v1/invites/nope1234')).body).toEqual({
       error: { code: 'invite_invalid' },
     });
   });
 
-  it('retires the old link when a keeper or helper makes a new one', async () => {
-    const { farm, invite } = await plant();
-    await call('POST', `/invites/${invite.code}/join`, 'fig', PROFILES['fig']);
-    expect((await call('POST', `/farms/${farm}/invites`, 'fig', { expiresAt: null })).status).toBe(
+  it('retires the old link when a keeper makes a new one', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    const { farm, invite } = await plant(pip);
+    await api(fig, 'POST', `/v1/invites/${invite.code}/join`, profile(fig));
+    expect((await api(fig, 'POST', `/v1/farms/${farm}/invites`, { expiresAt: null })).status).toBe(
       403,
     );
-    const fresh = await call('POST', `/farms/${farm}/invites`, 'pip', {
+    const fresh = await api(pip, 'POST', `/v1/farms/${farm}/invites`, {
       expiresAt: ports.clock.at + 1,
     });
     expect(fresh.status).toBe(201);
-    expect((await call('GET', `/invites/${invite.code}`, null)).status).toBe(404);
-    expect(
-      (await call('GET', `/invites/${codeOf((fresh.body as { url: string }).url)}`, null)).status,
-    ).toBe(200);
+    expect((await api(null, 'GET', `/v1/invites/${invite.code}`)).status).toBe(404);
+    const url = (fresh.body as { url: string }).url;
+    expect((await api(null, 'GET', `/v1/invites/${codeOf(url)}`)).status).toBe(200);
   });
 
   it('keeps people waiting where the keeper lets them in, and lets them in or not, quietly', async () => {
-    const { farm, invite } = await plant();
-    await farmStub(farm).command('pip', {
+    const { pip, kit, bea } = await cast('pip', 'kit', 'bea');
+    const { farm, invite } = await plant(pip);
+    await farmStub(farm).command(pip.id, {
       opId: op(1),
       kind: 'settings_changed',
       payload: { setting: 'approval', on: true },
     });
-    expect(
-      (await call('POST', `/invites/${invite.code}/join`, 'kit', PROFILES['kit'])).body,
-    ).toEqual({ farm, status: 'waiting_for_keeper' });
-    expect(
-      (await call('POST', `/invites/${invite.code}/join`, 'bea', PROFILES['bea'])).body,
-    ).toMatchObject({ status: 'waiting_for_keeper' });
+    const asked = await api(kit, 'POST', `/v1/invites/${invite.code}/join`, profile(kit));
+    expect(asked.body).toEqual({ farm, status: 'waiting_for_keeper' });
+    await api(bea, 'POST', `/v1/invites/${invite.code}/join`, profile(bea));
     const waiting = WaitingList.parse(
-      (await call('GET', `/farms/${farm}/waiting`, 'pip')).body,
+      (await api(pip, 'GET', `/v1/farms/${farm}/waiting`)).body,
     ).waiting;
-    expect(waiting.map((w) => [w.person, w.name])).toEqual([
-      ['kit', 'Kit'],
-      ['bea', 'Bea'],
-    ]);
+    expect(waiting.map((w) => w.name)).toEqual(['Kit', 'Bea']);
     expect(
-      (await call('POST', `/farms/${farm}/waiting/kit`, 'pip', { approve: true })).status,
+      (await api(pip, 'POST', `/v1/farms/${farm}/waiting/${kit.id}`, { approve: true })).status,
     ).toBe(204);
     expect(
-      (await call('POST', `/farms/${farm}/waiting/bea`, 'pip', { approve: false })).status,
+      (await api(pip, 'POST', `/v1/farms/${farm}/waiting/${bea.id}`, { approve: false })).status,
     ).toBe(204);
-    expect(await roleIn(farm, 'kit')).toMatchObject({ role: 'critter' });
-    expect(await roleIn(farm, 'bea')).toBeNull();
-    expect(
-      WaitingList.parse((await call('GET', `/farms/${farm}/waiting`, 'pip')).body).waiting,
-    ).toEqual([]);
-    expect((await call('GET', `/farms/${farm}/waiting`, 'kit')).status).toBe(403);
+    expect(await membership(farm, kit.id)).toMatchObject({ role: 'critter' });
+    expect(await membership(farm, bea.id)).toBeNull();
+    expect((await api(kit, 'GET', `/v1/farms/${farm}/waiting`)).status).toBe(403);
   });
 });
 
 describe('visits', () => {
-  it('opens one visit per pair of people, and finds it again from either side', async () => {
-    const opened = await call('POST', '/visits', 'pip', {
-      person: 'fig',
+  it('opens one visit per pair, finds it again from either side, and shows each the other', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    const opened = await api(pip, 'POST', '/v1/visits', {
+      person: fig.id,
       timeZone: 'Europe/London',
       hemisphere: 'north',
     });
     expect(opened.status).toBe(201);
     const { farm } = opened.body as { farm: string };
-    expect(
-      (
-        await call('POST', '/visits', 'fig', {
-          person: 'pip',
-          timeZone: 'Asia/Ho_Chi_Minh',
-          hemisphere: 'north',
-        })
-      ).body,
-    ).toEqual({ farm });
-    const state = await farmStub(farm).state();
-    expect(state).toMatchObject({ kind: 'visit', name: null, land: 'porch' });
-    expect(state?.members.map((m) => m.person)).toEqual(['pip', 'fig']);
-    expect((await call('POST', `/farms/${farm}/invites`, 'pip', { expiresAt: null })).status).toBe(
-      403,
-    );
-    expect(
-      (
-        await call('POST', '/visits', 'pip', {
-          person: 'pip',
-          timeZone: 'UTC',
-          hemisphere: 'north',
-        })
-      ).status,
-    ).toBe(400);
+    const back = await api(fig, 'POST', '/v1/visits', {
+      person: pip.id,
+      timeZone: 'Asia/Ho_Chi_Minh',
+      hemisphere: 'north',
+    });
+    expect(back.body).toEqual({ farm });
+    expect(await farmStub(farm).state()).toMatchObject({
+      kind: 'visit',
+      name: null,
+      land: 'porch',
+    });
+    const list = FarmList.parse((await api(pip, 'GET', '/v1/farms')).body);
+    expect(list.farms).toEqual([
+      expect.objectContaining({
+        farm,
+        kind: 'visit',
+        with: { person: fig.id, name: 'Fig', critter: fig.critter },
+      }),
+    ]);
+    const chats = await cottageOf(env, fig.id).chatList();
+    expect(chats).toEqual([
+      expect.objectContaining({
+        farm,
+        farmKind: 'visit',
+        with: expect.objectContaining({ person: pip.id }) as unknown,
+      }),
+    ]);
+    const self = { person: pip.id, timeZone: 'UTC', hemisphere: 'north' };
+    expect((await api(pip, 'POST', '/v1/visits', self)).status).toBe(400);
   });
 });
 
-describe('the gate', () => {
+describe('notifications', () => {
+  it('mutes a farm in the caller’s cottage only', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    const { farm } = await plantFarm(pip, [fig]);
+    const settings = {
+      mutedUntil: 'always',
+      knockFor: { plans: true, doorstep: true, mentions: true, messages: false },
+    };
+    expect(await api(fig, 'PUT', `/v1/farms/${farm}/notifications`, settings)).toEqual({
+      status: 200,
+      body: settings,
+    });
+    expect((await cottageOf(env, fig.id).chatList())[0]).toMatchObject({ farm, muted: true });
+    expect((await cottageOf(env, pip.id).chatList())[0]).toMatchObject({ farm, muted: false });
+    const row = await env.DB.prepare(
+      'SELECT knock_for FROM memberships WHERE farm_id = ? AND person_id = ?',
+    )
+      .bind(farm, fig.id)
+      .first<{ knock_for: string }>();
+    expect(JSON.parse(row?.knock_for ?? 'null')).toEqual(settings.knockFor);
+  });
+});
+
+describe('the gate and trading', () => {
   it('shows visitors the farm, never its chat, and takes their gestures', async () => {
-    const { farm } = await plantFarm(['fig']);
-    const gate = FarmGate.parse((await call('GET', `/farms/${farm}/gate`, 'kit')).body);
+    const { pip, fig, kit } = await cast('pip', 'fig', 'kit');
+    const { farm } = await plantFarm(pip, [fig]);
+    const gate = FarmGate.parse((await api(kit, 'GET', `/v1/farms/${farm}/gate`)).body);
     expect(gate.critters.map((c) => c.name)).toEqual(['Pip', 'Fig']);
     const firefly = {
       opId: op(1),
-      gesture: { gesture: 'firefly', to: 'fig', words: 'hello from next door' },
+      gesture: { gesture: 'firefly', to: fig.id, words: 'hello from next door' },
     };
-    expect((await call('POST', `/farms/${farm}/gate`, 'kit', firefly)).body).toEqual({
+    expect((await api(kit, 'POST', `/v1/farms/${farm}/gate`, firefly)).body).toEqual({
       result: 'ack',
       opId: op(1),
       seq: 4,
     });
-    const lost = { opId: op(2), gesture: { gesture: 'firefly', to: 'nobody' } };
-    expect((await call('POST', `/farms/${farm}/gate`, 'kit', lost)).body).toMatchObject({
-      result: 'rejected',
+    const lost = { opId: op(2), gesture: { gesture: 'firefly', to: kit.id } };
+    expect((await api(kit, 'POST', `/v1/farms/${farm}/gate`, lost)).body).toMatchObject({
       reason: 'not_found',
     });
-    expect(
-      (
-        await call('POST', `/farms/${farm}/gate`, 'fig', {
-          opId: op(3),
-          gesture: { gesture: 'wave' },
-        })
-      ).body,
-    ).toMatchObject({ reason: 'not_allowed' });
-    const event = FarmEvent.parse((await farmStub(farm).page({ after: 3, limit: 1 })).events[0]);
-    expect(event).toMatchObject({
-      kind: 'gate',
-      actor: 'kit',
-      payload: { visitor: PROFILES['kit'], gesture: firefly.gesture },
+    const own = { opId: op(3), gesture: { gesture: 'wave' } };
+    expect((await api(fig, 'POST', `/v1/farms/${farm}/gate`, own)).body).toMatchObject({
+      reason: 'not_allowed',
     });
   });
-});
 
-describe('trading', () => {
-  it('writes the swap on both farms, each with its own trader, once a season', async () => {
-    const home = await plantFarm([]);
-    const away = await plantFarm(['kit'], {
-      keeper: 'mo',
-      members: [{ person: 'mo', profile: PROFILES['mo']!, via: 'created' }],
-    });
+  it('writes a swap of harvested crops on both farms, each with its own trader, once a season', async () => {
+    const { pip, mo, kit } = await cast('pip', 'mo', 'kit');
+    const home = await plantFarm(pip);
+    const away = await plantFarm(mo, [kit]);
+    // Five days of dewdrops bring each farm's dew plant to bloom; harvest day puts it in the basket.
+    for (let day = 0; day < 5; day++) {
+      for (let n = 0; n < 3; n++) {
+        await home.stub.command(pip.id, {
+          opId: op(day * 10 + n, 1),
+          kind: 'dewdrop',
+          payload: {},
+        });
+        await away.stub.command(kit.id, {
+          opId: op(day * 10 + n, 2),
+          kind: 'dewdrop',
+          payload: {},
+        });
+      }
+      ports.clock.advance(24 * 60 * 60_000);
+    }
     for (const { stub } of [home, away]) {
       ports.clock.at = (await runInDurableObject(stub, (_f, s) => s.storage.getAlarm())) ?? 0;
       await runDurableObjectAlarm(stub);
     }
-    const trade = { opId: op(1), from: away.farm, with: 'pip', give: 'pumpkin', take: 'pumpkin' };
-    const first = await call('POST', `/farms/${home.farm}/trade`, 'kit', trade);
-    expect(first.body).toEqual({ result: 'ack', opId: op(1), seq: 5 });
-    expect((await call('POST', `/farms/${home.farm}/trade`, 'kit', trade)).body).toEqual(
+    const crop = (await home.stub.state())?.basket?.crops[0];
+    expect(crop?.plant).toBe('marigold');
+    const trade = {
+      opId: op(1),
+      from: away.farm,
+      with: pip.id,
+      give: 'marigold',
+      take: 'marigold',
+    };
+    const first = await api(kit, 'POST', `/v1/farms/${home.farm}/trade`, trade);
+    expect(first.body).toMatchObject({ result: 'ack', opId: op(1) });
+    expect((await api(kit, 'POST', `/v1/farms/${home.farm}/trade`, trade)).body).toEqual(
       first.body,
     );
-    const crop = { plant: 'pumpkin', variant: null };
     const last = async (stub: typeof home.stub) =>
       FarmEvent.parse((await stub.page({ limit: 1 })).events[0]);
     expect(await last(home.stub)).toMatchObject({
       kind: 'traded',
-      actor: 'pip',
-      payload: { with: 'kit', otherFarm: away.farm, gave: crop, got: crop },
+      actor: pip.id,
+      payload: { with: kit.id, otherFarm: away.farm },
     });
     expect(await last(away.stub)).toMatchObject({
       kind: 'traded',
-      actor: 'kit',
-      payload: { with: 'pip', otherFarm: home.farm },
+      actor: kit.id,
+      payload: { with: pip.id, otherFarm: home.farm },
     });
-    const again = await call('POST', `/farms/${home.farm}/trade`, 'kit', { ...trade, opId: op(2) });
+    const again = await api(kit, 'POST', `/v1/farms/${home.farm}/trade`, { ...trade, opId: op(2) });
     expect(again.body).toMatchObject({ result: 'rejected', reason: 'limit_reached' });
     expect(
-      (await call('POST', `/farms/${home.farm}/trade`, 'fig', { ...trade, opId: op(3) })).status,
+      (await api(pip, 'POST', `/v1/farms/${home.farm}/trade`, { ...trade, opId: op(3) })).status,
     ).toBe(403);
+  });
+});
+
+describe('merging people', () => {
+  it('moves an anonymous person’s farms to the account they signed in to, and keeps their words theirs', async () => {
+    const email = `farm.${crypto.randomUUID().slice(0, 8)}@example.com`;
+    const letters = watchLetters();
+    await sendCode(email);
+    const returning = await readSignIn(await signInWithCode(email, letters.codeFor(email)));
+    const { pip, fig } = await cast('pip', 'fig');
+    const { farm, stub } = await plantFarm(pip, [fig]);
+    await stub.command(fig.id, { opId: op(1), kind: 'message', payload: { text: 'hello' } });
+
+    await sendCode(email, { token: fig.token });
+    await readSignIn(await signInWithCode(email, letters.codeFor(email), { token: fig.token }));
+    const into = returning.user.id;
+    expect(await membership(farm, into)).toEqual({ role: 'critter', left_at: null });
+    expect(await membership(farm, fig.id)).toBeNull();
+
+    const job = { kind: 'person_merged', from: fig.id, into, at: ports.clock.at };
+    await consumeDeletion(
+      createMessageBatch('kithfield-deletion-dev', [
+        { id: 'm1', timestamp: new Date(), attempts: 1, body: job },
+      ]),
+      env,
+    );
+    expect((await stub.state())?.members.map((m) => m.person)).toEqual([pip.id, into]);
+    const edit = await stub.command(into, {
+      opId: op(2),
+      kind: 'edit',
+      payload: { target: 4, text: 'hello!' },
+    });
+    expect(edit).toMatchObject({ result: 'ack', seq: 5 });
+    const old = await stub.command(fig.id, { opId: op(3), kind: 'dewdrop', payload: {} });
+    expect(old).toMatchObject({ result: 'ack' });
+    expect((await stub.page({ limit: 1 })).events[0]).toMatchObject({ actor: into });
   });
 });

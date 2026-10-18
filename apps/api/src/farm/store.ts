@@ -7,67 +7,20 @@ import type {
   RejectReason,
 } from '@kithfield/contracts';
 
+import {
+  envelopeOf,
+  type EventRow,
+  kindFilter,
+  type Outcome,
+  SCHEMA,
+  type SearchHit,
+  type Timer,
+} from './store-rows';
+
 /*
- * The farm object's SQLite storage: the ordered log, the outcome of every write (rejections too),
- * the reducer's snapshot, the search index, the alarm timers, and payloads held back after a
- * safety removal in case an appeal restores them.
+ * The farm object's SQLite storage: the log, every write's outcome (rejections too), the snapshot,
+ * search, timers, merged-away ids, and payloads held back after a safety removal for an appeal.
  */
-
-const SCHEMA = [
-  `CREATE TABLE IF NOT EXISTS events (
-    seq INTEGER PRIMARY KEY,
-    op_id TEXT NOT NULL UNIQUE,
-    at INTEGER NOT NULL,
-    actor TEXT,
-    kind TEXT NOT NULL,
-    payload TEXT NOT NULL,
-    rules_version INTEGER NOT NULL
-  )`,
-  'CREATE INDEX IF NOT EXISTS events_by_actor ON events (actor, seq)',
-  'CREATE INDEX IF NOT EXISTS events_by_kind ON events (kind, seq)',
-  'CREATE TABLE IF NOT EXISTS rejections (op_id TEXT PRIMARY KEY, reason TEXT NOT NULL, at INTEGER NOT NULL)',
-  'CREATE TABLE IF NOT EXISTS snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), seq INTEGER NOT NULL, state TEXT NOT NULL)',
-  'CREATE TABLE IF NOT EXISTS timers (key TEXT PRIMARY KEY, due INTEGER NOT NULL)',
-  'CREATE TABLE IF NOT EXISTS held (seq INTEGER PRIMARY KEY, payload TEXT NOT NULL)',
-  "CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5 (body, tokenize = 'unicode61 remove_diacritics 2')",
-];
-
-type EventRow = {
-  seq: number;
-  op_id: string;
-  at: number;
-  actor: string | null;
-  kind: string;
-  payload: string;
-  rules_version: number;
-};
-
-const envelopeOf = (row: EventRow): EventEnvelope => ({
-  seq: row.seq,
-  opId: row.op_id,
-  at: row.at,
-  actor: row.actor,
-  kind: row.kind,
-  payload: JSON.parse(row.payload) as unknown,
-  rulesVersion: row.rules_version,
-});
-
-export type Outcome = { seq: number } | { reason: RejectReason };
-
-export type Timer = { key: string; due: number };
-
-export type SearchHit = {
-  seq: number;
-  at: number;
-  actor: string | null;
-  kind: string;
-  snippet: string;
-};
-
-const kindFilter = (kinds: readonly EventKind[] | undefined) =>
-  kinds === undefined
-    ? { sql: '', args: [] }
-    : { sql: ` AND kind IN (${kinds.map(() => '?').join(',')})`, args: [...kinds] };
 
 export class FarmStore {
   constructor(private readonly sql: SqlStorage) {
@@ -102,15 +55,61 @@ export class FarmStore {
 
   insert(event: FarmEvent): void {
     this.sql.exec(
-      'INSERT INTO events (seq, op_id, at, actor, kind, payload, rules_version) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO events (seq, op_id, at, day, actor, kind, payload, rules_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       event.seq,
       event.opId,
       event.at,
+      event.day ?? null,
       event.actor,
       event.kind,
       JSON.stringify(event.payload),
       event.rulesVersion,
     );
+  }
+
+  /** Friends `actor` knocked for on a farm day; a recalled knock still counts. */
+  knockedOn(actor: string, day: string): string[] {
+    return this.sql
+      .exec<{ to: string }>(
+        `SELECT DISTINCT coalesce(json_extract(payload, '$.to'), json_extract(payload, '$.facts.to')) AS "to"
+         FROM events WHERE kind = 'knock' AND actor = ? AND day = ?`,
+        actor,
+        day,
+      )
+      .toArray()
+      .map((row) => row.to)
+      .filter((to) => typeof to === 'string');
+  }
+
+  /** Whether `actor` has sat by the fire since `since`. */
+  satSince(actor: string, since: number): boolean {
+    return (
+      this.sql
+        .exec(
+          `SELECT 1 FROM events WHERE kind = 'fire' AND actor = ? AND at >= ?
+           AND coalesce(json_extract(payload, '$.state'), json_extract(payload, '$.facts.state')) = 'sat' LIMIT 1`,
+          actor,
+          since,
+        )
+        .toArray().length > 0
+    );
+  }
+
+  /** A merged-away person's id and who they became. */
+  aliases(): Map<string, string> {
+    const rows = this.sql.exec<{ from_person: string; into_person: string }>(
+      'SELECT * FROM aliases',
+    );
+    return new Map(rows.toArray().map((r) => [r.from_person, r.into_person]));
+  }
+
+  addAlias(from: string, into: string): void {
+    this.sql.exec(
+      'INSERT OR REPLACE INTO aliases (from_person, into_person) VALUES (?, ?)',
+      from,
+      into,
+    );
+    this.sql.exec('UPDATE aliases SET into_person = ? WHERE into_person = ?', into, from);
   }
 
   event(seq: number): EventEnvelope | null {
@@ -128,11 +127,17 @@ export class FarmStore {
 
   /** Events of one kind whose payload points at `target`. */
   pointingAt(kind: EventKind, target: number): EventEnvelope[] {
+    return this.withField(kind, 'target', target);
+  }
+
+  /** Events of one kind whose payload has `field` equal to `value`, oldest first. */
+  withField(kind: EventKind, field: string, value: number | string): EventEnvelope[] {
     return this.sql
       .exec<EventRow>(
-        "SELECT * FROM events WHERE kind = ? AND json_extract(payload, '$.target') = ? ORDER BY seq",
+        'SELECT * FROM events WHERE kind = ? AND json_extract(payload, ?) = ? ORDER BY seq',
         kind,
-        target,
+        `$.${field}`,
+        value,
       )
       .toArray()
       .map(envelopeOf);
@@ -147,26 +152,6 @@ export class FarmStore {
         actor,
       )
       .one().at;
-  }
-
-  /** Everyone who wrote an event of this kind since `at`. */
-  actorsSince(kind: EventKind, at: number): string[] {
-    return this.sql
-      .exec<{ actor: string }>(
-        'SELECT DISTINCT actor FROM events WHERE kind = ? AND at >= ? AND actor IS NOT NULL',
-        kind,
-        at,
-      )
-      .toArray()
-      .map((row) => row.actor);
-  }
-
-  /** The newest event of a kind. */
-  latest(kind: EventKind): EventEnvelope | null {
-    const row = this.sql
-      .exec<EventRow>('SELECT * FROM events WHERE kind = ? ORDER BY seq DESC LIMIT 1', kind)
-      .toArray()[0];
-    return row === undefined ? null : envelopeOf(row);
   }
 
   /** Events of a kind since `at`, oldest first. */

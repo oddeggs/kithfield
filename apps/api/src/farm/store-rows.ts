@@ -1,0 +1,63 @@
+import type { EventEnvelope, EventKind, RejectReason } from '@kithfield/contracts';
+
+/* The farm object's SQLite tables and how their rows read. */
+
+export const SCHEMA = [
+  `CREATE TABLE IF NOT EXISTS events (
+    seq INTEGER PRIMARY KEY,
+    op_id TEXT NOT NULL UNIQUE,
+    at INTEGER NOT NULL,
+    day TEXT,
+    actor TEXT,
+    kind TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    rules_version INTEGER NOT NULL
+  )`,
+  'CREATE INDEX IF NOT EXISTS events_by_actor ON events (actor, seq)',
+  'CREATE INDEX IF NOT EXISTS events_by_kind ON events (kind, seq)',
+  'CREATE TABLE IF NOT EXISTS rejections (op_id TEXT PRIMARY KEY, reason TEXT NOT NULL, at INTEGER NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), seq INTEGER NOT NULL, state TEXT NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS timers (key TEXT PRIMARY KEY, due INTEGER NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS held (seq INTEGER PRIMARY KEY, payload TEXT NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS aliases (from_person TEXT PRIMARY KEY, into_person TEXT NOT NULL)',
+  "CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5 (body, tokenize = 'unicode61 remove_diacritics 2')",
+];
+
+export type EventRow = {
+  seq: number;
+  op_id: string;
+  at: number;
+  day: string | null;
+  actor: string | null;
+  kind: string;
+  payload: string;
+  rules_version: number;
+};
+
+export const envelopeOf = (row: EventRow): EventEnvelope => ({
+  seq: row.seq,
+  opId: row.op_id,
+  at: row.at,
+  ...(row.day === null ? {} : { day: row.day }),
+  actor: row.actor,
+  kind: row.kind,
+  payload: JSON.parse(row.payload) as unknown,
+  rulesVersion: row.rules_version,
+});
+
+export type Outcome = { seq: number } | { reason: RejectReason };
+
+export type Timer = { key: string; due: number };
+
+export type SearchHit = {
+  seq: number;
+  at: number;
+  actor: string | null;
+  kind: string;
+  snippet: string;
+};
+
+export const kindFilter = (kinds: readonly EventKind[] | undefined) =>
+  kinds === undefined
+    ? { sql: '', args: [] }
+    : { sql: ` AND kind IN (${kinds.map(() => '?').join(',')})`, args: [...kinds] };

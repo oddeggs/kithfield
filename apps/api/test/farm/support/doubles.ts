@@ -1,24 +1,20 @@
-import type { CottageDelivery, Critter, PersonId, WeatherSource } from '@kithfield/contracts';
+import type { Critter, WeatherSource } from '@kithfield/contracts';
 import { env } from 'cloudflare:workers';
+import { expect } from 'vitest';
 
+import { call, signInAnonymously } from '../../../src/auth/testing/client';
 import type { CreateInput } from '../../../src/farm/actions';
-import type {
-  Clock,
-  CottageNotifier,
-  FarmPorts,
-  Identity,
-  Profile,
-  WeatherProvider,
-} from '../../../src/farm/ports';
+import { farmRules } from '../../../src/farm/adapters/rules';
+import type { Clock, FarmPorts, WeatherProvider } from '../../../src/farm/ports';
 import { configureFarmPorts } from '../../../src/farm/wiring';
-import { testFarmRules } from './test-rules';
 
 /*
- * Test doubles at the farm object's edges: auth's tokens and sessions, the cottage, the weather
- * and the clock. Each test file installs them with `useTestPorts`.
+ * The farm tests run on the real farm rules, real auth and real cottages. Only two edges are
+ * stand-ins: the weather source (a network service) and the clock, so a test can reach harvest
+ * day without waiting for it.
  */
 
-export const critter = (species: Critter['species'] = 'fox'): Critter => ({
+export const critter = (species: Critter['species']): Critter => ({
   species,
   coat: 'amber',
   mark: null,
@@ -29,44 +25,53 @@ export const critter = (species: Critter['species'] = 'fox'): Critter => ({
   cottage: null,
 });
 
-export const PROFILES: Record<string, Profile> = {
-  pip: { name: 'Pip', critter: critter('mouse') },
-  fig: { name: 'Fig', critter: critter('frog') },
-  bea: { name: 'Bea', critter: critter('bear') },
-  mo: { name: 'Mo', critter: critter('mole') },
-  kit: { name: 'Kit', critter: critter('cat') },
+/** Someone signed in anonymously, with the name and critter onboarding would have stored. */
+export type Person = { id: string; token: string; name: string; critter: Critter };
+
+const SPECIES: Record<string, Critter['species']> = {
+  Pip: 'mouse',
+  Fig: 'frog',
+  Bea: 'bear',
+  Mo: 'mole',
+  Kit: 'cat',
 };
 
-/** A socket token the test identity accepts for that person and farm. */
-export const tokenFor = (person: PersonId, farm: string): string => `test-token.${person}.${farm}`;
-
-/** The header the test identity reads the caller from. */
-export const as = (person: PersonId): HeadersInit => ({ Authorization: `Test ${person}` });
-
-/** Stands in for auth: tokens are `test-token.<person>.<farm>`, sessions `Authorization: Test <person>`. */
-export const testIdentity: Identity = {
-  socketPerson: (_env, token, farm) => {
-    const m = /^test-token\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/.exec(token);
-    return Promise.resolve(m !== null && m[2] === farm ? (m[1] ?? null) : null);
-  },
-  requestPerson: (_env, request) => {
-    const m = /^Test ([A-Za-z0-9_-]+)$/.exec(request.headers.get('Authorization') ?? '');
-    return Promise.resolve(m?.[1] ?? null);
-  },
-  profile: (_env, person) => Promise.resolve(PROFILES[person] ?? null),
+/** A new anonymous person, with the display name and critter onboarding stores on `people`. */
+export const newPerson = async (handle: string): Promise<Person> => {
+  const name = `${handle.charAt(0).toUpperCase()}${handle.slice(1)}`;
+  const { token, user } = await signInAnonymously();
+  const look = critter(SPECIES[name] ?? 'fox');
+  await env.DB.prepare('UPDATE people SET display_name = ?, critter = ? WHERE id = ?')
+    .bind(name, JSON.stringify(look), user.id)
+    .run();
+  return { id: user.id, token, name, critter: look };
 };
 
-/** Stands in for the cottages: records every delivery. */
-export class RecordingCottages implements CottageNotifier {
-  readonly deliveries: { person: PersonId; delivery: CottageDelivery }[] = [];
-  deliver(_env: unknown, person: PersonId, delivery: CottageDelivery): Promise<void> {
-    this.deliveries.push({ person, delivery });
-    return Promise.resolve();
-  }
-  for(person: PersonId): CottageDelivery[] {
-    return this.deliveries.filter((d) => d.person === person).map((d) => d.delivery);
-  }
-}
+/** Several people at once, by name. */
+export const cast = async <N extends string>(...names: N[]): Promise<Record<N, Person>> => {
+  const people = await Promise.all(names.map((n) => newPerson(n)));
+  return Object.fromEntries(names.map((n, i) => [n, people[i]])) as Record<N, Person>;
+};
+
+export const profile = (p: Person) => ({ name: p.name, critter: p.critter });
+
+/** A request to the API as this person (their bearer session). */
+export const api = async (person: Person | null, method: string, path: string, body?: unknown) => {
+  const response = await call(path, {
+    method,
+    ...(person === null ? {} : { token: person.token }),
+    ...(body === undefined ? {} : { body }),
+  });
+  const text = await response.text();
+  return { status: response.status, body: (text === '' ? null : JSON.parse(text)) as unknown };
+};
+
+/** A 5-minute socket token from auth's `POST /v1/rt-token`, for one farm. */
+export const socketToken = async (person: Person, farm: string): Promise<string> => {
+  const issued = await api(person, 'POST', '/v1/rt-token', { farm });
+  expect(issued.status).toBe(200);
+  return (issued.body as { token: string }).token;
+};
 
 /** A weather source that reports what the test sets. */
 export class ScriptedWeather implements WeatherProvider {
@@ -89,11 +94,7 @@ export class TestClock implements Clock {
   }
 }
 
-export type TestPorts = FarmPorts & {
-  cottage: RecordingCottages;
-  weather: ScriptedWeather;
-  clock: TestClock;
-};
+export type TestPorts = FarmPorts & { weather: ScriptedWeather; clock: TestClock };
 
 /**
  * Noon in London on 18 October 2054: a Sunday-for-Sunday copy of 2026 (the calendar repeats every
@@ -101,11 +102,13 @@ export type TestPorts = FarmPorts & {
  */
 export const START = Date.UTC(2054, 9, 18, 11, 0);
 
+/** The real rules; `rulesVersion` plants farms under an older version's label. */
 export const useTestPorts = (options: { rulesVersion?: number; at?: number } = {}): TestPorts => {
   const ports: TestPorts = {
-    rules: testFarmRules(options.rulesVersion),
-    identity: testIdentity,
-    cottage: new RecordingCottages(),
+    rules:
+      options.rulesVersion === undefined
+        ? farmRules
+        : { ...farmRules, RULES_VERSION: options.rulesVersion },
     weather: new ScriptedWeather(),
     clock: new TestClock(options.at ?? START),
   };
@@ -120,9 +123,10 @@ export const freshFarmId = (): string => `farm${Date.now().toString(36)}${(farms
 
 export const farmStub = (farm: string) => env.FARM.get(env.FARM.idFromName(farm));
 
-/** Plants a farm with Pip as keeper; the others join through an invite. */
+/** Plants a farm with `keeper` as keeper; the others join through an invite. */
 export const plantFarm = async (
-  others: readonly string[] = ['fig'],
+  keeper: Person,
+  others: readonly Person[] = [],
   input: Partial<CreateInput> = {},
 ) => {
   const farm = freshFarmId();
@@ -134,11 +138,11 @@ export const plantFarm = async (
     land: 'meadow',
     timeZone: 'Europe/London',
     hemisphere: 'north',
-    keeper: 'pip',
+    keeper: keeper.id,
     pair: null,
-    members: [{ person: 'pip', profile: PROFILES['pip']!, via: 'created' }],
+    members: [{ person: keeper.id, profile: profile(keeper), via: 'created' }],
     ...input,
   });
-  for (const person of others) await stub.join(person, PROFILES[person]!, true);
+  for (const person of others) await stub.join(person.id, profile(person), true);
   return { farm, stub };
 };

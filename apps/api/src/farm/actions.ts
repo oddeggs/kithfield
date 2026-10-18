@@ -6,6 +6,7 @@ import {
   type FarmGate,
   type FarmId,
   type FarmKind,
+  type FarmState,
   type GateGesture,
   type Hemisphere,
   LIMITS,
@@ -15,10 +16,13 @@ import {
   type TradedPayload,
 } from '@kithfield/contracts';
 
-import { ensureTimers } from './alarms';
-import { seasonStart, zonedInstant } from './calendar';
+import { isKnownTimeZone, seasonDays } from '@kithfield/farm';
+
 import { addWaiting, insertFarm } from './d1';
+import { cottage } from './adapters/cottage';
+import { cottageFarmFor } from './handoff';
 import type { FarmHost } from './host';
+import { attachmentOf, refuse } from './sockets';
 import type { Profile } from './ports';
 
 /* The writes the farm makes on someone's behalf: planting it, joining, the gate and trades. */
@@ -38,6 +42,7 @@ export type CreateInput = {
 
 /** Plants the farm: `farm_created` at seq 1, then each first member's `joined`. Safe to repeat. */
 export const createFarm = async (host: FarmHost, input: CreateInput): Promise<void> => {
+  if (!isKnownTimeZone(input.timeZone)) throw new Error('The farm’s time zone is unknown');
   const now = host.now();
   await insertFarm(host.env.DB, {
     id: input.farm,
@@ -66,8 +71,6 @@ export const createFarm = async (host: FarmHost, input: CreateInput): Promise<vo
     if (joined === null) throw new Error('A first member could not join');
     events.push(joined);
   }
-  const state = host.farm.state;
-  if (state !== null) ensureTimers(host.store, state, now);
   host.publish(events);
   await host.settle(events);
 };
@@ -111,7 +114,9 @@ export const gateView = (host: FarmHost): FarmGate | null => {
     season: state.season,
     signature: state.signature,
     inSeason: state.plants.map((p) => p.plant).slice(0, 7),
-    critters: state.members.map(({ person, name, critter }) => ({ person, name, critter })),
+    critters: state.members.flatMap(({ person, name, critter }) =>
+      name === null ? [] : [{ person, name, critter }],
+    ),
   };
 };
 
@@ -159,9 +164,10 @@ export const recordTrade = (host: FarmHost, opId: OpId, actor: PersonId, payload
       const state = host.farm.state;
       if (state === null) return 'not_found';
       if (!state.members.some((m) => m.person === actor)) return 'not_found';
-      const since = zonedInstant(seasonStart(host.now(), state.timeZone), 0, state.timeZone);
+      const first = seasonDays(state.season, state.hemisphere).first;
       const traded = host.store
-        .kindSince('traded', since)
+        .kindSince('traded', 0)
+        .filter((e) => e.day !== undefined && e.day >= first)
         .some((e) => (e.payload as { otherFarm?: string }).otherFarm === payload.otherFarm);
       if (traded) return 'limit_reached';
       return { actor, kind: 'traded', payload };
@@ -174,10 +180,46 @@ export const setHibernating = async (
   person: PersonId,
   on: boolean,
 ): Promise<void> => {
-  const member = host.farm.state?.members.find((m) => m.person === person);
+  const actor = host.farm.actorOf(person);
+  const member = host.farm.state?.members.find((m) => m.person === actor);
   if (member === undefined || member.hibernating === on) return;
-  const event = host.farm.write(person, 'hibernate', { on }, host.now());
+  const event = host.farm.write(actor, 'hibernate', { on }, host.now());
   if (event === null) return;
   host.publish([event]);
   await host.settle([event]);
+};
+
+/** The farm's state with `from` read as `into`; if both lived here, `into`'s entry stays. */
+const movePerson = (state: FarmState, from: PersonId, into: PersonId): FarmState => {
+  const both = state.members.some((m) => m.person === into);
+  const trimmed: FarmState = both
+    ? { ...state, members: state.members.filter((m) => m.person !== from) }
+    : state;
+  return JSON.parse(
+    JSON.stringify(trimmed).replaceAll(JSON.stringify(from), JSON.stringify(into)),
+  ) as FarmState;
+};
+
+/**
+ * A `person_merged` job: the farm reads `from` as `into` from now on (past events keep their
+ * actor), moves `from`'s place in the snapshot to `into`, closes `from`'s sockets so the phone
+ * says hello again as `into`, and refreshes everyone's chat-list row. Safe to repeat.
+ */
+export const mergePerson = async (
+  host: FarmHost,
+  from: PersonId,
+  into: PersonId,
+): Promise<void> => {
+  host.ctx.storage.transactionSync(() => host.store.addAlias(from, into));
+  const state = host.farm.state;
+  if (state !== null) host.farm.replaceState(movePerson(state, from, into));
+  for (const ws of host.sockets()) if (attachmentOf(ws).person === from) refuse(ws, 'unauthorized');
+  const after = host.farm.state;
+  if (after === null) return;
+  await Promise.all(
+    after.members.map(async ({ person }) => {
+      const row = cottageFarmFor(after, person);
+      if (row !== null) await cottage.upsertFarm(host.env, person, row).catch(() => undefined);
+    }),
+  );
 };

@@ -15,7 +15,12 @@ import {
 } from '@kithfield/contracts';
 import { Hono } from 'hono';
 
-import type { AppEnv, Bindings } from '../env';
+import { isKnownTimeZone } from '@kithfield/farm';
+
+import type { SessionEnv } from '../auth';
+import type { Bindings } from '../env';
+import { profileOf } from './adapters/identity';
+import { isBlocked } from './blocks';
 import {
   insertFarm,
   liveInvite,
@@ -25,9 +30,8 @@ import {
   visitBetween,
   waitingList,
 } from './d1';
-import { body, caller, type Ctx, fail, farmStub, inviteUrl, member } from './http';
+import { body, fail, farmStub, inviteUrl, member, signedIn } from './http';
 import { newFarmId, newInviteCode, sha256Hex } from './ids';
-import { farmPorts } from './wiring';
 
 /* Planting farms, opening visits, invites, joining and the keeper's waiting list. */
 
@@ -45,17 +49,15 @@ const newInvite = async (
   return { code, url: inviteUrl(env, code), expiresAt };
 };
 
-const profileOf = (c: Ctx, person: string) => farmPorts().identity.profile(c.env, person);
+export const joiningRoutes = (): Hono<SessionEnv> => {
+  const app = new Hono<SessionEnv>();
 
-export const joiningRoutes = (): Hono<AppEnv> => {
-  const app = new Hono<AppEnv>();
-
-  app.post('/farms', async (c) => {
-    const person = await caller(c);
-    if (person instanceof Response) return person;
+  app.post('/farms', signedIn, async (c) => {
+    const person = c.get('person');
     const req = await body(c, CreateFarmRequest);
     if (req instanceof Response) return req;
-    const profile = await profileOf(c, person);
+    if (!isKnownTimeZone(req.timeZone)) return fail(c, 400, 'bad_request', ['timeZone']);
+    const profile = await profileOf(c.env, person);
     if (profile === null) return fail(c, 403, 'forbidden');
     const farm = newFarmId();
     await farmStub(c.env, farm).create({
@@ -73,16 +75,20 @@ export const joiningRoutes = (): Hono<AppEnv> => {
     return c.json({ farm, invite } satisfies CreateFarmResponse, 201);
   });
 
-  app.post('/visits', async (c) => {
-    const person = await caller(c);
-    if (person instanceof Response) return person;
+  app.post('/visits', signedIn, async (c) => {
+    const person = c.get('person');
     const req = await body(c, OpenVisitRequest);
     if (req instanceof Response) return req;
     if (req.person === person) return fail(c, 400, 'bad_request', ['person']);
+    if (!isKnownTimeZone(req.timeZone)) return fail(c, 400, 'bad_request', ['timeZone']);
+    if (await isBlocked(c.env, person, req.person)) return fail(c, 404, 'not_found');
     const pair = [person, req.person].sort().join(':');
     const existing = await visitBetween(c.env.DB, pair);
     if (existing !== null) return c.json({ farm: existing.id } satisfies OpenVisitResponse);
-    const [mine, theirs] = await Promise.all([profileOf(c, person), profileOf(c, req.person)]);
+    const [mine, theirs] = await Promise.all([
+      profileOf(c.env, person),
+      profileOf(c.env, req.person),
+    ]);
     if (mine === null) return fail(c, 403, 'forbidden');
     if (theirs === null) return fail(c, 404, 'not_found');
     const farm = newFarmId();
@@ -117,7 +123,7 @@ export const joiningRoutes = (): Hono<AppEnv> => {
     return c.json({ farm } satisfies OpenVisitResponse, 201);
   });
 
-  app.post('/farms/:id/invites', async (c) => {
+  app.post('/farms/:id/invites', signedIn, async (c) => {
     const m = await member(c, ['keeper', 'helper']);
     if (m instanceof Response) return m;
     const req = await body(c, CreateInviteRequest);
@@ -143,9 +149,8 @@ export const joiningRoutes = (): Hono<AppEnv> => {
     return c.json(preview);
   });
 
-  app.post('/invites/:code/join', async (c) => {
-    const person = await caller(c);
-    if (person instanceof Response) return person;
+  app.post('/invites/:code/join', signedIn, async (c) => {
+    const person = c.get('person');
     const req = await body(c, JoinRequest);
     if (req instanceof Response) return req;
     const hash = await sha256Hex(c.req.param('code'));
@@ -166,14 +171,14 @@ export const joiningRoutes = (): Hono<AppEnv> => {
     return c.json({ farm: invite.farm_id, status: outcome.status } satisfies JoinResponse);
   });
 
-  app.get('/farms/:id/waiting', async (c) => {
+  app.get('/farms/:id/waiting', signedIn, async (c) => {
     const m = await member(c, ['keeper']);
     if (m instanceof Response) return m;
     const waiting = await waitingList(c.env.DB, m.farm);
     return c.json({ waiting } satisfies WaitingList);
   });
 
-  app.post('/farms/:id/waiting/:person', async (c) => {
+  app.post('/farms/:id/waiting/:person', signedIn, async (c) => {
     const m = await member(c, ['keeper']);
     if (m instanceof Response) return m;
     const req = await body(c, ApprovalRequest);

@@ -1,14 +1,24 @@
+import {
+  RULES_VERSION,
+  applyEvent,
+  checkCommand,
+  createFarm,
+  farmChores,
+  farmDay,
+  farmView,
+  nextChoreAt,
+} from '@kithfield/farm';
+
 import type { FarmRules } from '../ports';
 
-const missing = (): never => {
-  throw new Error('The farm rules are not wired in yet');
-};
-
-/** The farm rules from `@kithfield/farm`, wired in once the reducer is merged. */
+/** The farm rules: the shared reducer every phone runs too. */
 export const farmRules: FarmRules = {
-  RULES_VERSION: 1,
-  createFarm: missing,
-  applyEvent: missing,
-  checkCommand: missing,
-  farmView: missing,
+  RULES_VERSION,
+  createFarm,
+  applyEvent,
+  checkCommand,
+  farmView,
+  farmChores,
+  nextChoreAt,
+  farmDay,
 };

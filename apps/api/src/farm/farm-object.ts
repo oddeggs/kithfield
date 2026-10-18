@@ -15,11 +15,12 @@ import {
   type SearchResults,
   type TradedPayload,
 } from '@kithfield/contracts';
+import type { FarmView } from '@kithfield/farm';
 import { DurableObject } from 'cloudflare:workers';
 
 import type { Bindings } from '../env';
 import * as actions from './actions';
-import { runTimers } from './alarms';
+import { runAlarm } from './alarms';
 import { fireOutAfterMs } from './farm';
 import { pageEvents, searchEvents, type WirePage } from './history';
 import { FarmHost } from './host';
@@ -74,7 +75,7 @@ export class FarmDO extends DurableObject<Bindings> {
   }
 
   override async alarm(): Promise<void> {
-    const { events, arrived } = await runTimers(this.host.farm, farmPorts(), this.env);
+    const { events, arrived } = await runAlarm(this.host.farm, farmPorts(), this.env);
     this.host.publish(events);
     await this.host.settle(events);
     for (const seq of arrived) await this.host.arrived(seq);
@@ -91,9 +92,20 @@ export class FarmDO extends DurableObject<Bindings> {
     return this.host.farm.state;
   }
 
+  /** The farm as the shared rules draw it now: sleepy, misty, season, plants, critters. */
+  view(): FarmView | null {
+    const state = this.host.farm.state;
+    return state === null ? null : farmPorts().rules.farmView(state, this.host.now());
+  }
+
+  /** An anonymous person was merged into a returning one: see `actions.mergePerson`. */
+  mergePerson(from: PersonId, into: PersonId): Promise<void> {
+    return actions.mergePerson(this.host, from, into);
+  }
+
   async command(person: PersonId, cmd: FarmCommand): Promise<CommandResult> {
     const media: string[] = [];
-    const written = this.host.farm.command(cmd, person, this.host.effectsOf(media));
+    const written = await this.host.command(cmd, person, media);
     if (written.event !== null) {
       this.host.publish([written.event]);
       await this.host.settle([written.event], media);

@@ -1,13 +1,9 @@
-import { authIdentity } from './adapters/identity';
-import { cottageNotifier } from './adapters/cottage';
 import { farmRules } from './adapters/rules';
 import { noWeather } from './adapters/weather';
 import type { FarmPorts } from './ports';
 
 const production: FarmPorts = {
   rules: farmRules,
-  identity: authIdentity,
-  cottage: cottageNotifier,
   weather: noWeather,
   clock: { now: () => Date.now() },
 };

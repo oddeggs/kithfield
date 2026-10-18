@@ -1,15 +1,19 @@
 import { FarmEvent } from '@kithfield/contracts';
 import { runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
+import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { noWeather } from '../../src/farm/adapters/weather';
+import { cottageOf } from '../../src/cottage/stub';
 import type { FarmDO } from '../../src/farm/farm-object';
 import { op } from './support/client';
-import { plantFarm, type TestPorts, useTestPorts } from './support/doubles';
+import { api, cast, type Person, plantFarm, type TestPorts, useTestPorts } from './support/doubles';
 
 let ports: TestPorts;
-beforeEach(() => {
+let pip: Person;
+beforeEach(async () => {
   ports = useTestPorts();
+  ({ pip } = await cast('pip'));
 });
 
 type Stub = DurableObjectStub<FarmDO>;
@@ -33,7 +37,7 @@ const farmWritten = async (stub: Stub) =>
 
 describe('the calendar', () => {
   it('harvests on the last Sunday of the season, then rolls the season, in farm time', async () => {
-    const { stub } = await plantFarm([]);
+    const { stub } = await plantFarm(pip);
     expect(await fire(stub)).toBe(Date.UTC(2054, 10, 29, 0, 0)); // 29 Nov, midnight in London (GMT)
     expect((await farmWritten(stub)).map((e) => [e.kind, e.payload])).toEqual([
       ['harvested', { season: 'autumn', year: 2054, day: '2054-11-29' }],
@@ -48,7 +52,10 @@ describe('the calendar', () => {
   });
 
   it('names seasons by the farm’s hemisphere and keeps its time zone', async () => {
-    const { stub } = await plantFarm([], { timeZone: 'Australia/Sydney', hemisphere: 'south' });
+    const { stub } = await plantFarm(pip, [], {
+      timeZone: 'Australia/Sydney',
+      hemisphere: 'south',
+    });
     expect(await fire(stub)).toBe(Date.UTC(2054, 10, 28, 13, 0)); // 29 Nov, midnight in Sydney (AEDT)
     expect((await farmWritten(stub))[0]?.payload).toEqual({
       season: 'spring',
@@ -67,8 +74,8 @@ describe('the weather', () => {
   } as const;
 
   it('asks the weather source each morning once the keeper sets a town, and writes what it reports', async () => {
-    const { stub } = await plantFarm([]);
-    await stub.command('pip', { opId: op(1), kind: 'settings_changed', payload: place });
+    const { stub } = await plantFarm(pip);
+    await stub.command(pip.id, { opId: op(1), kind: 'settings_changed', payload: place });
     ports.weather.reading = { weather: 'rain', source: 'test_source' };
     expect(await fire(stub)).toBe(Date.UTC(2054, 9, 19, 4, 0)); // 05:00 in London (BST)
     expect(ports.weather.asked).toEqual(['2054-10-19']);
@@ -81,9 +88,9 @@ describe('the weather', () => {
   });
 
   it('stops asking when the town is cleared', async () => {
-    const { stub } = await plantFarm([]);
-    await stub.command('pip', { opId: op(1), kind: 'settings_changed', payload: place });
-    await stub.command('pip', {
+    const { stub } = await plantFarm(pip);
+    await stub.command(pip.id, { opId: op(1), kind: 'settings_changed', payload: place });
+    await stub.command(pip.id, {
       opId: op(2),
       kind: 'settings_changed',
       payload: { setting: 'place', place: null },
@@ -98,8 +105,8 @@ describe('the weather', () => {
 
 describe('the fire', () => {
   it('goes out three minutes after the last person leaves the room', async () => {
-    const { stub } = await plantFarm([]);
-    await stub.command('pip', { opId: op(1), kind: 'fire', payload: { state: 'lit' } });
+    const { stub } = await plantFarm(pip);
+    await stub.command(pip.id, { opId: op(1), kind: 'fire', payload: { state: 'lit' } });
     await stub.fireRoom(true);
     expect(await alarmAt(stub)).toBe(Date.UTC(2054, 10, 29, 0, 0));
     ports.clock.advance(20 * 60_000);
@@ -113,38 +120,42 @@ describe('the fire', () => {
 });
 
 describe('slow posts', () => {
-  it('reach the cottages when they arrive the next morning, not when sent', async () => {
-    const { stub } = await plantFarm(['fig']);
-    ports.cottage.deliveries.length = 0;
-    const sent = await stub.command('pip', {
-      opId: op(1),
-      kind: 'slow_post',
-      payload: { to: 'fig', text: 'for later', when: 'morning' },
+  it('arrive at the friend’s next morning in their own time zone, and only then reach the cottages', async () => {
+    const { fig } = await cast('fig');
+    await api(fig, 'PATCH', '/v1/me/settings', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const { farm, stub } = await plantFarm(pip, [fig]);
+    const payload = { to: fig.id, text: 'for later', when: 'morning' as const };
+    expect(await stub.command(pip.id, { opId: op(1), kind: 'slow_post', payload })).toMatchObject({
+      result: 'ack',
+      seq: 4,
     });
-    expect(sent).toMatchObject({ result: 'ack', seq: 4 });
     const post = FarmEvent.parse((await stub.page({ after: 3, limit: 1 })).events[0]);
-    expect(post.payload).toMatchObject({ deliverAt: Date.UTC(2054, 9, 19, 6, 0) }); // 07:00 in London
-    expect(ports.cottage.deliveries.filter((d) => d.delivery.kind === 'slow_post')).toEqual([]);
+    expect(post.payload).toMatchObject({ deliverAt: Date.UTC(2054, 9, 19, 0, 0) }); // 07:00 in Ho Chi Minh City
+    const before = await cottageOf(env, fig.id).chatList();
+    expect(before.find((row) => row.farm === farm)?.kind).toBe('joined');
 
-    expect(await fire(stub)).toBe(Date.UTC(2054, 9, 19, 6, 0));
-    expect(ports.cottage.for('fig')).toEqual([
-      expect.objectContaining({ seq: 4, kind: 'slow_post', forYou: true, connected: false }),
-    ]);
-    expect(ports.cottage.for('pip')).toEqual([expect.objectContaining({ seq: 4, forYou: false })]);
+    expect(await fire(stub)).toBe(Date.UTC(2054, 9, 19, 0, 0));
+    const after = await cottageOf(env, fig.id).chatList();
+    expect(after.find((row) => row.farm === farm)).toMatchObject({
+      seq: 4,
+      kind: 'slow_post',
+      forYou: true,
+    });
   });
 
   it('can be recalled until they arrive', async () => {
-    const { stub } = await plantFarm(['fig']);
-    await stub.command('pip', {
-      opId: op(1),
-      kind: 'slow_post',
-      payload: { to: 'fig', text: 'for the weekend', when: 'weekend' },
-    });
+    const { fig } = await cast('fig');
+    const { stub } = await plantFarm(pip, [fig]);
+    const payload = { to: fig.id, text: 'for the weekend', when: 'weekend' as const };
+    await stub.command(pip.id, { opId: op(1), kind: 'slow_post', payload });
     const post = FarmEvent.parse((await stub.page({ after: 3, limit: 1 })).events[0]);
-    expect(post.payload).toMatchObject({ deliverAt: Date.UTC(2054, 9, 24, 8, 0) }); // Saturday 09:00 in London
-    ports.clock.at = Date.UTC(2054, 9, 24, 8, 0);
-    expect(
-      await stub.command('pip', { opId: op(2), kind: 'unsend', payload: { target: 4 } }),
-    ).toMatchObject({ reason: 'not_allowed' });
+    expect(post.payload).toMatchObject({ deliverAt: Date.UTC(2054, 9, 24, 9, 0) }); // Saturday 09:00 UTC
+    ports.clock.at = Date.UTC(2054, 9, 24, 9, 0);
+    const recall = await stub.command(pip.id, {
+      opId: op(2),
+      kind: 'unsend',
+      payload: { target: 4 },
+    });
+    expect(recall).toMatchObject({ reason: 'not_allowed' });
   });
 });
