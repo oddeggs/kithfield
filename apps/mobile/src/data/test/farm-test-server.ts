@@ -31,11 +31,8 @@ import { handleHttp } from './test-server-http';
 
 /*
  * A protocol-faithful stand-in for the API and the farm and cottage objects, for the sync tests
- * only: it speaks the contracts' frames exactly (hello, snapshot, catch-up batches of 200, live
- * events, ack after the broadcast, rejections, idempotent op ids, socket errors, ping and pong)
- * and the HTTP command, paging and rt-token endpoints. It runs in process; the network between it
- * and the phone is `test-sockets`. Each test controls reachability and can write events a real
- * farm would refuse to, to see how the phone sorts them.
+ * only: it speaks the contracts' frames and HTTP bodies exactly, in process (the network is
+ * `test-sockets`), and can write events a real farm would refuse to, to see how phones sort them.
  */
 
 export class FarmTestServer {
@@ -66,8 +63,6 @@ export class FarmTestServer {
     readonly rules: FarmRules<unknown>,
     readonly now: () => number = Date.now,
   ) {}
-
-  /* Setting up */
 
   createFarm(farm: string, keeper: string, name: string): TestFarm {
     const record = seedFarm(this.rules, farm, name, this.now());
@@ -142,8 +137,6 @@ export class FarmTestServer {
     }
   }
 
-  /* Commands: one path for the socket and HTTP, applied once per op id */
-
   command(farm: string, person: string, cmd: FarmCommand): CommandResult {
     const f = this.farmOf(farm);
     const earlier = f.outcomes.get(cmd.opId);
@@ -163,8 +156,6 @@ export class FarmTestServer {
     f.outcomes.set(cmd.opId, { seq: event.seq });
     return { result: 'ack', opId: cmd.opId, seq: event.seq };
   }
-
-  /* Sockets */
 
   readonly openSocket: OpenSocket = (url) => {
     const { phone } = connectPair(
