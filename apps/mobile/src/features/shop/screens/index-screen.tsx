@@ -24,6 +24,7 @@ import {
   onCartNow,
   productsOf,
   roundNote,
+  splitForNote,
   type CartTab,
 } from '../format';
 import { useInks } from '../kit/inks';
@@ -106,8 +107,7 @@ export function CartScreen() {
     if (item.kind === 'theme') return null;
     if (item.product === null) return <Tag text={t('shop.patronsBadge')} kind="patrons" />;
     if (!onCartNow(item, week)) return null;
-    const price = shop.prices[item.product];
-    return price ? <Tag text={price} /> : null;
+    return <Tag text={shop.priceText(item.product)} />;
   };
   /** Off the cart this week: when it comes back, under the name. */
   const backLine = (item: ShopItem) =>
@@ -119,6 +119,25 @@ export function CartScreen() {
   const midName = (id: string) =>
     language === 'en' ? lowerFirst(itemName(t, id)) : itemName(t, id);
   const season = currentSeason();
+
+  // The note sits under the first two rows, where the design shows it; the rest follow it.
+  const [above, below] = note ? splitForNote(items) : [items, []];
+  const tile = (item: ShopItem) => {
+    const name = itemName(t, item.item);
+    return (
+      <ItemTile
+        key={item.item}
+        look={{ item: item.item, kind: item.kind, season, night: item.item === 'lighthouse' }}
+        name={name}
+        width={tileW}
+        artHeight={112}
+        trailing={tagFor(item)}
+        below={backLine(item)}
+        onPress={() => open(item)}
+        accessibilityLabel={name}
+      />
+    );
+  };
 
   return (
     <HeroSheet
@@ -164,33 +183,7 @@ export function CartScreen() {
         onChange={setTab}
         inset={20}
       />
-      {shop.loading && !shop.catalog ? (
-        <ShopLoading />
-      ) : (
-        <TileGrid>
-          {items.map((item) => {
-            const name = itemName(t, item.item);
-            return (
-              <ItemTile
-                key={item.item}
-                look={{
-                  item: item.item,
-                  kind: item.kind,
-                  season,
-                  night: item.item === 'lighthouse',
-                }}
-                name={name}
-                width={tileW}
-                artHeight={112}
-                trailing={tagFor(item)}
-                below={backLine(item)}
-                onPress={() => open(item)}
-                accessibilityLabel={name}
-              />
-            );
-          })}
-        </TileGrid>
-      )}
+      {shop.loading && !shop.catalog ? <ShopLoading /> : <TileGrid>{above.map(tile)}</TileGrid>}
       {tab === 'coat' ? <InfoNote text={t('shop.cart.coatsNote')} /> : null}
       {note ? (
         <InfoNote
@@ -208,6 +201,7 @@ export function CartScreen() {
           }
         />
       ) : null}
+      {below.length > 0 ? <TileGrid>{below.map(tile)}</TileGrid> : null}
     </HeroSheet>
   );
 }

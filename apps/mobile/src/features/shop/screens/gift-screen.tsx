@@ -173,7 +173,7 @@ function GiftChoice({
   useEffect(() => {
     if (item.giftProduct !== null) loadPrices([item.giftProduct]);
   }, [item.giftProduct, loadPrices]);
-  const price = item.giftProduct === null ? undefined : shop.prices[item.giftProduct];
+  const price = item.giftProduct === null ? null : shop.priceText(item.giftProduct);
   const stageW = width - 56;
 
   const leave = async () => {
@@ -197,11 +197,11 @@ function GiftChoice({
       header={<Header title={t('shop.gift.title', { name })} glass={false} />}
       footer={
         <Pill
-          label={price ? t('shop.gift.leave', { price }) : t('shop.gift.leaveFree')}
+          label={price === null ? t('shop.gift.leaveFree') : t('shop.gift.leave', { price })}
           kind="ink"
           size={16}
           busy={state === 'busy'}
-          disabled={item.giftProduct === null}
+          disabled={item.giftProduct === null || !shop.store.available}
           onPress={() => void leave()}
         />
       }

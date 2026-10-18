@@ -87,3 +87,28 @@ export function roundNote(
 export function productsOf(items: readonly ShopItem[]): StoreProductId[] {
   return items.flatMap((i) => (i.product === null ? [] : [i.product]));
 }
+
+/** A price as shown: the store's own, held in place while the store answers, or none to be had. */
+export type PriceShown =
+  | { readonly kind: 'price'; readonly text: string }
+  | { readonly kind: 'loading' }
+  | { readonly kind: 'none' };
+
+/**
+ * What a price reads. Prices come only from the store; while it answers the price keeps its place
+ * (a quiet placeholder, never dropped), and with no store on the phone nothing can be bought.
+ */
+export function priceShown(
+  prices: Readonly<Record<string, string>>,
+  product: StoreProductId,
+  storeAvailable: boolean,
+): PriceShown {
+  if (!storeAvailable) return { kind: 'none' };
+  const text = prices[product];
+  return text === undefined ? { kind: 'loading' } : { kind: 'price', text };
+}
+
+/** The cart's first two rows (two across), which the note sits under; then the rest. */
+export function splitForNote<T>(items: readonly T[], first = 4): [T[], T[]] {
+  return [items.slice(0, first), items.slice(first)];
+}

@@ -12,6 +12,8 @@ export const shopVi: ViCatalogue<typeof shopEn> = {
   'shop.store.waiting': 'Sắp xong rồi. Một lát nữa sẽ hiện ra.',
   'shop.store.restored': 'Đã khôi phục giao dịch',
   'shop.store.nothing': 'Không có gì để khôi phục.',
+  'shop.price.loading': '…',
+  'shop.price.none': '—',
   'shop.patronsBadge': 'người đỡ đầu',
   'shop.yours': 'của bạn',
 
@@ -188,7 +190,6 @@ export const shopVi: ViCatalogue<typeof shopEn> = {
   'shop.set.rewardLead': 'Phần thưởng:',
   'shop.set.rewardRest': ' một nhãn dán, và bạn thú của bạn {pose}.',
   'shop.set.add': 'Thêm {item} · {price}',
-  'shop.set.addPlain': 'Thêm {item}',
   'shop.set.addFree': 'Giữ {item}',
   'shop.set.done': 'Đủ bộ rồi! Bạn thú của bạn {pose}.',
   'shop.set.riverbank': 'Bờ sông',
@@ -479,6 +480,8 @@ export const shopVi: ViCatalogue<typeof shopEn> = {
 
 /** Names and layouts that read the same in both languages. */
 export const shopSameInBoth = [
+  'shop.price.loading',
+  'shop.price.none',
   'shop.book.heading',
   'shop.tiers.farmPlus',
   'shop.tier.farm_plus',

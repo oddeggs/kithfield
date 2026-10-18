@@ -1,7 +1,16 @@
 import { describe, expect, it } from '@jest/globals';
 import type { ShopItem } from '@kithfield/contracts';
 
-import { fillWord, itemsFor, lowerFirst, onCartNow, orList, roundNote } from './format';
+import {
+  fillWord,
+  itemsFor,
+  lowerFirst,
+  onCartNow,
+  orList,
+  priceShown,
+  roundNote,
+  splitForNote,
+} from './format';
 
 const item = (id: string, over: Partial<ShopItem> = {}): ShopItem => ({
   item: id,
@@ -61,5 +70,33 @@ describe('the cart', () => {
   it('notes when an item was here and when it comes back', () => {
     expect(roundNote(items)).toEqual({ item: items[2], last: '2026-06-01', back: 'winter' });
     expect(roundNote([items[0]!])).toBeNull();
+  });
+});
+
+describe('a price the store hasn’t given', () => {
+  const prices = { 'kf.item.windmill': '£4.99' };
+
+  it('shows the store’s own price', () => {
+    expect(priceShown(prices, 'kf.item.windmill', true)).toEqual({ kind: 'price', text: '£4.99' });
+  });
+
+  it('holds the price’s place while the store answers, and never drops it', () => {
+    expect(priceShown(prices, 'kf.item.lighthouse', true)).toEqual({ kind: 'loading' });
+  });
+
+  it('says there is no price, and nothing can be bought, when the store can’t be reached', () => {
+    expect(priceShown(prices, 'kf.item.lighthouse', false)).toEqual({ kind: 'none' });
+    expect(priceShown(prices, 'kf.item.windmill', false)).toEqual({ kind: 'none' });
+  });
+});
+
+describe('the note under the cart', () => {
+  it('sits under the first two rows of this week’s cart, where it is seen without scrolling', () => {
+    const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
+    expect(splitForNote(ids)).toEqual([
+      ['a', 'b', 'c', 'd'],
+      ['e', 'f'],
+    ]);
+    expect(splitForNote(['a', 'b'])).toEqual([['a', 'b'], []]);
   });
 });

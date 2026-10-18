@@ -22,7 +22,9 @@ import { AppState } from 'react-native';
 
 import { useDataClient } from '../../../data/react';
 import { useSession } from '../../../ui/session/session';
+import { useLocale } from '../../../ui/locale/locale-provider';
 import { shopApi, type ShopApi } from '../api';
+import { priceShown } from '../format';
 import { resumePendingGifts } from './resume-gifts';
 import { revenueCatStore } from '../store/revenuecat';
 import { noStore, type Store } from '../store/store';
@@ -57,6 +59,8 @@ export interface ShopData {
   readonly loadPrices: (products: readonly StoreProductId[]) => void;
   /** An item of the catalogue by its id. */
   readonly item: (id: string) => ShopItem | null;
+  /** A product's price as shown: the store's own, or a placeholder holding its place. */
+  readonly priceText: (product: StoreProductId) => string;
 }
 
 const ShopContext = createContext<ShopData | null>(null);
@@ -160,6 +164,16 @@ export function ShopProvider({ children }: { readonly children: ReactNode }) {
   const byId = useMemo(() => new Map((catalog?.items ?? []).map((i) => [i.item, i])), [catalog]);
   const item = useCallback((id: string) => byId.get(id) ?? null, [byId]);
   const reload = useCallback(() => setTick((n) => n + 1), []);
+  const { t } = useLocale();
+  const priceText = useCallback(
+    (product: StoreProductId) => {
+      const shown = priceShown(prices, product, store.available);
+      return shown.kind === 'price'
+        ? shown.text
+        : t(shown.kind === 'loading' ? 'shop.price.loading' : 'shop.price.none');
+    },
+    [prices, store.available, t],
+  );
 
   const value = useMemo<ShopData | null>(
     () =>
@@ -185,6 +199,7 @@ export function ShopProvider({ children }: { readonly children: ReactNode }) {
             refreshWishlist,
             loadPrices,
             item,
+            priceText,
           },
     [
       person,
@@ -204,6 +219,7 @@ export function ShopProvider({ children }: { readonly children: ReactNode }) {
       refreshWishlist,
       loadPrices,
       item,
+      priceText,
     ],
   );
   return value === null ? null : (

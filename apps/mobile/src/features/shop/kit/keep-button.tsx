@@ -92,10 +92,10 @@ export function KeepButton({
       />
     );
   }
-  const price = shop.prices[item.product];
   return (
     <Pill
-      label={price ? t('shop.try.keep', { price }) : t('shop.try.keepFree')}
+      label={t('shop.try.keep', { price: shop.priceText(item.product) })}
+      disabled={!shop.store.available}
       onPress={() => void keepIt()}
       busy={state === 'busy'}
       kind={kind}

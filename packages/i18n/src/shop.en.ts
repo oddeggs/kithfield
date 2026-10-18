@@ -17,6 +17,8 @@ export const shopEn = {
   'shop.store.waiting': 'Almost there. It’ll show up in a moment.',
   'shop.store.restored': 'Purchases restored',
   'shop.store.nothing': 'There was nothing to restore.',
+  'shop.price.loading': '…',
+  'shop.price.none': '—',
   'shop.patronsBadge': 'patrons',
   'shop.yours': 'yours',
 
@@ -201,7 +203,6 @@ export const shopEn = {
   'shop.set.rewardLead': 'Set reward:',
   'shop.set.rewardRest': ' a sticker, and your critter {pose}.',
   'shop.set.add': 'Add the {item} · {price}',
-  'shop.set.addPlain': 'Add the {item}',
   'shop.set.addFree': 'Keep the {item}',
   'shop.set.done': 'Set finished! Your critter {pose}.',
   'shop.set.riverbank': 'Riverbank',

@@ -36,7 +36,7 @@ function PieceRow({ item, owned }: { readonly item: ShopItem; readonly owned: bo
   const { t } = useLocale();
   const inks = useInks();
   const name = itemName(t, item.item);
-  const price = item.product === null ? null : shop.prices[item.product];
+  const price = item.product === null ? null : shop.priceText(item.product);
   const tag = owned ? (
     <Tag text={t('shop.yours')} kind="owned" />
   ) : item.product === null ? (
@@ -160,12 +160,11 @@ function AddButton({ item }: { readonly item: ShopItem }) {
       />
     );
   }
-  const price = shop.prices[item.product];
+  const price = shop.priceText(item.product);
   return (
     <Pill
-      label={
-        price ? t('shop.set.add', { item: name, price }) : t('shop.set.addPlain', { item: name })
-      }
+      label={t('shop.set.add', { item: name, price })}
+      disabled={!shop.store.available}
       onPress={() => void keepIt()}
       busy={state === 'busy'}
       size={16}
