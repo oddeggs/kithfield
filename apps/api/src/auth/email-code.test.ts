@@ -1,7 +1,12 @@
 import { env } from 'cloudflare:workers';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { CODE_SENDS_PER_ADDRESS } from './email-code';
+import {
+  addressHash,
+  CODE_FAILURE_WINDOW_MS,
+  CODE_FAILURES_PER_ADDRESS,
+  CODE_SENDS_PER_ADDRESS,
+} from './email-code';
 import {
   call,
   freshIp,
@@ -49,8 +54,67 @@ describe('email code sign-in', () => {
     const fresh = await sessionOf(signedIn.token);
     expect(fresh).toMatchObject({ id: anonymous.user.id, isAnonymous: false, email });
     expect(response.headers.get('set-auth-token')).toBeTruthy();
-    // The anonymous session still speaks for the same, now signed-in, person.
-    expect((await sessionOf(anonymous.token))?.id).toBe(anonymous.user.id);
+    // The anonymous session ends; the app carries on with the one it was just given.
+    expect(await sessionOf(anonymous.token)).toBeNull();
+    // The email is an identity of its own, so the person's sign-in methods can be told apart.
+    const accounts = await env.DB.prepare(
+      'SELECT provider_id, account_id FROM accounts WHERE person_id = ?',
+    )
+      .bind(anonymous.user.id)
+      .all();
+    expect(accounts.results).toEqual([{ provider_id: 'email-otp', account_id: email }]);
+  });
+
+  it('cancels a pending account deletion when the person signs in again', async () => {
+    const letters = watchLetters();
+    const email = freshAddress();
+    await sendCode(email);
+    const person = await readSignIn(await signInWithCode(email, letters.codeFor(email)));
+    await env.DB.prepare('UPDATE people SET deleted_at = ? WHERE id = ?')
+      .bind(Date.now() - 1000, person.user.id)
+      .run();
+
+    await sendCode(email);
+    await readSignIn(await signInWithCode(email, letters.codeFor(email)));
+    const row = await env.DB.prepare('SELECT deleted_at FROM people WHERE id = ?')
+      .bind(person.user.id)
+      .first();
+    expect(row).toEqual({ deleted_at: null });
+  });
+
+  it('locks an address for a day after ten wrong codes, then lets its owner back in', async () => {
+    const letters = watchLetters();
+    const email = freshAddress();
+    for (let code = 0; code < CODE_FAILURES_PER_ADDRESS / 5; code += 1) {
+      expect((await sendCode(email)).status).toBe(200);
+      const wrong = letters.codeFor(email) === '000000' ? '111111' : '000000';
+      for (let guess = 0; guess < 5; guess += 1) {
+        expect((await signInWithCode(email, wrong)).status).toBe(400);
+      }
+    }
+
+    const locked = await sendCode(email);
+    expect(locked.status).toBe(429);
+    expect(await locked.json()).toMatchObject({ code: 'rate_limited' });
+    expect((await signInWithCode(email, letters.codeFor(email))).status).toBe(429);
+    // Another address is not affected.
+    expect((await sendCode(freshAddress())).status).toBe(200);
+
+    // A day later the lock has lifted, and a right code clears the count.
+    const hash = await addressHash(email);
+    await env.DB.prepare(
+      'UPDATE email_code_failures SET failed_at = failed_at - ? WHERE address_hash = ?',
+    )
+      .bind(CODE_FAILURE_WINDOW_MS, hash)
+      .run();
+    expect((await sendCode(email)).status).toBe(200);
+    await readSignIn(await signInWithCode(email, letters.codeFor(email)));
+    const left = await env.DB.prepare(
+      'SELECT COUNT(*) AS n FROM email_code_failures WHERE address_hash = ?',
+    )
+      .bind(hash)
+      .first();
+    expect(left).toEqual({ n: 0 });
   });
 
   it('signs a second device in as the returning person and folds its anonymous person away', async () => {

@@ -64,15 +64,34 @@ export async function sessionOf(token: string): Promise<SessionUser | null> {
   return body?.user ?? null;
 }
 
+/** What the phone's Apple or Google sheet hands back: the identity token and the raw nonce. */
+export interface IdentityFromSheet {
+  readonly idToken: string;
+  readonly nonce?: string;
+}
+
 export async function signInWithIdToken(
   provider: 'apple' | 'google',
-  idToken: string,
+  identity: IdentityFromSheet,
   token?: string,
 ): Promise<Response> {
   return call('/auth/sign-in/social', {
-    body: { provider, idToken: { token: idToken } },
+    body: {
+      provider,
+      idToken: {
+        token: identity.idToken,
+        ...(identity.nonce === undefined ? {} : { nonce: identity.nonce }),
+      },
+    },
     ...(token ? { token } : {}),
   });
+}
+
+/** A single-use sign-in nonce from the server, for the next Apple or Google sheet. */
+export async function issueNonce(): Promise<string> {
+  const response = await call('/v1/sign-in-nonce', { method: 'POST' });
+  const body = await expectJson<{ nonce: string }>(response);
+  return body.nonce;
 }
 
 export async function readSignIn(response: Response): Promise<SignedIn> {

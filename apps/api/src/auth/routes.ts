@@ -5,11 +5,12 @@ import { Hono } from 'hono';
 import type { z } from 'zod';
 
 import { checkAge } from './age';
-import { isBanned } from './bans';
 import { AuthNotConfigured, authSecret, handleAuthRequest } from './instance';
 import { deletePerson, findPerson, recordAgeOk, recordTerms } from './people';
+import { issueSignInNonce } from './nonce';
 import { signRtToken } from './rt-token';
 import { errorResponse, requireSession, type SessionEnv } from './session';
+import { CURRENT_TERMS_VERSION } from './terms';
 
 type Parsed<T> = { ok: true; value: T } | { ok: false; response: Response };
 
@@ -29,7 +30,8 @@ async function parseBody<T>(c: Context, schema: z.ZodType<T>): Promise<Parsed<T>
 /**
  * Sign-in and the person's own records:
  * - `/auth/*`: Better Auth (anonymous, Apple and Google by identity token, email codes, sessions).
- * - `POST /v1/rt-token`: a socket token.
+ * - `POST /v1/sign-in-nonce`: a single-use nonce for the next Apple or Google sign-in.
+ * - `POST /v1/rt-token`: a socket token (a banned person is refused by `requireSession`).
  * - `POST /v1/me/age`, `POST /v1/me/terms`: the age check and the Terms acceptance.
  */
 export function authRoutes(): Hono<SessionEnv> {
@@ -44,11 +46,15 @@ export function authRoutes(): Hono<SessionEnv> {
     }
   });
 
+  // Before Apple's or Google's sheet opens; no session needed, as a signed-out phone signs in too.
+  routes.post('/v1/sign-in-nonce', async (c) => {
+    return c.json(await issueSignInNonce(c.env.DB, Date.now()));
+  });
+
   routes.post('/v1/rt-token', requireSession, async (c) => {
     const body = await parseBody(c, RtTokenRequest);
     if (!body.ok) return body.response;
     const now = Date.now();
-    if (await isBanned(c.env.DB, c.var.person, now)) return errorResponse(c, 403, 'banned');
     const issued = await signRtToken(authSecret(c.env), {
       person: c.var.person,
       farm: body.value.farm ?? null,
@@ -80,6 +86,9 @@ export function authRoutes(): Hono<SessionEnv> {
   routes.post('/v1/me/terms', requireSession, async (c) => {
     const body = await parseBody(c, TermsRequest);
     if (!body.ok) return body.response;
+    if (body.value.version !== CURRENT_TERMS_VERSION) {
+      return errorResponse(c, 400, 'bad_request', ['version']);
+    }
     await recordTerms(c.env.DB, {
       person: c.var.person,
       version: body.value.version,

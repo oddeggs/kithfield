@@ -1,7 +1,7 @@
 import type { BetterAuthOptions } from 'better-auth';
 import { anonymous, bearer, emailOTP } from 'better-auth/plugins';
 
-/** Sign-in codes are six digits and last ten minutes (`03-03`). */
+/** Sign-in codes are six digits and last ten minutes, as the onboarding design asks. */
 export const CODE_LENGTH = 6;
 export const CODE_LIFETIME_SECONDS = 10 * 60;
 /** Wrong guesses allowed on one code before it is spent. */
@@ -69,9 +69,11 @@ const verificationSchema = {
 } as const;
 
 /**
- * Better Auth endpoints Kithfield doesn't use. There are no passwords, profile edits go through
- * Kithfield's own routes, and an anonymous person becomes a signed-in one only through the
- * sign-in endpoints, which keep the person id (see `upgrade.ts`).
+ * Better Auth endpoints Kithfield doesn't use, matched by exact path; the ones with a path
+ * parameter (`/callback/:id`, `/reset-password/:token`) are refused in `guards.ts`. There are no
+ * passwords, profile edits go through Kithfield's own routes, an anonymous person becomes a
+ * signed-in one only through the sign-in endpoints, which keep the person id (see `upgrade.ts`),
+ * and the app keeps no provider tokens to refresh.
  */
 const disabledPaths = [
   '/sign-up/email',
@@ -95,6 +97,12 @@ const disabledPaths = [
   '/email-otp/change-email',
   '/email-otp/verify-email',
   '/email-otp/check-verification-otp',
+  '/update-session',
+  '/get-access-token',
+  '/refresh-token',
+  '/account-info',
+  '/verify-password',
+  '/delete-user/callback',
 ];
 
 export interface AuthOptionsInput {
@@ -140,8 +148,10 @@ export function buildAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
       ...accountSchema,
       accountLinking: {
         enabled: true,
-        // The same verified email from Apple, Google or a code is the same person.
-        trustedProviders: ['apple', 'google', 'email-otp'],
+        // The same verified email from Apple, Google or a code is the same person. No provider is
+        // trusted blindly: Better Auth links by email only when the token says it is verified, and
+        // `guards.ts` refuses an unverified one before that.
+        trustedProviders: [],
       },
     },
     verification: verificationSchema,

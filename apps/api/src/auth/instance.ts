@@ -53,7 +53,7 @@ function createAuth(env: Bindings) {
         }
       },
       databaseHooks: upgradeDatabaseHooks(env.DB),
-      hooks: upgradeRequestHooks(env.DB),
+      hooks: upgradeRequestHooks({ db: env.DB, deletionQueue: env.DELETION_QUEUE }),
     }),
   );
 }

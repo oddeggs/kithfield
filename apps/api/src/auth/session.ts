@@ -4,6 +4,7 @@ import { createMiddleware } from 'hono/factory';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 import type { AppEnv } from '../env';
+import { isBanned } from './bans';
 import { AuthNotConfigured, authFor } from './instance';
 
 /** Routes behind `requireSession` read the signed-in person's id as `c.var.person`. */
@@ -21,7 +22,8 @@ export function errorResponse(
 
 /**
  * Requires a session: the app's bearer token (`Authorization: Bearer …`), or Better Auth's
- * session cookie. Answers 401 `unauthorized` without one, and sets `person` for the route.
+ * session cookie. Answers 401 `unauthorized` without one and 403 `banned` for a banned person, and
+ * sets `person` for the route.
  */
 export const requireSession = createMiddleware<SessionEnv>(async (c, next) => {
   let session;
@@ -32,6 +34,9 @@ export const requireSession = createMiddleware<SessionEnv>(async (c, next) => {
     throw error;
   }
   if (!session) return errorResponse(c, 401, 'unauthorized');
+  if (await isBanned(c.env.DB, session.user.id, Date.now())) {
+    return errorResponse(c, 403, 'banned');
+  }
   c.set('person', session.user.id);
   await next();
 });

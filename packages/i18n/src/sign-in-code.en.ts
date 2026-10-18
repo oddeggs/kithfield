@@ -1,6 +1,6 @@
 import type { EnCatalogue } from './catalogue-types';
 
-/** The letter that carries a sign-in code (`03-03`). The code is in the subject too, for autofill. */
+/** The letter that carries a sign-in code. The code is in the subject too, for autofill. */
 export const signInCodeEn = {
   'signInCode.subject': 'Your Kithfield code: {code}',
   'signInCode.greeting': 'Hello from the farm!',

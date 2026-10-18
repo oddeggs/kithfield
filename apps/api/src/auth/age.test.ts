@@ -2,6 +2,7 @@ import { env } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
 
 import { checkAge, minimumAge } from './age';
+import { CURRENT_TERMS_VERSION } from './terms';
 import { call, sessionOf, signInAnonymously } from './testing/client';
 
 const thisYear = new Date().getUTCFullYear();
@@ -87,16 +88,28 @@ describe('POST /v1/me/terms', () => {
   it('records the Terms version and when it was accepted', async () => {
     const { token, user } = await signInAnonymously();
     const before = Date.now();
-    const response = await call('/v1/me/terms', { body: { version: '2026-10-01' }, token });
+    const response = await call('/v1/me/terms', {
+      body: { version: CURRENT_TERMS_VERSION },
+      token,
+    });
     expect(response.status).toBe(204);
     const row = await env.DB.prepare('SELECT terms_version, terms_at FROM people WHERE id = ?')
       .bind(user.id)
       .first<{ terms_version: string; terms_at: number }>();
-    expect(row?.terms_version).toBe('2026-10-01');
+    expect(row?.terms_version).toBe(CURRENT_TERMS_VERSION);
     expect(row?.terms_at).toBeGreaterThanOrEqual(before);
   });
 
+  it('accepts only the current Terms', async () => {
+    const { token } = await signInAnonymously();
+    const response = await call('/v1/me/terms', { body: { version: '2020-01-01' }, token });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: { code: 'bad_request', fields: ['version'] } });
+  });
+
   it('needs a session', async () => {
-    expect((await call('/v1/me/terms', { body: { version: '2026-10-01' } })).status).toBe(401);
+    expect((await call('/v1/me/terms', { body: { version: CURRENT_TERMS_VERSION } })).status).toBe(
+      401,
+    );
   });
 });

@@ -1,3 +1,5 @@
+import { mergeStepStatements } from './merge-steps';
+
 /** Reads and writes on `people` that Better Auth doesn't do itself. */
 
 export interface PersonRecord {
@@ -54,42 +56,51 @@ interface IdentityRow {
 
 /**
  * An anonymous person signed in with an identity seen for the first time, and Better Auth made a
- * new person for it. The anonymous person takes the identity instead, keeping their id: the new
- * person's identity, accounts and sessions move over, and the new person is deleted. One batch,
- * so it happens whole or not at all.
+ * new person for it. The anonymous person takes the identity instead, keeping their id: their
+ * anonymous sessions end, the new person's identity, accounts and sessions move over, and the new
+ * person is deleted. One batch, and every statement in it holds only while the anonymous person is
+ * still anonymous, so of two upgrades racing for one person exactly one lands. Answers whether
+ * this one did.
  */
 export async function adoptIdentity(
   db: D1Database,
   input: { anonymous: string; fresh: string; now: number },
-): Promise<void> {
+): Promise<boolean> {
   const identity = await db
     .prepare('SELECT email, email_verified, name, image FROM people WHERE id = ?')
     .bind(input.fresh)
     .first<IdentityRow>();
   if (identity === null) throw new Error('the new person to adopt is missing');
-  await db.batch([
+  const stillAnonymous = 'EXISTS (SELECT 1 FROM people WHERE id = ?1 AND is_anonymous = 1)';
+  const results = await db.batch([
     db
-      .prepare('UPDATE accounts SET person_id = ?1 WHERE person_id = ?2')
+      .prepare(`DELETE FROM sessions WHERE person_id = ?1 AND ${stillAnonymous}`)
+      .bind(input.anonymous),
+    db
+      .prepare(`UPDATE accounts SET person_id = ?1 WHERE person_id = ?2 AND ${stillAnonymous}`)
       .bind(input.anonymous, input.fresh),
     db
-      .prepare('UPDATE sessions SET person_id = ?1 WHERE person_id = ?2')
+      .prepare(`UPDATE sessions SET person_id = ?1 WHERE person_id = ?2 AND ${stillAnonymous}`)
       .bind(input.anonymous, input.fresh),
-    db.prepare('DELETE FROM people WHERE id = ?').bind(input.fresh),
+    db
+      .prepare(`DELETE FROM people WHERE id = ?2 AND ${stillAnonymous}`)
+      .bind(input.anonymous, input.fresh),
     db
       .prepare(
         `UPDATE people
-         SET email = ?1, email_verified = ?2, name = ?3, image = ?4, is_anonymous = 0, updated_at = ?5
-         WHERE id = ?6`,
+         SET email = ?2, email_verified = ?3, name = ?4, image = ?5, is_anonymous = 0, updated_at = ?6
+         WHERE id = ?1 AND is_anonymous = 1`,
       )
       .bind(
+        input.anonymous,
         identity.email,
         identity.email_verified,
         identity.name,
         identity.image,
         authTime(input.now),
-        input.anonymous,
       ),
   ]);
+  return results.at(-1)?.meta.changes === 1;
 }
 
 /** The later of two Terms versions (dates, so they sort as text), with when it was accepted. */
@@ -106,7 +117,8 @@ function laterTerms(
  * An anonymous person signed in as someone who already exists (a second device, or a reinstall).
  * The returning person wins: they keep everything they have, and take from the anonymous person
  * only what they lack (the age check, a later Terms acceptance, a name and critter chosen before
- * signing in). Then the anonymous person is deleted with their sessions.
+ * signing in). Then the registered merge steps (`merge-steps.ts`) move other tables' rows, and the
+ * anonymous person is deleted with their sessions; all in one batch.
  */
 export async function mergeIntoReturning(
   db: D1Database,
@@ -119,6 +131,7 @@ export async function mergeIntoReturning(
   if (into === null) throw new Error('the returning person is missing');
   if (from === null) return;
   const terms = laterTerms(into, from);
+  const merge = { from: input.anonymous, into: input.returning, now: input.now };
   await db.batch([
     db
       .prepare(
@@ -136,8 +149,39 @@ export async function mergeIntoReturning(
         authTime(input.now),
         input.returning,
       ),
-    db.prepare('DELETE FROM people WHERE id = ?').bind(input.anonymous),
+    ...mergeStepStatements(db, merge),
+    db.prepare('DELETE FROM people WHERE id = ? AND is_anonymous = 1').bind(input.anonymous),
   ]);
+}
+
+/**
+ * Records that the person signs in with an email code, as an identity of its own (`email-otp`,
+ * keyed by the address), so their sign-in methods can be told apart.
+ */
+export async function recordEmailIdentity(
+  db: D1Database,
+  input: { person: string; email: string; now: number },
+): Promise<void> {
+  const at = authTime(input.now);
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO accounts (id, account_id, provider_id, person_id, created_at, updated_at)
+       VALUES (?, ?, 'email-otp', ?, ?, ?)`,
+    )
+    .bind(crypto.randomUUID(), input.email.trim().toLowerCase(), input.person, at, at)
+    .run();
+}
+
+/** Signing in again within the 30 days cancels a pending account deletion. */
+export async function cancelPendingDeletion(db: D1Database, person: string): Promise<void> {
+  await db
+    .prepare('UPDATE people SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL')
+    .bind(person)
+    .run();
+}
+
+export async function deleteSession(db: D1Database, session: string): Promise<void> {
+  await db.prepare('DELETE FROM sessions WHERE id = ?').bind(session).run();
 }
 
 export async function recordAgeOk(db: D1Database, person: string, now: number): Promise<void> {

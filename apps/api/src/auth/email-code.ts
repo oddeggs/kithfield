@@ -7,7 +7,16 @@ export const CODE_SENDER = { name: 'Kithfield', email: 'hello@kithfield.com' } a
 export const CODE_SENDS_PER_ADDRESS = 5;
 export const CODE_SEND_WINDOW_MS = 60 * 60 * 1000;
 
-async function addressHash(email: string): Promise<string> {
+/**
+ * After this many wrong codes for one address in a day, the address can neither get nor try codes
+ * until the oldest of them is a day old. Codes aren't checked while it is locked, so nothing new is
+ * counted and the lock always lifts; a right code clears the count. Someone locked out by a
+ * stranger can still come in with Apple or Google on the same verified email.
+ */
+export const CODE_FAILURES_PER_ADDRESS = 10;
+export const CODE_FAILURE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export async function addressHash(email: string): Promise<string> {
   const digest = await crypto.subtle.digest(
     'SHA-256',
     new TextEncoder().encode(email.trim().toLowerCase()),
@@ -28,6 +37,40 @@ export async function mayGetAnotherCode(
     .bind(await addressHash(email), now - CODE_SEND_WINDOW_MS)
     .first<{ sends: number }>();
   return (row?.sends ?? 0) < CODE_SENDS_PER_ADDRESS;
+}
+
+/** Whether too many wrong codes were tried for this address in the last day. */
+export async function isAddressLocked(
+  db: D1Database,
+  email: string,
+  now: number,
+): Promise<boolean> {
+  const row = await db
+    .prepare(
+      'SELECT COUNT(*) AS failures FROM email_code_failures WHERE address_hash = ? AND failed_at > ?',
+    )
+    .bind(await addressHash(email), now - CODE_FAILURE_WINDOW_MS)
+    .first<{ failures: number }>();
+  return (row?.failures ?? 0) >= CODE_FAILURES_PER_ADDRESS;
+}
+
+export async function recordCodeFailure(db: D1Database, email: string, now: number): Promise<void> {
+  const hash = await addressHash(email);
+  await db.batch([
+    db
+      .prepare('DELETE FROM email_code_failures WHERE address_hash = ? AND failed_at <= ?')
+      .bind(hash, now - CODE_FAILURE_WINDOW_MS),
+    db
+      .prepare('INSERT INTO email_code_failures (address_hash, failed_at) VALUES (?, ?)')
+      .bind(hash, now),
+  ]);
+}
+
+export async function clearCodeFailures(db: D1Database, email: string): Promise<void> {
+  await db
+    .prepare('DELETE FROM email_code_failures WHERE address_hash = ?')
+    .bind(await addressHash(email))
+    .run();
 }
 
 async function recordSend(db: D1Database, email: string, now: number): Promise<void> {

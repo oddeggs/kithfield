@@ -1,5 +1,7 @@
 import { vi } from 'vitest';
 
+import { issueNonce, type IdentityFromSheet } from './client';
+
 /**
  * A stand-in for Apple's and Google's identity-token issuers: the only test double in the sign-in
  * tests, and only at the network boundary. It holds an RS256 key pair, signs identity tokens, and
@@ -28,6 +30,16 @@ export interface TestIdentityProvider {
   googleToken(sub: string, claims?: Claims): Promise<string>;
   /** A token signed by a key the published key set doesn't have. */
   forgedToken(claims: Claims): Promise<string>;
+  /**
+   * What the native sheet returns for `sub`, bound to a fresh server nonce the way each provider
+   * does it: Apple's token carries the nonce's SHA-256 (hex), Google's the nonce itself.
+   */
+  sheet(provider: 'apple' | 'google', sub: string, claims?: Claims): Promise<IdentityFromSheet>;
+}
+
+async function sha256Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(text));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 const encoder = new TextEncoder();
@@ -92,22 +104,34 @@ export async function startTestIdentityProvider(): Promise<TestIdentityProvider>
     exp: now() + 600,
   });
 
+  const appleToken = (sub: string, claims: Claims = {}) =>
+    signJwt(keys.privateKey, kid, {
+      ...base('https://appleid.apple.com', DEV_APPLE_AUDIENCE, sub),
+      email: `${sub}@privaterelay.appleid.com`,
+      email_verified: 'true',
+      is_private_email: 'true',
+      ...claims,
+    });
+  const googleToken = (sub: string, claims: Claims = {}) =>
+    signJwt(keys.privateKey, kid, {
+      ...base('https://accounts.google.com', DEV_GOOGLE_IOS_AUDIENCE, sub),
+      email: `${sub}@gmail.example`,
+      email_verified: true,
+      name: 'A Friend',
+      ...claims,
+    });
+
   return {
-    appleToken: (sub, claims = {}) =>
-      signJwt(keys.privateKey, kid, {
-        ...base('https://appleid.apple.com', DEV_APPLE_AUDIENCE, sub),
-        email: `${sub}@privaterelay.appleid.com`,
-        email_verified: 'true',
-        ...claims,
-      }),
-    googleToken: (sub, claims = {}) =>
-      signJwt(keys.privateKey, kid, {
-        ...base('https://accounts.google.com', DEV_GOOGLE_IOS_AUDIENCE, sub),
-        email: `${sub}@gmail.example`,
-        email_verified: true,
-        name: 'A Friend',
-        ...claims,
-      }),
+    appleToken,
+    googleToken,
+    sheet: async (provider, sub, claims = {}) => {
+      const nonce = await issueNonce();
+      const idToken =
+        provider === 'apple'
+          ? await appleToken(sub, { nonce: await sha256Hex(nonce), ...claims })
+          : await googleToken(sub, { nonce, ...claims });
+      return { idToken, nonce };
+    },
     forgedToken: (claims) =>
       signJwt(stranger.privateKey, kid, { iat: now(), exp: now() + 600, ...claims }),
   };
