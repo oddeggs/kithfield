@@ -6,6 +6,7 @@ import { Toggle } from '../../../ui/components/toggle';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
+import { stickerRoutes } from '../../stickers/routes';
 import { aiDataCount } from '../ai/consent';
 import { useSettingsApi } from '../api/use-api';
 import { useDevicePref } from '../device-prefs';
@@ -165,6 +166,18 @@ export function SettingsScreen() {
               (v) => change({ inTogetherStickers: v }),
               t('settings.stickers'),
             )}
+          />
+          <SettingRow
+            icon="people"
+            title={t('settings.stickers.asks')}
+            subtitle={t('settings.stickers.asksSub')}
+            onPress={() => go(stickerRoutes.asks())}
+          />
+          <SettingRow
+            icon="sparkle"
+            title={t('settings.stickers.export')}
+            subtitle={t('settings.stickers.exportSub')}
+            onPress={() => go(stickerRoutes.export())}
           />
           <SettingRow
             icon="chat"
