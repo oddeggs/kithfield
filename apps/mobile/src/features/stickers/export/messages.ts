@@ -1,5 +1,6 @@
 import type { Art } from '@kithfield/art';
 import { MESSAGES } from '@kithfield/art/stickers';
+import { APP_GROUP_PATHS } from '@kithfield/contracts';
 import Constants from 'expo-constants';
 import { Directory, File, Paths } from 'expo-file-system';
 
@@ -17,7 +18,7 @@ import { bakeQueue } from './queue';
  */
 
 /** The folder in the App Group (`APP_GROUP_PATHS` doesn't name it yet). */
-export const STICKERS_FOLDER = 'surfaces/stickers/';
+export const STICKERS_FOLDER = APP_GROUP_PATHS.stickers;
 /** Where the next pack is made before it is swapped in. */
 const NEXT_FOLDER = 'surfaces/stickers-next/';
 const MANIFEST = 'manifest.json';

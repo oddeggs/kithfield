@@ -1,3 +1,4 @@
+import { APP_GROUP_PATHS } from '@kithfield/contracts';
 import Constants from 'expo-constants';
 import { Directory, File, Paths } from 'expo-file-system';
 
@@ -34,7 +35,7 @@ function madeFolders(): Directory[] {
   const root = group ? Paths.appleSharedContainers[group] : undefined;
   if (root) {
     folders.push(
-      new Directory(root, 'surfaces/stickers/'),
+      new Directory(root, APP_GROUP_PATHS.stickers),
       new Directory(root, 'surfaces/stickers-next/'),
     );
   }

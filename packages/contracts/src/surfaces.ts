@@ -40,6 +40,8 @@ export const APP_GROUP_PATHS = {
   images: 'surfaces/images/',
   /** One `ShareDraft` per file, named by its op id, for the app to send. */
   shareOutbox: 'surfaces/share-outbox/',
+  /** The Messages sticker drawer's stickers (APNG, PNG or GIF), shown by file name. */
+  stickers: 'surfaces/stickers/',
 } as const;
 
 /** A widget opens a window lit when its person opened the farm within this long. */
