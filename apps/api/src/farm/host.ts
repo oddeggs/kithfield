@@ -12,6 +12,7 @@ import { forgetMedia } from '../media/deletion';
 import { markMediaReferenced } from '../media/sweep';
 import { cottage } from './adapters/cottage';
 import { ensureWeather, HELLO_DEADLINE_MS, nextWake, resetWeather, RETRY_MS } from './alarms';
+import { claimOf, markGiftOpened, releaseGift } from '../purchases/gift-claims';
 import { refusalOf } from './command-guards';
 import { mediaKeys, replyTarget } from './content';
 import { Farm, type Written } from './farm';
@@ -133,11 +134,32 @@ export class FarmHost {
             .then((s) => s.timeZone ?? undefined)
             .catch(() => undefined)
         : undefined;
-    return this.farm.command(cmd, person, {
-      then: this.effectsOf(media),
-      ...(recipientZone === undefined ? {} : { recipientZone }),
-      ...(refuse === null ? {} : { refuse }),
-    });
+    // A gift claimed for this write goes back to waiting if the farm refuses it.
+    const claim = answered || refuse !== null ? null : claimOf(cmd, actor);
+    let written: Written;
+    try {
+      written = this.farm.command(cmd, person, {
+        then: this.effectsOf(media),
+        ...(recipientZone === undefined ? {} : { recipientZone }),
+        ...(refuse === null ? {} : { refuse }),
+      });
+    } catch (error) {
+      if (claim !== null) await releaseGift(this.env.DB, claim).catch(() => undefined);
+      throw error;
+    }
+    if (claim !== null && written.result.result === 'rejected') {
+      await releaseGift(this.env.DB, claim).catch(() => undefined);
+    }
+    const opened = written.event;
+    if (opened?.kind === 'gift' && !isTombstone(opened.payload) && opened.actor !== null) {
+      const { payload, actor } = opened;
+      if (payload.action === 'opened') {
+        await step('gift opened', () =>
+          markGiftOpened(this.env.DB, payload.gift, actor, this.now()),
+        );
+      }
+    }
+    return written;
   }
 
   /** Broadcasts new events to every socket, then closes the sockets of anyone who left. */

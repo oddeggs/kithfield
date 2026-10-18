@@ -25,6 +25,12 @@ export const secretNames = [
   'R2_ACCOUNT_ID',
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
+  // RevenueCat's secret REST key, so `POST /v1/purchases/sync` can ask what a person bought.
+  'REVENUECAT_SECRET_KEY',
+  // The exact `Authorization` header value RevenueCat sends with each webhook.
+  'REVENUECAT_WEBHOOK_AUTH',
+  // Signs Stripe's webhooks (`Stripe-Signature`), for the printed scrapbook's payments.
+  'STRIPE_WEBHOOK_SECRET',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 

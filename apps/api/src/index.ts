@@ -4,6 +4,7 @@ import { queueDuePurges } from './auth';
 import { expireExports } from './auth/export';
 import type { Bindings } from './env';
 import { sweepMedia } from './media';
+import { closeDueChipIns } from './purchases';
 import { consumeQueue } from './queues';
 import { keepWaitlistTidy } from './web/waitlist-store';
 
@@ -26,5 +27,7 @@ export default {
     ctx.waitUntil(keepModerationTidy(env.DB, controller.scheduledTime));
     // Uploads left unfinished, or finished but sent in no event, for a week.
     ctx.waitUntil(sweepMedia(env, controller.scheduledTime, { unreferenced: true }));
+    // Chip-ins past their close: promises released, anything paid owed back.
+    ctx.waitUntil(closeDueChipIns(env, controller.scheduledTime));
   },
 } satisfies ExportedHandler<Bindings>;
