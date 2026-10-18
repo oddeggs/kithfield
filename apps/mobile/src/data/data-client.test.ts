@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from '@jest/globals';
 
 import { FarmTestServer } from './test/farm-test-server';
 import { kithfieldRules } from './farm-rules';
-import { TestPhone } from './test/test-phone';
+import { TestPhone, until } from './test/test-phone';
 
 const phones: TestPhone[] = [];
 
@@ -24,5 +24,7 @@ describe('what the hooks read', () => {
     expect(bea.client.cottage.getState()).toBe(bea.client.cottage.getState());
     const replica = await bea.client.replica('f_lot');
     expect(replica.getState()).toBe(replica.getState());
+    // Let the cottage finish connecting, so no request outlives the test.
+    await until(() => bea.client.cottage.getState().link.status === 'live');
   });
 });
