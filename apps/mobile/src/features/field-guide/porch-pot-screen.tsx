@@ -131,8 +131,7 @@ export function PorchPotPage({
           paddingBottom: 8,
           paddingHorizontal: 16,
           borderRadius: 22,
-          backgroundColor:
-            appearance === 'night' ? palette.glassButton.fill : 'rgba(251,247,240,.86)',
+          backgroundColor: look.porchPill,
           alignItems: 'center',
         }}
       >
@@ -158,7 +157,7 @@ export function PorchPotPage({
           backgroundColor: palette.sheet,
           borderTopLeftRadius: 30,
           borderTopRightRadius: 30,
-          boxShadow: '0 -8px 30px -14px rgba(60,40,20,.35)',
+          boxShadow: palette.sheetShadow,
         }}
       >
         <ScrollView

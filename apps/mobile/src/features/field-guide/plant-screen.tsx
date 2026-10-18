@@ -1,5 +1,6 @@
 import type { FarmId, FarmState, RareVariant } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
+import { fieldGuideWashes } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { ScrollView, Share, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +15,7 @@ import { say } from '../farm/farm-copy';
 import { NightVeil } from '../farm/panel';
 import { useNow } from '../farm/use-now';
 import { familyName, plantTitle } from './guide-copy';
-import { RARE_TINT, guideMotion, useGuideLook } from './guide-look';
+import { guideMotion, useGuideLook } from './guide-look';
 import { STRIP, entryOf, plantStatus, stripIndex, tileLook, variantArt } from './guide-model';
 import { foundLine, plantCredits, rareLine, sleepyLine } from './page-copy';
 import { BoldLine, HeroSheet, PlantTile, RoundButton, Sway, sendersOf, useHeroTint } from './parts';
@@ -84,7 +85,7 @@ export function PlantPage({
     : status
       ? tileLook(status)
       : { stage: 3, state: '', sketch: false };
-  const background = rarePage?.variant ? RARE_TINT[rarePage.variant] : tint;
+  const background = rarePage?.variant ? fieldGuideWashes.rare[rarePage.variant] : tint;
   const sleepy = hero.state === 'sleepy';
   const found = rarePage ?? (status?.kind === 'found' ? status.page : null);
   const outlined = status ? stripIndex(status) : entry.role === 'rose' ? 3 : null;
@@ -224,7 +225,7 @@ export function PlantPage({
                 <View
                   style={{
                     borderRadius: 12,
-                    boxShadow: i === outlined ? `0 0 0 2px ${look.found}` : undefined,
+                    boxShadow: i === outlined ? look.stageRing : undefined,
                   }}
                 >
                   <PlantTile

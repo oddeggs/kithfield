@@ -1,5 +1,6 @@
 import type { FarmId, FarmState, PersonId, RareVariant } from '@kithfield/contracts';
 import { RARE_VARIANTS } from '@kithfield/farm';
+import { fieldGuideWashes } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { ScrollView, View, useWindowDimensions } from 'react-native';
@@ -25,7 +26,7 @@ import { Txt } from '../../ui/type/text';
 import { say } from '../farm/farm-copy';
 import { NightVeil } from '../farm/panel';
 import { capital, variantOf } from './guide-copy';
-import { RARE_TINT, useGuideLook } from './guide-look';
+import { useGuideLook } from './guide-look';
 import { variantArt } from './guide-model';
 import { rareBloomByKey } from './moments';
 import { rareBody } from './page-copy';
@@ -120,7 +121,7 @@ export function RareBloomPage({
     return <View style={{ flex: 1, backgroundColor: palette.sheet }}>{back}</View>;
   }
 
-  const tint = RARE_TINT[bloom.variant];
+  const tint = fieldGuideWashes.rare[bloom.variant];
   const art = variantArt(bloom.variant);
   const heroH = 520 * k;
   const heroTop = 40 * k;

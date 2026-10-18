@@ -1,6 +1,6 @@
 import type { FarmState, PersonId } from '@kithfield/contracts';
 import type { Translate } from '@kithfield/i18n';
-import { radii, sizes } from '@kithfield/theme';
+import { fieldGuideWashes, radii, sizes } from '@kithfield/theme';
 import { Canvas, ColorMatrix, Image } from '@shopify/react-native-skia';
 import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
@@ -162,7 +162,7 @@ export function Sway({
 export function useHeroTint(plant: string): string {
   const store = useArt();
   const row = store.art.internals.PL[plant];
-  if (row?.[0] === 'night') return '#2b2e4a';
+  if (row?.[0] === 'night') return fieldGuideWashes.nightPlant;
   return heroTint(typeof row?.[2] === 'string' ? row[2] : '');
 }
 
@@ -179,13 +179,10 @@ export function RoundButton({
   /** Over art: the porch's pale glass. */
   readonly glass?: boolean;
 }) {
-  const { palette, appearance } = useTheme();
+  const { palette } = useTheme();
+  const look = useGuideLook();
   const size = sizes.circle;
-  const fill = glass
-    ? appearance === 'night'
-      ? palette.glassButton.fill
-      : 'rgba(251,247,240,.82)'
-    : palette.fillSoft;
+  const fill = glass ? look.glassButton : palette.fillSoft;
   return (
     <Press
       onPress={onPress}
@@ -233,7 +230,7 @@ export function BookPage({
         bottom,
         borderRadius: 26,
         backgroundColor: look.page,
-        boxShadow: `${look.pageShadow}, inset 10px 0 0 ${look.spine}`,
+        boxShadow: look.pageShadow,
         overflow: 'hidden',
       }}
     >
@@ -343,7 +340,7 @@ export function LinkRow({
         paddingVertical: 12,
         paddingHorizontal: 14,
         borderRadius: 18,
-        backgroundColor: look.scrapbookRow.bg,
+        backgroundColor: look.linkRow.bg,
       }}
     >
       <ArtStill
@@ -359,13 +356,13 @@ export function LinkRow({
         <Txt
           variant="caption"
           multiline
-          color={look.scrapbookRow.sub}
+          color={look.linkRow.sub}
           style={{ fontSize: 13, lineHeight: 16.9 }}
         >
           {sub}
         </Txt>
       </View>
-      <Txt variant="chevron" color={look.scrapbookRow.chevron}>
+      <Txt variant="chevron" color={look.linkRow.chevron}>
         ›
       </Txt>
     </Press>

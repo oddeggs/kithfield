@@ -51,7 +51,7 @@ export function SeasonsScreen({ farm }: { readonly farm: FarmId }) {
                 height: CARD_H,
                 borderRadius: 24,
                 overflow: 'hidden',
-                boxShadow: '0 14px 30px -16px rgba(60,40,20,.45)',
+                boxShadow: look.seasonCardShadow,
               }}
             >
               <ArtStill scene="farm" width={cardW} height={CARD_H} attrs={{ season }} t={1.2} />
