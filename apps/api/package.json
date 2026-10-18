@@ -7,10 +7,16 @@
   "scripts": {
     "dev": "wrangler dev --env dev",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:auth": "vitest run src/auth"
   },
   "dependencies": {
-    "hono": "catalog:"
+    "@kithfield/contracts": "workspace:*",
+    "@kithfield/farm": "workspace:*",
+    "@kithfield/i18n": "workspace:*",
+    "better-auth": "catalog:",
+    "hono": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "catalog:",

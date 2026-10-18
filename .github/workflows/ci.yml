@@ -62,10 +62,33 @@ jobs:
       - run: pnpm --filter @kithfield/mobile test
       - run: pnpm --filter @kithfield/mobile exec expo export --platform ios --output-dir "$RUNNER_TEMP/export"
 
+  # The art's golden scenes: the design's renderer in headless Chrome against the Skia adapter.
+  art-goldens:
+    name: art goldens
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - id: playwright
+        run: echo "version=$(pnpm --filter @kithfield/art exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm --filter @kithfield/art exec playwright install --with-deps chromium
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm --filter @kithfield/art exec playwright install-deps chromium
+      - run: pnpm --filter @kithfield/art golden
+
   # The single required check for merging. The Android build job joins it once Android work starts.
   ci-passed:
     if: always()
-    needs: [checks, test, api, mobile]
+    needs: [checks, test, api, mobile, art-goldens]
     runs-on: ubuntu-latest
     steps:
       - run: |

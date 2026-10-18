@@ -13,7 +13,18 @@ export interface VariantConfig {
   host: string;
 }
 
+/** The `kithfield` project on the `kithfield` Expo account: https://expo.dev/accounts/kithfield/projects/kithfield */
+export const EAS_PROJECT_ID = 'cb527a7c-d45c-4e14-98ca-5ecc3c3affaa';
 const IOS_DEPLOYMENT_TARGET = '17.0';
+
+/** The theme's embedded fonts, by PostScript name; each is also its file name. */
+export const FONTS = [
+  'YoungSerif-Regular',
+  'Gaegu-Bold',
+  'PatrickHand-Regular',
+  'Lora-Regular',
+  'Lora-SemiBold',
+].map((name) => `../../packages/theme/fonts/${name}.ttf`);
 
 /** Bundle ids are placeholders until the Apple developer team registers them. */
 export const VARIANTS: Record<AppVariant, VariantConfig> = {
@@ -35,36 +46,38 @@ export const VARIANTS: Record<AppVariant, VariantConfig> = {
 
 /** Unset means dev, for local work; every EAS profile names its variant. */
 export function resolveVariant(raw: string | undefined): AppVariant {
-  if (raw === undefined || raw === '') return 'dev';
+  if (!isSet(raw)) return 'dev';
   if (raw === 'dev' || raw === 'prd') return raw;
   throw new Error(`APP_VARIANT must be dev or prd, not "${raw}"`);
 }
 
-/**
- * The app's config for one variant. The EAS project id comes from the environment until the
- * project exists; without it the build is not linked to EAS and takes no over-the-air updates.
- */
+/** Settings read from the environment; unset or empty means the variant's default. */
+export interface BuildEnv {
+  /** Points the app at another API, such as `wrangler dev` on this Mac. */
+  apiBase: string | undefined;
+}
+
+const isSet = (value: string | undefined): value is string => value !== undefined && value !== '';
+
+/** The app's config for one variant. */
 export function buildConfig(
   config: ConfigContext['config'],
   appVariant: AppVariant,
-  easProjectId: string | undefined,
+  { apiBase }: BuildEnv,
 ): ExpoConfig {
   const variant = VARIANTS[appVariant];
-  const linked = easProjectId !== undefined && easProjectId !== '';
   return {
     ...config,
     name: variant.name,
+    owner: 'kithfield',
     slug: 'kithfield',
     scheme: variant.scheme,
     version: '0.1.0',
     orientation: 'portrait',
     userInterfaceStyle: 'automatic',
-    ...(linked
-      ? {
-          runtimeVersion: { policy: 'fingerprint' },
-          updates: { url: `https://u.expo.dev/${easProjectId}` },
-        }
-      : { updates: { enabled: false, checkAutomatically: 'NEVER' } }),
+    // A build only takes updates made from the same native code.
+    runtimeVersion: { policy: 'fingerprint' },
+    updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
     ios: {
       bundleIdentifier: variant.bundleIdentifier,
       deploymentTarget: IOS_DEPLOYMENT_TARGET,
@@ -76,16 +89,22 @@ export function buildConfig(
     android: {
       package: variant.bundleIdentifier,
     },
-    plugins: ['expo-router'],
+    plugins: [
+      'expo-router',
+      // The phone's cache of each farm's log and the outbox, encrypted at rest.
+      ['expo-sqlite', { useSQLCipher: true }],
+      // Fonts are embedded natively so the first frame already has them.
+      ['expo-font', { fonts: FONTS }],
+    ],
     experiments: {
       typedRoutes: true,
     },
     extra: {
       ...config.extra,
       appVariant,
-      apiBase: `https://${variant.host}/api`,
+      apiBase: isSet(apiBase) ? apiBase : `https://${variant.host}/api`,
       appGroup: variant.appGroup,
-      ...(linked ? { eas: { projectId: easProjectId } } : {}),
+      eas: { projectId: EAS_PROJECT_ID },
     },
   };
 }
@@ -94,4 +113,4 @@ export function buildConfig(
 const env = process.env as Partial<Record<string, string>>;
 
 export default ({ config }: ConfigContext): ExpoConfig =>
-  buildConfig(config, resolveVariant(env['APP_VARIANT']), env['EAS_PROJECT_ID']);
+  buildConfig(config, resolveVariant(env['APP_VARIANT']), { apiBase: env['API_BASE'] });

@@ -1,6 +1,12 @@
-import { describe, expect, it } from '@jest/globals';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 
-import { buildConfig, resolveVariant } from '../app.config';
+import { describe, expect, it } from '@jest/globals';
+import { fontFaces } from '@kithfield/theme';
+
+import { EAS_PROJECT_ID, FONTS, buildConfig, resolveVariant } from '../app.config';
+
+const unset = { apiBase: undefined };
 
 describe('app variants', () => {
   it('defaults to dev when APP_VARIANT is unset or empty', () => {
@@ -13,8 +19,8 @@ describe('app variants', () => {
   });
 
   it('installs dev and prd side by side under their own bundle ids and hosts', () => {
-    const dev = buildConfig({}, 'dev', undefined);
-    const prd = buildConfig({}, 'prd', undefined);
+    const dev = buildConfig({}, 'dev', unset);
+    const prd = buildConfig({}, 'prd', unset);
     expect(dev.ios?.bundleIdentifier).toBe('com.kithfield.app.dev');
     expect(prd.ios?.bundleIdentifier).toBe('com.kithfield.app');
     expect(dev.android?.package).toBe('com.kithfield.app.dev');
@@ -23,14 +29,32 @@ describe('app variants', () => {
     expect(prd.extra?.['apiBase']).toBe('https://kithfield.com/api');
   });
 
-  it('turns updates off and leaves EAS unlinked until a project id is given', () => {
-    const unlinked = buildConfig({}, 'prd', undefined);
-    expect(unlinked.updates?.enabled).toBe(false);
-    expect(unlinked.extra?.['eas']).toBeUndefined();
+  it('links every variant to the EAS project and its update channel', () => {
+    for (const variant of ['dev', 'prd'] as const) {
+      const config = buildConfig({}, variant, unset);
+      expect(config.owner).toBe('kithfield');
+      expect(config.slug).toBe('kithfield');
+      expect(config.extra?.['eas']).toEqual({ projectId: EAS_PROJECT_ID });
+      expect(config.updates?.url).toBe(`https://u.expo.dev/${EAS_PROJECT_ID}`);
+    }
+  });
 
-    const id = '00000000-0000-4000-8000-000000000000';
-    const linked = buildConfig({}, 'prd', id);
-    expect(linked.updates?.url).toBe(`https://u.expo.dev/${id}`);
-    expect(linked.extra?.['eas']).toEqual({ projectId: id });
+  it('points at another API when API_BASE is set, and at the variant host when it is empty', () => {
+    const local = buildConfig({}, 'dev', { ...unset, apiBase: 'http://127.0.0.1:8787/api' });
+    expect(local.extra?.['apiBase']).toBe('http://127.0.0.1:8787/api');
+    const empty = buildConfig({}, 'dev', { ...unset, apiBase: '' });
+    expect(empty.extra?.['apiBase']).toBe('https://dev.kithfield.com/api');
+  });
+
+  it('embeds every theme font natively in both variants', () => {
+    const projectRoot = resolve(__dirname, '..');
+    expect(FONTS).toEqual(fontFaces.map((f) => `../../packages/theme/fonts/${f.file}`));
+    for (const font of FONTS) expect(existsSync(resolve(projectRoot, font))).toBe(true);
+    for (const variant of ['dev', 'prd'] as const) {
+      expect(buildConfig({}, variant, unset).plugins).toContainEqual([
+        'expo-font',
+        { fonts: FONTS },
+      ]);
+    }
   });
 });

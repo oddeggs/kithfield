@@ -11,6 +11,9 @@
     "typecheck": "astro check"
   },
   "dependencies": {
+    "@kithfield/contracts": "workspace:*",
+    "@kithfield/i18n": "workspace:*",
+    "@kithfield/theme": "workspace:*",
     "astro": "catalog:"
   },
   "devDependencies": {

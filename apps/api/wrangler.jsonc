@@ -8,6 +8,8 @@
   "name": "kithfield-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
+  // Node built-ins (crypto, buffer, async_hooks) for Better Auth and Sentry.
+  "compatibility_flags": ["nodejs_compat"],
   // One FarmDO per farm or visit, one CottageDO per person; both keep their state in SQLite.
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["FarmDO", "CottageDO"] }],
   "env": {
@@ -15,7 +17,14 @@
       "name": "kithfield-api-dev",
       "routes": [{ "pattern": "dev.kithfield.com/api/*", "zone_name": "kithfield.com" }],
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
-      "vars": { "ENVIRONMENT": "dev", "COMMIT_SHA": "local" },
+      // Sign-in identity token audiences (public ids, not secrets).
+      "vars": {
+        "ENVIRONMENT": "dev",
+        "COMMIT_SHA": "local",
+        "APPLE_BUNDLE_ID": "com.kithfield.app.dev",
+        "GOOGLE_IOS_CLIENT_ID": "564934268570-n2lmcq3r3vc060p5hsankdnisfnalk0v.apps.googleusercontent.com",
+        "GOOGLE_WEB_CLIENT_ID": "564934268570-hst5dob3msctegnpgskivamd25gh6jbc.apps.googleusercontent.com",
+      },
       "durable_objects": {
         "bindings": [
           { "name": "FARM", "class_name": "FarmDO" },
@@ -26,24 +35,37 @@
         {
           "binding": "DB",
           "database_name": "kithfield-dev",
-          // Placeholder until the database is created on the Cloudflare account; local runs ignore it.
-          "database_id": "00000000-0000-0000-0000-000000000000",
+          "database_id": "465f2675-0691-48eb-b09d-4a890a82b349",
           "migrations_dir": "migrations",
         },
       ],
       "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media-dev" }],
+      // Per-address limit on handing out sign-in nonces (keyed on cf-connecting-ip).
+      "ratelimits": [
+        {
+          "name": "SIGN_IN_NONCE_LIMIT",
+          "namespace_id": "1101",
+          "simple": { "limit": 20, "period": 60 },
+        },
+      ],
+      // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
+      "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@kithfield.com"] }],
       "queues": {
         "producers": [
           { "binding": "PUSH_QUEUE", "queue": "kithfield-push-dev" },
-          { "binding": "MEDIA_QUEUE", "queue": "kithfield-media-dev" },
+          { "binding": "MEDIA_QUEUE", "queue": "kithfield-media-jobs-dev" },
           { "binding": "AI_QUEUE", "queue": "kithfield-ai-dev" },
           { "binding": "DELETION_QUEUE", "queue": "kithfield-deletion-dev" },
         ],
+        // A batch that keeps failing (3 retries by default) moves to its dead-letter queue.
         "consumers": [
-          { "queue": "kithfield-push-dev" },
-          { "queue": "kithfield-media-dev" },
-          { "queue": "kithfield-ai-dev" },
-          { "queue": "kithfield-deletion-dev" },
+          { "queue": "kithfield-push-dev", "dead_letter_queue": "kithfield-push-dlq-dev" },
+          {
+            "queue": "kithfield-media-jobs-dev",
+            "dead_letter_queue": "kithfield-media-jobs-dlq-dev",
+          },
+          { "queue": "kithfield-ai-dev", "dead_letter_queue": "kithfield-ai-dlq-dev" },
+          { "queue": "kithfield-deletion-dev", "dead_letter_queue": "kithfield-deletion-dlq-dev" },
         ],
       },
     },
@@ -51,7 +73,14 @@
       "name": "kithfield-api",
       "routes": [{ "pattern": "kithfield.com/api/*", "zone_name": "kithfield.com" }],
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
-      "vars": { "ENVIRONMENT": "prd", "COMMIT_SHA": "local" },
+      // Sign-in identity token audiences (public ids, not secrets).
+      "vars": {
+        "ENVIRONMENT": "prd",
+        "COMMIT_SHA": "local",
+        "APPLE_BUNDLE_ID": "com.kithfield.app",
+        "GOOGLE_IOS_CLIENT_ID": "564934268570-jr7d94ci3jtb88sm4uqio1pjoatb3l31.apps.googleusercontent.com",
+        "GOOGLE_WEB_CLIENT_ID": "564934268570-hst5dob3msctegnpgskivamd25gh6jbc.apps.googleusercontent.com",
+      },
       "durable_objects": {
         "bindings": [
           { "name": "FARM", "class_name": "FarmDO" },
@@ -62,24 +91,34 @@
         {
           "binding": "DB",
           "database_name": "kithfield",
-          // Placeholder until the database is created on the Cloudflare account; local runs ignore it.
-          "database_id": "00000000-0000-0000-0000-000000000000",
+          "database_id": "5f18722b-a3a0-4e7b-8a17-bbf8f4f22a81",
           "migrations_dir": "migrations",
         },
       ],
       "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media" }],
+      // Per-address limit on handing out sign-in nonces (keyed on cf-connecting-ip).
+      "ratelimits": [
+        {
+          "name": "SIGN_IN_NONCE_LIMIT",
+          "namespace_id": "1102",
+          "simple": { "limit": 20, "period": 60 },
+        },
+      ],
+      // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
+      "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@kithfield.com"] }],
       "queues": {
         "producers": [
           { "binding": "PUSH_QUEUE", "queue": "kithfield-push" },
-          { "binding": "MEDIA_QUEUE", "queue": "kithfield-media" },
+          { "binding": "MEDIA_QUEUE", "queue": "kithfield-media-jobs" },
           { "binding": "AI_QUEUE", "queue": "kithfield-ai" },
           { "binding": "DELETION_QUEUE", "queue": "kithfield-deletion" },
         ],
+        // A batch that keeps failing (3 retries by default) moves to its dead-letter queue.
         "consumers": [
-          { "queue": "kithfield-push" },
-          { "queue": "kithfield-media" },
-          { "queue": "kithfield-ai" },
-          { "queue": "kithfield-deletion" },
+          { "queue": "kithfield-push", "dead_letter_queue": "kithfield-push-dlq" },
+          { "queue": "kithfield-media-jobs", "dead_letter_queue": "kithfield-media-jobs-dlq" },
+          { "queue": "kithfield-ai", "dead_letter_queue": "kithfield-ai-dlq" },
+          { "queue": "kithfield-deletion", "dead_letter_queue": "kithfield-deletion-dlq" },
         ],
       },
     },
