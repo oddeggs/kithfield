@@ -32,7 +32,6 @@ export const farmVi: ViCatalogue<typeof farmEn> = {
   'farm.house.label': 'Căn nhà của {name}',
   'farm.house.formerLabel': 'Căn nhà của {name}, đang ngủ',
   'farm.fire.label': 'Vòng lửa trại',
-  'farm.fire.soon': 'Vòng lửa trại vẫn đang được xếp đá. Sắp được ngồi bên bếp lửa rồi.',
   'farm.patch.label': 'Luống hạt giống',
   'farm.credits.none.lead': 'Cánh đồng đang nghỉ ngơi.',
   'farm.credits.none.rest':

@@ -9,7 +9,6 @@ import { useDataClient, useFarm, useFarmLink, useFarmView, useOpenFarm, useSend 
 import { ArtStill } from '../../ui/art/art-view';
 import { EmptyState } from '../../ui/components/state-shell';
 import { Sheet, SheetScrollView } from '../../ui/components/sheet';
-import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useArtVisible } from '../../ui/motion/visibility';
@@ -17,6 +16,8 @@ import { useSession } from '../../ui/session/session';
 import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
 import { useYouCritter } from '../../ui/tab-bar/tab-activity';
 import { useSunPlace, useTheme } from '../../ui/theme/theme-provider';
+// The fire on the farm: its glow, who is by it, and the way into the fire room.
+import { FireGlowCard, openFire, useFireOnFarm } from '../fire/fire-glow';
 // The farm's rhythm (birthdays, shared rain, weather, the project, the harvest letter).
 import { RhythmSheetRows, RhythmWeatherChip, useRhythmMoments } from '../rhythm/farm-entries';
 import { rhythmRoutes } from '../rhythm/routes';
@@ -105,11 +106,11 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
   const state = useFarm(farm)?.state ?? null;
   const view = useFarmView<FarmView>(farm, now);
   const send = useSend(farm);
-  const toast = useToast();
   const { appearance } = useTheme();
   const visible = useArtVisible();
   const reduce = useReduceMotion();
   const [sheet, setSheet] = useState(0);
+  const fire = useFireOnFarm(farm);
   const self = state?.members.find((m) => m.person === me) ?? null;
 
   useSunPlace(state?.place ? { lat: state.place.lat, lng: state.place.lng } : null);
@@ -140,11 +141,12 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
         // The farm rests while the sheet covers it at full height.
         running={visible && !reduce && sheet === 0}
         now={now}
+        fire={fire}
         targets={{
           onCritter: openCritter,
           onHouse: (h) =>
             h.former ? router.push(farmRoutes.cottage(farm, h.person)) : openCritter(h.person),
-          onFire: () => toast.show(t('farm.fire.soon'), 'lantern'),
+          onFire: () => openFire(farm),
           onPatch: () => router.navigate(farmRoutes.seedbed()),
           onPlan: (p) => router.push(farmRoutes.plan(farm, p.seed.seq)),
         }}
@@ -170,6 +172,11 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
             contentContainerStyle={{ paddingTop: 4, paddingBottom: tabBarClearance(insets.bottom) }}
             showsVerticalScrollIndicator={false}
           >
+            {fire.line !== null ? (
+              <View style={{ marginBottom: 12 }}>
+                <FireGlowCard farm={farm} />
+              </View>
+            ) : null}
             <FarmSheetContent
               state={state}
               view={view}

@@ -21,6 +21,9 @@ export interface SceneTargets {
   readonly onPlan: (plan: PlanView) => void;
 }
 
+/** How far above the fire ring its flame reaches, as a fraction of the width. */
+const FIRE_TOP = 0.12;
+
 /** A tap target over the art, at least 44 points. */
 function Target({
   x,
@@ -70,6 +73,7 @@ export function FarmScene({
   night,
   running,
   now,
+  fire = null,
   targets,
 }: {
   readonly state: FarmState | null;
@@ -80,11 +84,13 @@ export function FarmScene({
   readonly night: boolean;
   readonly running: boolean;
   readonly now: number;
+  /** The fire on the farm: whether it is lit, and the line about who is by it. */
+  readonly fire?: { readonly lit: boolean; readonly line: string | null } | null;
   readonly targets: SceneTargets;
 }) {
   const { t } = useLocale();
   const reduce = useReduceMotion();
-  const scene = useFarmScene(state, view, { width, height }, night);
+  const scene = useFarmScene(state, view, { width, height }, night, fire?.lit === true);
   const spotOf = new Map(scene.placement.critters.map((c) => [c.person, c.spot]));
 
   const stateOf = (person: PersonId) => {
@@ -138,6 +144,19 @@ export function FarmScene({
       order: 1,
     });
   }
+  if (fire?.line) {
+    // "Mo's by the fire", over the fire's glow (16-02).
+    wishes.push({
+      key: 'fire',
+      text: fire.line,
+      x: width * LANDMARKS.fire.x,
+      y: height * LANDMARKS.fire.y - width * FIRE_TOP,
+      maxWidth: 170,
+      meta: false,
+      mine: false,
+      order: 1,
+    });
+  }
   if (plan?.seed.title) {
     wishes.push({
       key: 'plan',
@@ -163,6 +182,7 @@ export function FarmScene({
         night={night}
         running={running}
         reduce={reduce}
+        fire={scene.fire}
         {...(state ? { travel: state.farm } : {})}
       />
       {/* Where a critter's face travelling from a chat lands as the critter (signature motion). */}

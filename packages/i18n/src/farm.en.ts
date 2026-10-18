@@ -38,7 +38,6 @@ export const farmEn = {
   'farm.house.label': '{name}’s cottage',
   'farm.house.formerLabel': '{name}’s cottage, dozing',
   'farm.fire.label': 'The fire ring',
-  'farm.fire.soon': 'The fire ring is still being laid. Sitting by the fire opens soon.',
   'farm.patch.label': 'The seed bed',
   'farm.credits.none.lead': 'The field is resting.',
   'farm.credits.none.rest': 'A dewdrop or a hello is all it takes to wake the first seeds.',

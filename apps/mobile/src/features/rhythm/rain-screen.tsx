@@ -15,6 +15,7 @@ import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { nameOf } from '../farm/farm-copy';
+import { openFire } from '../fire/fire-glow';
 import { NightVeil, Panel } from '../farm/panel';
 import { useNow } from '../farm/use-now';
 import { ActionButton, Faces, TitlePill } from './chrome';
@@ -112,7 +113,10 @@ export function RainScreen({ farm }: { readonly farm: FarmId }) {
           <ActionButton
             label={t('rhythm.rain.voice')}
             icon="mic"
-            onPress={() => toast.show(t('farm.fire.soon'), 'lantern')}
+            onPress={() => {
+              close();
+              openFire(farm);
+            }}
             bg={palette.fillSecondary}
             fg={palette.text}
             small
