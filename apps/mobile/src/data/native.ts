@@ -8,7 +8,7 @@ import { createApiClient } from './api-client';
 import type { SyncReport } from './apply-events';
 import { authPort, createKithfieldAuthClient, type KithfieldAuthClient } from './auth-client';
 import { createDataClient, type DataClient } from './data-client';
-import { createNetworkSwitch, type NetworkSwitch } from './dev-network';
+import type { NetworkSwitch, createNetworkSwitch } from './dev-network';
 import type { FarmRules } from './farm-rules';
 import { createOpIdMaker } from './op-id';
 import { createRtTokens } from './rt-tokens';
@@ -46,6 +46,15 @@ export interface DataRuntime<View> {
 
 const platformSocket: OpenSocket = (url) => new WebSocket(url) as unknown as WebSocketLike;
 
+type DevNetwork = { createNetworkSwitch: typeof createNetworkSwitch };
+
+// Required only in development builds: in a release bundle `__DEV__` is false, the branch is
+// removed and the switch's code never ships.
+const makeNetworkSwitch = __DEV__
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports -- dropped from release bundles
+    (require('./dev-network') as DevNetwork).createNetworkSwitch
+  : null;
+
 /**
  * Starts the data layer on the phone: opens the encrypted store, wires the session, the API and
  * the sockets, and makes sure there is a person (anonymous on first launch). Offline, a returning
@@ -58,13 +67,11 @@ export async function startData<View>(
   report: (report: SyncReport) => void = () => undefined,
 ): Promise<DataRuntime<View>> {
   const { apiBase } = Constants.expoConfig?.extra as AppExtra;
-  // In a release bundle `__DEV__` is false and the switch is never made.
-  const network = __DEV__
-    ? createNetworkSwitch({
-        fetch: (input, init) => fetch(input, init),
-        openSocket: platformSocket,
-      })
-    : null;
+  const network =
+    makeNetworkSwitch?.({
+      fetch: (input, init) => fetch(input, init),
+      openSocket: platformSocket,
+    }) ?? null;
   const netFetch = network?.fetch ?? fetch;
   const db = await openDatabase((reason) => report({ type: 'store_reset', reason }));
   const auth = createKithfieldAuthClient({
