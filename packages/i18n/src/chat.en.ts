@@ -92,6 +92,7 @@ export const chatEn = {
   'chat.bubble.sent': 'Sent',
   'chat.bubble.edited': 'edited',
   'chat.bubble.didntSend': 'Didn’t send',
+  'chat.bubble.meet': 'See {name} on the farm',
   'chat.bubble.tryAgain': 'Try again',
   /** Why the farm refused a write; the ones that won't change offer no retry. */
   'chat.refused.editClosed': 'Edits close 15 minutes after sending.',

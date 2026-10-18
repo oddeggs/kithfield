@@ -1,7 +1,7 @@
 import type { FarmId, LocalDate, Seq, Yeses } from '@kithfield/contracts';
 import { fontFor, type } from '@kithfield/theme';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useDataClient, useOpenFarm } from '../../data';
@@ -12,6 +12,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics } from '../../ui/motion/haptics';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { tabIconBox, timing, TravelAnchor, travelIds, useTravel } from '../../ui/travel';
 import { Txt } from '../../ui/type/text';
 import { canPlant, draftStage, placeSuggestions, plantPayload, titleFrom } from './draft';
 import { leave } from './chrome';
@@ -24,6 +25,12 @@ import { plantAndJoin } from './planted';
 import { plantedStore, useMe, usePlan, usePlantedAnswers } from './use-plans';
 import type { BedFarm } from './use-seed-bed';
 
+const SEED = 96;
+/** Planted, the seed drops to the tab at this share of its size, rising this high (points) on
+ * the way, over this share of the storyboard's plant time (the rest is the sheet closing). */
+const SEED_LANDS_AT = 0.4;
+const SEED_ARC = 60;
+const SEED_DROP_SHARE = 0.5;
 const STAGE_CAPTIONS = ['plans.stage.0', 'plans.stage.1', 'plans.stage.2', 'plans.stage.3'] as const;
 
 /**
@@ -50,6 +57,10 @@ export function PlantSheet({
   const insets = useSafeAreaInsets();
   const client = useDataClient();
   const { show } = useToast();
+  const travel = useTravel();
+  const screen = useWindowDimensions();
+  // The sheet rests on the bottom edge: its height says where its seed is on the window.
+  const [sheetHeight, setSheetHeight] = useState(screen.height);
   const me = useMe();
   const here = usePlan(farm, null);
   const message = useMessage(farm, fromSeq);
@@ -84,12 +95,27 @@ export function PlantSheet({
       return;
     }
     haptics.success();
-    leave();
+    // The seed drops in an arc into the Seed bed tab, as the storyboard has it.
+    travel.fly({
+      from: travelIds.plantingSeed,
+      to: tabIconBox('seedbed', screen.width, screen.height, insets.bottom),
+      sprite: { scene: 'seed', attrs: { stage }, width: SEED, height: SEED },
+      toWidth: SEED * SEED_LANDS_AT,
+      arc: SEED_ARC,
+      hideSource: false,
+      durationMs: timing('plantSeed', 'plant') * SEED_DROP_SHARE,
+      // The sheet closes as the seed lifts off it (or at once, if it can't).
+      onStart: () => leave(),
+      onReturned: () => leave(),
+    });
   };
 
   const titleFont = fontFor(type.displayM, fontLocale);
   return (
-    <View style={{ flex: 1, backgroundColor: palette.sheet }}>
+    <View
+      style={{ flex: 1, backgroundColor: palette.sheet }}
+      onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
+    >
       <ScrollView
         automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled"
@@ -117,7 +143,9 @@ export function PlantSheet({
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <SeedArt stage={stage} size={96} tile={look.seedTile} radius={24} />
+          <TravelAnchor id={travelIds.plantingSeed} sheetTop={screen.height - sheetHeight}>
+            <SeedArt stage={stage} size={SEED} tile={look.seedTile} radius={24} />
+          </TravelAnchor>
           <View style={{ flex: 1, gap: 4 }}>
             <TextInput
               value={title}

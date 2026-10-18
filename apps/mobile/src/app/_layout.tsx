@@ -19,6 +19,7 @@ import { DataSlot } from '../ui/session/data-slot';
 import { useSession } from '../ui/session/session';
 import { TabActivityProvider } from '../ui/tab-bar/tab-activity';
 import { ThemeProvider, useTheme } from '../ui/theme/theme-provider';
+import { TravelHost } from '../ui/travel';
 
 // The splash stays up until the first frame can be drawn whole: the theme fonts are embedded
 // natively (expo-font's config plugin), so what is waited for is the session, the art and the
@@ -61,6 +62,7 @@ function Screens() {
           <Stack.Screen name="(dev)/art-lab" />
           <Stack.Screen name="(dev)/gestures-lab" />
           <Stack.Screen name="(dev)/native-lab" />
+          <Stack.Screen name="(dev)/motion-lab" />
         </Stack.Protected>
         <Stack.Screen name="+not-found" />
       </Stack>
@@ -97,18 +99,21 @@ export default function RootLayout() {
             <LocaleProvider storedChoice={language}>
               <ThemeProvider>
                 <ArtProvider store={art}>
-                  <TabActivityProvider>
-                    <ToastHost>
-                      {/* The data layer and its session; the splash stays up while it starts. */}
-                      <DataSlot heldElsewhere={mediaQueue}>
-                        {/* Resumes the media uploads at launch, not only when a chat opens. */}
-                        <MediaUploads />
-                        <SplashGate>
-                          <Screens />
-                        </SplashGate>
-                      </DataSlot>
-                    </ToastHost>
-                  </TabActivityProvider>
+                  {/* Art travelling between screens flies in one layer over all of them. */}
+                  <TravelHost>
+                    <TabActivityProvider>
+                      <ToastHost>
+                        {/* The data layer and its session; the splash stays up while it starts. */}
+                        <DataSlot heldElsewhere={mediaQueue}>
+                          {/* Resumes the media uploads at launch, not only when a chat opens. */}
+                          <MediaUploads />
+                          <SplashGate>
+                            <Screens />
+                          </SplashGate>
+                        </DataSlot>
+                      </ToastHost>
+                    </TabActivityProvider>
+                  </TravelHost>
                 </ArtProvider>
               </ThemeProvider>
             </LocaleProvider>

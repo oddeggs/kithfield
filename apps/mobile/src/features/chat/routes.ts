@@ -29,6 +29,8 @@ export const go = {
       },
     }),
   tray: (farm: string) => router.push({ pathname: '/(modal)/gestures-tray', params: { farm } }),
+  /** The Farm tab, where a critter travelling from the chat lands. */
+  farm: () => router.navigate('/(tabs)/farm'),
   critter: (farm: string, person: string) =>
     router.push({ pathname: '/(modal)/farm-critter', params: { farm, person } }),
   plantPlan: (farm: string, fromSeq: number) =>

@@ -12,6 +12,7 @@ import {
 } from 'react-native-reanimated';
 
 import { fadeTo } from '../../ui/motion/motion';
+import { travelIds, useTravelShownAll } from '../../ui/travel';
 import { STILL_T, type Backdrop, type CloudSprite, type CritterPoses } from './farm-bake';
 import { breathOf, isBlinking, tick } from './farm-clock';
 
@@ -43,9 +44,12 @@ const fadeOf = (to: number, reduce: boolean) =>
 function CritterDrawing({
   c,
   clock,
+  shown,
 }: {
   readonly c: CanvasCritter;
   readonly clock: SharedValue<number>;
+  /** 0 while a copy of this critter travels to or from it. */
+  readonly shown: SharedValue<number> | undefined;
 }) {
   const { x, y, ph, asleep } = c;
   const open = c.poses.open;
@@ -60,7 +64,7 @@ function CritterDrawing({
     return isBlinking(clock.get(), ph) ? blinkImage : openImage;
   });
   return (
-    <Group transform={transform}>
+    <Group transform={transform} {...(shown ? { opacity: shown } : {})}>
       <Image image={image} x={-open.ox} y={-open.oy} width={open.w} height={open.h} />
     </Group>
   );
@@ -128,6 +132,7 @@ export function FarmCanvas({
   night,
   running,
   reduce,
+  travel,
 }: {
   readonly width: number;
   readonly height: number;
@@ -136,7 +141,12 @@ export function FarmCanvas({
   readonly night: boolean;
   readonly running: boolean;
   readonly reduce: boolean;
+  /** The farm, so a critter travelling here from a chat can stand in for its drawing. */
+  readonly travel?: string;
 }) {
+  const travelling = useTravelShownAll(
+    travel === undefined ? [] : critters.map((c) => travelIds.farmCritter(travel, c.person)),
+  );
   const clock = useSharedValue(STILL_T);
   const base = useSharedValue(STILL_T);
   const frame = useFrameCallback((info) => {
@@ -195,8 +205,8 @@ export function FarmCanvas({
         />
       ) : null}
       <Group {...(tint ? { layer: tint } : {})}>
-        {critters.map((c) => (
-          <CritterDrawing key={c.person} c={c} clock={clock} />
+        {critters.map((c, i) => (
+          <CritterDrawing key={c.person} c={c} clock={clock} shown={travelling[i]} />
         ))}
       </Group>
     </Canvas>

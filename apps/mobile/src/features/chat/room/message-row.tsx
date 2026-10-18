@@ -26,6 +26,7 @@ import { fadeTo, sheetTo } from '../../../ui/motion/motion';
 import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { TravelAnchor, travelIds } from '../../../ui/travel';
 import { Txt } from '../../../ui/type/text';
 import { lookOf } from '../model/people';
 import { refusalOf } from '../model/refusals';
@@ -34,6 +35,8 @@ import { clock } from '../model/format';
 import { useChatColours } from '../ui/chat-colours';
 import { BubbleBody } from './bubbles';
 import { ReactionRow } from './gesture-seams';
+import { useMeet } from './meet';
+import { meetAction } from './meet-choice';
 import { useRoom } from './room-context';
 
 /** How far a bubble follows a swipe right before it asks to reply. */
@@ -160,6 +163,29 @@ function useShake(failed: boolean) {
   return useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
 }
 
+/** A friend's critter beside their message, which travels to the farm when tapped. */
+function CritterFace({
+  id,
+  kind,
+  look,
+  label,
+  onPress,
+}: {
+  readonly id: string;
+  readonly kind: string;
+  readonly look: ReturnType<typeof lookOf>;
+  readonly label: string;
+  readonly onPress: () => void;
+}) {
+  return (
+    <Press onPress={onPress} darken={false} radius={15} hitSlop={6}>
+      <TravelAnchor id={id}>
+        <Avatar kind={kind} look={look} size={30} label={label} />
+      </TravelAnchor>
+    </Press>
+  );
+}
+
 export interface BubbleRowProps {
   readonly item: BubbleItem;
   /** The first of a run of one person's bubbles: their name goes above it, their critter beside. */
@@ -183,6 +209,12 @@ export function BubbleRow({ item, first, showSent }: BubbleRowProps) {
   const person = item.actor ? room.people.get(item.actor) : undefined;
   const canAct = item.seq !== null;
   const reply = () => room.reply(item);
+  const meet = useMeet(room.farm, item.actor ?? undefined, person?.critter ?? undefined);
+  const meeting = meetAction(t, {
+    mine: item.mine,
+    name: room.nameOf(item.actor),
+    critter: !!person?.critter,
+  });
   // The menu opens over the bubble where it sits, so it is told the bubble's top on screen.
   const bubble = useAnimatedRef<Animated.View>();
   const menu = (top: number | null) => room.openMenu(item, top);
@@ -238,6 +270,7 @@ export function BubbleRow({ item, first, showSent }: BubbleRowProps) {
         ]
       : []),
     ...(retryable ? [{ name: 'retry', label: t('chat.bubble.tryAgain') }] : []),
+    ...(meeting ? [meeting] : []),
   ];
 
   const column = (
@@ -284,6 +317,7 @@ export function BubbleRow({ item, first, showSent }: BubbleRowProps) {
             if (name === 'longpress') menu(null);
             if (name === 'dewdrop') room.toggleDew(item);
             if (name === 'retry') room.retry(item);
+            if (name === 'meet') meet(item.seq);
           }}
           style={[
             item.mine
@@ -294,11 +328,12 @@ export function BubbleRow({ item, first, showSent }: BubbleRowProps) {
         >
           {!item.mine ? (
             first && person?.critter ? (
-              <Avatar
+              <CritterFace
+                id={travelIds.chatFace(room.farm, item.seq ?? -1)}
                 kind={person.critter.species}
                 look={lookOf(person.critter)}
-                size={30}
                 label={room.nameOf(item.actor)}
+                onPress={() => meet(item.seq)}
               />
             ) : (
               <View style={{ width: 30 }} />

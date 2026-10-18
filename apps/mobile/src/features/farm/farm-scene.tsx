@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
+import { TravelSpot, travelIds } from '../../ui/travel';
 import { FarmCanvas } from './farm-canvas';
 import { flagOf, hoursLeft, nameOf } from './farm-copy';
 import { HOUSES, LANDMARKS, type PlacedHouse } from './scene-layout';
@@ -162,7 +163,28 @@ export function FarmScene({
         night={night}
         running={running}
         reduce={reduce}
+        {...(state ? { travel: state.farm } : {})}
       />
+      {/* Where a critter's face travelling from a chat lands as the critter (signature motion). */}
+      {state
+        ? scene.critters.map((c) => {
+            const pose = c.poses.open;
+            return (
+              <TravelSpot
+                key={`travel:${c.person}`}
+                id={travelIds.farmCritter(state.farm, c.person)}
+                box={{ x: c.x - pose.ox, y: c.y - pose.oy, width: pose.w, height: pose.h }}
+                sprite={{
+                  sprite: {
+                    width: pose.w,
+                    height: pose.h,
+                    drawings: [[{ image: pose.image, x: 0, y: 0, w: pose.w, h: pose.h }]],
+                  },
+                }}
+              />
+            );
+          })
+        : null}
       {scene.placement.houses.map((h) => {
         const house = HOUSES[h.key];
         const s = width * house.size;

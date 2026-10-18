@@ -7,6 +7,7 @@ import { Button } from '../../../ui/components/button';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { timing, TravelAnchor, travelIds, useTravel } from '../../../ui/travel';
 import { Txt } from '../../../ui/type/text';
 import { crittersShaped, kindOf, pickSpecies, SHAPES, type Shape } from '../critters';
 import { routes } from '../flow';
@@ -51,6 +52,10 @@ function ShapeChip({
   );
 }
 
+/** The critter as it carries to the stage, and the share of the stage it lands at. */
+const CARRIED = 120;
+const CARRIED_FIT = 0.45;
+
 /** Who are you on the farm: sixteen critters on a stage, filtered by shape. */
 export function CritterScreen() {
   const router = useRouter();
@@ -66,6 +71,29 @@ export function CritterScreen() {
   const stageWidth = width - 56;
   const tileWidth = (width - 40 - 24) / 4;
   const ring = useRing();
+  const travel = useTravel();
+  // The picked critter carries from its tile up to the stage and grows there (signature motion).
+  const pick = (species: Parameters<typeof pickSpecies>[1]) => {
+    update({ choice: pickSpecies(choice, species) });
+    if (species === choice.species) return;
+    travel.fly({
+      from: travelIds.pickerTile(species),
+      to: travelIds.pickerStage,
+      sprite: { critter: species, size: CARRIED },
+      becomes: {
+        scene: 'stage',
+        attrs: { ...scene, kind: species },
+        width: stageWidth,
+        height: 196,
+      },
+      startFit: 1,
+      fit: CARRIED_FIT,
+      grow: 0.25,
+      arc: 40,
+      hideSource: false,
+      durationMs: timing('pickerToFarm', 'carry'),
+    });
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
@@ -88,12 +116,14 @@ export function CritterScreen() {
           overflow: 'hidden',
         }}
       >
-        <SceneArt
-          scene="stage"
-          width={stageWidth}
-          height={196}
-          attrs={{ ...scene, kind: choice.species }}
-        />
+        <TravelAnchor id={travelIds.pickerStage}>
+          <SceneArt
+            scene="stage"
+            width={stageWidth}
+            height={196}
+            attrs={{ ...scene, kind: choice.species }}
+          />
+        </TravelAnchor>
         <View
           style={{
             position: 'absolute',
@@ -175,7 +205,7 @@ export function CritterScreen() {
           return (
             <Press
               key={c.species}
-              onPress={() => update({ choice: pickSpecies(choice, c.species) })}
+              onPress={() => pick(c.species)}
               haptic="select"
               radius={16}
               accessibilityLabel={t(`onboardingCritters.${c.species}.name`)}
@@ -188,7 +218,10 @@ export function CritterScreen() {
                 boxShadow: ring(on, '0 0 0 1px rgba(42,34,29,.08)'),
               }}
             >
-              <View style={{ width: tileWidth, height: 62, borderRadius: 16, overflow: 'hidden' }}>
+              <TravelAnchor
+                id={travelIds.pickerTile(c.species)}
+                style={{ width: tileWidth, height: 62, borderRadius: 16, overflow: 'hidden' }}
+              >
                 <ArtStill
                   scene="stage"
                   width={tileWidth}
@@ -196,7 +229,7 @@ export function CritterScreen() {
                   attrs={{ ...scene, kind: c.species }}
                   t={1.2}
                 />
-              </View>
+              </TravelAnchor>
             </Press>
           );
         })}

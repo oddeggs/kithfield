@@ -23,6 +23,8 @@ import { mediaEn } from './media.en';
 import { mediaVi } from './media.vi';
 import { moderationEn } from './moderation.en';
 import { moderationSameInBoth, moderationVi } from './moderation.vi';
+import { motionLabEn } from './motion-lab.en';
+import { motionLabVi } from './motion-lab.vi';
 import { nativeLabEn } from './native-lab.en';
 import { nativeLabVi } from './native-lab.vi';
 import { onboardingEn } from './onboarding.en';
@@ -67,6 +69,7 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
   { name: 'media', file: 'media', en: mediaEn, vi: mediaVi, sameInBoth: [] },
   { name: 'moderation', file: 'moderation', en: moderationEn, vi: moderationVi, sameInBoth: moderationSameInBoth },
+  { name: 'motionLab', file: 'motion-lab', en: motionLabEn, vi: motionLabVi, sameInBoth: [] },
   { name: 'nativeLab', file: 'native-lab', en: nativeLabEn, vi: nativeLabVi, sameInBoth: [] },
   { name: 'onboarding', file: 'onboarding', en: onboardingEn, vi: onboardingVi, sameInBoth: onboardingSameInBoth },
   { name: 'onboardingCritters', file: 'onboarding-critters', en: onboardingCrittersEn, vi: onboardingCrittersVi, sameInBoth: [] },
@@ -97,6 +100,7 @@ export const en = {
   ...glossaryEn,
   ...mediaEn,
   ...moderationEn,
+  ...motionLabEn,
   ...nativeLabEn,
   ...onboardingEn,
   ...onboardingCrittersEn,
@@ -127,6 +131,7 @@ export const vi = {
   ...glossaryVi,
   ...mediaVi,
   ...moderationVi,
+  ...motionLabVi,
   ...nativeLabVi,
   ...onboardingVi,
   ...onboardingCrittersVi,
