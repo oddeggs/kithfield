@@ -102,15 +102,24 @@ export const pause = (
 export const freeze = (host: FarmHost, on: boolean): Promise<SafetyOutcome> =>
   done(host, host.farm.write(null, 'settings_changed', { setting: 'frozen', on }, host.now()));
 
+/** Whether the person's account deletion already reached this farm: their last word is that `left`. */
+const alreadyDeleted = (written: readonly { kind: string; payload: unknown }[]): boolean => {
+  const last = written.at(-1);
+  return (
+    last?.kind === 'left' && (last.payload as { how?: unknown } | null)?.how === 'account_deleted'
+  );
+};
+
 /**
  * Account deletion: the person leaves with `left {how: account_deleted}` and everything they wrote
  * here becomes a tombstone, their media deleted. On a farm they only visited, that is their gate
  * and trade events, and the `left` tells phones there to tombstone what they hold too. Facts stay,
- * so the farm grows the same.
+ * so the farm grows the same. Safe to run again: a farm it already reached is left as it is.
  */
 export const deleteAccount = async (host: FarmHost, person: PersonId): Promise<void> => {
-  const traces = host.store.byActor(person).length + host.store.tradesWith(person).length;
-  if (!isMember(host, person) && traces === 0) return;
+  const written = host.store.byActor(person);
+  const traces = written.length + host.store.tradesWith(person).length;
+  if (!isMember(host, person) && (traces === 0 || alreadyDeleted(written))) return;
   const media: string[] = [];
   const left = host.farm.write(person, 'left', { how: 'account_deleted' }, host.now(), (event) => {
     media.push(...tombstoneAuthor(host.store, person, event.seq));

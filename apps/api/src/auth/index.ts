@@ -5,6 +5,14 @@ export { authRoutes } from './routes';
 export { requireSession, errorResponse, type SessionEnv } from './session';
 export { ACCOUNT_BAN_SCOPE, banPerson, isBanned, type Ban } from './bans';
 export { eitherBlocked, hasBlocked } from './blocks';
+export { registerSocketCloser, startDeletion, type SocketCloser } from './account-deletion';
+export {
+  appleRevocation,
+  queueDuePurges,
+  registerAccountDeletionStep,
+  type AccountDeletionStep,
+  type AppleRevocation,
+} from './purge';
 export { registerMergeStep, type MergeStep, type PersonMerge } from './merge-steps';
 export { CURRENT_TERMS_VERSION } from './terms';
 export { registerProfileFanOut, type ProfileFanOut } from './profile';

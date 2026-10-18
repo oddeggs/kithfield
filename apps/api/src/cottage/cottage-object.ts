@@ -106,6 +106,11 @@ export class CottageDO extends DurableObject<Bindings> {
     applySchema(this.sql);
   }
 
+  /** The person's account is being deleted: sockets closed, storage gone, nothing kept. */
+  async deleteAccount(): Promise<void> {
+    await this.clearForMerge();
+  }
+
   /** The person lives on this farm or visit: its kind, and its name or peer. */
   upsertFarm(info: CottageFarm): void {
     const parsed = CottageFarm.parse(info);

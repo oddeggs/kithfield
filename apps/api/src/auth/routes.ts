@@ -4,6 +4,7 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import type { z } from 'zod';
 
+import { accountDeletionRoutes } from './account-deletion';
 import { checkAge } from './age';
 import { blockRoutes } from './blocks';
 import { readMe } from './me';
@@ -39,11 +40,13 @@ async function parseBody<T>(c: Context, schema: z.ZodType<T>): Promise<Parsed<T>
  * - `GET /v1/me`: the person, with their settings and hibernating from their cottage.
  * - `POST /v1/me/age`, `POST /v1/me/terms`: the age check and the Terms acceptance.
  * - `/v1/blocks`: blocking (`blocks.ts`).
+ * - `POST /v1/me/delete`, `/v1/deletion-requests`: deleting an account (`account-deletion.ts`).
  */
 export function authRoutes(): Hono<SessionEnv> {
   const routes = new Hono<SessionEnv>();
 
   routes.route('/', blockRoutes());
+  routes.route('/', accountDeletionRoutes());
 
   routes.on(['GET', 'POST'], '/auth/*', async (c) => {
     try {

@@ -46,6 +46,8 @@ export type Bindings = Secrets & {
   readonly GATE_LIMIT: RateLimit;
   /** At most 5 waitlist sign-ups a minute per client address. */
   readonly WAITLIST_LIMIT: RateLimit;
+  /** At most 5 account deletion requests or code tries a minute per client address. */
+  readonly DELETION_REQUEST_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;
