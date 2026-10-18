@@ -1,11 +1,12 @@
 import type { FarmId, Lang, LocalDate, PersonId, WeeklyRecap } from '@kithfield/contracts';
 
 import type { Bindings } from '../env';
+import { aiLetters } from './ai-letters';
 
 /*
  * The Sunday recap's letter, written with an AI from the words of friends who said yes to the
- * `recap` consent, in the reader's language. The AI work fills this port in (it replaces
- * `recapLetters.current`); until a letter exists the recap answers `writing` when anyone on the
+ * `recap` consent, in the reader's language. The AI work fills this port in (`ai-letters.ts`
+ * reads its `getAiRecap`); until a letter exists the recap answers `writing` when anyone on the
  * farm said yes, and `none` when nobody did. Either way the app then writes the letter itself from
  * the thanks and plans, with no AI.
  */
@@ -50,5 +51,5 @@ export const unwrittenLetters: RecapLetters = {
   },
 };
 
-/** The letters the recap reads; the AI work replaces `current` with its own. */
-export const recapLetters: { current: RecapLetters } = { current: unwrittenLetters };
+/** The letters the recap reads: the AI work's when this Worker has it (`ai-letters.ts`). */
+export const recapLetters: { current: RecapLetters } = { current: aiLetters(unwrittenLetters) };
