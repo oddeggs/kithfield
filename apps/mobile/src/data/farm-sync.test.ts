@@ -38,7 +38,11 @@ describe('catching up', () => {
     const state = await bea.state(FARM);
     expect(state.lastSeq).toBe(server.farmOf(FARM).log.length);
     expect(state.confirmed).toEqual(server.farmOf(FARM).state);
-    expect(server.hellos.at(-1)).toMatchObject({ protocol: 1, lastSeq: 0, rulesVersion: 2 });
+    expect(server.hellos.at(-1)).toMatchObject({
+      protocol: 1,
+      lastSeq: 0,
+      rulesVersion: kithfieldRules.RULES_VERSION,
+    });
   });
 
   it('catches up by events in batches of 200 after being away, without a snapshot', async () => {

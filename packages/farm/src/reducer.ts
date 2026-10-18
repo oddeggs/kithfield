@@ -31,6 +31,7 @@ import {
   applySeedChanged,
   applySeedPlanted,
   applyVote,
+  sproutSettled,
 } from './plans';
 import { HANGOUT_DEW, RULES_VERSION } from './rules';
 import {
@@ -143,15 +144,15 @@ const applyKind = (state: FarmState, event: FarmEvent, day: string): FarmState =
     case 'gate':
       return applyDoorstep(state, event);
     case 'seed_planted':
-      return applySeedPlanted(state, event);
+      return applySeedPlanted(state, event, day);
     case 'seed_changed':
-      return applySeedChanged(state, event);
+      return applySeedChanged(state, event, day);
     case 'vote':
-      return applyVote(state, event);
+      return applyVote(state, event, day);
     case 'rsvp':
-      return applyRsvp(state, event);
+      return applyRsvp(state, event, day);
     case 'checkin': {
-      const { state: next, hangout } = applyCheckin(state, event);
+      const { state: next, hangout } = applyCheckin(state, event, day);
       return hangout.reduce(
         (s, person) =>
           applyTend(s, {
@@ -234,7 +235,13 @@ export const applyEvent = (
   // Someone merged into another person acts as the person they became.
   const event = withAliases(state, written);
   const day = eventDay(state, event);
-  let next: FarmState = day === state.today.day ? state : { ...state, today: { day, given: [] } };
+  let next: FarmState =
+    day === state.today.day
+      ? state
+      : sproutSettled(
+          { ...state, today: { day, given: [] } },
+          { at: event.at, day, rulesVersion: event.rulesVersion },
+        );
   next = withoutDelivered(next, event.at);
   if (event.kind === 'restored') {
     const target = lookup.event?.(event.payload.target);

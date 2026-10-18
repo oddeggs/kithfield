@@ -162,7 +162,7 @@ export const farmView = (state: FarmState, now: EpochMs): FarmView => {
   const plans = state.seeds
     .filter((s) => !s.unsent)
     .map((seed): PlanView => {
-      const conditions = planConditions(seed, state.members.length);
+      const conditions = planConditions(seed, state.members.length, today);
       const stage = [conditions.day, conditions.place, conditions.yeses].filter(Boolean).length;
       return { seed, conditions, stage };
     });

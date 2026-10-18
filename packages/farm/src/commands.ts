@@ -13,7 +13,7 @@ import {
 } from '@kithfield/contracts';
 
 import { memberOf } from './members';
-import { seedOf } from './plans';
+import { isHangoutDay, seedOf } from './plans';
 import { EDIT_WINDOW_MS } from './rules';
 import { farmDay } from './seasons';
 import { isBirthday, isKnownTimeZone } from './time';
@@ -189,6 +189,10 @@ const ruleFor = (
       const seed = seedOf(state, p.seed);
       const missing = planned(state, p.seed);
       if (missing || !seed) return missing;
+      // A sprouted plan keeps its day.
+      if (seed.sproutedAt !== null && (p.days !== undefined || p.settleOn !== undefined)) {
+        return 'invalid';
+      }
       if (p.hat === undefined) return null;
       if (!memberOf(state, p.hat)) return 'invalid';
       // The hat is passed on by whoever wears it, the planter, or a keeper.
@@ -198,10 +202,11 @@ const ruleFor = (
     }
     case 'vote': {
       const missing = planned(state, cmd.payload.seed);
-      if (missing) return missing;
-      return cmd.payload.option < (seedOf(state, cmd.payload.seed)?.days.length ?? 0)
-        ? null
-        : 'invalid';
+      const seed = seedOf(state, cmd.payload.seed);
+      if (missing || !seed) return missing;
+      // A sprouted plan's day is settled.
+      if (seed.sproutedAt !== null) return 'invalid';
+      return cmd.payload.option < seed.days.length ? null : 'invalid';
     }
     case 'rsvp':
       return planned(state, cmd.payload.seed);
@@ -209,8 +214,7 @@ const ruleFor = (
       const missing = planned(state, cmd.payload.seed);
       const seed = seedOf(state, cmd.payload.seed);
       if (missing || !seed) return missing;
-      const onTheDay = seed.settleOn === today || seed.days.some((d) => d.date === today);
-      return onTheDay ? null : 'invalid';
+      return isHangoutDay(seed, today) ? null : 'invalid';
     }
     case 'scrapbook_page': {
       const p = cmd.payload;

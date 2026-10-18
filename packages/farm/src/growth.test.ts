@@ -84,7 +84,15 @@ describe('Care families table', () => {
 
   it('gives everyone at a hangout 3 once two people have checked in', () => {
     const log = newFarm({ members: [bea, pip, fig, kit] });
-    const seed = log.add('seed_planted', bea, { ...plan, days: [{ date: '2026-10-18' }] });
+    const seed = log.add('seed_planted', bea, {
+      ...plan,
+      days: [{ date: '2026-10-19' }],
+      place: { name: 'Willow bend' },
+    });
+    log.add('rsvp', pip, { seed: seed.seq, answer: 'in' });
+    log.add('rsvp', fig, { seed: seed.seq, answer: 'in' });
+    // The hangout is the next day, when nobody has given anything yet.
+    log.wait(DAY);
     const gatherings = () => plantOf(log.state(), 'pumpkin').dew;
     const start = gatherings();
     log.add('checkin', pip, { seed: seed.seq });
@@ -95,7 +103,7 @@ describe('Care families table', () => {
     log.add('checkin', kit, { seed: seed.seq });
     expect(gatherings()).toBe(start + 9);
     const credits = plantOf(log.state(), 'pumpkin').credits;
-    expect(credits.find((c) => c.person === pip)?.kinds).toEqual(['checkin']);
+    expect(credits.find((c) => c.person === pip)?.kinds).toEqual(['rsvp', 'checkin']);
   });
 
   it('grows a Gatherings tend for each person under shared rain', () => {
