@@ -106,6 +106,8 @@ describe('decisions on a report', () => {
     });
     // Nobody else hears anything.
     expect(await notesOf(lot.fig)).toEqual([]);
+    // The item has its verdict; only an account decision can follow.
+    expect((await act(id, { action: 'remove_warn' })).status).toBe(409);
 
     const queue = QueuePage.parse((await desk(access, ANA, 'GET', '/queue')).body);
     expect(queue.rows.map((r) => r.report)).not.toContain(id);

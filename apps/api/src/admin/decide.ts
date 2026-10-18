@@ -43,6 +43,9 @@ const ACCOUNT: Partial<Record<ModerationAction, AccountOutcome>> = {
   remove_from_farm: 'removed_from_farm',
 };
 
+/** Decisions about the reported item itself, made once per report. */
+const ITEM_VERDICTS: ReadonlySet<ModerationAction> = new Set(['dismiss', 'remove', 'remove_warn']);
+
 /** Roles that may agree to a removal from Kithfield. */
 const APPROVERS = new Set(['senior', 'legal']);
 
@@ -162,7 +165,9 @@ export async function decide(
 ): Promise<DecideOutcome> {
   const report = await loadReport(env.DB, reportId);
   if (report === null) return { ok: false, status: 404, code: 'not_found' };
-  if (req.action === 'dismiss' && report.closedAt !== null) {
+  // A closed report can still get an account decision (from the member's record), never a
+  // second verdict on the item itself.
+  if (ITEM_VERDICTS.has(req.action) && report.closedAt !== null) {
     return { ok: false, status: 409, code: 'conflict' };
   }
   const stored: Stored = {
