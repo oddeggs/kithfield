@@ -17,7 +17,7 @@ export const go = {
     router.navigate(href('/(tabs)/chat/[farm]', { farm, ...params })),
   chatList: () => router.navigate(href('/(tabs)/chat')),
   search: (farm: string | undefined) =>
-    router.push(href('/(modal)/chat-search', farm ? { farm } : {})),
+    router.push(href('/(cover)/chat-search', farm ? { farm } : {})),
   viewer: (farm: string, seq: number, index: number) =>
     router.push(href('/(cover)/chat-viewer', { farm, seq: String(seq), index: String(index) })),
   media: (farm: string) => router.push(href('/(tabs)/chat/media', { farm })),
