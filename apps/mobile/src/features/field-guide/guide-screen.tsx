@@ -208,7 +208,10 @@ export function GuidePage({
                         scene="icon"
                         width={14}
                         height={14}
-                        attrs={{ name: FAMILY_ICON[row.family] }}
+                        attrs={{
+                          name: FAMILY_ICON[row.family],
+                          ...(look.iconInk ? { color: look.iconInk } : {}),
+                        }}
                       />
                       <Txt
                         variant="caption"

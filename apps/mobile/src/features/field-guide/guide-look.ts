@@ -16,6 +16,8 @@ export interface GuideLook {
   spine: string;
   pageShadow: string;
   rule: string;
+  /** Ink for the design's icons: their own colours by day, moonlight at night. */
+  iconInk: string | null;
   /** Paragraphs on a page (`#4a3f37`). */
   paragraph: string;
   /** "found", the page eyebrow, the stage outline, the pot's bar. */
@@ -40,6 +42,7 @@ const looks: Readonly<Record<Appearance, GuideLook>> = {
     spine: '#e8d8bb',
     pageShadow: '0 10px 30px -12px rgba(60,40,20,.4)',
     rule: ink(0.07),
+    iconInk: null,
     paragraph: day.ink2,
     found: day.moss,
     growing: '#8a5a1c',
@@ -63,6 +66,7 @@ const looks: Readonly<Record<Appearance, GuideLook>> = {
     spine: night.bubble,
     pageShadow: '0 10px 30px -12px rgba(0,0,0,.5)',
     rule: white(0.08),
+    iconInk: night.moon2,
     paragraph: night.moon2,
     found: '#a9c48e',
     growing: night.lamp,

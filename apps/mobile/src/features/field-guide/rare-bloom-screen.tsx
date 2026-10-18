@@ -23,6 +23,7 @@ import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { say } from '../farm/farm-copy';
+import { NightVeil } from '../farm/panel';
 import { capital, variantOf } from './guide-copy';
 import { RARE_TINT, useGuideLook } from './guide-look';
 import { variantArt } from './guide-model';
@@ -153,6 +154,7 @@ export function RareBloomPage({
           />
         </Animated.View>
       </View>
+      <NightVeil width={width} height={heroTop + heroH} />
       {back}
       <HeroSheet top={470 * k}>
         <ScrollView

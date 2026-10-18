@@ -346,7 +346,12 @@ export function LinkRow({
         backgroundColor: look.scrapbookRow.bg,
       }}
     >
-      <ArtStill scene="icon" width={30} height={30} attrs={{ name: icon }} />
+      <ArtStill
+        scene="icon"
+        width={30}
+        height={30}
+        attrs={{ name: icon, ...(look.iconInk ? { color: look.iconInk } : {}) }}
+      />
       <View style={{ flex: 1 }}>
         <Txt variant="rowTitle" multiline style={{ fontSize: 15.5, lineHeight: 18.6 }}>
           {title}

@@ -11,6 +11,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { say } from '../farm/farm-copy';
+import { NightVeil } from '../farm/panel';
 import { useNow } from '../farm/use-now';
 import { familyName, plantTitle } from './guide-copy';
 import { RARE_TINT, guideMotion, useGuideLook } from './guide-look';
@@ -163,6 +164,7 @@ export function PlantPage({
           height={250 * k}
         />
       </Sway>
+      <NightVeil width={width} height={360 * k} />
       {back}
       {found ? (
         <View style={{ position: 'absolute', top: insets.top - 1, right: 16 }}>
@@ -210,7 +212,7 @@ export function PlantPage({
                 variant="handS"
                 multiline
                 color={mark.color}
-                style={{ fontSize: 16, lineHeight: 17.6, marginTop: 12, maxWidth: 110 }}
+                style={{ fontSize: 16, lineHeight: 17.6, marginTop: 12, maxWidth: 72 }}
               >
                 {mark.text}
               </Txt>
@@ -219,17 +221,19 @@ export function PlantPage({
           <View style={{ flexDirection: 'row', gap: 4 }}>
             {STRIP.map((s, i) => (
               <View key={i} style={{ flex: 1, alignItems: 'center', gap: 3 }}>
-                <PlantTile
-                  art={{ plant, stage: s.stage, state: s.state, pot: entry.inPot }}
-                  width={Math.min(54, tileW)}
-                  height={60}
-                  radius={12}
-                  style={
-                    i === outlined
-                      ? { boxShadow: `0 0 0 2px ${look.found}`, overflow: 'visible' }
-                      : null
-                  }
-                />
+                <View
+                  style={{
+                    borderRadius: 12,
+                    boxShadow: i === outlined ? `0 0 0 2px ${look.found}` : undefined,
+                  }}
+                >
+                  <PlantTile
+                    art={{ plant, stage: s.stage, state: s.state, pot: entry.inPot }}
+                    width={Math.min(54, tileW)}
+                    height={60}
+                    radius={12}
+                  />
+                </View>
                 <Txt
                   variant="caption"
                   color={palette.secondary}
