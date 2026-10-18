@@ -26,7 +26,9 @@ export function FarmsScreen() {
                       f.role === 'keeper' ? 'settings.members.keeper' : 'settings.members.helper',
                     ),
                   })}
-              onPress={() => go('/(tabs)/you/farm-settings', { farm: f.farm })}
+              onPress={() =>
+                go({ pathname: '/(tabs)/you/farm-settings', params: { farm: f.farm } })
+              }
             />
           ))}
         </Group>

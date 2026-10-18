@@ -11,7 +11,8 @@ import { Group, NavBar, Note, Page, Row } from '../settings/kit/layout';
 import { useRemote } from '../settings/use-remote';
 
 /** Opens one note from the safety team as its sheet. */
-export const openNote = (note: SafetyNote) => go('/(modal)/safety-note', { id: note.id });
+export const openNote = (note: SafetyNote) =>
+  go({ pathname: '/(modal)/safety-note', params: { id: note.id } });
 
 /**
  * When the cottage says a note from the safety team is waiting, shows the newest one once (as a

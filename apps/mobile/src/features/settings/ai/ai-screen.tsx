@@ -58,7 +58,7 @@ export function AiScreen() {
 
   const set = (feature: AiFeature, on: boolean) => {
     if (on) {
-      go('/(modal)/settings-consent', { feature });
+      go({ pathname: '/(modal)/settings-consent', params: { feature } });
       return;
     }
     const before = consents.data;

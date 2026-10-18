@@ -73,7 +73,7 @@ export function MembersScreen({ farm }: { readonly farm: FarmId }) {
         label: t('settings.farm.leave'),
         icon: 'door',
         danger: true,
-        act: () => go('/(tabs)/farm/leave', { farm }),
+        act: () => go({ pathname: '/(tabs)/farm/leave', params: { farm } }),
       },
       makeHelper: {
         label: t('settings.members.makeHelper'),
@@ -93,18 +93,18 @@ export function MembersScreen({ farm }: { readonly farm: FarmId }) {
       report: {
         label: t('settings.members.report', { name }),
         icon: 'flag',
-        act: () => go('/(modal)/safety-report', params(m)),
+        act: () => go({ pathname: '/(modal)/safety-report', params: params(m) }),
       },
       remove: {
         label: t('settings.members.remove'),
         icon: 'leaf',
         danger: true,
-        act: () => go('/(modal)/settings-remove', params(m)),
+        act: () => go({ pathname: '/(modal)/settings-remove', params: params(m) }),
       },
       block: {
         label: t('settings.members.block', { name }),
         icon: 'block',
-        act: () => go('/(modal)/safety-block', params(m)),
+        act: () => go({ pathname: '/(modal)/safety-block', params: params(m) }),
       },
     };
     return memberActions(person?.id ?? null, m, role).map((a) => items[a]);
@@ -147,7 +147,7 @@ export function MembersScreen({ farm }: { readonly farm: FarmId }) {
                     <IconCircle
                       icon="plus"
                       label={t('settings.members.invite')}
-                      onPress={() => go('/(tabs)/you/farm-invite', { farm })}
+                      onPress={() => go({ pathname: '/(tabs)/you/farm-invite', params: { farm } })}
                     />
                   ),
                 }

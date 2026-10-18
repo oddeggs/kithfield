@@ -124,7 +124,7 @@ export function SettingsScreen() {
             icon="bell"
             title={t('settings.nudges.title')}
             value={settings ? t(`settings.nudges.${settings.nudges}`) : ''}
-            onPress={() => go('/(tabs)/you/choose', { setting: 'nudges' })}
+            onPress={() => go({ pathname: '/(tabs)/you/choose', params: { setting: 'nudges' } })}
           />
           <SettingRow
             icon="moon"
@@ -153,7 +153,9 @@ export function SettingsScreen() {
               settings ? t('settings.quietHours.sub', { zone: zoneName(settings.timeZone) }) : ''
             }
             value={quietValue}
-            onPress={() => go('/(tabs)/you/choose', { setting: 'quietHours' })}
+            onPress={() =>
+              go({ pathname: '/(tabs)/you/choose', params: { setting: 'quietHours' } })
+            }
           />
           <SettingRow
             icon="people"
@@ -169,7 +171,7 @@ export function SettingsScreen() {
             icon="chat"
             title={t('settings.language')}
             value={t(`settings.language.${settings?.lang ?? language}`)}
-            onPress={() => go('/(tabs)/you/choose', { setting: 'language' })}
+            onPress={() => go({ pathname: '/(tabs)/you/choose', params: { setting: 'language' } })}
           />
         </Section>
         <Section label={t('settings.account')}>

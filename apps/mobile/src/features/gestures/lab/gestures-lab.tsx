@@ -14,13 +14,6 @@ import { MENU_KINDS, shownText } from '../model/message';
 import { friendsOf } from '../model/people';
 import { routes } from '../routes';
 
-/** A link with its query, for the lab's own buttons. */
-const to = (path: string, params: Record<string, string | number | undefined>): Href =>
-  `${path}?${Object.entries(params)
-    .filter((e) => e[1] !== undefined)
-    .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
-    .join('&')}` as Href;
-
 function FarmTools({ farm }: { readonly farm: string }) {
   const { t } = useLocale();
   const { palette } = useTheme();
@@ -63,12 +56,21 @@ function FarmTools({ farm }: { readonly farm: string }) {
         <Chip
           label={t('gestures.lab.menu')}
           onPress={() =>
-            chosenSeq && open(to('/gestures-message', { farm, seq: chosenSeq, top: 380 }))
+            chosenSeq &&
+            open({
+              pathname: '/(modal)/gestures-message',
+              params: { farm, seq: String(chosenSeq), top: '380' },
+            })
           }
         />
         <Chip
           label={t('gestures.lab.tray')}
-          onPress={() => open(to('/gestures-tray', { farm, to: friend }))}
+          onPress={() =>
+            open({
+              pathname: '/(modal)/gestures-tray',
+              params: friend ? { farm, to: friend } : { farm },
+            })
+          }
         />
         <Chip
           label={t('gestures.tray.firefly')}

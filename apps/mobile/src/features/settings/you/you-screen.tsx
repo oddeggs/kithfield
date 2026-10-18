@@ -194,23 +194,7 @@ export function YouScreen() {
                 : t('settings.you.noFarm', { species })}
             </KText>
           </View>
-          <Press
-            onPress={() => go('/wardrobe')}
-            radius={17}
-            accessibilityRole="button"
-            accessibilityLabel={t('settings.you.wardrobe')}
-            style={{
-              height: 34,
-              paddingHorizontal: 14,
-              borderRadius: 17,
-              backgroundColor: palette.fillSecondary,
-              justifyContent: 'center',
-            }}
-          >
-            <KText kind="pill" style={{ fontSize: 14, lineHeight: 17 }}>
-              {t('settings.you.wardrobe')}
-            </KText>
-          </Press>
+          {/* The wardrobe's button waits for the wardrobe: no screen holds it yet. */}
         </View>
 
         <View style={{ marginTop: 21, marginHorizontal: 16, gap: 10 }}>

@@ -40,7 +40,7 @@ export function RemoveSheet({
     setBusy(false);
     if (!done) return;
     if (report) {
-      swap('/(modal)/safety-report', { farm, person });
+      swap({ pathname: '/(modal)/safety-report', params: { farm, person } });
     } else {
       router.back();
     }

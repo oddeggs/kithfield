@@ -124,7 +124,10 @@ function AnsweredBody({ note }: { readonly note: Answered }) {
               label={t('safety.answered.block', { name })}
               kind="text"
               onPress={() =>
-                swap('/(modal)/safety-block', { person: note.about ?? '', farm: note.farm })
+                swap({
+                  pathname: '/(modal)/safety-block',
+                  params: { person: note.about ?? '', farm: note.farm },
+                })
               }
             />
           ) : null}
@@ -221,7 +224,9 @@ function RemovedBody({ note }: { readonly note: Removed }) {
           {note.appealable ? (
             <Button
               label={t('safety.removedNote.appeal')}
-              onPress={() => swap('/(modal)/safety-appeal', { action: note.action })}
+              onPress={() =>
+                swap({ pathname: '/(modal)/safety-appeal', params: { action: note.action } })
+              }
             />
           ) : null}
           <Button

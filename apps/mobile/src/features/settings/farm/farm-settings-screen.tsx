@@ -63,7 +63,7 @@ export function FarmSettingsScreen({ farm }: { readonly farm: FarmId }) {
         <ArtStill scene="strip" width={width - 32} height={150} attrs={{ season }} t={STILL_T} />
         {isKeeper ? (
           <Press
-            onPress={() => go('/(tabs)/you/farm-land', params)}
+            onPress={() => go({ pathname: '/(tabs)/you/farm-land', params: params })}
             radius={16}
             accessibilityRole="button"
             accessibilityLabel={t('settings.farm.changeLand')}
@@ -95,20 +95,24 @@ export function FarmSettingsScreen({ farm }: { readonly farm: FarmId }) {
           title={t('settings.farm.name')}
           value={state?.name ?? ''}
           chevron={isKeeper}
-          {...(isKeeper ? { onPress: () => go('/(tabs)/you/farm-name', params) } : {})}
+          {...(isKeeper
+            ? { onPress: () => go({ pathname: '/(tabs)/you/farm-name', params: params }) }
+            : {})}
         />
         <Row
           title={t('settings.farm.season')}
           subtitle={t('settings.farm.seasonSub')}
           value={t(`settings.season.${season}`)}
           chevron={isKeeper}
-          {...(isKeeper ? { onPress: () => go('/(tabs)/you/farm-calendar', params) } : {})}
+          {...(isKeeper
+            ? { onPress: () => go({ pathname: '/(tabs)/you/farm-calendar', params: params }) }
+            : {})}
         />
         {isKeeper ? (
           <Row
             title={t('settings.farm.weather')}
             value={state?.place?.city ?? t('settings.farm.weatherNone')}
-            onPress={() => go('/(tabs)/you/farm-weather', params)}
+            onPress={() => go({ pathname: '/(tabs)/you/farm-weather', params: params })}
           />
         ) : null}
         <Row
@@ -132,7 +136,7 @@ export function FarmSettingsScreen({ farm }: { readonly farm: FarmId }) {
             count: state?.members.length ?? 0,
             max: LIMITS.members,
           })}
-          onPress={() => go('/(tabs)/you/farm-members', params)}
+          onPress={() => go({ pathname: '/(tabs)/you/farm-members', params: params })}
         />
         {canInvite ? (
           <Row
@@ -141,14 +145,14 @@ export function FarmSettingsScreen({ farm }: { readonly farm: FarmId }) {
             subtitle={
               state?.approval ? t('settings.farm.inviteApproval') : t('settings.farm.inviteOpen')
             }
-            onPress={() => go('/(tabs)/you/farm-invite', params)}
+            onPress={() => go({ pathname: '/(tabs)/you/farm-invite', params: params })}
           />
         ) : null}
         <Row
           icon="key"
           title={t('settings.farm.keepers')}
           subtitle={keeperLine}
-          onPress={() => go('/(tabs)/you/farm-members', params)}
+          onPress={() => go({ pathname: '/(tabs)/you/farm-members', params: params })}
         />
       </Group>
       <Label text={t('settings.farm.youHere')} />
@@ -157,19 +161,19 @@ export function FarmSettingsScreen({ farm }: { readonly farm: FarmId }) {
           icon="bell"
           title={t('settings.farm.notifications')}
           value={notifyValue}
-          onPress={() => go('/(tabs)/you/farm-notifications', params)}
+          onPress={() => go({ pathname: '/(tabs)/you/farm-notifications', params: params })}
         />
         <Row
           icon="photo"
           title={t('settings.farm.media')}
-          onPress={() => go('/(tabs)/chat/media', params)}
+          onPress={() => go({ pathname: '/(tabs)/chat/media', params: params })}
         />
         <Row
           icon="door"
           title={t('settings.farm.leave')}
           danger
           chevron={false}
-          onPress={() => go('/(tabs)/farm/leave', { farm })}
+          onPress={() => go({ pathname: '/(tabs)/farm/leave', params: { farm } })}
         />
       </Group>
     </Page>

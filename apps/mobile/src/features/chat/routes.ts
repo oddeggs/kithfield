@@ -1,42 +1,40 @@
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 
-/*
- * Where the chat links to. Some of these routes belong to other features and are built beside this
- * one (the message menu, the + tray, a critter's card, planting a plan, a new farm); until they
- * land, Expo Router shows its not-found screen for them.
- */
-
-const href = (pathname: string, params?: Record<string, string>): Href =>
-  (params ? { pathname, params } : pathname) as unknown as Href;
+/* Where the chat links to: its own screens and other features' (the message menu, the + tray, a
+ * critter's card, planting a plan, a new farm), each by the route's own typed path. */
 
 export const go = {
   chat: (farm: string, params: Record<string, string> = {}) =>
-    router.push(href('/(tabs)/chat/[farm]', { farm, ...params })),
+    router.push({ pathname: '/(tabs)/chat/[farm]', params: { ...params, farm } }),
   /** Back to a chat already open, with params for it (start a reply). */
   chatWith: (farm: string, params: Record<string, string>) =>
-    router.navigate(href('/(tabs)/chat/[farm]', { farm, ...params })),
-  chatList: () => router.navigate(href('/(tabs)/chat')),
+    router.navigate({ pathname: '/(tabs)/chat/[farm]', params: { ...params, farm } }),
+  chatList: () => router.navigate('/(tabs)/chat'),
   search: (farm: string | undefined) =>
-    router.push(href('/(cover)/chat-search', farm ? { farm } : {})),
+    router.push({ pathname: '/(cover)/chat-search', params: farm ? { farm } : {} }),
   viewer: (farm: string, seq: number, index: number) =>
-    router.push(href('/(cover)/chat-viewer', { farm, seq: String(seq), index: String(index) })),
-  media: (farm: string) => router.push(href('/(tabs)/chat/media', { farm })),
+    router.push({
+      pathname: '/(cover)/chat-viewer',
+      params: { farm, seq: String(seq), index: String(index) },
+    }),
+  media: (farm: string) => router.push({ pathname: '/(tabs)/chat/media', params: { farm } }),
   /** `top`: the bubble's top on screen, so the menu lifts it from where it is. */
   messageMenu: (farm: string, seq: number, top: number | null) =>
-    router.push(
-      href('/(modal)/gestures-message', {
+    router.push({
+      pathname: '/(modal)/gestures-message',
+      params: {
         farm,
         seq: String(seq),
         ...(top === null ? {} : { top: String(Math.round(top)) }),
-      }),
-    ),
-  tray: (farm: string) => router.push(href('/(modal)/gestures-tray', { farm })),
+      },
+    }),
+  tray: (farm: string) => router.push({ pathname: '/(modal)/gestures-tray', params: { farm } }),
   critter: (farm: string, person: string) =>
-    router.push(href('/(modal)/farm-critter', { farm, person })),
+    router.push({ pathname: '/(modal)/farm-critter', params: { farm, person } }),
   plantPlan: (farm: string, fromSeq: number) =>
-    router.push(href('/(modal)/plans-plant', { farm, fromSeq: String(fromSeq) })),
-  newFarm: () => router.push(href('/(modal)/farm-new')),
-  seedBed: () => router.navigate(href('/(tabs)/seedbed')),
+    router.push({ pathname: '/(modal)/plans-plant', params: { farm, fromSeq: String(fromSeq) } }),
+  newFarm: () => router.push('/(modal)/farm-new'),
+  seedBed: () => router.navigate('/(tabs)/seedbed'),
   forward: (farm: string, seq: number) =>
-    router.push(href('/(modal)/gestures-forward', { farm, seq: String(seq) })),
+    router.push({ pathname: '/(modal)/gestures-forward', params: { farm, seq: String(seq) } }),
 };
