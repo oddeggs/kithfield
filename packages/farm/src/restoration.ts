@@ -39,7 +39,8 @@ const isFinished = (r: RestorationState): boolean => r.done.some((d) => d.projec
 export const restorationNight = (
   r: RestorationState,
   day: LocalDate,
-  projects: readonly { id: string; steps: number }[] = RESTORATION_PROJECTS,
+  projects: readonly { id: string; steps: number; fromRules: number }[] = RESTORATION_PROJECTS,
+  rulesVersion = Number.POSITIVE_INFINITY,
 ): RestorationState => {
   if (day <= r.steppedOn) return r;
   if (isFinished(r)) {
@@ -47,7 +48,7 @@ export const restorationNight = (
     const next = at >= 0 ? projects[at + 1] : undefined;
     // The last day of a project is its own; the next one starts the day after it.
     const finishedOn = r.done.find((d) => d.project === r.project)?.finishedOn ?? r.steppedOn;
-    if (!next || day <= finishedOn) return r;
+    if (!next || next.fromRules > rulesVersion || day <= finishedOn) return r;
     return { ...r, project: next.id, step: 0, steppedOn: day, tendedOn: null };
   }
   const steps = projects.find((p) => p.id === r.project)?.steps ?? 0;
@@ -60,7 +61,17 @@ export const restorationNight = (
 
 /** A new farm day reached by an event: the night's step, if one is due. */
 export const withRestorationNight = (state: FarmState, day: LocalDate): FarmState =>
-  state.restoration ? { ...state, restoration: restorationNight(state.restoration, day) } : state;
+  state.restoration
+    ? {
+        ...state,
+        restoration: restorationNight(
+          state.restoration,
+          day,
+          RESTORATION_PROJECTS,
+          state.rulesVersion,
+        ),
+      }
+    : state;
 
 /** Any tend marks the day tended. */
 export const withRestorationTend = (state: FarmState, day: LocalDate): FarmState => {
@@ -100,11 +111,11 @@ export interface RestorationView {
  * the morning, before the day's first event writes it. Null on a visit or an older farm.
  */
 export const restorationView = (
-  state: Pick<FarmState, 'restoration'>,
+  state: Pick<FarmState, 'restoration' | 'rulesVersion'>,
   today: LocalDate,
 ): RestorationView | null => {
   if (!state.restoration) return null;
-  const r = restorationNight(state.restoration, today);
+  const r = restorationNight(state.restoration, today, RESTORATION_PROJECTS, state.rulesVersion);
   const steps = stepsOf(r.project);
   const progressOf = (step: number) => (steps === 0 ? 0 : Math.min(1, step / steps));
   const finished = isFinished(r);

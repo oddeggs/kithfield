@@ -73,7 +73,7 @@ describe('the restoration project', () => {
     expect(log.state().restoration?.step).toBe(greenhouse.steps);
   });
 
-  it('starts the next project the day after one finishes', () => {
+  it('starts the next project the day after one finishes, and keeps a finished one when none follows', () => {
     const finished = {
       project: 'greenhouse',
       step: greenhouse.steps,
@@ -81,7 +81,7 @@ describe('the restoration project', () => {
       tendedOn: '2026-11-13',
       done: [{ project: 'greenhouse', finishedOn: '2026-11-14' }],
     };
-    const two = [greenhouse, { id: 'well', steps: 3 }];
+    const two = [greenhouse, { id: 'well', steps: 3, fromRules: 4 }];
     expect(restorationNight(finished, '2026-11-14', two)).toEqual(finished);
     expect(restorationNight(finished, '2026-11-15', two)).toEqual({
       ...finished,
@@ -92,6 +92,10 @@ describe('the restoration project', () => {
     });
     // With no project after it in the catalogue, the finished one stays.
     expect(restorationNight(finished, '2026-11-15')).toEqual(finished);
+    // A project added under newer rules waits until the farm is on them.
+    const later = [greenhouse, { id: 'well', steps: 3, fromRules: 5 }];
+    expect(restorationNight(finished, '2026-11-15', later, 4)).toEqual(finished);
+    expect(restorationNight(finished, '2026-11-15', later, 5).project).toBe('well');
   });
 
   it('starts at the move to the new rules on an older farm', () => {

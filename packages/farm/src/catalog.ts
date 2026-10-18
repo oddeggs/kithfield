@@ -172,12 +172,13 @@ export const plantFor = (family: CareFamily, season: Season): FamilyPlantId =>
  * The farm's long restoration projects, in the order a farm takes them on. `steps` is how many
  * nights of mending finish one: a step is revealed each night after anyone tended. `id` is the
  * project's name in `RestorationState.project`; `scene` is the art that draws it, with its
- * progress from 0 to 1. Changing a step count or the order changes growth, so it ships with a
- * rules-version bump; a project added at the end starts on farms that finished the ones before.
+ * progress from 0 to 1; `fromRules` is the rules version that brought it. Changing a step count or
+ * the order changes growth, so it ships with a rules-version bump; a project added at the end, with
+ * that newer `fromRules`, starts on farms that finished the ones before once they are on its rules.
  */
 export const RESTORATION_PROJECTS = [
-  { id: 'greenhouse', steps: 28, scene: 'barn' },
-] as const satisfies readonly { id: string; steps: number; scene: string }[];
+  { id: 'greenhouse', steps: 28, scene: 'barn', fromRules: 4 },
+] as const satisfies readonly { id: string; steps: number; scene: string; fromRules: number }[];
 
 export type RestorationProjectId = (typeof RESTORATION_PROJECTS)[number]['id'];
 
