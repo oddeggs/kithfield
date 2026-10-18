@@ -97,7 +97,7 @@ const dayColours: StickerColours = {
   onBorder: 'rgba(42,34,29,.12)',
   onFg: '#3f5a31',
   ready: day.moss,
-  soft: 'rgba(42,34,29,.08)',
+  soft: 'rgba(42,34,29,.07)',
   wraps,
 };
 

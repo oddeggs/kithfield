@@ -7,6 +7,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFarm, useSend } from '../../../data';
+import { Chip } from '../../../ui/components/chip';
 import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
@@ -179,68 +180,15 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.sheet }}>
-      <View style={{ paddingTop: 25, paddingHorizontal: 16, gap: 10 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          {tabs.map((x) => {
-            const on = x.id === current.id;
-            const icon = draw(iconOf(x), false);
-            return (
-              <Press
-                key={x.id}
-                onPress={() => setTab(x.id)}
-                haptic="select"
-                radius={14}
-                darken={false}
-                accessibilityLabel={labelOf(x).label}
-                accessibilityState={{ selected: on }}
-                style={{
-                  width: 52,
-                  height: 44,
-                  borderRadius: 14,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: on ? sc.tabOn : 'transparent',
-                }}
-              >
-                <StickerArt attrs={icon} size={TAB_ICON} still />
-              </Press>
-            );
-          })}
-          <View style={{ flex: 1 }} />
-          <Press
-            onPress={() => router.push(stickerRoutes.shop(farm))}
-            radius={18}
-            accessibilityLabel={t('stickers.picker.shop')}
-            style={{
-              height: 36,
-              paddingHorizontal: 12,
-              borderRadius: 18,
-              justifyContent: 'center',
-              backgroundColor: sc.pill,
-            }}
-          >
-            <Txt variant="buttonSmall" style={{ fontSize: 13 }}>
-              {t('stickers.picker.shop')}
-            </Txt>
-          </Press>
-        </View>
-        <View
-          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}
-        >
-          <Txt variant="buttonSmall" accessibilityRole="header">
-            {label}
-          </Txt>
-          <Txt variant="handS" color={palette.muted}>
-            {hint}
-          </Txt>
-        </View>
-      </View>
+      {/* Keeps the scroll view off the native sheet's first-view path, where the sheet would
+          stretch it to its own frame. */}
+      <View collapsable={false} />
       <ScrollView
-        style={{ flex: 1, marginTop: 10 }}
+        style={{ flex: 1 }}
+        stickyHeaderIndices={[0]}
         contentContainerStyle={{
-          paddingHorizontal: 16,
           paddingBottom: insets.bottom + 24,
-          gap: 10,
+          gap: 4,
         }}
         scrollEventThrottle={100}
         onLayout={(e) => {
@@ -252,8 +200,76 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
           setViewport((v) => ({ top: v?.top ?? 0, height: v?.height ?? 0, scrollY }));
         }}
       >
+        <View
+          style={{
+            paddingTop: 25,
+            paddingBottom: 10,
+            paddingHorizontal: 16,
+            gap: 10,
+            backgroundColor: palette.sheet,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {tabs.map((x) => {
+              const on = x.id === current.id;
+              const icon = draw(iconOf(x), false);
+              return (
+                <Press
+                  key={x.id}
+                  onPress={() => setTab(x.id)}
+                  haptic="select"
+                  radius={14}
+                  darken={false}
+                  accessibilityLabel={labelOf(x).label}
+                  accessibilityState={{ selected: on }}
+                  style={{
+                    width: 52,
+                    height: 44,
+                    borderRadius: 14,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: on ? sc.tabOn : 'transparent',
+                  }}
+                >
+                  <StickerArt attrs={icon} size={TAB_ICON} still />
+                </Press>
+              );
+            })}
+            <View style={{ flex: 1 }} />
+            <Press
+              onPress={() => router.push(stickerRoutes.shop(farm))}
+              radius={18}
+              accessibilityLabel={t('stickers.picker.shop')}
+              style={{
+                height: 36,
+                paddingHorizontal: 12,
+                borderRadius: 18,
+                justifyContent: 'center',
+                backgroundColor: sc.pill,
+              }}
+            >
+              <Txt variant="buttonSmall" style={{ fontSize: 13 }}>
+                {t('stickers.picker.shop')}
+              </Txt>
+            </Press>
+          </View>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'baseline',
+            }}
+          >
+            <Txt variant="buttonSmall" accessibilityRole="header">
+              {label}
+            </Txt>
+            <Txt variant="handS" color={palette.muted}>
+              {hint}
+            </Txt>
+          </View>
+        </View>
         {showRecents ? (
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: 6, paddingHorizontal: 16 }}>
             <Txt variant="label" color={palette.muted}>
               {t('stickers.picker.recent')}
             </Txt>
@@ -271,6 +287,7 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
           </View>
         ) : null}
         <View
+          style={{ paddingHorizontal: 16 }}
           onLayout={(e) => {
             const top = e.nativeEvent.layout.y;
             setViewport((v) => ({ scrollY: v?.scrollY ?? 0, height: v?.height ?? 0, top }));
@@ -288,6 +305,15 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
             }}
             onLongPress={(k) => setPreview(byKey.get(k) ?? null)}
           />
+          {current.id === 'together' ? (
+            <View style={{ alignItems: 'center', marginTop: 10 }}>
+              <Chip
+                label={t('stickers.picker.together.pick')}
+                kind="suggestion"
+                onPress={() => router.push(stickerRoutes.together(farm))}
+              />
+            </View>
+          ) : null}
         </View>
       </ScrollView>
       {preview ? (

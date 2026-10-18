@@ -1,5 +1,6 @@
 import type { FarmState, StickerPayload } from '@kithfield/contracts';
 import { springs } from '@kithfield/theme';
+import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import Animated, {
@@ -139,8 +140,10 @@ export function TogetherScreen({
       return;
     }
     void send('sticker', payloadOf(big)).then((result) => {
-      if (result.status === 'queued') leave();
-      else toast.show(t('stickers.picker.refused'));
+      if (result.status !== 'queued') toast.show(t('stickers.picker.refused'));
+      // Back to the chat it was sent to, past the picker if it came from there.
+      else if (router.canDismiss()) router.dismissAll();
+      else leave();
     });
   };
 

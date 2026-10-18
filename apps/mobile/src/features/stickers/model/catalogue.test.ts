@@ -83,7 +83,7 @@ describe('the sticker catalogue', () => {
   });
 
   it('draws at most four friends, or the one a sticker is for', () => {
-    const [us, , missed, , thanks] = togetherStickers();
+    const [us, , , , missed, , , thanks] = togetherStickers();
     if (!us || !missed || !thanks) throw new Error('missing together stickers');
     const five = ['a', 'b', 'c', 'd', 'e'];
     expect(togetherWith(us, five)).toEqual(['a', 'b', 'c', 'd']);

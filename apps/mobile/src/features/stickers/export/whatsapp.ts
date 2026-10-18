@@ -1,4 +1,5 @@
 import type { Art } from '@kithfield/art';
+import { Directory, File, Paths } from 'expo-file-system';
 import { Linking } from 'react-native';
 
 import { surfaces } from '../../../../modules/surfaces';
@@ -10,7 +11,7 @@ import {
 } from '../formats/specs';
 import { toBase64, utf8 } from './base64';
 import { bakeStill, bakeSticker, type BakeSpec } from './bake';
-import type { PackSticker } from './pack';
+import { packSignature, type PackSticker } from './pack';
 
 /*
  * WhatsApp takes a pack through the pasteboard: one JSON item of its own type holding every
@@ -18,15 +19,20 @@ import type { PackSticker } from './pack';
  * `stickerPack` link asks the person to confirm. A pack holds 3 to 30 stickers.
  */
 
-/** WhatsApp's 500 KB holds most stickers at 15 frames a second; the busiest drop to 10. */
+/**
+ * WhatsApp's 500 KB holds most stickers at 15 frames a second; the busiest drop to 10, and the
+ * busiest of all to 6 (Skia keeps a sticker's soft edges exact, so its WebPs run larger).
+ */
 export const WHATSAPP_SPEC: BakeSpec = {
   size: 512,
-  fps: [15, 10],
+  fps: [15, 10, 6],
   format: 'webp',
   maxBytes: WHATSAPP.animatedBytes,
-  qualities: [75, 60, 45, 35],
+  qualities: [70, 50, 35, 25],
 };
 const TRAY = 96;
+/** Bumped when the way the pack's files are made changes, so cached ones are made again. */
+const CACHE_VERSION = 'webp-2';
 const PASTEBOARD_TYPE = 'net.whatsapp.third-party.sticker-pack';
 /** How long the pack stays on the pasteboard for WhatsApp to read it. */
 const PASTEBOARD_SECONDS = 60;
@@ -75,7 +81,10 @@ export async function whatsappInstalled(): Promise<boolean> {
   }
 }
 
-/** Bakes the pack WhatsApp takes. Null when cancelled. */
+/**
+ * Bakes the pack WhatsApp takes, or reads it from the cache when the pack is drawn the same as
+ * last time. Null when cancelled.
+ */
 export async function bakeWhatsAppPack(
   art: Art,
   pack: {
@@ -90,19 +99,44 @@ export async function bakeWhatsAppPack(
   const stickers = pack.stickers.slice(0, 30);
   if (checkWhatsAppPack(stickers.length).length > 0)
     throw new Error('A WhatsApp pack holds 3 to 30');
-  const tray = bakeStill(art, pack.tray, TRAY);
+  const folder = new Directory(Paths.cache, 'stickers-whatsapp');
+  const signature = `${CACHE_VERSION}:${packSignature(stickers, 'webp')}`;
+  const marker = new File(folder, 'signature.txt');
+  const cached = folder.exists && marker.exists && (await marker.text()) === signature;
+  if (!cached) {
+    if (folder.exists) folder.delete();
+    folder.create({ intermediates: true });
+  }
+  const keep = async (name: string, make: () => Promise<Uint8Array | null> | Uint8Array) => {
+    const file = new File(folder, name);
+    if (cached && file.exists) return file.bytes();
+    const bytes = await make();
+    if (bytes === null) return null;
+    if (file.exists) file.delete();
+    file.create();
+    await file.write(bytes);
+    return bytes;
+  };
+  const tray = await keep('tray.png', () => bakeStill(art, pack.tray, TRAY));
+  if (tray === null) return null;
   if (__DEV__ && checkWhatsAppTray(tray).length > 0)
     console.warn('Tray icon', checkWhatsAppTray(tray));
   const baked: { image_data: string; emojis: string[] }[] = [];
   onProgress(0, stickers.length);
   for (const [i, s] of stickers.entries()) {
-    const bytes = await bakeSticker(art, s.attrs, WHATSAPP_SPEC, cancelled);
+    const bytes = await keep(`${s.stem}.webp`, () =>
+      bakeSticker(art, s.attrs, WHATSAPP_SPEC, cancelled),
+    );
     if (bytes === null) return null;
     if (__DEV__ && checkWhatsAppSticker(bytes).length > 0) {
       console.warn(`The ${s.id} sticker is over what WhatsApp takes`, checkWhatsAppSticker(bytes));
     }
     baked.push({ image_data: toBase64(bytes), emojis: [EMOJI[s.id] ?? '🙂'] });
     onProgress(i + 1, stickers.length);
+  }
+  if (!cached) {
+    if (!marker.exists) marker.create();
+    await marker.write(signature);
   }
   const json = JSON.stringify({
     identifier: pack.identifier,

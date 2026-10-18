@@ -35,12 +35,12 @@ describe('picking friends for a together sticker', () => {
     expect(tab.map((o) => [o.def.id, o.with])).toEqual([
       ['us', ['pip']],
       ['gang', ['fig', 'bea', 'otis']],
-      ['missed', ['otis']],
-      ['tower', ['pip', 'fig']],
-      ['thanks', ['fig']],
       ['proud', ['bea']],
       ['our_way', ['pip']],
+      ['missed', ['otis']],
       ['love', ['mo']],
+      ['tower', ['pip', 'fig']],
+      ['thanks', ['fig']],
     ]);
     expect(farmTogether([])).toEqual([]);
     expect(farmTogether(['pip']).every((o) => o.with.length === 1 && o.with[0] === 'pip')).toBe(

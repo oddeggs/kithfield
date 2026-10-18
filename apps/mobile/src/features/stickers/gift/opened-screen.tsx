@@ -11,6 +11,7 @@ import { lookOf } from '../../../ui/art/critter-look';
 import { Button } from '../../../ui/components/button';
 import { EmptyState } from '../../../ui/components/state-shell';
 import { useLocale } from '../../../ui/locale/locale-provider';
+import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { offered, OWN, packOf, type PackId } from '../model/catalogue';
@@ -257,13 +258,23 @@ export function OpenedScreen({ farm, seq }: { readonly farm: string; readonly se
           gap: 10,
         }}
       >
-        <View style={{ flex: 1 }}>
-          <Button
-            label={t('stickers.opened.open')}
-            kind="secondary"
-            onPress={() => router.replace(stickerRoutes.picker(farm))}
-          />
-        </View>
+        <Press
+          onPress={() => router.replace(stickerRoutes.picker(farm))}
+          radius={28}
+          accessibilityLabel={t('stickers.opened.open')}
+          style={{
+            flex: 1,
+            height: 56,
+            borderRadius: 28,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: sc.soft,
+          }}
+        >
+          <Txt variant="buttonText" numberOfLines={1}>
+            {t('stickers.opened.open')}
+          </Txt>
+        </Press>
         <View style={{ flex: 1.3 }}>
           <Button label={t('stickers.opened.thanks')} kind="primary" onPress={thanks} />
         </View>

@@ -279,12 +279,12 @@ export interface TogetherDef {
 const TOGETHER: readonly TogetherDef[] = [
   { id: 'us', caption: 'names', who: 'all' },
   { id: 'gang', caption: 'theGang', who: 'all' },
-  { id: 'missed', caption: 'missedYou', who: 'first' },
-  { id: 'tower', caption: 'friendTower', who: 'all' },
-  { id: 'thanks', caption: 'thankYou', who: 'last' },
   { id: 'proud', caption: 'soProud', who: 'first' },
   { id: 'our_way', caption: 'onOurWay', who: 'all' },
+  { id: 'missed', caption: 'missedYou', who: 'first' },
   { id: 'love', caption: 'loveYouName', who: 'first' },
+  { id: 'tower', caption: 'friendTower', who: 'all' },
+  { id: 'thanks', caption: 'thankYou', who: 'last' },
 ];
 
 const togetherById = new Map(TOGETHER.map((d) => [d.id, d]));
