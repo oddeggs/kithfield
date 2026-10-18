@@ -127,6 +127,11 @@ export const SeedState = z
       .max(LIMITS.members),
     checkins: people,
     sproutedAt: EpochMs.nullable(),
+    /**
+     * A plan rebuilt from its tombstoned planting (unsent, no title or place) that may still
+     * sprout: whether it had a place. Set only until the plan is unsent on this farm; never drawn.
+     */
+    placed: z.boolean().optional(),
   })
   .refine((s) => s.unsent === (s.title === null) && (!s.unsent || s.place === null), {
     message: 'An unsent seed has no title or place; a live one has a title',

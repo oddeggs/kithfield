@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-import { Critter, Departure, Id, PersonId, RuleRef, Seq } from '../primitives';
+import { Critter, Departure, Id, LocalDate, PersonId, RuleRef, Seq } from '../primitives';
+import { Yeses } from './care';
 import { Crop } from './farm';
 
 /**
@@ -33,6 +34,16 @@ export const TombstoneFacts = z
     status: z.enum(['words', 'cloud', 'battery']),
     raised: z.boolean(),
     battery: z.enum(['open', 'resting']),
+    /**
+     * What a plan needs to sprout, from its planting: the dates of its day options (never their
+     * times), how many yeses it needs, whether it rests for someday, and whether it had a place
+     * (never which). A planting unsent or removed can then still sprout on a phone catching up,
+     * exactly as it did live.
+     */
+    days: z.array(LocalDate).max(14),
+    yeses: Yeses,
+    someday: z.boolean(),
+    placed: z.boolean(),
   })
   .partial();
 export type TombstoneFacts = z.infer<typeof TombstoneFacts>;
