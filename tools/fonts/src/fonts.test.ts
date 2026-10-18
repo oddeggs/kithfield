@@ -7,7 +7,12 @@ import { describe, expect, it } from 'vitest';
 import { readFont, type FontInfo } from './sfnt';
 import { fontSources } from './sources';
 import { fontsDir, verify } from './verify';
-import { missingLetters, vietnameseLetters } from './vietnamese';
+import {
+  missingLetters,
+  missingMarks,
+  vietnameseCombiningMarks,
+  vietnameseLetters,
+} from './vietnamese';
 
 const info = new Map<string, FontInfo>(
   fontSources.map((s) => [s.name, readFont(new Uint8Array(readFileSync(join(fontsDir, s.file))))]),
@@ -57,6 +62,15 @@ describe('Vietnamese coverage', () => {
     expect(missing(fonts.patrickHand)).toEqual([]);
     expect(missing(fonts.lora)).toEqual([]);
     expect(missing(fonts.loraSemiBold)).toEqual([]);
+  });
+
+  it('finds every combining mark in Lora, and Patrick Hand without two of them', () => {
+    const marks = (name: FontName) => missingMarks(fontInfo(name).codePoints);
+    expect(vietnameseCombiningMarks).toHaveLength(8);
+    expect(marks(fonts.lora)).toEqual([]);
+    expect(marks(fonts.loraSemiBold)).toEqual([]);
+    // Patrick Hand has no combining circumflex or breve: decomposed "â" or "ă" would fall back.
+    expect(marks(fonts.patrickHand)).toEqual([0x302, 0x306]);
   });
 
   it('sets every Vietnamese style in a font that covers Vietnamese, or the system face', () => {

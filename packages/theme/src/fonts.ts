@@ -49,6 +49,11 @@ export const systemCss = '-apple-system,system-ui';
 /**
  * Vietnamese swaps the whole stack, never glyph by glyph: display becomes Lora 600 and hand
  * becomes Patrick Hand, set 2 points larger. SF Pro covers Vietnamese and stays.
+ *
+ * Text set in the hand face must be precomposed (NFC): Patrick Hand has every precomposed
+ * Vietnamese letter but no combining circumflex (U+0302) or breve (U+0306), so decomposed text
+ * would fall back to another font inside a word. Catalogue copy is NFC-checked; normalise
+ * user-typed text with `text.normalize('NFC')` before rendering it.
  */
 export const vietnamese = {
   youngSerif: { font: fonts.loraSemiBold, sizeDelta: 0 },
