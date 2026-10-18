@@ -23,6 +23,7 @@ import { AppState } from 'react-native';
 import { useDataClient } from '../../../data/react';
 import { useSession } from '../../../ui/session/session';
 import { shopApi, type ShopApi } from '../api';
+import { resumePendingGifts } from './resume-gifts';
 import { revenueCatStore } from '../store/revenuecat';
 import { noStore, type Store } from '../store/store';
 
@@ -72,7 +73,8 @@ function storeFor(person: string): Store {
 }
 
 export function ShopProvider({ children }: { readonly children: ReactNode }) {
-  const { api: client } = useDataClient();
+  const data = useDataClient();
+  const client = data.api;
   const person = useSession().person?.id ?? null;
   const api = useMemo(() => shopApi(client), [client]);
   const store = useMemo(() => (person === null ? noStore : storeFor(person)), [person]);
@@ -120,6 +122,11 @@ export function ShopProvider({ children }: { readonly children: ReactNode }) {
       live = false;
     };
   }, [api, client, tick]);
+
+  // Gifts paid for but not on a friend's step yet are picked up once per opening.
+  useEffect(() => {
+    if (person !== null) void resumePendingGifts(person, api, data);
+  }, [api, data, person]);
 
   // Back from the App Store's own sheets or Settings (a cancellation, a renewal, Ask to Buy), the
   // server may know more: entitlements and the collection are read again on coming back.

@@ -11,11 +11,13 @@ import {
 import { useCallback, useState } from 'react';
 
 import { ApiError } from '../../../data';
-import { useDataClient, useSend } from '../../../data/react';
+import { useDataClient } from '../../../data/react';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useToast } from '../../../ui/components/toast';
 import type { BuyResult } from '../store/store';
 import { payGate } from '../chip/pay-gate';
+import { givenPayload, giftOpId, type PendingGift } from './pending-gifts';
+import { dropPendingGift, keepPendingGift } from './pending-gifts-store';
 import { useShop } from './shop-data';
 
 /*
@@ -141,7 +143,7 @@ export function useGiveGift(farm: FarmId): {
   readonly give: (gift: GiftInput) => Promise<'given' | 'owned' | 'unavailable' | 'stopped'>;
 } {
   const shop = useShop();
-  const send = useSend(farm);
+  const client = useDataClient();
   const notice = useStoreNotice();
   const toast = useToast();
   const { t } = useLocale();
@@ -156,11 +158,25 @@ export function useGiveGift(farm: FarmId): {
           item: input.item,
           wrap: input.wrap,
         });
+        const pending: PendingGift = {
+          gift: started.gift,
+          farm: input.farm,
+          to: input.to,
+          item: input.item,
+          wrap: input.wrap,
+          ...(input.note ? { note: input.note } : {}),
+          transaction: null,
+          at: Date.now(),
+        };
+        // Kept on the phone until the farm has it, so a crash after paying never loses the gift.
+        await keepPendingGift(shop.person, pending);
         const result = await shop.store.buy(started.product);
         if (result.kind !== 'bought') {
           notice(result);
+          if (result.kind !== 'pending') await dropPendingGift(shop.person, started.gift);
           return 'stopped';
         }
+        await keepPendingGift(shop.person, { ...pending, transaction: result.transaction });
         let paid = false;
         for (let i = 0; i < LANDING_TRIES && !paid; i++) {
           paid = (await shop.api.giftPaid(started.gift, result.transaction)).state !== 'unpaid';
@@ -170,14 +186,12 @@ export function useGiveGift(farm: FarmId): {
           toast.show(t('shop.store.waiting'));
           return 'stopped';
         }
-        const sent = await send('gift', {
-          action: 'given',
-          gift: started.gift,
-          to: input.to,
-          item: input.item,
-          wrap: input.wrap,
-          ...(input.note ? { note: input.note } : {}),
-        });
+        const sent = await client.send(
+          farm,
+          'gift',
+          givenPayload(pending),
+          giftOpId(pending.gift, pending.at),
+        );
         if (sent.status !== 'queued') {
           toast.show(t('shop.gift.cant'));
           return 'unavailable';
@@ -192,7 +206,7 @@ export function useGiveGift(farm: FarmId): {
         setState('idle');
       }
     },
-    [notice, send, shop, t, toast],
+    [client, farm, notice, shop, t, toast],
   );
   return { state, give };
 }
