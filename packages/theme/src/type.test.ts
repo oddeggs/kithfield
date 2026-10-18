@@ -7,7 +7,7 @@ const ROW =
   /<div style="font:600 13px\/1\.2 -apple-system,system-ui">([^<]+)<\/div>\s*<div style="([^"]+)">[^<]*<\/div>\s*<div style="font:12\.5px\/1\.4[^"]*">([^<]+)<br>/g;
 
 const SPEC =
-  /^(Young Serif|Gaegu|SF Pro)(?: (Bold|Semibold))? ([\d.]+)(?: \/ ([\d.]+))?(?:, \+([\d.]+)% tracking)?(?: · (\w+)(?: \(([−-]\d+)\))?)?$/;
+  /^(Young Serif|Gaegu|SF Pro)(?: (Bold|Semibold))? ([\d.]+)(?: \/ ([\d.]+))?(?:, \+([\d.]+)% tracking)?(?: · (\w+)(?: \([−-]\d+\))?)?$/;
 
 const FACES: Record<string, Face> = {
   'Young Serif': 'youngSerif',
@@ -20,7 +20,7 @@ const WEIGHTS: Record<string, Weight> = { '': 400, Semibold: 600, Bold: 700 };
 function parseRow(spec: string, sampleStyle: string): TypeStyle {
   const m = SPEC.exec(spec.trim());
   if (!m) throw new Error(`unreadable type spec: ${spec}`);
-  const [, family = '', weightWord = '', size = '', lineHeight, tracking, textStyle, offset] = m;
+  const [, family = '', weightWord = '', size = '', lineHeight, tracking, textStyle] = m;
   const sample = /font:(\d+) ([\d.]+)px\/([\d.]+)/.exec(sampleStyle);
   if (!sample) throw new Error(`unreadable sample: ${sampleStyle}`);
   const sizeN = num(size);
@@ -32,7 +32,6 @@ function parseRow(spec: string, sampleStyle: string): TypeStyle {
     letterSpacing: tracking ? (sizeN * num(tracking)) / 100 : 0,
     uppercase: sampleStyle.includes('text-transform:uppercase'),
     textStyle: (textStyle || null) as TypeStyle['textStyle'],
-    textStyleOffset: offset ? num(offset) : 0,
   };
 }
 

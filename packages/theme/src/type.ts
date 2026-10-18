@@ -20,10 +20,8 @@ export interface TypeStyle {
   lineHeight: number;
   letterSpacing: number;
   uppercase: boolean;
-  /** The text style it scales with, or null where the design names none. */
+  /** The text style it scales with (Dynamic Type: scale `size` by its ratio), or null where the design names none. */
   textStyle: TextStyleName | null;
-  /** Points off the text style's default size at the default content size (body is −2). */
-  textStyleOffset: number;
 }
 
 const style = (
@@ -32,7 +30,7 @@ const style = (
   size: number,
   lineHeight: number,
   textStyle: TextStyleName | null,
-  extra: Partial<Pick<TypeStyle, 'letterSpacing' | 'uppercase' | 'textStyleOffset'>> = {},
+  extra: Partial<Pick<TypeStyle, 'letterSpacing' | 'uppercase'>> = {},
 ): TypeStyle => ({
   face,
   weight,
@@ -41,7 +39,6 @@ const style = (
   letterSpacing: extra.letterSpacing ?? 0,
   uppercase: extra.uppercase ?? false,
   textStyle,
-  textStyleOffset: extra.textStyleOffset ?? 0,
 });
 
 export const type = {
@@ -60,7 +57,7 @@ export const type = {
   /** Buttons. */
   button: style('system', 600, 17, 17, 'headline'),
   /** Bubbles, paragraphs. */
-  body: style('system', 400, 15, 22, 'body', { textStyleOffset: -2 }),
+  body: style('system', 400, 15, 22, 'body'),
   /** List rows, cards. */
   rowTitle: style('system', 600, 16, 20, 'callout'),
   /** Row subtitles, notes. */
