@@ -1,0 +1,32 @@
+{
+  "name": "@kithfield/art",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The design's renderer (synced byte for byte), its Canvas 2D adapter on Skia, the sprite cache and the CanvasKit baker",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./node": "./src/node/index.ts",
+    "./kithfield-art.js": "./src/vendor/kithfield-art.generated.js",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "sync": "tsx scripts/sync.ts",
+    "bake": "tsx src/node/bake-cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "golden": "vitest run --config vitest.golden.config.ts",
+    "golden:report": "tsx src/golden/cli.ts"
+  },
+  "dependencies": {
+    "@kithfield/theme": "workspace:*",
+    "@shopify/react-native-skia": "catalog:"
+  },
+  "devDependencies": {
+    "eslint": "catalog:",
+    "globals": "catalog:",
+    "playwright": "catalog:",
+    "vitest": "catalog:"
+  }
+}
