@@ -16,7 +16,7 @@ import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
-import { ApiError } from '../api/request';
+import { ApiError, isNotServed } from '../api/request';
 import { useSettingsApi } from '../api/use-api';
 import { desktopCodeOf } from '../format';
 import { confirmIdentity } from '../identity';
@@ -71,9 +71,11 @@ export function LinkScreen() {
       (error: unknown) => {
         looking.current = false;
         setProblem(
-          error instanceof ApiError && error.status < 500
-            ? t('settings.link.expired')
-            : t('settings.failed'),
+          isNotServed(error)
+            ? t('settings.link.notFound')
+            : error instanceof ApiError && error.status < 500
+              ? t('settings.link.expired')
+              : t('settings.failed'),
         );
       },
     );

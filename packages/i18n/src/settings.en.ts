@@ -142,7 +142,9 @@ export const settingsEn = {
   'settings.devices.signOut': 'Sign out',
   'settings.devices.link': 'Link a computer',
   'settings.devices.note':
-    'Each device has its own key. Signing one out removes its copy of your messages straight away.',
+    'Signing a device out ends its session there. It forgets this account the next time it connects.',
+  'settings.devices.unavailable':
+    'Your other devices aren’t listed here yet. Signing out of this phone works as always.',
   'settings.devices.signOutHere': 'Sign out of this phone',
   'settings.platform.ios': 'iOS',
   'settings.platform.android': 'Android',
@@ -171,6 +173,8 @@ export const settingsEn = {
   'settings.link.approve': 'Sign in',
   'settings.link.prompt': 'Confirm it’s you to sign in on {name}',
   'settings.link.done': 'Signed in on {name}',
+  'settings.link.notFound':
+    'That code didn’t work. Show a new one on your computer; if it keeps happening, signing in on a computer isn’t open yet.',
   'settings.link.expired': 'That code has run out. Show a new one on your computer.',
   'settings.link.camera': 'Kithfield needs the camera to read the code.',
   'settings.link.allowCamera': 'Allow the camera',

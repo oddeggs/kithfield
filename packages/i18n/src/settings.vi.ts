@@ -132,7 +132,9 @@ export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.devices.signOut': 'Đăng xuất',
   'settings.devices.link': 'Kết nối máy tính',
   'settings.devices.note':
-    'Mỗi thiết bị có chìa khoá riêng. Đăng xuất một thiết bị sẽ xoá bản sao tin nhắn trên đó ngay lập tức.',
+    'Đăng xuất một thiết bị sẽ kết thúc phiên trên đó. Thiết bị sẽ quên tài khoản này vào lần kết nối tiếp theo.',
+  'settings.devices.unavailable':
+    'Các thiết bị khác của bạn chưa hiện ở đây. Đăng xuất khỏi điện thoại này vẫn hoạt động như thường.',
   'settings.devices.signOutHere': 'Đăng xuất khỏi điện thoại này',
   'settings.platform.ios': 'iOS',
   'settings.platform.android': 'Android',
@@ -161,6 +163,8 @@ export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.link.approve': 'Đăng nhập',
   'settings.link.prompt': 'Xác nhận là bạn để đăng nhập trên {name}',
   'settings.link.done': 'Đã đăng nhập trên {name}',
+  'settings.link.notFound':
+    'Mã này không dùng được. Hãy mở một mã mới trên máy tính; nếu vẫn vậy, đăng nhập trên máy tính chưa mở.',
   'settings.link.expired': 'Mã này đã hết hạn. Hãy mở một mã mới trên máy tính.',
   'settings.link.camera': 'Kithfield cần máy ảnh để đọc mã.',
   'settings.link.allowCamera': 'Cho phép máy ảnh',

@@ -14,7 +14,7 @@ import {
 } from '@kithfield/contracts';
 
 import { safetyApi } from '../../safety/safety-api';
-import { ApiError, createRequest } from './request';
+import { ApiError, createRequest, isNotServed } from './request';
 import { settingsApi } from './settings-api';
 
 interface Seen {
@@ -307,5 +307,16 @@ describe('answers that are not what the contract says', () => {
   it('answers a route that isn’t there yet with not_found', async () => {
     const s = server({});
     await expect(s.settings.blocks()).rejects.toMatchObject({ status: 404, code: 'not_found' });
+  });
+});
+
+describe('routes the server doesn’t serve yet', () => {
+  it('tells a missing route apart from other failures', async () => {
+    const s = server({ 'GET /v1/blocks': [503, { error: { code: 'unavailable' } }] });
+    const missing = await s.settings.devices().catch((e: unknown) => e);
+    const down = await s.settings.blocks().catch((e: unknown) => e);
+    expect(isNotServed(missing)).toBe(true);
+    expect(isNotServed(down)).toBe(false);
+    expect(isNotServed(new TypeError('Network request failed'))).toBe(false);
   });
 });

@@ -9,6 +9,7 @@ import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { isNotServed } from '../api/request';
 import { useSettingsApi } from '../api/use-api';
 import { agoOf } from '../format';
 import { go } from '../go';
@@ -44,6 +45,8 @@ export function DevicesScreen() {
       devices.reload();
     }, [devices.reload]),
   );
+  // Until the server lists devices, the screen says so and offers only this phone's sign-out.
+  const unserved = isNotServed(devices.error);
   const list = (devices.data?.devices ?? [])
     .filter((d) => !gone.has(d.device))
     .sort((a, b) => Number(b.current) - Number(a.current) || b.lastActiveAt - a.lastActiveAt);
@@ -131,13 +134,19 @@ export function DevicesScreen() {
           ))}
         </View>
       ) : null}
-      <Pill
-        label={t('settings.devices.link')}
-        icon="plus"
-        height={56}
-        onPress={() => go('/(cover)/settings-link')}
-      />
-      <Note text={t('settings.devices.note')} />
+      {unserved ? (
+        <Note text={t('settings.devices.unavailable')} />
+      ) : (
+        <>
+          <Pill
+            label={t('settings.devices.link')}
+            icon="plus"
+            height={56}
+            onPress={() => go('/(cover)/settings-link')}
+          />
+          <Note text={t('settings.devices.note')} />
+        </>
+      )}
       <View
         style={{
           borderRadius: 22,

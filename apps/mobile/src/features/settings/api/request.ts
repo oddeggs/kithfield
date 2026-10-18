@@ -73,3 +73,7 @@ export function createRequest(deps: RequestDeps): Request {
 
 /** A path segment, escaped. */
 export const seg = (id: string) => encodeURIComponent(id);
+
+/** The server answered 404 for the route itself: it isn't served yet (or no longer). */
+export const isNotServed = (error: unknown): boolean =>
+  error instanceof ApiError && error.status === 404;
