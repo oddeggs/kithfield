@@ -35,6 +35,8 @@ Deliberately absent: Postgres, PowerSync, Centrifugo, Redis, Railway, Docker in 
 
 ## 3. Backend
 
+The farm's events, growth rules and computed states are specified in `docs/farm-model.md`.
+
 - **Farm Durable Object** (one per farm, SQLite storage). It owns:
   - the farm's ordered event log: messages, edits, unsends, reactions, gestures, plans, RSVPs, gifts, and the cosmetics on display
   - farm state derived from `@kithfield/farm` (plants, sleepy critters, seasons, rare blooms)
