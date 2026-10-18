@@ -3,6 +3,8 @@
 import type { FeatureCatalogues } from './catalogue-types';
 import { galleryEn } from './gallery.en';
 import { gallerySameInBoth, galleryVi } from './gallery.vi';
+import { gesturesEn } from './gestures.en';
+import { gesturesSameInBoth, gesturesVi } from './gestures.vi';
 import { glossaryEn } from './glossary.en';
 import { glossarySameInBoth, glossaryVi } from './glossary.vi';
 import { pushEn } from './push.en';
@@ -25,6 +27,7 @@ import { websitePagesSameInBoth, websitePagesVi } from './website-pages.vi';
 /** Every feature catalogue pair, in file-name order. */
 export const features: readonly FeatureCatalogues[] = [
   { name: 'gallery', file: 'gallery', en: galleryEn, vi: galleryVi, sameInBoth: gallerySameInBoth },
+  { name: 'gestures', file: 'gestures', en: gesturesEn, vi: gesturesVi, sameInBoth: gesturesSameInBoth },
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
@@ -39,6 +42,7 @@ export const features: readonly FeatureCatalogues[] = [
 /** The source catalogue: every key, in English. */
 export const en = {
   ...galleryEn,
+  ...gesturesEn,
   ...glossaryEn,
   ...pushEn,
   ...shellEn,
@@ -53,6 +57,7 @@ export const en = {
 /** Every key, in Vietnamese. */
 export const vi = {
   ...galleryVi,
+  ...gesturesVi,
   ...glossaryVi,
   ...pushVi,
   ...shellVi,
