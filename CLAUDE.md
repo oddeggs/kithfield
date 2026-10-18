@@ -22,7 +22,7 @@ Precedence: docs > design notes > design visuals > older reports.
 
 - **Owns list.** Change only the files your lane owns. If you need a change elsewhere, stop and report `NEEDS_CONTEXT` with the exact change.
 - **Contracts are frozen.** `packages/contracts` (events, commands, frames, snapshot) changes only through its owner lane. Code against it; don't fork types.
-- **Tests where they protect behaviour:** the farm reducer, protocol and sync, idempotency, auth, purchases, deletion, moderation, art goldens. No snapshot tests of UI. Run only the files you changed: `pnpm --filter @kithfield/<pkg> test -- <file>`.
+- **Tests where they protect behaviour:** the farm reducer, protocol and sync, idempotency, auth, purchases, deletion, moderation, art goldens. No snapshot tests of UI. Run only the files you changed: `pnpm --filter @kithfield/<pkg> test <file>`.
 - **No ids in code.** No plan, wave, lane or screen ids in code, comments, test names or commit subjects.
 - **Undesigned states** are built from existing components and logged in `docs/undesigned-states.md` (screen, state, reason).
 - Copy is never hard-coded: it comes from `@kithfield/i18n` (en + vi), one catalogue file per feature.
