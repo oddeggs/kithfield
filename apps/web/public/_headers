@@ -1,3 +1,7 @@
+# Universal links and shared web credentials: iOS reads this file, which has no extension, as JSON.
+/.well-known/apple-app-site-association
+  Content-Type: application/json
+  Cache-Control: public, max-age=3600
 /fonts/*
   Cache-Control: public, max-age=31536000, immutable
 /_astro/*
