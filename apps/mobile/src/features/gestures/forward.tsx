@@ -1,4 +1,3 @@
-import type { BlockList } from '@kithfield/contracts';
 import { farmView } from '@kithfield/farm';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -15,18 +14,20 @@ import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { ForwardRow, type FarmGlance, type FarmRow } from './forward-row';
-import { FORWARD_LIMIT, forwardWrite, togglePick, unforwardable } from './model/forward';
+import {
+  FORWARD_LIMIT,
+  forwardWrite,
+  mediaKeysOf,
+  togglePick,
+  unforwardable,
+  withCopiedKeys,
+  type ForwardWrite,
+} from './model/forward';
 import { shownText } from './model/message';
 import { markOurs, useGestureRejections, useRejectCopy } from './send';
 import { leave } from './ui/presentation';
 import { seqParam, useGestureFarm } from './use-gesture-farm';
 import { useGestureColours } from './ui/colours';
-
-/**
- * `GET /v1/blocks`, once the data layer's API client has it. Until then nobody counts as blocked
- * here.
- */
-type BlocksApi = { blocks?: () => Promise<BlockList> };
 
 /** Joins place names: "Book Club", "Book Club and Otis", "Book Club, Yuzu and Otis". */
 function joinPlaces(
@@ -64,10 +65,8 @@ export function ForwardScreen() {
 
   // People you've blocked: their messages are never passed along.
   useEffect(() => {
-    const api = client.api as typeof client.api & BlocksApi;
-    if (!api.blocks) return;
     let live = true;
-    api.blocks().then(
+    client.api.blocks().then(
       (list) => live && setBlocked(new Set(list.blocked.map((b) => b.person))),
       () => undefined,
     );
@@ -143,14 +142,32 @@ export function ForwardScreen() {
     setPicked(next);
   };
 
+  /** The write for one farm, with any media copied there first; null when the copy failed. */
+  const copiedTo = async (farm: string, keys: string[], write: ForwardWrite) => {
+    if (keys.length === 0) return write;
+    try {
+      const copy = await client.api.copyMedia({ fromFarm: g.farm, keys, farm });
+      return withCopiedKeys(write, copy.keys);
+    } catch {
+      return null;
+    }
+  };
+
   const sendAll = async () => {
     if (!event || picked.length === 0 || sending || refusal !== null) return;
     const write = forwardWrite(event, { farm: g.farm, text });
     if (!write) return;
     setSending(true);
     const reached: string[] = [];
+    const keys = mediaKeysOf(write.payload);
     for (const row of pickedRows) {
-      const result = await client.send(row.farm, write.kind, write.payload);
+      // Stored media belongs to its farm: it is copied to each farm first, and the copy is sent.
+      const there = await copiedTo(row.farm, keys, write);
+      if (!there) {
+        toast.show(t('gestures.forward.copyFailed', { place: nameOf(row) }));
+        continue;
+      }
+      const result = await client.send(row.farm, there.kind, there.payload);
       if (result.status === 'queued') {
         markOurs(result.opId);
         reached.push(nameOf(row));
@@ -254,13 +271,8 @@ export function ForwardScreen() {
             </View>
           </View>
         ) : null}
-        {refusal === 'media' || refusal === 'blocked' ? (
-          <NoticeCard
-            icon={refusal === 'media' ? 'photo' : 'lock'}
-            text={t(
-              refusal === 'media' ? 'gestures.forward.mediaStays' : 'gestures.forward.blocked',
-            )}
-          />
+        {refusal === 'blocked' ? (
+          <NoticeCard icon="lock" text={t('gestures.forward.blocked')} />
         ) : null}
         {showNote ? (
           <View

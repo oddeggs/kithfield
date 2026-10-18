@@ -17,24 +17,61 @@ export interface ForwardWrite {
  */
 const STAYS_HOME = new Set(['replyTo', 'mentions', 'forwardedFrom', 'with']);
 
-/** Why a message can't be forwarded: unsent or not a kind that travels, or carries stored media. */
-export type Unforwardable = 'gone' | 'media';
-
-/**
- * Whether a message carries media stored on its farm: photos, video, files, a voice note, a link's
- * preview image. Those keys are the farm's own, so for now such messages stay where they are.
- */
-export function carriesMedia(event: LogEvent): boolean {
-  if (event.kind === 'media' || event.kind === 'voice') return true;
-  if (event.kind !== 'link') return false;
-  const preview = (event.payload as { preview?: { image?: unknown } } | null)?.preview;
-  return preview?.image !== undefined;
-}
+/** Why a message can't be forwarded: unsent, or not a kind that travels. */
+export type Unforwardable = 'gone';
 
 /** Why an event can't be forwarded, or null when it can. */
 export function unforwardable(event: LogEvent): Unforwardable | null {
-  if (!FORWARDABLE.has(event.kind) || isTombstone(event.payload)) return 'gone';
-  return carriesMedia(event) ? 'media' : null;
+  return !FORWARDABLE.has(event.kind) || isTombstone(event.payload) ? 'gone' : null;
+}
+
+interface Ref {
+  readonly key: string;
+}
+
+const isRef = (v: unknown): v is Ref =>
+  typeof v === 'object' && v !== null && typeof (v as { key?: unknown }).key === 'string';
+
+/**
+ * The stored media a write carries, by key: photos, video and files, a voice note, a link's
+ * preview image. Those keys belong to the farm they were sent on, so a forward copies them first.
+ */
+export function mediaKeysOf(payload: Record<string, unknown>): string[] {
+  const keys: string[] = [];
+  const items = payload['items'];
+  if (Array.isArray(items)) for (const i of items) if (isRef(i)) keys.push(i.key);
+  if (isRef(payload['audio'])) keys.push(payload['audio'].key);
+  const preview = payload['preview'];
+  if (typeof preview === 'object' && preview !== null) {
+    const image = (preview as { image?: unknown }).image;
+    if (isRef(image)) keys.push(image.key);
+  }
+  return keys;
+}
+
+/**
+ * The write with each media key swapped for its copy on the farm it's going to, or null when a
+ * key has no copy (it must never point back at the original farm).
+ */
+export function withCopiedKeys(
+  write: ForwardWrite,
+  copies: Readonly<Record<string, string>>,
+): ForwardWrite | null {
+  let missing = false;
+  const swap = (v: unknown): unknown => {
+    if (!isRef(v)) return v;
+    const key = copies[v.key];
+    if (key === undefined) missing = true;
+    return { ...v, key: key ?? v.key };
+  };
+  const payload = { ...write.payload };
+  if (Array.isArray(payload['items'])) payload['items'] = (payload['items'] as unknown[]).map(swap);
+  if (payload['audio'] !== undefined) payload['audio'] = swap(payload['audio']);
+  const preview = payload['preview'];
+  if (typeof preview === 'object' && preview !== null && 'image' in preview) {
+    payload['preview'] = { ...preview, image: swap((preview).image) };
+  }
+  return missing ? null : { kind: write.kind, payload };
 }
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { forwardWrite, togglePick, unforwardable } from './forward';
+import { forwardWrite, mediaKeysOf, togglePick, unforwardable, withCopiedKeys } from './forward';
 import {
   dewdropped,
   menuActions,
@@ -155,17 +155,53 @@ describe('forwarding', () => {
     ).toBeNull();
   });
 
-  it('keeps photos, voice notes and link previews on their farm for now', () => {
-    const ref = { key: 'farm/f1/0', mime: 'image/png', bytes: 1 };
-    const photo = ev(7, 'media', 'bea', { items: [ref] });
-    const voice = ev(8, 'voice', 'bea', { audio: ref, durationMs: 1000, waveform: [] });
-    const pictured = ev(9, 'link', 'bea', { url: 'https://a.b', preview: { image: ref } });
-    const plain = ev(10, 'link', 'bea', { url: 'https://a.b', preview: { title: 'A' } });
-    for (const e of [photo, voice, pictured]) {
-      expect(unforwardable(e)).toBe('media');
-      expect(forwardWrite(e, { farm: 'f1', text: null })).toBeNull();
-    }
-    expect(unforwardable(plain)).toBeNull();
+  it('copies photos, voice notes and link previews to the farm they go to, by key', () => {
+    const ref = (n: number) => ({ key: `farm/f1/${n}`, mime: 'image/png', bytes: 1 });
+    const photo = ev(7, 'media', 'bea', { items: [ref(1), ref(2)], caption: 'look' });
+    const voice = ev(8, 'voice', 'bea', { audio: ref(3), durationMs: 1000, waveform: [] });
+    const pictured = ev(9, 'link', 'bea', {
+      url: 'https://a.b',
+      preview: { title: 'A', image: ref(4) },
+    });
+    const copies = {
+      'farm/f1/1': 'farm/f2/a',
+      'farm/f1/2': 'farm/f2/b',
+      'farm/f1/3': 'farm/f2/c',
+      'farm/f1/4': 'farm/f2/d',
+    };
+    const out = [photo, voice, pictured].map((e) => {
+      expect(unforwardable(e)).toBeNull();
+      const write = forwardWrite(e, { farm: 'f1', text: null });
+      if (!write) throw new Error('no write');
+      return { keys: mediaKeysOf(write.payload), copied: withCopiedKeys(write, copies) };
+    });
+    expect(out.map((o) => o.keys)).toEqual([
+      ['farm/f1/1', 'farm/f1/2'],
+      ['farm/f1/3'],
+      ['farm/f1/4'],
+    ]);
+    expect(out[0]?.copied?.payload).toEqual({
+      items: [
+        { ...ref(1), key: 'farm/f2/a' },
+        { ...ref(2), key: 'farm/f2/b' },
+      ],
+      caption: 'look',
+      forwardedFrom: { farm: 'f1', seq: 7 },
+    });
+    expect(out[1]?.copied?.payload['audio']).toEqual({ ...ref(3), key: 'farm/f2/c' });
+    expect(out[2]?.copied?.payload['preview']).toEqual({
+      title: 'A',
+      image: { ...ref(4), key: 'farm/f2/d' },
+    });
+  });
+
+  it('never forwards a key that points back at the farm it came from', () => {
+    const photo = ev(7, 'media', 'bea', {
+      items: [{ key: 'farm/f1/1', mime: 'image/png', bytes: 1 }],
+    });
+    const write = forwardWrite(photo, { farm: 'f1', text: null });
+    if (!write) throw new Error('no write');
+    expect(withCopiedKeys(write, {})).toBeNull();
   });
 
   it('picks up to five places', () => {
