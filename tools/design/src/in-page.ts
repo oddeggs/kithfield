@@ -136,6 +136,8 @@ export interface TargetInfo {
   label: string;
   width: number;
   height: number;
+  /** Whether it reaches past the viewport's right edge. */
+  overflows: boolean;
 }
 
 /** Tags each `[data-screen-label]` frame with `data-render-target` and reports its label and size. */
@@ -147,6 +149,7 @@ export function tagScreens(): TargetInfo[] {
       label: el.getAttribute('data-screen-label') ?? '',
       width: el.offsetWidth,
       height: el.offsetHeight,
+      overflows: el.getBoundingClientRect().right + scrollX > document.documentElement.clientWidth,
     };
   });
 }
@@ -171,7 +174,13 @@ export function tagSections(): TargetInfo[] {
   return blocks.map((el, index) => {
     el.setAttribute('data-render-target', String(index));
     const title = (el.innerText.split('\n').find((line) => line.trim()) ?? '').trim();
-    return { index, label: el.id || title, width: el.offsetWidth, height: el.offsetHeight };
+    return {
+      index,
+      label: el.id || title,
+      width: el.offsetWidth,
+      height: el.offsetHeight,
+      overflows: el.getBoundingClientRect().right + scrollX > document.documentElement.clientWidth,
+    };
   });
 }
 

@@ -20,17 +20,14 @@ import { type Session, applyTweaks, closeDesignPage, openDesignPage } from './se
 import { parentVariants, tweakVariants } from './tweaks';
 
 /**
- * Canvas files are laid out in a viewport larger than any frame or section (the widest frame is
- * about 2070 px, the tallest section, the cover's map, 4000 px): a capture that leaves the
- * viewport takes another raster path in Chromium, which then changes how later captures
- * rasterise. Frames have fixed sizes, so the width only moves them; sections reflow with it, so
- * section files keep the narrower width.
+ * Canvas files are laid out 1600 px wide and taller than any frame or section (the tallest, the
+ * cover's map, is 4000 px): a capture that leaves the viewport takes another raster path in
+ * Chromium, which then changes how later captures rasterise. The few fixed-size frames wider
+ * than that (about 2070 px at most) are captured on a second page laid out 2400 px wide;
+ * responsive frames stay at 1600, since a wider page would reflow them.
  */
-const CANVAS_HEIGHT = 4200;
-
-function canvasViewport(file: DesignFile, scale: number): { width: number; height: number } {
-  const width = file.mode === 'screens' && scale === WIDE_SCALE ? 2400 : 1600;
-  return { width, height: CANVAS_HEIGHT };
+function canvasViewport(wide: boolean): { width: number; height: number } {
+  return { width: wide ? 2400 : 1600, height: 4200 };
 }
 
 export interface RenderJob {
@@ -43,6 +40,8 @@ export interface RenderJob {
 interface Target {
   index: number;
   entry: RenderEntry;
+  /** Captured on the wide page: the frame overflows the standard one. */
+  wide: boolean;
 }
 
 function toTargets(file: DesignFile, infos: TargetInfo[]): Target[] {
@@ -50,13 +49,14 @@ function toTargets(file: DesignFile, infos: TargetInfo[]): Target[] {
     return infos.flatMap((info) => {
       const label = parseLabel(info.label);
       if (!label) return [];
-      return [{ index: info.index, entry: entry(file, label.id, label.title, info) }];
+      const e = entry(file, label.id, label.title, info);
+      return [{ index: info.index, entry: e, wide: info.overflows }];
     });
   }
   const slugs = uniqueSlugs(infos.map((info) => titleSlug(info.label)));
   return infos.map((info, i) => {
     const id = `${file.slug}/${slugs[i] ?? 'section'}`;
-    return { index: info.index, entry: entry(file, id, info.label, info) };
+    return { index: info.index, entry: entry(file, id, info.label, info), wide: info.overflows };
   });
 }
 
@@ -112,22 +112,34 @@ export async function renderCanvasFile(job: RenderJob, file: DesignFile): Promis
   const whole = fileSelected(file.slug, job.tokens);
   const variants = tweakVariants(file.tweaks);
   const firstScale = file.mode === 'screens' ? scaleForWidth(0) : WIDE_SCALE;
-  const pages = new Map<number, Page>();
-  const pageAt = async (scale: number): Promise<Page> => {
-    const open = pages.get(scale);
+  const pages = new Map<string, Page>();
+  const pageAt = async (scale: number, wide: boolean): Promise<Page> => {
+    const key = `${scale}:${wide}`;
+    const open = pages.get(key);
     if (open) return open;
-    const page = await openDesignPage(job.session, canvasViewport(file, scale), scale, url);
-    pages.set(scale, page);
+    const page = await openDesignPage(job.session, canvasViewport(wide), scale, url);
+    pages.set(key, page);
     return page;
   };
   try {
-    const first = await pageAt(firstScale);
+    const first = await pageAt(firstScale, false);
     const all = toTargets(file, await tag(first, file));
     const wanted = all.filter((t) => whole || idSelected(t.entry.id, job.tokens));
-    for (const scale of [...new Set(wanted.map((t) => t.entry.scale))].sort()) {
-      const page = await pageAt(scale);
-      if (page !== first) await tag(page, file);
-      const targets = wanted.filter((t) => t.entry.scale === scale);
+    const groups = [...new Set(wanted.map((t) => `${t.entry.scale}:${t.wide}`))].sort();
+    for (const group of groups) {
+      const targets = wanted.filter((t) => `${t.entry.scale}:${t.wide}` === group);
+      const { scale, wide } = targets[0]
+        ? { scale: targets[0].entry.scale, wide: targets[0].wide }
+        : { scale: firstScale, wide: false };
+      const page = await pageAt(scale, wide);
+      if (page !== first) {
+        // The index records each target's size on the page it is captured from.
+        const sizes = new Map((await tag(page, file)).map((info) => [info.index, info]));
+        for (const t of targets) {
+          const info = sizes.get(t.index);
+          if (info) Object.assign(t.entry, { width: info.width, height: info.height });
+        }
+      }
       const shots = new Map<string, Map<number, Buffer>>();
       for (const variant of variants) {
         if (variant.suffix) {
