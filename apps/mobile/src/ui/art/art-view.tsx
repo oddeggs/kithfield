@@ -1,11 +1,12 @@
 import type { SceneAttrs } from '@kithfield/art';
 import { Canvas, Image } from '@shopify/react-native-skia';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { Image as RNImage, View } from 'react-native';
 import { useDerivedValue, useFrameCallback, useSharedValue } from 'react-native-reanimated';
 
 import { useReduceMotion } from '../motion/reduce-motion';
-import { useArtLoop, useArtStill } from './art-provider';
+import { useArtVisible } from '../motion/visibility';
+import { useArtLoop, useArtStill, useArtUri } from './art-provider';
 import type { ViewStyleProp } from '../style';
 
 export interface ArtViewProps {
@@ -19,14 +20,15 @@ export interface ArtViewProps {
   readonly style?: ViewStyleProp;
 }
 
-/** A scene drawn once and shown as an image: icons, spots, the seed on a plan card. */
+/**
+ * A scene drawn once and shown as a plain image: icons, spots, the seed on a plan card. It is
+ * encoded once and shared, so a list of a hundred rows mounts no drawing surface of its own.
+ */
 export function ArtStill({ scene, width, height, attrs, t = 0, style }: ArtViewProps) {
-  const image = useArtStill({ scene, width, height, ...(attrs ? { attrs } : {}) }, t);
+  const uri = useArtUri({ scene, width, height, ...(attrs ? { attrs } : {}) }, t);
   return (
     <View style={[{ width, height }, style]} pointerEvents="none">
-      <Canvas style={{ width, height }}>
-        <Image image={image} x={0} y={0} width={width} height={height} />
-      </Canvas>
+      {uri ? <RNImage source={{ uri }} style={{ width, height }} fadeDuration={0} /> : null}
     </View>
   );
 }
@@ -77,7 +79,9 @@ export function ArtLoop({
   const elapsed = useSharedValue(0);
   const frames = loop?.frames ?? [];
   const fps = loop?.fps ?? 12;
-  const running = !paused && !reduce && frames.length > 1;
+  // Loops stop on a hidden tab, under a pushed screen and in the background.
+  const visible = useArtVisible();
+  const running = !paused && !reduce && visible && frames.length > 1;
   const clock = useFrameCallback((info) => {
     elapsed.set(info.timeSinceFirstFrame);
   }, false);
