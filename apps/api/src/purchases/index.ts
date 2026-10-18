@@ -4,6 +4,7 @@
  * what was paid; prices are never sent.
  */
 import './people';
+import './wardrobe';
 
 export { purchasesRoutes } from './routes';
 export { closeDueChipIns } from './chip-ins';
