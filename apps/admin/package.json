@@ -3,15 +3,20 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "The moderation console's Worker, behind Cloudflare Access",
+  "description": "The safety desk (moderation console): server-rendered pages and a proxy to the admin API, behind Cloudflare Access",
   "scripts": {
+    "assets": "node scripts/copy-assets.mjs",
     "dev": "wrangler dev --env dev --port 8788",
     "build": "wrangler deploy --dry-run --env dev --outdir dist",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@kithfield/art": "workspace:*",
     "@kithfield/contracts": "workspace:*",
-    "hono": "catalog:"
+    "@kithfield/i18n": "workspace:*",
+    "@kithfield/theme": "workspace:*",
+    "hono": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
