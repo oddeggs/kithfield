@@ -36,6 +36,8 @@ export type Bindings = Secrets & {
   readonly MEDIA: R2Bucket;
   /** At most 20 sign-in nonces a minute per client address. */
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
+  /** Gestures at another farm's gate, per visitor. */
+  readonly GATE_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;
