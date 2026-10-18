@@ -73,6 +73,16 @@ describeSchemas('cottage contracts', cottage, {
     ['push.knock', 'nudge.backOff'],
     ['Push Knock', ''],
   ],
+  PushData: [
+    [
+      { farm, seq: 12, kind: 'knock', push: 'pu_8f2c' },
+      { farm: null, seq: null, kind: 'nudge_back', push: 'pu_8f2d' },
+    ],
+    [
+      { farm, seq: 12, kind: 'knock' },
+      { farm, seq: 12, kind: 'knock', push: 'a b' },
+    ],
+  ],
   PushJob: [
     [
       job,

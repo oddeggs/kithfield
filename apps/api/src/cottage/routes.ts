@@ -5,6 +5,7 @@ import {
   HibernateRequest,
   Id,
   MeSettingsUpdate,
+  PushOpenedRequest,
   RegisterDeviceRequest,
   RememberRequest,
   FarmId,
@@ -12,7 +13,7 @@ import {
 } from '@kithfield/contracts';
 import { type Context, Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
-import { z } from 'zod';
+import type { z } from 'zod';
 
 import { newActionKey, storeActionKey } from './action-key';
 import { cottageAdapters, type SessionRouteEnv } from './adapters';
@@ -37,12 +38,6 @@ async function bodyOf<S extends z.ZodType>(
   const fields = parsed.error.issues.map((issue) => issue.path.join('.') || '(body)');
   return { ok: false, response: fail(c, 400, 'bad_request', fields.slice(0, 50)) };
 }
-
-/**
- * `POST /v1/push/opened`: the app says a push was opened, by the id in its data (`data.push`).
- * Not in the contracts yet.
- */
-export const PushOpenedRequest = z.object({ id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/) });
 
 /** Lets a request through only with a signed-in session, and names its person. */
 const signedIn = createMiddleware<RouteEnv>((c, next) => cottageAdapters().requireSession(c, next));

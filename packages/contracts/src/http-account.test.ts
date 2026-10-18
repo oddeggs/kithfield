@@ -113,6 +113,7 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
     ],
     [{ state: 'zipping', url: null, requestedAt: at, expiresAt: null }, { state: 'ready' }],
   ],
+  PushOpenedRequest: [[{ id: 'pu_8f2c' }], [{ id: '' }, { id: 'a/b' }, {}]],
   ChatRowUpdate: [
     [{ pinned: true }, { pinned: false }],
     [{}, { pinned: 'yes' }],

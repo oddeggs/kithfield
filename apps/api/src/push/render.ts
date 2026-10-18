@@ -1,4 +1,4 @@
-import type { Lang, PushJob } from '@kithfield/contracts';
+import type { Lang, PushData, PushJob } from '@kithfield/contracts';
 import { t } from '@kithfield/i18n';
 
 import { PASSIVE_COPY } from './catalogue';
@@ -50,11 +50,12 @@ export function expoMessage(
   token: string,
   id: string,
 ): ExpoMessage {
+  const data: PushData = { farm: job.farm, seq: job.seq, kind: job.kind, push: id };
   return {
     to: token,
     title: push.title,
     body: push.body,
-    data: { farm: job.farm, seq: job.seq, kind: job.kind, push: id },
+    data,
     ...(push.passive ? {} : { sound: 'default' as const }),
     collapseId: job.collapseKey,
     tag: job.collapseKey,
