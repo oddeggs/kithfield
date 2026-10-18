@@ -90,6 +90,9 @@ function usageStrings(copy: Record<PermissionKey, string>) {
     NSContactsUsageDescription: copy['systemPermissions.contacts'],
     NSLocationWhenInUseUsageDescription: copy['systemPermissions.location'],
     NSCalendarsWriteOnlyAccessUsageDescription: copy['systemPermissions.calendar'],
+    // App Store processing requires this key whenever the binary references calendar APIs, even
+    // though the app only ever asks for write-only access; it carries the same honest reason.
+    NSCalendarsUsageDescription: copy['systemPermissions.calendar'],
   };
 }
 
@@ -162,7 +165,7 @@ const PERMISSION_PLUGINS: NonNullable<ExpoConfig['plugins']> = [
     {
       writeOnlyAccess: true,
       writeOnlyCalendarPermission: USAGE.NSCalendarsWriteOnlyAccessUsageDescription,
-      calendarPermission: false,
+      calendarPermission: USAGE.NSCalendarsUsageDescription,
       remindersPermission: false,
     },
   ],

@@ -141,7 +141,7 @@ describe('app variants', () => {
 
   it('takes every permission reason from the copy catalogue, in English and Vietnamese', () => {
     const english = Object.values(systemPermissionsEn);
-    expect(Object.values(USAGE).sort()).toEqual([...english].sort());
+    expect([...new Set(Object.values(USAGE))].sort()).toEqual([...english].sort());
     const config = buildConfig({}, 'dev', unset);
     const vi = (config.locales?.['vi'] as { ios: Record<string, string> }).ios;
     expect(Object.keys(vi).sort()).toEqual(Object.keys(USAGE).sort());
@@ -202,7 +202,7 @@ describe('app variants', () => {
       expect.objectContaining({
         writeOnlyAccess: true,
         writeOnlyCalendarPermission: USAGE.NSCalendarsWriteOnlyAccessUsageDescription,
-        calendarPermission: false,
+        calendarPermission: USAGE.NSCalendarsUsageDescription,
         remindersPermission: false,
       }),
     ]);
