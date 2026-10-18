@@ -167,3 +167,19 @@ export const RARE_VARIANTS = [
 /** The plant a family grows in a season. */
 export const plantFor = (family: CareFamily, season: Season): FamilyPlantId =>
   FAMILY_PLANTS[family][SEASONS.indexOf(season)] ?? FAMILY_PLANTS[family][0];
+
+/**
+ * The farm's long restoration projects, in the order a farm takes them on. `steps` is how many
+ * nights of mending finish one: a step is revealed each night after anyone tended. `id` is the
+ * project's name in `RestorationState.project`; `scene` is the art that draws it, with its
+ * progress from 0 to 1. Changing a step count or the order changes growth, so it ships with a
+ * rules-version bump; a project added at the end starts on farms that finished the ones before.
+ */
+export const RESTORATION_PROJECTS = [
+  { id: 'greenhouse', steps: 28, scene: 'barn' },
+] as const satisfies readonly { id: string; steps: number; scene: string }[];
+
+export type RestorationProjectId = (typeof RESTORATION_PROJECTS)[number]['id'];
+
+/** A project by its id, or undefined for one this catalogue doesn't list. */
+export const restorationProject = (id: string) => RESTORATION_PROJECTS.find((p) => p.id === id);

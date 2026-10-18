@@ -7,12 +7,16 @@
  * The highest farm rules version this reducer implements. Version 2: every event carries the
  * farm's local `day`, and day rules read it instead of the device's time-zone data. Version 3: a
  * plan's settling day counts once it has come, its day is fixed once it sprouts, and a check-in
- * counts only on a sprouted plan's own day.
+ * counts only on a sprouted plan's own day. Version 4: the farm's restoration project, and a farm
+ * theme the farm switches on by itself once friends' chip-in covers it.
  */
-export const RULES_VERSION = 3;
+export const RULES_VERSION = 4;
 
 /** The first rules version with the plan-day rules (see `RULES_VERSION`). */
 export const PLAN_DAY_RULES_VERSION = 3;
+
+/** The first rules version with the restoration project (see `RULES_VERSION`). */
+export { RESTORATION_RULES_VERSION } from '@kithfield/contracts';
 
 /** Each person adds at most this much dew to each plant per farm day. */
 export const DAILY_CAP = 3;

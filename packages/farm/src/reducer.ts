@@ -33,7 +33,13 @@ import {
   applyVote,
   sproutSettled,
 } from './plans';
-import { HANGOUT_DEW, RULES_VERSION } from './rules';
+import {
+  keepsRestoration,
+  startRestoration,
+  withRestorationNight,
+  withRestorationStart,
+} from './restoration';
+import { HANGOUT_DEW, RESTORATION_RULES_VERSION, RULES_VERSION } from './rules';
 import {
   applyHarvested,
   applySeasonRolled,
@@ -92,6 +98,9 @@ export const createFarm = (created: FarmCreatedEvent): FarmState => {
     aliases: {},
     doorstep: [],
     fireLitAt: null,
+    ...(keepsRestoration({ kind: p.kind, rulesVersion: created.rulesVersion })
+      ? { restoration: startRestoration(day) }
+      : {}),
   };
 };
 
@@ -114,6 +123,12 @@ const applyKind = (state: FarmState, event: FarmEvent, day: string): FarmState =
     case 'critter_changed':
       return applyCritterChanged(state, event);
     case 'settings_changed':
+      // The farm switches a theme on by itself only from the rules that allow it.
+      if (event.actor === null && event.payload.setting === 'theme') {
+        return state.rulesVersion >= RESTORATION_RULES_VERSION
+          ? applySettings(state, event)
+          : state;
+      }
       return applySettings(state, event);
     case 'farm_opened':
       return updateMember(state, event.actor, () => ({ lastOpenedAt: event.at }));
@@ -190,7 +205,10 @@ const applyKind = (state: FarmState, event: FarmEvent, day: string): FarmState =
     case 'harvested':
       return applyHarvested(state, event);
     case 'rules_changed':
-      return { ...state, rulesVersion: Math.max(state.rulesVersion, event.payload.to) };
+      return withRestorationStart(
+        { ...state, rulesVersion: Math.max(state.rulesVersion, event.payload.to) },
+        day,
+      );
     case 'message':
     case 'edit':
     case 'reaction':
@@ -229,7 +247,9 @@ export const applyEvent = (
   written: FarmEvent,
   lookup: EventLookup = {},
 ): FarmState => {
-  if (written.kind === 'rules_changed') return applyKind(state, written, state.today.day);
+  if (written.kind === 'rules_changed') {
+    return applyKind(state, written, written.day ?? state.today.day);
+  }
   if (!canApplyRules(state) || written.rulesVersion > RULES_VERSION) return state;
   if (written.kind === 'farm_created') return state;
   // Someone merged into another person acts as the person they became.
@@ -238,9 +258,12 @@ export const applyEvent = (
   let next: FarmState =
     day === state.today.day
       ? state
-      : sproutSettled(
-          { ...state, today: { day, given: [] } },
-          { at: event.at, day, rulesVersion: event.rulesVersion },
+      : withRestorationNight(
+          sproutSettled(
+            { ...state, today: { day, given: [] } },
+            { at: event.at, day, rulesVersion: event.rulesVersion },
+          ),
+          day,
         );
   next = withoutDelivered(next, event.at);
   if (event.kind === 'restored') {

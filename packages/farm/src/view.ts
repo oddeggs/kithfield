@@ -18,6 +18,7 @@ import { FAMILIES, SLEEPY_AFTER_DAYS, plantFor } from './catalog';
 import { type PlanConditions, planConditions } from './plans';
 import { CLOUD_MS, CRITTER_SLEEPY_DAYS, DAY_MS, FARM_MISTY_DAYS, STATUS_MS } from './rules';
 import { canApplyRules } from './reducer';
+import { type RestorationView, restorationView } from './restoration';
 import { farmDay, harvestDayOf, pendingSeason } from './seasons';
 import { UnknownTimeZoneError, isBirthday, laterDay, localDay } from './time';
 
@@ -85,6 +86,8 @@ export interface FarmView {
   /** What waits on doorsteps now; slow posts until they're delivered. */
   readonly doorstep: readonly DoorstepItem[];
   readonly plans: readonly PlanView[];
+  /** The restoration project with the night's step revealed; null on a visit or an older farm. */
+  readonly restoration: RestorationView | null;
 }
 
 const earliest = (times: readonly EpochMs[]): EpochMs | null =>
@@ -192,5 +195,6 @@ export const farmView = (state: FarmState, now: EpochMs): FarmView => {
       .filter((d) => d.deliverAt === undefined || d.deliverAt > now)
       .map((d) => ({ ...d, from: alias(d.from), to: alias(d.to) })),
     plans,
+    restoration: restorationView(state, today),
   };
 };
