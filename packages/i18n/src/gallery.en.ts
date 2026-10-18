@@ -81,6 +81,10 @@ export const galleryEn = {
   'gallery.nativeSheet.open': 'Open a native sheet',
   'gallery.nativeSheet.tap': 'Tap inside the sheet',
   'gallery.nativeSheet.tapped': 'The sheet took the tap.',
+  'gallery.artLab.title': 'Scenes',
+  'gallery.artLab.layered':
+    'A full-width scene in layers: drawn once, with only what moves looping over it.',
+  'gallery.artLab.held': 'A loop too big to draw whole is held still.',
   'gallery.tabBar.note':
     'Floating glass tab bar, 64 tall. New activity is a honey dot, never a number.',
   'gallery.tray.dewdrop': 'Saw this, smiled.',

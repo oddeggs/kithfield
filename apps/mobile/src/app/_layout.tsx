@@ -56,6 +56,7 @@ function Screens() {
           <Stack.Screen name="(dev)/sync-lab" />
           <Stack.Screen name="(dev)/media-lab" />
           <Stack.Screen name="(dev)/sheet-lab" />
+          <Stack.Screen name="(dev)/art-lab" />
           <Stack.Screen name="(dev)/gestures-lab" />
         </Stack.Protected>
         <Stack.Screen name="+not-found" />

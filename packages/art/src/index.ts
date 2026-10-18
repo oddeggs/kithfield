@@ -17,4 +17,12 @@ export {
 export { faceEntries, systemFaces } from './faces';
 export type { CritterDef, Internals, KF, Scene, Sprite } from './internals';
 export { drawLoop, fireLoop, FrameLoop, sceneLoop, type LoopOptions } from './loops';
+export {
+  bakeSceneLayers,
+  sceneLayers,
+  type LayerOptions,
+  type LayerPiece,
+  type LayerResult,
+  type SceneLayers,
+} from './layers';
 export { watchMemory, type MemoryWarnings } from './memory';

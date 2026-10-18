@@ -86,7 +86,8 @@ export function useAvatarUri(req: AvatarRequest): string | null {
   return useMemo(() => store.avatarUri(req), [store, key]);
 }
 
-const whenIdle = (fn: () => void): (() => void) => {
+/** Runs `fn` once the JS thread is idle; answers how to cancel it. */
+export const whenIdle = (fn: () => void): (() => void) => {
   if (typeof requestIdleCallback === 'function') {
     const id = requestIdleCallback(fn);
     return () => cancelIdleCallback(id);

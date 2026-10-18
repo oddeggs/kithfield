@@ -13,7 +13,7 @@ screens there without editing a shared file.
 | `(onboarding)/` | Onboarding | Shown instead of the tabs to someone not signed in. Replace `welcome.tsx` (the URL `/welcome`; `index.tsx` would collide with the app's own `/`) |
 | `(modal)/` | Any feature | A sheet over the app: name files `<feature>-<screen>.tsx` (`plans-plant.tsx`). A sheet with its own heights, an overlay or a gesture scene is listed in `SHEETS` |
 | `(cover)/` | Any feature | Full screen over everything (search, the photo viewer, the fire room): `<feature>-<screen>.tsx` (`chat-search.tsx`) |
-| `(dev)/` | The shell | Development-only screens (the component gallery, the sync, media, sheet and gestures labs). Each is listed inside the root layout's `Stack.Protected guard={__DEV__}` and requires its screen only under `__DEV__`, so none ships |
+| `(dev)/` | The shell | Development-only screens (the component gallery, the sync, media, sheet, art and gestures labs). Each is listed inside the root layout's `Stack.Protected guard={__DEV__}` and requires its screen only under `__DEV__`, so none ships |
 
 ## How it fits
 

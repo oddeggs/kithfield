@@ -76,6 +76,10 @@ export const galleryVi: ViCatalogue<typeof galleryEn> = {
   'gallery.nativeSheet.open': 'Mở một bảng gốc',
   'gallery.nativeSheet.tap': 'Chạm vào trong bảng',
   'gallery.nativeSheet.tapped': 'Bảng đã nhận cú chạm.',
+  'gallery.artLab.title': 'Cảnh',
+  'gallery.artLab.layered':
+    'Cảnh rộng hết màn hình theo lớp: vẽ một lần, chỉ phần chuyển động được lặp lại phía trên.',
+  'gallery.artLab.held': 'Vòng lặp quá lớn để vẽ trọn được giữ yên.',
   'gallery.tabBar.note':
     'Thanh thẻ kính nổi, cao 64. Điều mới là một chấm mật ong, không bao giờ là con số.',
   'gallery.tray.dewdrop': 'Đã thấy, đã mỉm cười.',

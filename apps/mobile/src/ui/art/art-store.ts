@@ -1,10 +1,13 @@
 import {
+  bakeSceneLayers,
   critterLayers,
   sceneLoop,
   type Art,
   type CritterLook,
   type CritterState,
   type FrameLoop,
+  type LayerOptions,
+  type LayerResult,
   type SceneRequest,
 } from '@kithfield/art';
 import type { SkImage } from '@shopify/react-native-skia';
@@ -152,5 +155,13 @@ export class ArtStore {
       );
       return null;
     }
+  }
+
+  /**
+   * A full-size scene's layers, baked a frame at a time (see `bakeSceneLayers`): the caller steps
+   * it when the JS thread is idle. Drawn at the phone's density, cached by the art.
+   */
+  bakeLayers(req: SceneRequest, options: LayerOptions = {}): Generator<void, LayerResult, void> {
+    return bakeSceneLayers(this.art, { dpr: this.dpr, ...req }, options);
   }
 }
