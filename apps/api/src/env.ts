@@ -33,6 +33,9 @@ export const secretNames = [
   'REVENUECAT_WEBHOOK_AUTH',
   // Signs Stripe's webhooks (`Stripe-Signature`), for the printed scrapbook's payments.
   'STRIPE_WEBHOOK_SECRET',
+  // The team's APNs key (the `.p8` file's contents), for Live Activity pushes sent straight to
+  // Apple. Unset, Live Activities only move while the app runs.
+  'APNS_KEY_P8',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -85,6 +88,15 @@ export type Bindings = Secrets & {
    * MEDIA_UPLOAD_PROXY_ORIGIN:http://localhost:8787`). Unset, the request's own origin.
    */
   readonly MEDIA_UPLOAD_PROXY_ORIGIN?: string;
+  /** The APNs key's id (the `.p8`'s `AuthKey_<id>`); with `APNS_KEY_P8`, Live Activity pushes. */
+  readonly APNS_KEY_ID?: string;
+  /** The Apple team the key belongs to; `YFND2EEW8S` when unset. */
+  readonly APNS_TEAM_ID?: string;
+  /**
+   * The APNs hosts to send to, in order, comma-separated; the next is tried only for a token the
+   * last called a bad device token. prd: `api.push.apple.com`; dev: the sandbox, then production.
+   */
+  readonly APNS_HOST?: string;
   /** At most 20 sign-in nonces a minute per client address. */
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Gestures at another farm's gate, per visitor. */

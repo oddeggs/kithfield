@@ -1,7 +1,13 @@
-import type { Lang, PushData, PushJob } from '@kithfield/contracts';
+import type {
+  Lang,
+  NotificationCategory,
+  PlanPushData,
+  PushData,
+  PushJob,
+} from '@kithfield/contracts';
 import { t } from '@kithfield/i18n';
 
-import { PASSIVE_COPY } from './catalogue';
+import { categoryOf, PASSIVE_COPY } from './catalogue';
 import type { ExpoMessage } from './expo';
 import { KNOCK_LIFETIME_MS } from './policy';
 
@@ -40,6 +46,28 @@ export function renderPush(job: PushJob, lang: Lang, title: string | null): Rend
   };
 }
 
+/** The plan a push asks about: its planting's seq, or null when the push is not about a plan. */
+export function planSeedOf(job: Pick<PushJob, 'kind' | 'seq' | 'copy'>): number | null {
+  if (job.kind === 'seed_planted') return job.seq;
+  if (!job.copy.key.startsWith('push.plan')) return null;
+  const seed = job.copy.params['seed'];
+  return seed !== undefined && /^[1-9][0-9]{0,14}$/.test(seed) ? Number(seed) : null;
+}
+
+/**
+ * The actions a long-press offers (`NOTIFICATION_ACTIONS`): `plan` for a plan that needs an
+ * answer, `tend` for something a dewdrop can answer (a mention, a reply, a message, the doorstep).
+ * Knocks, nudges, reminders and the quiet "a few things" pushes offer none.
+ */
+export function notificationCategoryOf(
+  job: Pick<PushJob, 'kind' | 'seq' | 'copy' | 'farm'>,
+): NotificationCategory | null {
+  if (job.farm === null || PASSIVE_COPY.has(job.copy.key)) return null;
+  if (planSeedOf(job) !== null) return 'plan';
+  const category = categoryOf(job);
+  return job.seq !== null && (category === 'mention' || category === 'doorstep') ? 'tend' : null;
+}
+
 /**
  * The Expo message for one device. A passive push replaces the one shown, without a sound. `id`
  * is the cottage's id for the push, sent back by the app when it is opened.
@@ -50,7 +78,11 @@ export function expoMessage(
   token: string,
   id: string,
 ): ExpoMessage {
-  const data: PushData = { farm: job.farm, seq: job.seq, kind: job.kind, push: id };
+  const base: PushData = { farm: job.farm, seq: job.seq, kind: job.kind, push: id };
+  const category = notificationCategoryOf(job);
+  const seed = planSeedOf(job);
+  const data: PushData | PlanPushData =
+    category === 'plan' && seed !== null ? { ...base, seed } : base;
   return {
     to: token,
     title: push.title,
@@ -64,5 +96,8 @@ export function expoMessage(
     priority: push.passive ? 'normal' : 'high',
     // A knock is live for a minute; after that it must not arrive at all.
     ttl: job.kind === 'knock' ? KNOCK_LIFETIME_MS / 1000 : TTL_SECONDS,
+    ...(category === null ? {} : { categoryId: category }),
+    // The extension puts the farm's or the seed's still on it; never a badge.
+    ...(job.farm === null ? {} : { mutableContent: true as const }),
   };
 }

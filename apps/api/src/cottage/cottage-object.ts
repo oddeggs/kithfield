@@ -1,4 +1,6 @@
 import {
+  ActivityPushToken,
+  ActivityTokenRequest,
   type ChatListItem,
   CottageDelivery,
   CottageFarm,
@@ -20,6 +22,7 @@ import { DurableObject } from 'cloudflare:workers';
 
 import type { Bindings } from '../env';
 import type { Decision } from '../push/policy';
+import * as activities from './activities';
 import * as chats from './chats';
 import { alarmDelay, nextAlarmAt, ringAlarm } from './alarm';
 import { type Claim, claimJob } from './claim';
@@ -35,6 +38,7 @@ import * as resting from './resting';
 import { applySchema } from './schema';
 import * as seeds from './seeds';
 import * as sockets from './socket';
+import { refreshTargets } from './surface-refresh';
 import { cottageOf } from './stub';
 
 /**
@@ -185,6 +189,11 @@ export class CottageDO extends DurableObject<Bindings> {
     return claim;
   }
 
+  /** Where a farm's widget refresh goes now (a silent push). */
+  refreshTargets(farm: string): devices.PushTarget[] {
+    return refreshTargets(this.sql, farm);
+  }
+
   /** Expo says this token is no longer registered. */
   dropPushToken(device: string, token: string): boolean {
     return devices.dropPushToken(this.sql, device, token);
@@ -200,6 +209,27 @@ export class CottageDO extends DurableObject<Bindings> {
 
   forgetDevice(device: string): void {
     devices.forgetDevice(this.sql, device);
+  }
+
+  /* Live Activity tokens (`PUT /v1/devices/:id/activity-start`, `…/activities`). */
+
+  /** False when the device isn't one of the person's. */
+  setActivityStartToken(device: string, token: string): boolean {
+    if (!activities.hasDevice(this.sql, device)) return false;
+    activities.setStartToken(this.sql, device, ActivityPushToken.parse(token), this.now);
+    return true;
+  }
+
+  setActivityToken(device: string, request: ActivityTokenRequest): boolean {
+    if (!activities.hasDevice(this.sql, device)) return false;
+    activities.setActivityToken(this.sql, device, ActivityTokenRequest.parse(request), this.now);
+    return true;
+  }
+
+  dropActivityToken(device: string, key: activities.ActivityKey): boolean {
+    if (!activities.hasDevice(this.sql, device)) return false;
+    activities.dropActivityToken(this.sql, device, key);
+    return true;
   }
 
   /** For `GET /v1/me`; `zoneKnown` says whether the app has sent the person's time zone yet. */

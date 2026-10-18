@@ -20,6 +20,7 @@ export const pushVi: ViCatalogue<typeof pushEn> = {
     '{name} vừa tỉnh dậy sau giấc ngủ dài. Một cái vẫy tay sẽ làm bạn ấy vui cả ngày.',
   'push.nudge.last': 'Mình sẽ thôi gõ cửa. Nông trại vẫn chờ bạn.',
   'push.remember': 'Bạn đã gieo một hạt giống: {title}. Hỏi thăm xem mọi chuyện thế nào nhé?',
+  'push.planDay.start': 'Hôm nay là {title}.',
 };
 
 /** The brand name, and a friend's name ahead of their own words. */

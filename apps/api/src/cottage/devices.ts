@@ -1,5 +1,7 @@
 import type { Platform, RegisterDeviceRequest } from '@kithfield/contracts';
 
+import { forgetDeviceActivities } from './activities';
+
 /** A device the person signed in on, as the cottage keeps it. */
 export interface CottageDevice {
   readonly device: string;
@@ -71,6 +73,7 @@ export function listDevices(sql: SqlStorage): CottageDevice[] {
 
 export function forgetDevice(sql: SqlStorage, device: string): void {
   sql.exec('DELETE FROM devices WHERE device = ?', device);
+  forgetDeviceActivities(sql, device);
 }
 
 /**

@@ -120,17 +120,20 @@ export async function ledger(db: D1Database, rows: readonly LedgerRow[]): Promis
   }
 }
 
+export interface BudgetCall {
+  readonly decision: Decision;
+  readonly category: ReturnType<typeof categoryOf>;
+  /** The key the push counts against, and where an over-budget one collapses. */
+  readonly spendKey: string;
+  readonly fewKey: string;
+}
+
 /**
- * Runs the push rules on a job and acts on the decision: skip it, hold it through quiet hours,
- * queue it, or collapse it into the day's "a few things" push. The budget is spent only once the
- * push is on the queue. Every decision is ledgered. A hold changes when the cottage's alarm should
- * ring; the caller reschedules it.
+ * The push rules on a job, with the person's settings and today's budget: what to do with it, and
+ * the budget keys it would spend. A kind resting after unopened pushes goes nowhere. Changes
+ * nothing but a rest that starts now.
  */
-export async function considerJob(
-  intake: Intake,
-  job: PushJob,
-  connected: boolean,
-): Promise<Decision> {
+export function budgetCall(intake: Intake, job: PushJob, connected: boolean): BudgetCall {
   const { sql, now } = intake;
   sql.exec('DELETE FROM budget WHERE at < ?', now - 3 * DAY_MS);
   sql.exec('DELETE FROM nudges_sent WHERE at < ?', now - 7 * DAY_MS);
@@ -154,10 +157,30 @@ export async function considerJob(
     sentToday: countOf(sql, spendKey),
     fewSent: countOf(sql, `few.${fewKey}`) > 0,
   });
-  // A kind resting after unopened pushes goes nowhere, not even into "a few things".
   const outgoing = decided.action !== 'skip' && decided.action !== 'hold';
   const decision: Decision =
     outgoing && restsNow(sql, job, now) ? { action: 'skip', reason: 'resting' } : decided;
+  return { decision, category, spendKey, fewKey };
+}
+
+/** Counts a push against its budget key: it went out (or stood in for one that did). */
+export function spend(sql: SqlStorage, key: string, now: number): void {
+  bump(sql, key, now);
+}
+
+/**
+ * Runs the push rules on a job and acts on the decision: skip it, hold it through quiet hours,
+ * queue it, or collapse it into the day's "a few things" push. The budget is spent only once the
+ * push is on the queue. Every decision is ledgered. A hold changes when the cottage's alarm should
+ * ring; the caller reschedules it.
+ */
+export async function considerJob(
+  intake: Intake,
+  job: PushJob,
+  connected: boolean,
+): Promise<Decision> {
+  const { sql, now } = intake;
+  const { decision, category, spendKey, fewKey } = budgetCall(intake, job, connected);
 
   const base = {
     person: job.person,

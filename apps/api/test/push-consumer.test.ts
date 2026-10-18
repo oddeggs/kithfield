@@ -106,6 +106,9 @@ describe('the push consumer', () => {
             interruptionLevel: 'active',
             priority: 'high',
             ttl: 86_400,
+            // A dewdrop can answer it from the lock screen; the extension adds the farm's still.
+            categoryId: 'tend',
+            mutableContent: true,
           },
         ],
       },
@@ -157,6 +160,7 @@ describe('the push consumer', () => {
       priority: 'normal',
     });
     expect(sent[0]).not.toHaveProperty('sound');
+    expect(sent[0]).not.toHaveProperty('categoryId');
     expect((await ledgerOf(person)).map((r) => [r['seq'], r['decision'], r['collapsed']])).toEqual([
       [5, 'sent', 1],
       [4, 'collapsed', 0],

@@ -33,3 +33,6 @@ REVENUECAT_SECRET_KEY=
 REVENUECAT_WEBHOOK_AUTH=
 # Stripe's webhook signing secret (whsec_…), for the printed scrapbook. Empty until it is set up.
 STRIPE_WEBHOOK_SECRET=
+# The team's APNs key for Live Activity pushes: the whole `.p8` file's contents (PEM). Empty
+# locally unless testing remote Live Activities on a device. Its id goes in the APNS_KEY_ID var.
+APNS_KEY_P8=

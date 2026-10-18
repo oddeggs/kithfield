@@ -1,11 +1,13 @@
 import { nextHeldAt, releaseHeld } from './claim';
 import { considerJob, type Intake, reminderJob } from './intake';
+import { nextActivityAt, ringActivities } from './live-activities';
 import * as seeds from './seeds';
 import * as sockets from './socket';
 
 /**
- * What the cottage's alarm does: send on held pushes once quiet hours end, and nudge remember-me
- * seeds that are due. False when something failed: what wasn't handled stays held or planted.
+ * What the cottage's alarm does: send on held pushes once quiet hours end, nudge remember-me
+ * seeds that are due, and start or end plans' days. False when something failed: what wasn't
+ * handled stays held or planted.
  */
 export async function ringAlarm(intake: Intake): Promise<boolean> {
   try {
@@ -14,6 +16,7 @@ export async function ringAlarm(intake: Intake): Promise<boolean> {
       await considerJob(intake, reminderJob(intake.person, seed, intake.now), false);
       seeds.removeSeed(intake.sql, seed.id);
     }
+    await ringActivities(intake);
     return true;
   } catch (error) {
     console.error('cottage alarm failed', { error: String(error) });
@@ -21,11 +24,14 @@ export async function ringAlarm(intake: Intake): Promise<boolean> {
   }
 }
 
-/** The earliest thing due (a held push, a seed, a hello deadline), or null. */
+/** The earliest thing due (a held push, a seed, a hello deadline, a plan's day), or null. */
 export function nextAlarmAt(sql: SqlStorage, open: readonly WebSocket[]): number | null {
-  const times = [nextHeldAt(sql), seeds.nextSeedAt(sql), sockets.nextDeadline(open)].filter(
-    (t) => t !== null,
-  );
+  const times = [
+    nextHeldAt(sql),
+    seeds.nextSeedAt(sql),
+    sockets.nextDeadline(open),
+    nextActivityAt(sql),
+  ].filter((t) => t !== null);
   return times.length === 0 ? null : Math.min(...times);
 }
 

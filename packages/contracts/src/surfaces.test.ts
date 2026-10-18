@@ -163,9 +163,8 @@ describe('notification actions', () => {
       kind: 'rsvp',
       payload: { seed: 20, answer: 'out' },
     });
-    expect(surfaces.actionCommand('dewdrop', 'plan', plan, opId)?.command.payload).toEqual({
-      target: 20,
-    });
+    // A dewdrop can't sit on a planting: on a plan push it goes to the farm.
+    expect(surfaces.actionCommand('dewdrop', 'plan', plan, opId)?.command.payload).toEqual({});
   });
 
   it('leaves a dewdrop on what a tend push was about, and nothing else', () => {
@@ -175,7 +174,19 @@ describe('notification actions', () => {
     expect(surfaces.actionCommand('im_in', 'tend', tend, opId)).toBeNull();
     expect(surfaces.actionCommand('im_in', 'plan', tend, opId)).toBeNull();
     expect(surfaces.actionCommand('dewdrop', 'tend', { ...tend, farm: null }, opId)).toBeNull();
-    expect(surfaces.actionCommand('dewdrop', 'tend', { ...tend, seq: null }, opId)).toBeNull();
+    expect(
+      surfaces.actionCommand('dewdrop', 'tend', { ...tend, seq: null }, opId)?.command.payload,
+    ).toEqual({});
+  });
+
+  it('puts a tend push’s dewdrop on its event only when that is something said in the chat', () => {
+    const doorstep: PushData = { farm, seq: 52, kind: 'gift', push: 'pu_3' };
+    expect(surfaces.actionCommand('dewdrop', 'tend', doorstep, opId)?.command.payload).toEqual({});
+    for (const kind of ['message', 'sticker', 'media', 'voice', 'link', 'quiet_note'] as const) {
+      expect(
+        surfaces.actionCommand('dewdrop', 'tend', { ...tend, kind }, opId)?.command.payload,
+      ).toEqual({ target: 41 });
+    }
   });
 
   it('builds only commands the farm accepts', () => {

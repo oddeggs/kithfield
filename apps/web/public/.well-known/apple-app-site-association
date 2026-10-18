@@ -1,0 +1,18 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["YFND2EEW8S.com.kithfield.app", "YFND2EEW8S.com.kithfield.app.dev"],
+        "components": [
+          { "/": "/i/*", "comment": "A farm invite" },
+          { "/": "/vi/i/*", "comment": "A farm invite, in Vietnamese" },
+          { "/": "/join/*", "comment": "Joining a farm" }
+        ],
+        "paths": ["/i/*", "/vi/i/*", "/join/*"]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["YFND2EEW8S.com.kithfield.app", "YFND2EEW8S.com.kithfield.app.dev"]
+  }
+}
