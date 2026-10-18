@@ -22,6 +22,7 @@ import { Txt } from '../../ui/type/text';
 import { PlanHeader, useBottomButtonOffset, leave } from './chrome';
 import { personOn, type PlanPerson } from './people';
 import { organiserHat, usePlanLook } from './plan-look';
+import { answerSeenBy, canPassHat } from './plan-status';
 import { useMe, usePlan, usePlanRejections, usePlanSend } from './use-plans';
 
 /** How high the hat-wearer hops when the hat arrives, for one drawing on twos. */
@@ -102,9 +103,10 @@ export function RepliesScreen({ farm, seq }: { readonly farm: FarmId; readonly s
   const { state } = here;
   const { seed } = plan;
   const wearer = personOn(state, seed.hat, me, t);
-  const keeper = state.members.some((m) => m.person === me && m.role === 'keeper');
-  const canPass = me !== null && (me === seed.hat || me === seed.planter || keeper);
-  const answerOf = (p: PersonId): Answer => seed.rsvps.find((r) => r.person === p)?.answer ?? null;
+  const canPass = canPassHat(seed, me);
+  const wearsHat = me !== null && me === seed.hat;
+  const answerOf = (p: PersonId): Answer =>
+    answerSeenBy(seed.rsvps.find((r) => r.person === p)?.answer ?? null, wearsHat);
   // The hat-wearer follows up on everyone else's answers; passing the hat lists everyone else too.
   const rows = state.members
     .filter((m) => m.person !== seed.hat)
