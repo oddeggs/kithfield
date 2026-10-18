@@ -15,6 +15,8 @@ export interface GroupStore {
   list(folder: string): string[];
   /** A `file://` URI for a path, for code that takes one (uploads). */
   uri(path: string): string;
+  /** Deletes a folder path (ending in `/`) and everything in it. */
+  deleteFolder(folder: string): void;
 }
 
 const appGroup = () => (Constants.expoConfig?.extra as { appGroup?: string } | undefined)?.appGroup;
@@ -64,5 +66,9 @@ export function nativeGroupStore(root: Directory): GroupStore {
       return dir.list().flatMap((entry) => (entry instanceof File ? [entry.name] : []));
     },
     uri: (path) => file(path).uri,
+    deleteFolder(folder) {
+      const dir = new Directory(root, folder);
+      if (dir.exists) dir.delete();
+    },
   };
 }

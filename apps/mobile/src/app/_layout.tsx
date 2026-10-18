@@ -10,7 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import type { HeldElsewhere } from '../data';
 import { clearMediaForSignOut, MediaUploads, pendingUploadCount } from '../features/media';
 import { useStoredLanguage } from '../features/settings/device-prefs';
-import { SurfacesHost } from '../features/surfaces';
+import { clearSurfacesForSignOut, SurfacesHost } from '../features/surfaces';
 import { ArtProvider, createArtStore } from '../ui/art/art-provider';
 import { ToastHost } from '../ui/components/toast';
 import { LocaleProvider } from '../ui/locale/locale-provider';
@@ -27,10 +27,14 @@ import { ThemeProvider, useTheme } from '../ui/theme/theme-provider';
 void SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ duration: 200, fade: true });
 
-/** The media queue: counted before signing out and cleared with the data layer's tables. */
+/**
+ * The media queue, counted before signing out; it and the native surfaces (widgets, Live
+ * Activities, unsent shares) are cleared with the data layer's tables.
+ */
 const mediaQueue: HeldElsewhere = {
   pendingCount: pendingUploadCount,
-  clear: clearMediaForSignOut,
+  clear: () =>
+    Promise.all([clearMediaForSignOut(), clearSurfacesForSignOut()]).then(() => undefined),
 };
 
 function Screens() {

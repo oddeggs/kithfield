@@ -24,5 +24,8 @@ export function memoryGroup(files: Record<string, string> = {}): GroupStore & {
         .filter((k) => k.startsWith(folder) && !k.slice(folder.length).includes('/'))
         .map((k) => k.slice(folder.length)),
     uri: (path) => `file:///group/${path}`,
+    deleteFolder: (folder) => {
+      for (const key of [...map.keys()]) if (key.startsWith(folder)) map.delete(key);
+    },
   };
 }
