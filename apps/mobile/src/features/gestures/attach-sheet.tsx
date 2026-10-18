@@ -10,8 +10,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
-import { pickDocument, pickPhotos, takePhoto, useSendFiles } from './attach';
-import type { PickedFile } from './media-seam';
+import { useAttach, type AttachFrom } from './attach';
 import { useGestureSend } from './send';
 import { OverlaySheet } from './ui/overlay-sheet';
 import { useOverlayClose } from './ui/presentation';
@@ -28,17 +27,12 @@ export function AttachScreen() {
   const toast = useToast();
   const g = useGestureFarm();
   const send = useGestureSend(g.farm);
-  const sendFiles = useSendFiles(g.farm);
+  const attach = useAttach(g.farm);
   const { closing, close } = useOverlayClose();
   const [link, setLink] = useState<string | null>(null);
 
-  const files = async (pick: () => Promise<PickedFile[] | null>, denied?: string) => {
-    const picked = await pick();
-    if (picked === null) {
-      if (denied) toast.show(denied);
-      return;
-    }
-    if (picked.length > 0 && (await sendFiles(picked))) close();
+  const files = async (from: AttachFrom) => {
+    if (await attach(from)) close();
   };
   const sendLink = async () => {
     const url = HttpUrl.safeParse(link?.trim() ?? '');
@@ -50,13 +44,13 @@ export function AttachScreen() {
   };
 
   const tiles = [
-    { icon: 'photo', label: t('gestures.files.photos'), onPress: () => void files(pickPhotos) },
+    { icon: 'photo', label: t('gestures.files.photos'), onPress: () => void files('library') },
     {
       icon: 'camera',
       label: t('gestures.files.camera'),
-      onPress: () => void files(takePhoto, t('gestures.files.cameraDenied')),
+      onPress: () => void files('camera'),
     },
-    { icon: 'note', label: t('gestures.files.files'), onPress: () => void files(pickDocument) },
+    { icon: 'note', label: t('gestures.files.files'), onPress: () => void files('files') },
     { icon: 'link', label: t('gestures.files.link'), onPress: () => setLink('') },
   ];
 

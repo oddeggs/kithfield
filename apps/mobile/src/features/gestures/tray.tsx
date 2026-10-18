@@ -13,7 +13,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
-import { pickDocument, pickPhotos, useSendFiles } from './attach';
+import { useAttach, type AttachFrom } from './attach';
 import { cloudUp, defaultFriend } from './model/people';
 import { open, routes } from './routes';
 import { useGestureSend } from './send';
@@ -48,7 +48,7 @@ export function TrayScreen() {
   const params = useLocalSearchParams<{ to?: string }>();
   const g = useGestureFarm();
   const send = useGestureSend(g.farm);
-  const sendFiles = useSendFiles(g.farm);
+  const attach = useAttach(g.farm);
   const { closing, close } = useOverlayClose();
   const [note, setNote] = useState<string | null>(null);
   const to = defaultFriend(g.state, g.me, one(params.to)) ?? undefined;
@@ -75,9 +75,8 @@ export function TrayScreen() {
     )
       close();
   };
-  const files = async (pick: () => Promise<Parameters<typeof sendFiles>[0]>) => {
-    const picked = await pick();
-    if (picked.length > 0 && (await sendFiles(picked))) close();
+  const files = async (from: AttachFrom) => {
+    if (await attach(from)) close();
   };
 
   const pill = (icon: string, label: string, onPress: () => void) => (
@@ -221,8 +220,8 @@ export function TrayScreen() {
             )}
           </View>
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            {pill('camera', t('gestures.tray.photos'), () => void files(pickPhotos))}
-            {pill('note', t('gestures.tray.files'), () => void files(pickDocument))}
+            {pill('camera', t('gestures.tray.photos'), () => void files('library'))}
+            {pill('note', t('gestures.tray.files'), () => void files('files'))}
           </View>
         </>
       )}

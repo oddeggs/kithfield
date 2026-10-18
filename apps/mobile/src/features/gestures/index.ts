@@ -8,6 +8,5 @@
  *   `farm` and `to`; `/gestures-forward?farm&seq`; `/gestures-quick-tend`.
  */
 export { FileBubble, type FileBubbleProps } from './file-bubble';
-export { provideMediaUploader, type MediaUploader, type PickedFile } from './media-seam';
 export { reactionRow, iconOfReaction, type RowMark } from './model/reactions';
 export { routes as gestureRoutes } from './routes';

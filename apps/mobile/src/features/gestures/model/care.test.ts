@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { slowPostsTo, umbrellaBrought, warmthFrom } from './care';
-import { fitsUpload, sizeOf, sortOf } from './files';
+import { sizeOf, sortOf } from './files';
 import type { LogEvent } from './message';
 import {
   bouquetParts,
@@ -101,12 +101,6 @@ describe('files', () => {
     expect(sortOf('application/pdf')).toBe('pdf');
     expect(sortOf('application/octet-stream', 'rota.PDF')).toBe('pdf');
     expect(sortOf('image/png')).toBe('image');
-  });
-
-  it('keeps uploads within 100 MB, leaving an unknown size to the upload', () => {
-    expect(fitsUpload(100 * 1024 * 1024)).toBe(true);
-    expect(fitsUpload(100 * 1024 * 1024 + 1)).toBe(false);
-    expect(fitsUpload(0)).toBe(true);
   });
 });
 

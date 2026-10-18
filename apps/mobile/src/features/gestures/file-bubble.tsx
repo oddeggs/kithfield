@@ -13,6 +13,7 @@ import { crossTo } from '../../ui/motion/motion';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
+import { useMediaUrl } from '../media';
 import { iconOf, sizeOf, sortOf } from './model/files';
 import { useGestureColours } from './ui/colours';
 
@@ -23,11 +24,8 @@ export interface FileBubbleProps {
   readonly mine: boolean;
   /** Upload progress from 0 to 1 while it goes up; absent once it's there. */
   readonly progress?: number;
-  /**
-   * Where to read the file: a local file while it is yours and fresh, or a short-lived signed
-   * read URL (`POST /v1/media/read-urls`) from the media feature.
-   */
-  readonly resolveUri: () => Promise<string>;
+  /** The stored file's key, read through the media feature (the phone's copy or a signed URL). */
+  readonly mediaKey: string;
 }
 
 /** A local copy of a file to hand to Quick Look or the share sheet. */
@@ -45,11 +43,12 @@ async function localCopy(uri: string, name: string): Promise<string> {
  * bar that fills continuously. A tap opens it in Quick Look; a long-press offers the share sheet,
  * where "Save to Files" is.
  */
-export function FileBubble({ name, mime, bytes, mine, progress, resolveUri }: FileBubbleProps) {
+export function FileBubble({ name, mime, bytes, mine, progress, mediaKey }: FileBubbleProps) {
   const { t } = useLocale();
   const { palette } = useTheme();
   const gc = useGestureColours();
   const toast = useToast();
+  const url = useMediaUrl(mediaKey);
   // The bar fills continuously between progress reports, on the UI thread.
   const filled = useSharedValue(progress ?? 0);
   useEffect(() => {
@@ -65,9 +64,14 @@ export function FileBubble({ name, mime, bytes, mine, progress, resolveUri }: Fi
     unit: size.unit,
   });
 
+  /** The file on the phone, fetched from its signed URL the first time. */
+  const local = () => {
+    if (url === null) throw new Error('not readable yet');
+    return localCopy(url, name);
+  };
   const openFile = async () => {
     try {
-      const uri = await localCopy(await resolveUri(), name);
+      const uri = await local();
       await viewDocument({ uri, mimeType: mime });
     } catch {
       toast.show(t('gestures.files.cantOpen'));
@@ -75,7 +79,7 @@ export function FileBubble({ name, mime, bytes, mine, progress, resolveUri }: Fi
   };
   const share = async () => {
     try {
-      const uri = await localCopy(await resolveUri(), name);
+      const uri = await local();
       await Sharing.shareAsync(uri, { mimeType: mime });
     } catch {
       toast.show(t('gestures.files.cantOpen'));

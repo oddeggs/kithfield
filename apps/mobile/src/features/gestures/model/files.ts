@@ -1,5 +1,3 @@
-import { LIMITS } from '@kithfield/contracts';
-
 /** What kind of file a bubble shows, by its type, for its label and icon. */
 export type FileSort = 'pdf' | 'image' | 'video' | 'audio' | 'text' | 'sheet' | 'archive' | 'other';
 
@@ -37,13 +35,3 @@ export function sizeOf(bytes: number): { value: string; unit: 'B' | 'KB' | 'MB' 
   const value = i === 0 || v >= 10 ? String(Math.round(v)) : (Math.round(v * 10) / 10).toString();
   return { value, unit };
 }
-
-/**
- * Whether a picked file can be sent: up to the upload limit (100 MB). A size the picker didn't
- * report (0) is left to the upload to find out.
- */
-export const fitsUpload = (bytes: number): boolean => bytes <= LIMITS.uploadBytes;
-
-/** Which upload kind a picked file goes up as. */
-export const uploadKindOf = (mime: string): 'photo' | 'video' | 'file' =>
-  mime.startsWith('image/') ? 'photo' : mime.startsWith('video/') ? 'video' : 'file';
