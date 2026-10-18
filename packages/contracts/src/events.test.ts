@@ -12,6 +12,7 @@ import {
   parseEvent,
   type EventKind,
 } from './events';
+import { COMMAND_KINDS } from './commands';
 import { KNOWN_WARMTHS } from './payloads/care';
 import { KNOWN_WEATHER_SOURCES } from './payloads/farm';
 import { KNOWN_REACTIONS, LIMITS } from './primitives';
@@ -143,10 +144,17 @@ describe('farm events', () => {
 
   it("names the kinds the farm may write on a person's behalf", () => {
     for (const kind of ON_BEHALF_KINDS) expect(EVENT_KINDS).toContain(kind);
-    for (const kind of ['critter_changed', 'status'] as const) {
+    for (const kind of ['critter_changed', 'status', 'seed_changed'] as const) {
       expect(ON_BEHALF_KINDS).toContain(kind);
       expect(FARM_WRITTEN_KINDS).not.toContain(kind);
+      expect(COMMAND_KINDS).toContain(kind);
     }
+  });
+
+  it('lets the farm restore a removed plan edit with the editor as actor', () => {
+    const restore = { seed: 20, title: 'Picnic by the river', days: [], place: null };
+    roundTrip({ ...eventOf('seed_changed', restore), actor: fig });
+    expect(valid({ ...eventOf('seed_changed', restore), actor: null })).toBe(false);
   });
 
   it('rejects broken envelopes', () => {

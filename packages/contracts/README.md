@@ -30,9 +30,11 @@ only through the contracts owner.
   (`frozen`, `paused`, and the keeper handover `role: keeper` when the last keeper leaves or is
   removed, given to the longest-standing remaining member) and `fire` (`out`).
 - The farm writes `ON_BEHALF_KINDS` on a person's behalf, with that person as actor: `joined`,
-  `farm_opened`, `hibernate`, `gate`, `traded`, and `critter_changed` and `status` (also phone
-  commands). After a safety removal of a `critter_changed` or `status`, the farm writes a follow-up
-  of the same kind restoring the person's previous values.
+  `farm_opened`, `hibernate`, `gate`, `traded`, and `critter_changed`, `status` and `seed_changed`
+  (also phone commands). After a safety removal of a `critter_changed`, `status` or `seed_changed`,
+  the farm writes a follow-up of the same kind restoring the previous values. For a plan edit that
+  changed its title, days or place, the follow-up restores the planter's plan, with the editor of
+  the removed edit as actor.
 - A removed, unsent or deleted author's event keeps its `seq` and `kind`; its `payload` becomes a
   `Tombstone`. Check with `isTombstone`. The farm builds it with `tombstoneOf`, which keeps the
   facts the reducer reads (`TOMBSTONE_KEEPS`), so a phone catching up past an unsend or a deleted

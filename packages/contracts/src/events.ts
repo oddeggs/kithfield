@@ -223,9 +223,11 @@ export const AnyEventKind = z.string().regex(/^[a-z][a-z0-9_]{0,39}$/);
 
 /**
  * Kinds the farm may write on a person's behalf, with that person as actor and an op id the farm
- * mints. The first five come only from the farm. `critter_changed` and `status` are also phone
- * commands; the farm writes them after a safety removal of one, to restore the person's previous
- * critter, name, birthday or status.
+ * mints. The first five come only from the farm. `critter_changed`, `status` and `seed_changed`
+ * are also phone commands; the farm writes one after a safety removal of the same kind, to restore
+ * the previous values: a person's critter, name or birthday, their status, or a plan's title, days
+ * and place. The follow-up `seed_changed` is for the planter's plan, with the editor of the removed
+ * edit as actor (any member may be the actor of a `seed_changed`, so the actor rules allow it).
  */
 export const ON_BEHALF_KINDS = [
   'joined',
@@ -235,6 +237,7 @@ export const ON_BEHALF_KINDS = [
   'traded',
   'critter_changed',
   'status',
+  'seed_changed',
 ] as const satisfies readonly EventKind[];
 
 /**
