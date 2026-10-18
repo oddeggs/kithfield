@@ -322,7 +322,7 @@ export const shopEn = {
   'shop.chip.privatePromise':
     'Amounts are private. Nobody is charged unless it fills. If it doesn’t fill by the end of the day, {name} still gets the card.',
   'shop.chip.privatePaid':
-    'Amounts are private. If it doesn’t fill by the end of the day, everyone is refunded and {name} still gets the card.',
+    'Amounts are private. Nobody pays until it fills. If it isn’t all paid by the end of the day, anyone who paid keeps the gift for themselves, and {name} still gets the card.',
   'shop.chip.privateTheme':
     'Amounts are private. Nobody is charged unless it fills, and once it does the theme is the farm’s forever.',
   'shop.chip.button': 'Chip in',
@@ -332,6 +332,8 @@ export const shopEn = {
   'shop.chip.paid': 'Your share is in. Thank you!',
   'shop.chip.done': 'It’s on its way.',
   'shop.chip.closed': 'This chip-in has closed. Nobody was charged.',
+  'shop.chip.closedPaid':
+    'This chip-in closed before it was all paid, so the gift you paid towards is yours to keep.',
   'shop.chip.howMuch': 'How much would you like to put in?',
   'shop.chip.nobodySees': 'Nobody sees the amount, only that you chipped in.',
   'shop.chip.tier': 'Chip in {price}',

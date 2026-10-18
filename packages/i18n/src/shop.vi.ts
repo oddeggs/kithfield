@@ -306,7 +306,7 @@ export const shopVi: ViCatalogue<typeof shopEn> = {
   'shop.chip.privatePromise':
     'Số tiền được giữ kín. Không ai bị trừ tiền nếu chưa góp đủ. Nếu cuối ngày vẫn chưa đủ, {name} vẫn nhận được thiệp.',
   'shop.chip.privatePaid':
-    'Số tiền được giữ kín. Nếu cuối ngày vẫn chưa đủ, mọi người được hoàn tiền và {name} vẫn nhận được thiệp.',
+    'Số tiền được giữ kín. Không ai trả tiền cho đến khi góp đủ. Nếu cuối ngày vẫn chưa trả đủ, ai đã trả sẽ tự giữ món quà, và {name} vẫn nhận được thiệp.',
   'shop.chip.privateTheme':
     'Số tiền được giữ kín. Không ai bị trừ tiền nếu chưa góp đủ, và khi đủ, chủ đề là của nông trại mãi mãi.',
   'shop.chip.button': 'Góp tặng',
@@ -316,6 +316,8 @@ export const shopVi: ViCatalogue<typeof shopEn> = {
   'shop.chip.paid': 'Đã nhận phần của bạn. Cảm ơn nhé!',
   'shop.chip.done': 'Quà đang trên đường đến.',
   'shop.chip.closed': 'Lần góp này đã đóng. Không ai bị trừ tiền.',
+  'shop.chip.closedPaid':
+    'Lần góp này đã đóng trước khi trả đủ, nên món quà bạn đã trả là của bạn.',
   'shop.chip.howMuch': 'Bạn muốn góp bao nhiêu?',
   'shop.chip.nobodySees': 'Không ai thấy số tiền, chỉ thấy là bạn đã góp.',
   'shop.chip.tier': 'Góp {price}',

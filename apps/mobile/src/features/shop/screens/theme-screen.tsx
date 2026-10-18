@@ -181,10 +181,10 @@ function ThemeSheet({ farm, initial }: { readonly farm: FarmId; readonly initial
 
   const pay = async () => {
     if (!chipIn?.mine) return;
-    const next = await pledge.pay(chipIn.chipIn, chipIn.mine.tier);
+    const next = await pledge.pay(farm, chipIn.chipIn);
     if (next) {
       put(next);
-      toast.show(t('shop.chip.paid'));
+      if (next.mine?.state === 'paid') toast.show(t('shop.chip.paid'));
     }
   };
 

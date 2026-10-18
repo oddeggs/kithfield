@@ -15,6 +15,7 @@ import { useDataClient, useSend } from '../../../data/react';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useToast } from '../../../ui/components/toast';
 import type { BuyResult } from '../store/store';
+import { payGate } from '../chip/pay-gate';
 import { useShop } from './shop-data';
 
 /*
@@ -203,7 +204,8 @@ export function useGiveGift(farm: FarmId): {
 export function usePledge(): {
   readonly state: FlowState;
   readonly promise: (chipIn: Id, tier: StoreProductId) => Promise<ChipIn | null>;
-  readonly pay: (chipIn: Id, tier: StoreProductId) => Promise<ChipIn | null>;
+  /** Pays a promised share once the chip-in is covered; answers the chip-in as it is now. */
+  readonly pay: (farm: FarmId, chipIn: Id) => Promise<ChipIn | null>;
 } {
   const shop = useShop();
   const notice = useStoreNotice();
@@ -225,9 +227,13 @@ export function usePledge(): {
     [shop, t, toast],
   );
   const pay = useCallback(
-    async (chipIn: Id, tier: StoreProductId) => {
+    async (farm: FarmId, chipIn: Id) => {
       setState('busy');
       try {
+        const gate = payGate(chipIn, (await shop.api.chipIns(farm)).chipIns);
+        if (gate.kind === 'gone') return null;
+        if (gate.kind === 'refresh') return gate.chipIn;
+        const tier = gate.tier;
         const result = await shop.store.buy(tier);
         if (result.kind !== 'bought') {
           notice(result);

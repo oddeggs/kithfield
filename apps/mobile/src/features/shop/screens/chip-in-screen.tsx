@@ -14,6 +14,7 @@ import { TierPicker } from '../chip/tier-picker';
 import { useChipIns } from '../chip/use-chip-ins';
 import { itemName } from '../copy';
 import { usePledge } from '../data/flows';
+import { chipNoteKey } from '../chip/note';
 import { useShop } from '../data/shop-data';
 import { fillWord, lowerFirst } from '../format';
 import { ItemArt } from '../item-art';
@@ -110,10 +111,10 @@ function ChipInSheet({
 
   const pay = async () => {
     if (!chipIn?.mine) return;
-    const next = await pledge.pay(chipIn.chipIn, chipIn.mine.tier);
+    const next = await pledge.pay(farm, chipIn.chipIn);
     if (next) {
       put(next);
-      toast.show(t('shop.chip.paid'));
+      if (next.mine?.state === 'paid') toast.show(t('shop.chip.paid'));
     }
   };
 
@@ -160,12 +161,7 @@ function ChipInSheet({
   const label = itemName(t, item.item);
   const filled = chipIn?.filled ?? 0;
   const mine = chipIn?.mine ?? null;
-  const note =
-    chipIn?.state === 'closed'
-      ? t('shop.chip.closed')
-      : mine?.state === 'paid' && chipIn?.state === 'open'
-        ? t('shop.chip.privatePaid', { name })
-        : t('shop.chip.privatePromise', { name });
+  const note = t(chipNoteKey(chipIn?.state ?? 'open', mine?.state ?? null), { name });
 
   const action = (() => {
     if (mine && chipIn?.state === 'covered' && mine.state === 'promised') {
