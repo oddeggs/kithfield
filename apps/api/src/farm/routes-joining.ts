@@ -33,7 +33,7 @@ import {
 import { currentInvite, liveInvite, replaceInvite, useInvite } from './d1-invites';
 import { body, fail, farmStub, inviteUrl, member, signedIn } from './http';
 import { newFarmId, newInviteCode, sha256Hex } from './ids';
-import { openInviteCode, sealInviteCode } from './invite-codes';
+import { inviteKey, openInviteCode, sealInviteCode } from './invite-codes';
 
 /* Planting farms, opening visits, invites, joining and the keeper's waiting list. */
 
@@ -48,8 +48,8 @@ const newInvite = async (
 ): Promise<Invite> => {
   const code = newInviteCode();
   // Without the key the link still works; it just can't be shown again (`GET .../invite`).
-  const key = env.INVITE_CODE_KEY;
-  const sealed = key === undefined ? null : await sealInviteCode(key, farm, code);
+  const key = inviteKey(env);
+  const sealed = key === null ? null : await sealInviteCode(key, farm, code);
   await replaceInvite(env.DB, { hash: await sha256Hex(code), farm, by, expiresAt, sealed });
   return { code, url: inviteUrl(env, code), expiresAt };
 };
@@ -158,8 +158,8 @@ export const joiningRoutes = (): Hono<SessionEnv> => {
   app.get('/farms/:id/invite', signedIn, async (c) => {
     const m = await member(c, ['keeper', 'helper']);
     if (m instanceof Response) return m;
-    const key = c.env.INVITE_CODE_KEY;
-    if (key === undefined) return fail(c, 503, 'unavailable');
+    const key = inviteKey(c.env);
+    if (key === null) return fail(c, 503, 'unavailable');
     const live = await currentInvite(c.env.DB, m.farm, Date.now());
     const code = live?.sealed == null ? null : await openInviteCode(key, m.farm, live.sealed);
     const invite =

@@ -5,6 +5,12 @@
  */
 
 const encoder = new TextEncoder();
+
+/** The sealing key, or null while it is unset or shorter than 32 characters. */
+export const inviteKey = (env: { readonly INVITE_CODE_KEY?: string }): string | null => {
+  const key = env.INVITE_CODE_KEY;
+  return key !== undefined && key.length >= 32 ? key : null;
+};
 const keys = new Map<string, Promise<CryptoKey>>();
 
 /** The AES-256 key for a secret: the SHA-256 of it, so any long random secret will do. */
