@@ -137,3 +137,33 @@ describe('Quick Tend', () => {
     expect(items[0]!.seq).toBe(103);
   });
 });
+
+describe('pinning a chat', () => {
+  it('pins and unpins a farm on the chat list', async () => {
+    const { person, cottage } = await personWithChats();
+    await cottage.deliver(delivery({ farm: 'farm-a', seq: 2, forYou: false }));
+    await cottage.deliver(delivery({ farm: 'visit-b', seq: 3, forYou: false, actor: 'bea' }));
+    expect((await cottage.chatList()).map((r) => [r.farm, r.pinned])).toEqual([
+      ['visit-b', false],
+      ['farm-a', false],
+    ]);
+
+    expect((await api(person, 'PATCH', '/v1/chats/farm-a', { pinned: true })).status).toBe(204);
+    expect((await cottage.chatList()).map((r) => [r.farm, r.pinned])).toEqual([
+      ['farm-a', true],
+      ['visit-b', false],
+    ]);
+    expect((await api(person, 'PATCH', '/v1/chats/farm-a', { pinned: false })).status).toBe(204);
+    expect((await cottage.chatList())[0]).toMatchObject({ farm: 'visit-b', pinned: false });
+  });
+
+  it('answers 404 for a farm the person isn’t on and 400 for a bad body', async () => {
+    const { person } = await personWithChats();
+    const unknown = await api(person, 'PATCH', '/v1/chats/farm-z', { pinned: true });
+    expect(unknown.status).toBe(404);
+    expect(await unknown.json()).toEqual({ error: { code: 'not_found' } });
+    const bad = await api(person, 'PATCH', '/v1/chats/farm-a', { pinned: 'yes' });
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toEqual({ error: { code: 'bad_request', fields: ['pinned'] } });
+  });
+});

@@ -1,4 +1,5 @@
 import {
+  ChatRowUpdate,
   type ErrorBody,
   type ErrorCode,
   HibernateRequest,
@@ -6,6 +7,7 @@ import {
   MeSettingsUpdate,
   RegisterDeviceRequest,
   RememberRequest,
+  FarmId,
   type QuickTendList,
 } from '@kithfield/contracts';
 import { type Context, Hono } from 'hono';
@@ -47,7 +49,7 @@ const signedIn = createMiddleware<RouteEnv>((c, next) => cottageAdapters().requi
 
 /**
  * The person's cottage over HTTP: devices and their action keys, settings, hibernating,
- * remember-me seeds, Quick Tend, opened pushes, and the cottage socket.
+ * remember-me seeds, Quick Tend, chat pins, opened pushes, and the cottage socket.
  */
 export function cottageRoutes(): Hono<RouteEnv> {
   const app = new Hono<RouteEnv>();
@@ -133,6 +135,16 @@ export function cottageRoutes(): Hono<RouteEnv> {
   app.get('/v1/quick-tend', signedIn, async (c) =>
     c.json((await cottageOf(c.env, c.get('person')).quickTend()) satisfies QuickTendList),
   );
+
+  // Pins a farm or visit to the top of the chat list, or unpins it.
+  app.patch('/v1/chats/:farm', signedIn, async (c) => {
+    const farm = FarmId.safeParse(c.req.param('farm'));
+    if (!farm.success) return fail(c, 404, 'not_found');
+    const body = await bodyOf(c, ChatRowUpdate);
+    if (!body.ok) return body.response;
+    const pinned = await cottageOf(c.env, c.get('person')).pinFarm(farm.data, body.value.pinned);
+    return pinned ? c.body(null, 204) : fail(c, 404, 'not_found');
+  });
 
   // An opened push; the same answer for an id the cottage doesn't know.
   app.post('/v1/push/opened', signedIn, async (c) => {

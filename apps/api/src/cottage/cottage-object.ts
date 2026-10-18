@@ -133,9 +133,12 @@ export class CottageDO extends DurableObject<Bindings> {
     this.sendRow(farm, this.now);
   }
 
-  pinFarm(farm: string, pinned: boolean): void {
+  /** Pins a farm to the top of the chat list, or unpins it; false for a farm it doesn't know. */
+  pinFarm(farm: string, pinned: boolean): boolean {
+    if (!chats.knowsFarm(this.sql, farm)) return false;
     chats.setPinned(this.sql, farm, pinned);
     this.sendRow(farm, this.now);
+    return true;
   }
 
   quickTend(): QuickTendList {
