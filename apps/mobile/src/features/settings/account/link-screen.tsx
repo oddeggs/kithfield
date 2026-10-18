@@ -20,6 +20,7 @@ import { ApiError, isNotServed } from '../api/request';
 import { useSettingsApi } from '../api/use-api';
 import { desktopCodeOf } from '../format';
 import { confirmIdentity } from '../identity';
+import { useKitColors } from '../kit/colors';
 import { Pill, useDesignTop } from '../kit/layout';
 import { KText } from '../kit/text';
 
@@ -34,6 +35,7 @@ const SHEET = 188;
 export function LinkScreen() {
   const { t } = useLocale();
   const { palette } = useTheme();
+  const kit = useKitColors();
   const toast = useToast();
   const api = useSettingsApi();
   const reduce = useReduceMotion();
@@ -114,7 +116,7 @@ export function LinkScreen() {
     : '';
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#1d1a18' }}>
+    <View style={{ flex: 1, backgroundColor: kit.scanner.bg }}>
       {granted ? (
         <CameraView
           style={StyleSheet.absoluteFill}
@@ -132,7 +134,7 @@ export function LinkScreen() {
           width: FRAME,
           height: FRAME,
           borderRadius: 30,
-          boxShadow: '0 0 0 2000px rgba(10,10,20,.35)',
+          boxShadow: kit.scanner.dim,
         }}
       >
         <Animated.View
@@ -165,7 +167,7 @@ export function LinkScreen() {
           variant="displayM"
           multiline
           align="center"
-          color="#fff"
+          color={kit.scanner.text}
           accessibilityRole="header"
           style={{ lineHeight: 28.6 }}
         >
@@ -175,7 +177,7 @@ export function LinkScreen() {
           kind="sheetBody"
           multiline
           align="center"
-          color="#dddddd"
+          color={kit.scanner.sub}
           style={{ fontSize: 14.5, lineHeight: 21 }}
         >
           {problem ??
@@ -210,14 +212,17 @@ export function LinkScreen() {
             width: 44,
             height: 44,
             borderRadius: 22,
-            backgroundColor: 'rgba(255,255,255,.18)',
+            backgroundColor: kit.scanner.close,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Txt variant="body" color="#ffffff" style={{ fontSize: 22, lineHeight: 24 }}>
-            ✕
-          </Txt>
+          <ArtIcon
+            name="plus"
+            size={22}
+            color={kit.scanner.text}
+            style={{ transform: [{ rotate: '45deg' }] }}
+          />
         </Press>
       </View>
       <Animated.View

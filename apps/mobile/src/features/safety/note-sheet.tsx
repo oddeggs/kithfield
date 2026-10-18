@@ -73,6 +73,7 @@ function Point({
 
 /** The lantern glows once as the note appears (600 ms), then rests. */
 function Lantern() {
+  const kit = useKitColors();
   const reduce = useReduceMotion();
   const glow = useSharedValue(0);
   useEffect(() => {
@@ -88,7 +89,7 @@ function Lantern() {
             width: 96,
             height: 96,
             borderRadius: 48,
-            backgroundColor: 'rgba(255,209,112,.28)',
+            backgroundColor: kit.lanternGlow,
           },
           halo,
         ]}

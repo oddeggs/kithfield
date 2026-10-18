@@ -183,10 +183,10 @@ function Asking({
               paddingHorizontal: 8,
               paddingVertical: 4,
               borderRadius: 8,
-              backgroundColor: '#3f5a31',
+              backgroundColor: kit.plusBadge.bg,
             }}
           >
-            <KText kind="badge" color="#fbf7f0">
+            <KText kind="badge" color={kit.plusBadge.fg}>
               {t('settings.consent.plus')}
             </KText>
           </View>
