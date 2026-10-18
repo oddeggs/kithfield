@@ -8,7 +8,7 @@ import {
   useAudioRecorderState,
 } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Keyboard, View } from 'react-native';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -86,6 +86,8 @@ export function useVoiceRecorder(onDone: (note: Recorded) => void) {
 
   const start = async () => {
     want.current = true;
+    // The recorder takes the composer's place, where the keyboard would cover it.
+    Keyboard.dismiss();
     const permission = await requestRecordingPermissionsAsync();
     if (!permission.granted) {
       want.current = false;

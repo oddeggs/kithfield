@@ -334,6 +334,7 @@ export function Composer({
         >
           <TextInput
             ref={input}
+            testID="chat-composer-field"
             multiline
             onChangeText={change}
             onSelectionChange={onSelection}

@@ -1,4 +1,4 @@
-import type { ChatListItem, PersonId, Season } from '@kithfield/contracts';
+import { isTombstone, type ChatListItem, type PersonId, type Season } from '@kithfield/contracts';
 import { useCallback, useEffect, useState } from 'react';
 
 import {
@@ -88,7 +88,7 @@ function useLineSource(row: ChatListItem): LineSource {
       const recent = await client.events(row.farm, { limit: 40 });
       const last = [...recent]
         .reverse()
-        .find((e) => e.known && isNews(e.kind) && e.kind !== 'joined');
+        .find((e) => e.known && isNews(e.kind) && e.kind !== 'joined' && !isTombstone(e.payload));
       if (!last) return own;
       return {
         kind: last.kind,

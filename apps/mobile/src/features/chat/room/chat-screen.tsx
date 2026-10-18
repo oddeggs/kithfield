@@ -1,7 +1,7 @@
 import type { PersonId } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { Keyboard, useWindowDimensions, View } from 'react-native';
 import {
   KeyboardProvider,
   KeyboardStickyView,
@@ -405,7 +405,13 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
                   palette.appearance === 'day' ? 'rgba(247,241,231,.96)' : palette.sheet,
               }}
             >
-              <PinBar pinned={pinned} onPress={() => setBoard(true)} />
+              <PinBar
+                pinned={pinned}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setBoard(true);
+                }}
+              />
             </View>
           ) : null}
         </Animated.View>

@@ -10,6 +10,7 @@ import {
   type UploadUrlRequest,
 } from '@kithfield/contracts';
 import Constants from 'expo-constants';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as SecureStore from 'expo-secure-store';
 import { z } from 'zod';
 
@@ -152,15 +153,16 @@ export async function uploadFile(
   uri: string,
   mime: string,
 ): Promise<{ key: MediaKey; bytes: number }> {
-  const blob = await (await fetch(uri)).blob();
-  const bytes = blob.size;
+  const info = await FileSystem.getInfoAsync(uri);
+  if (!info.exists) throw new ChatApiError(0, 'file_missing');
+  const bytes = info.size;
   const upload = await chatApi.uploadUrl({ farm, kind, bytes, mime });
   if (upload.upload !== 'single') throw new ChatApiError(413, 'payload_too_large');
-  const put = await fetch(upload.url, {
-    method: 'PUT',
+  const put = await FileSystem.uploadAsync(upload.url, uri, {
+    httpMethod: 'PUT',
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
     headers: { 'content-type': mime },
-    body: blob,
   });
-  if (!put.ok) throw new ChatApiError(put.status, 'upload_failed');
+  if (put.status < 200 || put.status >= 300) throw new ChatApiError(put.status, 'upload_failed');
   return { key: upload.key, bytes };
 }

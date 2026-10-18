@@ -279,6 +279,8 @@ function MediaBubble({ item, media }: { readonly item: BubbleItem; readonly medi
   const single = shown.length === 1;
   const first = shown[0];
   const w = 206;
+  // The bubble's hairline sits inside its width.
+  const inner = w - 2;
   const h =
     single && first?.width && first.height
       ? Math.min(260, Math.max(110, (w * first.height) / first.width))
@@ -292,8 +294,8 @@ function MediaBubble({ item, media }: { readonly item: BubbleItem; readonly medi
             item={item}
             media={ref}
             index={i}
-            width={single ? w : (w - 2) / 2}
-            height={single ? h : 102}
+            width={single ? inner : (inner - 2) / 2}
+            height={single ? h : shown.length === 2 ? 132 : 102}
           />
         ))}
       </View>

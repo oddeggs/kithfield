@@ -279,6 +279,7 @@ export function SearchScreen({ farm: start }: { readonly farm: string | null }) 
             value={query}
             onChangeText={setQuery}
             autoFocus
+            testID="chat-search-field"
             returnKeyType="search"
             placeholder={t('chat.search.placeholder')}
             placeholderTextColor={palette.placeholder}
