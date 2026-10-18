@@ -23,6 +23,7 @@ import { StickerArt } from '../ui/sticker';
 import { useMe } from '../ui/use-me';
 import { wornName } from '../ui/worn';
 import { GiftOpening } from './gift-opening';
+import { roomy } from '../ui/type';
 
 type Given = Extract<GiftPayload, { action: 'given' }>;
 
@@ -180,7 +181,7 @@ export function OpenedScreen({ farm, seq }: { readonly farm: string; readonly se
           alignItems: 'center',
         }}
       >
-        <Txt variant="handL" color={sc.giftFrom} style={{ fontSize: 19, lineHeight: 20.9 }}>
+        <Txt variant="handL" color={sc.giftFrom} style={roomy('handL')}>
           {t('stickers.opened.from', { name: giver?.name ?? t('stickers.someone') })}
         </Txt>
         <Txt
@@ -188,17 +189,11 @@ export function OpenedScreen({ farm, seq }: { readonly farm: string; readonly se
           multiline
           align="center"
           accessibilityRole="header"
-          style={{ fontSize: 30, lineHeight: 33 }}
+          style={roomy('displayL')}
         >
           {pack ? t('stickers.opened.title', { pack: t(`stickers.pack.${pack.id}`) }) : ''}
         </Txt>
-        <Txt
-          variant="body"
-          multiline
-          align="center"
-          color={palette.body}
-          style={{ lineHeight: 21.3 }}
-        >
+        <Txt variant="body" multiline align="center" color={palette.body}>
           {`${worn ? t('stickers.opened.wearing', { item: worn }) : t('stickers.opened.wearingOwn')} ${
             pack && pack.id !== OWN
               ? t(`stickers.pack.${pack.id as Exclude<PackId, 'mine'>}.gift`)
@@ -227,7 +222,7 @@ export function OpenedScreen({ farm, seq }: { readonly farm: string; readonly se
           {giver ? (
             <Avatar kind={giver.critter.species} look={lookOf(giver.critter)} size={34} />
           ) : null}
-          <Txt variant="handL" multiline style={{ flex: 1, fontSize: 19, lineHeight: 23.75 }}>
+          <Txt variant="handL" multiline style={[{ flex: 1 }, roomy('handL')]}>
             {gift.note}
           </Txt>
         </View>

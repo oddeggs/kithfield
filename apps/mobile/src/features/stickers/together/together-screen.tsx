@@ -183,13 +183,7 @@ export function TogetherScreen({
               : t('stickers.together.friendOff', { name: f.name })
           }
         />
-        <Txt
-          variant="body"
-          multiline
-          align="center"
-          color={palette.body}
-          style={{ fontSize: 14, lineHeight: 19.9 }}
-        >
+        <Txt variant="body" multiline align="center" color={palette.body}>
           {t('stickers.together.lead', { names: namesText })}
         </Txt>
       </View>
@@ -249,7 +243,7 @@ export function TogetherScreen({
         }}
       >
         <ArtIcon name="sparkle" size={26} color={palette.go.bg} />
-        <Txt variant="notice" multiline color={sc.noteText} style={{ flex: 1, lineHeight: 19.2 }}>
+        <Txt variant="notice" multiline color={sc.noteText} style={{ flex: 1 }}>
           {t('stickers.together.note', { name: names[0] ?? '' })}
         </Txt>
       </View>

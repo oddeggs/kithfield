@@ -23,6 +23,7 @@ import { ScreenHeader } from '../ui/header';
 import { StickerArt } from '../ui/sticker';
 import { rowVisible, type Viewport } from '../ui/sticker-grid';
 import { useMe } from '../ui/use-me';
+import { roomy } from '../ui/type';
 
 /** The packs the shop sells, in its order. */
 const PACKS = shopPacks();
@@ -119,19 +120,10 @@ export function ShopScreen({ farm }: { readonly farm: string | null }) {
         }}
       >
         <View style={{ paddingHorizontal: 20, gap: 4 }}>
-          <Txt
-            variant="displayL"
-            accessibilityRole="header"
-            style={{ fontSize: 32, lineHeight: 35.2 }}
-          >
+          <Txt variant="displayL" accessibilityRole="header" style={roomy('displayL')}>
             {t('stickers.shop.title')}
           </Txt>
-          <Txt
-            variant="body"
-            multiline
-            color={palette.body}
-            style={{ fontSize: 14, lineHeight: 19.9 }}
-          >
+          <Txt variant="body" multiline color={palette.body}>
             {t('stickers.shop.lead')}
           </Txt>
           {unpriced ? (
@@ -186,9 +178,7 @@ export function ShopScreen({ farm }: { readonly farm: string | null }) {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Txt variant="rowTitle" style={{ fontSize: 15.5, lineHeight: 18.6 }}>
-                        {name}
-                      </Txt>
+                      <Txt variant="rowTitle">{name}</Txt>
                       {item?.patrons ? (
                         <View
                           style={{
@@ -204,12 +194,7 @@ export function ShopScreen({ farm }: { readonly farm: string | null }) {
                         </View>
                       ) : null}
                     </View>
-                    <Txt
-                      variant="caption"
-                      multiline
-                      color={palette.body}
-                      style={{ fontSize: 12.5, lineHeight: 16.25 }}
-                    >
+                    <Txt variant="caption" multiline color={palette.body}>
                       {t(`stickers.pack.${pack.id as Exclude<PackId, 'mine'>}.sub`)}
                     </Txt>
                   </View>
@@ -240,9 +225,7 @@ export function ShopScreen({ farm }: { readonly farm: string | null }) {
                         backgroundColor: sc.giftButton,
                       }}
                     >
-                      <Txt variant="buttonSmall" style={{ fontSize: 13.5 }}>
-                        {t('stickers.shop.owned')}
-                      </Txt>
+                      <Txt variant="buttonSmall">{t('stickers.shop.owned')}</Txt>
                     </View>
                   ) : (
                     <Press
@@ -259,11 +242,7 @@ export function ShopScreen({ farm }: { readonly farm: string | null }) {
                         backgroundColor: palette.primary.bg,
                       }}
                     >
-                      <Txt
-                        variant="buttonSmall"
-                        color={palette.primary.fg}
-                        style={{ fontSize: 13.5 }}
-                      >
+                      <Txt variant="buttonSmall" color={palette.primary.fg}>
                         {price ?? t('stickers.shop.get')}
                       </Txt>
                     </Press>

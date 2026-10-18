@@ -118,7 +118,7 @@ export function AddingScreen() {
         >
           {packing ? t('stickers.adding.packing', { name }) : t('stickers.adding.ready', { name })}
         </Txt>
-        <Txt variant="body" multiline color={palette.body} style={{ lineHeight: 21.75 }}>
+        <Txt variant="body" multiline color={palette.body}>
           {packing ? t('stickers.adding.packingLead') : t('stickers.adding.lead')}
         </Txt>
         {cards.map((c) => (
@@ -147,7 +147,7 @@ export function AddingScreen() {
                 <ArtIcon name="share" size={22} color={sc.tileIcon} />
               </View>
               <View style={{ flex: 1 }}>
-                <Txt variant="rowTitle" style={{ lineHeight: 19.2 }}>
+                <Txt variant="rowTitle">
                   {c.id === 'telegram'
                     ? t('stickers.export.telegram')
                     : t('stickers.export.whatsapp')}
@@ -156,7 +156,6 @@ export function AddingScreen() {
                   variant="caption"
                   medium
                   color={c.state.kind === 'ready' ? sc.ready : palette.secondary}
-                  style={{ fontSize: 13, lineHeight: 16.9, fontWeight: '600' }}
                 >
                   {stateWords(t, c.state)}
                 </Txt>
@@ -186,7 +185,7 @@ export function AddingScreen() {
                 </Press>
               ) : null}
             </View>
-            <Txt variant="notice" multiline color={sc.noteText} style={{ lineHeight: 19.6 }}>
+            <Txt variant="notice" multiline color={sc.noteText}>
               {c.id === 'telegram'
                 ? t('stickers.adding.telegram', { set, count })
                 : t('stickers.adding.whatsapp', { set, count })}

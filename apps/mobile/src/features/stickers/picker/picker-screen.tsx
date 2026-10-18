@@ -253,9 +253,7 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
                 backgroundColor: sc.pill,
               }}
             >
-              <Txt variant="buttonSmall" style={{ fontSize: 13 }}>
-                {t('stickers.picker.shop')}
-              </Txt>
+              <Txt variant="buttonSmall">{t('stickers.picker.shop')}</Txt>
             </Press>
           </View>
           <View

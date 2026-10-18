@@ -62,7 +62,7 @@ export function ScreenHeader({
             : { backgroundColor: palette.fillSoft }),
         }}
       >
-        <Txt variant="chevron" style={{ fontSize: 26, lineHeight: 26, marginTop: -3 }}>
+        <Txt variant="chevron" style={{ marginTop: -3 }}>
           ‹
         </Txt>
       </Press>

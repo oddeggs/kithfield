@@ -71,7 +71,7 @@ export function FaceRow({
           variant="bubbleName"
           numberOfLines={1}
           color={on ? palette.text : sc.faceName}
-          style={{ fontSize: 12.5, lineHeight: 13, marginTop: -4 }}
+          style={{ marginTop: -2 }}
         >
           {f.name}
         </Txt>

@@ -20,6 +20,7 @@ import { wornName } from '../ui/worn';
 import { ownPack } from './pack';
 import { saveToPhotos } from './photos';
 import { useMessagesSync } from './use-messages-sync';
+import { roomy } from '../ui/type';
 
 const PREVIEW = 76;
 const PREVIEWED = 8;
@@ -107,11 +108,7 @@ export function ExportScreen() {
           }}
         >
           <View style={{ flex: 1 }}>
-            <Txt
-              variant="displayS"
-              accessibilityRole="header"
-              style={{ fontSize: 20, lineHeight: 22 }}
-            >
+            <Txt variant="displayS" accessibilityRole="header" style={roomy('displayS')}>
               {t('stickers.export.pack', { name })}
             </Txt>
             <Txt variant="rowSubtitle" color={palette.secondary} style={{ marginTop: 2 }}>
@@ -210,12 +207,7 @@ export function ExportScreen() {
             }
           />
         </View>
-        <Txt
-          variant="note"
-          multiline
-          color={palette.secondary}
-          style={{ fontSize: 13, lineHeight: 18.85 }}
-        >
+        <Txt variant="note" multiline color={palette.secondary}>
           {t('stickers.export.footer')}
         </Txt>
       </ScrollView>
@@ -267,9 +259,7 @@ function Row({
         <ArtIcon name={icon} size={26} color={iconColour ?? sc.tileIcon} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Txt variant="rowTitle" style={{ lineHeight: 20 }}>
-          {title}
-        </Txt>
+        <Txt variant="rowTitle">{title}</Txt>
         <Txt variant="rowSubtitle" multiline color={palette.secondary} style={{ marginTop: 2 }}>
           {sub}
         </Txt>

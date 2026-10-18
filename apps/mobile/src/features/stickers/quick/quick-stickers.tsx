@@ -10,6 +10,7 @@ import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { sceneOfSticker, type StickerPerson } from '../model/look';
 import { StickerArt } from '../ui/sticker';
+import { roomy } from '../ui/type';
 
 const STICKER = 80;
 const SENT = 60;
@@ -63,7 +64,7 @@ export function QuickTendStickers({
         >
           <StickerArt attrs={draw(sent)} size={SENT} />
         </Animated.View>
-        <Txt variant="handS" color={palette.go.bg} style={{ fontSize: 17, lineHeight: 17 }}>
+        <Txt variant="handS" color={palette.go.bg} style={roomy('handS')}>
           {t('stickers.quick.sent')}
         </Txt>
         <View style={{ flex: 1 }} />
@@ -73,7 +74,7 @@ export function QuickTendStickers({
           hitSlop={12}
           accessibilityLabel={t('stickers.quick.undo')}
         >
-          <Txt variant="buttonSmall" color={palette.muted} style={{ fontSize: 13 }}>
+          <Txt variant="buttonSmall" color={palette.muted}>
             {t('stickers.quick.undo')}
           </Txt>
         </Press>
@@ -111,7 +112,7 @@ export function QuickTendStickers({
           backgroundColor: palette.chip.suggestionBg,
         }}
       >
-        <Txt variant="buttonSmall" color={palette.chip.suggestionFg} style={{ fontSize: 13 }}>
+        <Txt variant="buttonSmall" color={palette.chip.suggestionFg}>
           {t('stickers.quick.write')}
         </Txt>
       </Press>

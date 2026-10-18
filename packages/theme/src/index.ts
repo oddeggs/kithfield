@@ -8,5 +8,6 @@ export * from './motion';
 export * from './plans';
 export * from './settings';
 export * from './space';
+export * from './stickers';
 export * from './transitions';
 export * from './type';

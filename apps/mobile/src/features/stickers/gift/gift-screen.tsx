@@ -25,6 +25,7 @@ import { leave, ScreenHeader } from '../ui/header';
 import { StickerArt } from '../ui/sticker';
 import { useMe } from '../ui/use-me';
 import { wornName } from '../ui/worn';
+import { roomy } from '../ui/type';
 
 /** The wrappings shown when the shop's catalogue can't be read: the design's four. */
 const FALLBACK_WRAPS = ['clay', 'dusk', 'fern', 'honey'];
@@ -159,13 +160,13 @@ export function GiftScreen({
         keyboardShouldPersistTaps="handled"
       >
         <View>
-          <Txt variant="handL" color={sc.gift} style={{ fontSize: 18, lineHeight: 19.8 }}>
+          <Txt variant="handL" color={sc.gift} style={roomy('handL')}>
             {packName.toLocaleLowerCase()}
           </Txt>
           <Txt
             variant="displayM"
             accessibilityRole="header"
-            style={{ fontSize: 28, lineHeight: 30.8, marginTop: 2 }}
+            style={[roomy('displayM'), { marginTop: 2 }]}
           >
             {t('stickers.gift.to', { name })}
           </Txt>
@@ -192,12 +193,7 @@ export function GiftScreen({
             gap: 6,
           }}
         >
-          <Txt
-            variant="buttonSmall"
-            multiline
-            color={sc.noteText}
-            style={{ fontSize: 13, lineHeight: 16.9 }}
-          >
+          <Txt variant="buttonSmall" multiline color={sc.noteText}>
             {worn
               ? t('stickers.gift.wearing', { name, critter: critterWord, item: worn })
               : t('stickers.gift.wearingPlain', { name, critter: critterWord })}
