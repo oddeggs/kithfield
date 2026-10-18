@@ -138,13 +138,14 @@ describe('deleting an account from the website', () => {
     ).toEqual([email]);
     expect(letter?.subject).toMatch(/^Mã Kithfield để xoá tài khoản của bạn: \d{6}$/);
 
-    const answer = await confirm(email, letters.codeFor(email));
+    const code = letters.codeFor(email);
+    const answer = await confirm(email, code);
     expect(answer.status).toBe(202);
     const { purgeAt } = DeleteAccountResponse.parse(await answer.json());
     expect(purgeAt).toBe(((await deletedAt(person.id))?.deleted_at ?? 0) + DELETION_GRACE_MS);
     expect(await sessionOf(person.token)).toBeNull();
     // Spent: the same code doesn't work twice.
-    const reused = await confirm(email, letters.codeFor(email));
+    const reused = await confirm(email, code);
     expect(ErrorBody.parse(await reused.json()).error.code).toBe('code_invalid');
   });
 

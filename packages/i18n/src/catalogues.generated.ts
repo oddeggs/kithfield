@@ -3,6 +3,8 @@
 import type { FeatureCatalogues } from './catalogue-types';
 import { deletionCodeEn } from './deletion-code.en';
 import { deletionCodeVi } from './deletion-code.vi';
+import { deletionScheduledEn } from './deletion-scheduled.en';
+import { deletionScheduledVi } from './deletion-scheduled.vi';
 import { galleryEn } from './gallery.en';
 import { gallerySameInBoth, galleryVi } from './gallery.vi';
 import { glossaryEn } from './glossary.en';
@@ -25,6 +27,7 @@ import { websitePagesSameInBoth, websitePagesVi } from './website-pages.vi';
 /** Every feature catalogue pair, in file-name order. */
 export const features: readonly FeatureCatalogues[] = [
   { name: 'deletionCode', file: 'deletion-code', en: deletionCodeEn, vi: deletionCodeVi, sameInBoth: [] },
+  { name: 'deletionScheduled', file: 'deletion-scheduled', en: deletionScheduledEn, vi: deletionScheduledVi, sameInBoth: [] },
   { name: 'gallery', file: 'gallery', en: galleryEn, vi: galleryVi, sameInBoth: gallerySameInBoth },
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
@@ -39,6 +42,7 @@ export const features: readonly FeatureCatalogues[] = [
 /** The source catalogue: every key, in English. */
 export const en = {
   ...deletionCodeEn,
+  ...deletionScheduledEn,
   ...galleryEn,
   ...glossaryEn,
   ...pushEn,
@@ -53,6 +57,7 @@ export const en = {
 /** Every key, in Vietnamese. */
 export const vi = {
   ...deletionCodeVi,
+  ...deletionScheduledVi,
   ...galleryVi,
   ...glossaryVi,
   ...pushVi,

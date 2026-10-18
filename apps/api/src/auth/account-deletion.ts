@@ -4,7 +4,6 @@ import {
   DeletionRequest,
   type Lang,
 } from '@kithfield/contracts';
-import { t } from '@kithfield/i18n';
 import type { Context } from 'hono';
 import { Hono } from 'hono';
 import type { z } from 'zod';
@@ -21,6 +20,7 @@ import {
   recordSend,
 } from './email-code';
 import { authSecret } from './instance';
+import { deletionLetter, sendScheduledLetter } from './deletion-letters';
 import { DELETION_GRACE_MS } from './me';
 import { errorResponse, requireSession, type SessionEnv } from './session';
 
@@ -62,7 +62,7 @@ async function quietly(what: string, work: () => Promise<unknown>): Promise<void
 /**
  * Starts the 30-day wait: marks the person (keeping the first time if they asked before), ends
  * every session and device key, then closes their cottage and farm sockets and forgets their
- * devices' push tokens. Null when the person is gone.
+ * devices' push tokens, and writes to say when the account goes. Null when the person is gone.
  */
 export async function startDeletion(
   env: Bindings,
@@ -88,7 +88,10 @@ export async function startDeletion(
     for (const { device } of await cottage.listDevices()) await cottage.forgetDevice(device);
   });
   for (const close of closers) await quietly('farm sockets', () => close(env, person));
-  return { purgeAt: deletedAt + DELETION_GRACE_MS };
+  const purgeAt = deletedAt + DELETION_GRACE_MS;
+  // Only when this request scheduled it: asking again writes no second letter.
+  if (deletedAt === now) await quietly('letter', () => sendScheduledLetter(env, person, purgeAt));
+  return { purgeAt };
 }
 
 /* Codes for the website's request. */
@@ -116,23 +119,6 @@ export function newDeletionCode(): string {
     const [n = limit] = crypto.getRandomValues(new Uint32Array(1));
     if (n < limit) return String(n % 1_000_000).padStart(6, '0');
   }
-}
-
-export function deletionLetter(lang: Lang, code: string): { subject: string; text: string } {
-  return {
-    subject: t(lang, 'deletionCode.subject', { code }),
-    text: [
-      t(lang, 'deletionCode.greeting'),
-      '',
-      t(lang, 'deletionCode.code', { code }),
-      t(lang, 'deletionCode.lifetime'),
-      t(lang, 'deletionCode.wait'),
-      '',
-      t(lang, 'deletionCode.notYou'),
-      '',
-      t(lang, 'deletionCode.signOff'),
-    ].join('\n'),
-  };
 }
 
 /**
