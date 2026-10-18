@@ -1,4 +1,4 @@
-import type { FarmId, FarmState, PersonId, SeedPlantedPayload, Seq } from '@kithfield/contracts';
+import type { FarmId, FarmState, PersonId, Seq } from '@kithfield/contracts';
 import type { FarmView, PlanView } from '@kithfield/farm';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
@@ -9,12 +9,13 @@ import {
   useFarmView,
   useRejections,
   useSend,
-  type DataClient,
   type EnqueueResult,
 } from '../../data';
 import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useSession } from '../../ui/session/session';
+import { settlePlanted } from './planted';
+import { filePlantedStore } from './planted-file';
 
 /** The signed-in person's id, or null. */
 export function useMe(): PersonId | null {
@@ -105,44 +106,33 @@ export function usePlanRejections(): void {
   }, [rejections, client, show, t]);
 }
 
-/** How long a planter waits for the farm to number a new plan before saying they're in. */
-const PLANTED_WAIT_MS = 5 * MINUTE;
+/** The plantings waiting for the planter's "in", kept on the phone. */
+export const plantedStore = filePlantedStore();
 
 /**
- * Plants a plan and then says the planter is in. An answer needs the plan's seq, which only the
- * farm gives, so the "in" goes once the new seed shows up in the confirmed farm.
+ * Says the planter's "in" for their plans once the farm has numbered them: on opening, and
+ * whenever a farm with a planting waiting changes. Mounted wherever plans are planted or shown.
  */
-export async function plantAndJoin(
-  client: DataClient,
-  farm: FarmId,
-  me: PersonId,
-  payload: SeedPlantedPayload,
-): Promise<EnqueueResult> {
-  const replica = await client.replica(farm);
-  const known = new Set(replica.getState().confirmed?.seeds.map((s) => s.seq) ?? []);
-  const result = await client.send(farm, 'seed_planted', payload);
-  if (result.status !== 'queued') return result;
-  const find = () =>
-    replica
-      .getState()
-      .confirmed?.seeds.find(
-        (s) => !known.has(s.seq) && s.planter === me && s.title === payload.title,
-      );
-  // In the background: the sheet closes at once, and the answer follows when the farm has it.
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let off: (() => void) | null = null;
-  const stop = () => {
-    off?.();
-    if (timer) clearTimeout(timer);
-  };
-  const check = () => {
-    const seed = find();
-    if (!seed) return;
-    stop();
-    void client.send(farm, 'rsvp', { seed: seed.seq, answer: 'in' });
-  };
-  off = replica.subscribe(check);
-  timer = setTimeout(stop, PLANTED_WAIT_MS);
-  check();
-  return result;
+export function usePlantedAnswers(): void {
+  const client = useDataClient();
+  const me = useMe();
+  useEffect(() => {
+    if (me === null) return;
+    let live = true;
+    const offs: (() => void)[] = [];
+    const settle = () => {
+      if (live) void settlePlanted(client, plantedStore, me).catch(() => undefined);
+    };
+    void plantedStore.read().then(async (planted) => {
+      for (const farm of new Set(planted.filter((p) => p.person === me).map((p) => p.farm))) {
+        const replica = await client.replica(farm);
+        if (live) offs.push(replica.subscribe(settle));
+      }
+      settle();
+    });
+    return () => {
+      live = false;
+      for (const off of offs) off();
+    };
+  }, [client, me]);
 }

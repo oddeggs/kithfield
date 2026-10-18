@@ -20,7 +20,8 @@ import { ConditionCard, DayChoices, PlaceChoice, YesesChoice } from './plan-sect
 import { usePlanLook } from './plan-look';
 import { SeedArt } from './seed-art';
 import { useMessage } from './use-message';
-import { plantAndJoin, useMe, usePlan } from './use-plans';
+import { plantAndJoin } from './planted';
+import { plantedStore, useMe, usePlan, usePlantedAnswers } from './use-plans';
 import type { BedFarm } from './use-seed-bed';
 
 const STAGE_CAPTIONS = ['plans.stage.0', 'plans.stage.1', 'plans.stage.2', 'plans.stage.3'] as const;
@@ -42,6 +43,7 @@ export function PlantSheet({
   readonly onFarm: (farm: FarmId) => void;
 }) {
   useOpenFarm(farm);
+  usePlantedAnswers();
   const { palette } = useTheme();
   const look = usePlanLook();
   const { t, fontLocale } = useLocale();
@@ -73,7 +75,7 @@ export function PlantSheet({
   const plant = async (someday: boolean) => {
     if (!me || busy || !canPlant(draft)) return;
     setBusy(true);
-    const result = await plantAndJoin(client, farm, me, {
+    const result = await plantAndJoin(client, plantedStore, farm, me, {
       ...plantPayload(draft, { fromSeq: fromSeq ?? undefined, someday }),
     }).catch(() => null);
     setBusy(false);

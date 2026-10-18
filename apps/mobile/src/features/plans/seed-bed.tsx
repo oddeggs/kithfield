@@ -15,7 +15,7 @@ import { personOn, youLast } from './people';
 import { peopleIn, type BedEntry } from './plan-status';
 import { SeedArt } from './seed-art';
 import { SeedCard } from './seed-card';
-import { useMe, usePlanRejections } from './use-plans';
+import { useMe, usePlanRejections, usePlantedAnswers } from './use-plans';
 import { useSeedBed } from './use-seed-bed';
 
 /** Where the design sets the screen's title, from the top of the screen. */
@@ -40,6 +40,7 @@ export function SeedBed() {
   const me = useMe();
   const { entries, states, loading } = useSeedBed();
   usePlanRejections();
+  usePlantedAnswers();
 
   const plant = () => router.push('/plans-plant');
   const peopleOf = (entry: BedEntry) => {

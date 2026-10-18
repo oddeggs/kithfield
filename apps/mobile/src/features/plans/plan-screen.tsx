@@ -19,7 +19,7 @@ import { usePlanLook } from './plan-look';
 import { canCheckIn, leadingOptions, peopleIn, stageOf, stillVoting, votersOf } from './plan-status';
 import { SeedArt } from './seed-art';
 import { planDetail } from './seed-card';
-import { useMe, usePlan, usePlanRejections, usePlanSend } from './use-plans';
+import { useMe, usePlan, usePlanRejections, usePlanSend, usePlantedAnswers } from './use-plans';
 import { SunPatch, VoteBud } from './voting';
 
 /** Where the design sets the header and the screen's question, from the top of the screen. */
@@ -203,6 +203,7 @@ function Overview({
 export function PlanScreen({ farm, seq }: { readonly farm: FarmId; readonly seq: number }) {
   useOpenFarm(farm);
   usePlanRejections();
+  usePlantedAnswers();
   const { palette } = useTheme();
   const { t } = useLocale();
   const offset = useBottomButtonOffset();
