@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
 import { cloudflareTest, readD1Migrations } from '@cloudflare/vitest-pool-workers';
@@ -11,7 +12,13 @@ export default defineConfig(async () => {
     plugins: [
       cloudflareTest({
         wrangler: { configPath: './wrangler.jsonc', environment: 'dev' },
-        miniflare: { bindings: { TEST_MIGRATIONS: migrations } },
+        // A fresh auth secret per run: tests never share one with `.dev.vars` or a deployment.
+        miniflare: {
+          bindings: {
+            TEST_MIGRATIONS: migrations,
+            BETTER_AUTH_SECRET: `${randomUUID()}${randomUUID()}`,
+          },
+        },
       }),
     ],
     test: { setupFiles: ['./test/apply-migrations.ts'] },
