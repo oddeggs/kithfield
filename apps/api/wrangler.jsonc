@@ -33,6 +33,8 @@
         },
       ],
       "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media-dev" }],
+      // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
+      "send_email": [{ "name": "EMAIL" }],
       "queues": {
         "producers": [
           { "binding": "PUSH_QUEUE", "queue": "kithfield-push-dev" },
@@ -72,6 +74,8 @@
         },
       ],
       "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media" }],
+      // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
+      "send_email": [{ "name": "EMAIL" }],
       "queues": {
         "producers": [
           { "binding": "PUSH_QUEUE", "queue": "kithfield-push" },

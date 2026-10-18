@@ -24,6 +24,8 @@ export type Bindings = Secrets & {
   readonly DB: D1Database;
   /** Photos, video, voice notes, files and export bundles. */
   readonly MEDIA: R2Bucket;
+  /** Email Sending from kithfield.com, such as sign-in codes. */
+  readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;
   readonly MEDIA_QUEUE: Queue;
   readonly AI_QUEUE: Queue;
