@@ -4,9 +4,9 @@ import UIKit
 
 private let log = Logger(subsystem: "com.kithfield.stickers", category: "drawer")
 
-/// The sticker drawer in Messages: every sticker file the app left in `surfaces/stickers/`
-/// (PNG, APNG or GIF), in file-name order. It reads the folder each time the drawer opens, so a
-/// new outfit shows up without the extension changing.
+/// The sticker drawer in Messages: the stickers the app left in `surfaces/stickers/` (animated
+/// PNGs), in the order and with the words its `manifest.json` gives. It reads the folder each
+/// time the drawer opens, so a new outfit shows up without the extension changing.
 final class StickersViewController: MSMessagesAppViewController {
   private let browser = StickerBrowser(stickerSize: .regular)
 
@@ -25,6 +25,16 @@ final class StickersViewController: MSMessagesAppViewController {
     browser.stickerBrowserView.reloadData()
   }
 
+  /// `manifest.json`, written by the app after the stickers: each file in order, with its words
+  /// in the reader's language for VoiceOver.
+  private struct Manifest: Decodable {
+    struct Entry: Decodable {
+      let file: String
+      let label: String
+    }
+    let stickers: [Entry]
+  }
+
   private static func load() -> [MSSticker] {
     guard let folder = GroupFiles.url(GroupFiles.stickers),
       let files = try? FileManager.default.contentsOfDirectory(
@@ -33,21 +43,28 @@ final class StickersViewController: MSMessagesAppViewController {
       log.notice("No sticker folder in \(GroupFiles.groupId, privacy: .public)")
       return []
     }
-    let stickers =
-      files
-      .filter { ["png", "apng", "gif"].contains($0.pathExtension.lowercased()) }
-      .sorted { $0.lastPathComponent < $1.lastPathComponent }
-      .compactMap { file -> MSSticker? in
-        do {
-          // VoiceOver reads the file's name until the app writes each sticker's caption.
-          return try MSSticker(
-            contentsOfFileURL: file,
-            localizedDescription: file.deletingPathExtension().lastPathComponent)
-        } catch {
-          log.error("Sticker \(file.lastPathComponent, privacy: .public) refused: \(error)")
-          return nil
-        }
+    let entries: [(URL, String)]
+    if let data = try? Data(contentsOf: folder.appendingPathComponent("manifest.json")),
+      let manifest = try? JSONDecoder().decode(Manifest.self, from: data)
+    {
+      entries = manifest.stickers.map { (folder.appendingPathComponent($0.file), $0.label) }
+    } else {
+      // Before the app has written a manifest: every sticker file, by name.
+      entries =
+        files
+        .filter { ["png", "apng", "gif"].contains($0.pathExtension.lowercased()) }
+        .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        .map { ($0, $0.deletingPathExtension().lastPathComponent) }
+    }
+    let stickers = entries.compactMap { file, label -> MSSticker? in
+      guard FileManager.default.fileExists(atPath: file.path) else { return nil }
+      do {
+        return try MSSticker(contentsOfFileURL: file, localizedDescription: label)
+      } catch {
+        log.error("Sticker \(file.lastPathComponent, privacy: .public) refused: \(error)")
+        return nil
       }
+    }
     log.notice("Offering \(stickers.count) stickers")
     return stickers
   }
