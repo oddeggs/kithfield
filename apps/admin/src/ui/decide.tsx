@@ -101,10 +101,11 @@ export function RulePicker(props: { picked: RuleRef }) {
   );
 }
 
-export function DecideForm(props: { detail: ReportDetail; name: string }) {
+export function DecideForm(props: { detail: ReportDetail; name: string; senior: boolean }) {
   const { detail } = props;
   const reportedName = props.name;
-  const opts = options(detail, reportedName);
+  // Removal from Kithfield and legal escalation are a senior moderator's.
+  const opts = options(detail, reportedName).filter((o) => props.senior || o.value !== 'ban');
   const first = opts.find((o) => o.value === 'warn') ?? opts[0];
   const picked: RuleRef = detail.signals.suggestedRule ?? 3;
   return (
@@ -141,10 +142,12 @@ export function DecideForm(props: { detail: ReportDetail; name: string }) {
                 <input type="radio" name="escalate" value="urgent" checked />
                 {tr('moderation.decide.escalateUrgent')}
               </label>
-              <label class="chip">
-                <input type="radio" name="escalate" value="legal" />
-                {tr('moderation.decide.escalateLegal')}
-              </label>
+              {props.senior ? (
+                <label class="chip">
+                  <input type="radio" name="escalate" value="legal" />
+                  {tr('moderation.decide.escalateLegal')}
+                </label>
+              ) : null}
             </div>
           ) : null}
         </>

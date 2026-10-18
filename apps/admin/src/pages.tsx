@@ -35,6 +35,12 @@ const idOf = (value: string | undefined): string | null => {
   return parsed.success ? parsed.data : null;
 };
 
+/** Whether the moderator at the desk is senior (the API decides; this only shapes the page). */
+async function isSenior(c: Ctx): Promise<boolean> {
+  const me = await read(c, '/me', ModeratorSelf);
+  return me.ok && me.data.role === 'senior';
+}
+
 /** Names and critters for the people on a page, from their safety records. */
 async function peopleOf(c: Ctx, ids: Iterable<string>): Promise<Map<string, Person>> {
   const unique = [...new Set(ids)].slice(0, 30);
@@ -103,7 +109,13 @@ async function report(c: Ctx) {
   const aimed = detail.data.signals.aimedAt;
   const people = await peopleOf(c, [...ids, ...(aimed === null ? [] : [aimed])]);
   const title = tr('moderation.report.theReport');
-  return page(c, 'queue', title, <ReportPage detail={detail.data} people={people} {...base(c)} />);
+  const senior = await isSenior(c);
+  return page(
+    c,
+    'queue',
+    title,
+    <ReportPage detail={detail.data} people={people} senior={senior} {...base(c)} />,
+  );
 }
 
 async function member(c: Ctx) {
@@ -119,7 +131,13 @@ async function member(c: Ctx) {
     c,
     'members',
     record.data.name ?? tr('moderation.nav.members'),
-    <MemberPage record={record.data} report={given ?? latest} suggestedRule={3} {...base(c)} />,
+    <MemberPage
+      record={record.data}
+      report={given ?? latest}
+      suggestedRule={3}
+      senior={await isSenior(c)}
+      {...base(c)}
+    />,
   );
 }
 

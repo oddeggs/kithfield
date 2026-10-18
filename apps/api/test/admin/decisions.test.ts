@@ -19,6 +19,7 @@ import {
   desk,
   KOFI,
   notesOf,
+  SAM,
   report,
   type TestAccess,
   thursdayLot,
@@ -335,5 +336,17 @@ describe('decisions on a report', () => {
       .bind(id)
       .first<{ n: number }>();
     expect(agreed?.n).toBe(2);
+  });
+
+  it('leaves removals from Kithfield and legal escalations to senior moderators', async () => {
+    const lot = await thursdayLot();
+    const id = await fileReport(lot);
+    expect((await act(id, { action: 'remove_from_kithfield' }, SAM)).status).toBe(403);
+    expect((await act(id, { action: 'escalate_legal', rule: null }, SAM)).status).toBe(403);
+    const asked = ActionResponse.parse((await act(id, { action: 'remove_from_kithfield' })).body);
+    expect((await desk(access, SAM, 'POST', `/actions/${asked.action}/approve`, {})).status).toBe(
+      403,
+    );
+    expect((await act(id, { action: 'escalate_urgent', rule: null }, SAM)).status).toBe(200);
   });
 });

@@ -10,6 +10,8 @@ export interface MemberView {
   /** The report account actions are taken on, and the one to go back to. */
   readonly report: string | null;
   readonly suggestedRule: RuleRef;
+  /** Only a senior moderator may ask to remove someone from Kithfield. */
+  readonly senior: boolean;
   readonly zone: string;
   readonly now: number;
 }
@@ -209,13 +211,15 @@ export function MemberPage(view: MemberView) {
               title={tr('moderation.decide.farm')}
               sub={tr('moderation.decide.farmSub')}
             />
-            <AccountAction
-              view={view}
-              action="ban"
-              title={tr('moderation.decide.ban')}
-              sub={tr('moderation.decide.banSub')}
-              brick
-            />
+            {view.senior ? (
+              <AccountAction
+                view={view}
+                action="ban"
+                title={tr('moderation.decide.ban')}
+                sub={tr('moderation.decide.banSub')}
+                brick
+              />
+            ) : null}
           </div>
         </div>
       </div>

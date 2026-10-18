@@ -13,6 +13,8 @@ export interface Person {
 export interface ReportView {
   readonly detail: ReportDetail;
   readonly people: ReadonlyMap<string, Person>;
+  /** A senior moderator may also remove someone from Kithfield and escalate to legal. */
+  readonly senior: boolean;
   readonly zone: string;
   readonly now: number;
 }
@@ -192,7 +194,7 @@ export function ReportPage(view: ReportView) {
             </div>
           </div>
         </div>
-        <DecideForm detail={detail} name={reportedName} />
+        <DecideForm detail={detail} name={reportedName} senior={view.senior} />
       </div>
     </>
   );

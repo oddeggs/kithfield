@@ -46,8 +46,11 @@ const ACCOUNT: Partial<Record<ModerationAction, AccountOutcome>> = {
 /** Decisions about the reported item itself, made once per report. */
 const ITEM_VERDICTS: ReadonlySet<ModerationAction> = new Set(['dismiss', 'remove', 'remove_warn']);
 
-/** Roles that may agree to a removal from Kithfield. */
-const APPROVERS = new Set(['senior', 'legal']);
+/** Decisions only a senior moderator may propose (and, for a removal, agree to). */
+const SENIOR_ONLY: ReadonlySet<ModerationAction> = new Set([
+  'remove_from_kithfield',
+  'escalate_legal',
+]);
 
 interface Stored {
   readonly id: string;
@@ -188,6 +191,9 @@ export async function decide(
 ): Promise<DecideOutcome> {
   const report = await loadReport(env.DB, reportId);
   if (report === null) return { ok: false, status: 404, code: 'not_found' };
+  if (SENIOR_ONLY.has(req.action) && moderator.role !== 'senior') {
+    return { ok: false, status: 403, code: 'forbidden' };
+  }
   // The verdict on the item claims the close first, so two at the same moment can't both land,
   // and none lands while a removal from Kithfield waits for its second moderator. A closed report
   // can still get an account decision (from the member's record).
@@ -289,7 +295,7 @@ export async function approve(
     .first<ActionRow>();
   if (row === null) return { ok: false, status: 404, code: 'not_found' };
   if (row.status !== 'awaiting_second') return { ok: false, status: 409, code: 'conflict' };
-  if (row.moderator_id === moderator.id || !APPROVERS.has(moderator.role)) {
+  if (row.moderator_id === moderator.id || moderator.role !== 'senior') {
     return { ok: false, status: 403, code: 'forbidden' };
   }
   const report = await loadReport(env.DB, row.report_id);
