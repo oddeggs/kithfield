@@ -10,7 +10,7 @@ export const pushVi: ViCatalogue<typeof pushEn> = {
   'push.doorstep.slowPost':
     'Một lá thư chậm từ {name} vừa đến trước cửa nhà bạn. Mở ra cùng một tách trà nhé.',
   'push.doorstep.few': 'Có vài thứ đang chờ trước cửa nhà bạn.',
-  'push.mention': '{name}:',
+  'push.mention': '{name}: {preview}',
   'push.joined': '{name} vừa dọn đến. Vẫy tay chào nhé?',
   'push.knock': '{name} đang gõ cửa hiên nhà bạn.',
   'push.farm.few': 'Có vài điều mới trên nông trại.',

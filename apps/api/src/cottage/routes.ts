@@ -3,10 +3,9 @@ import {
   type ErrorCode,
   HibernateRequest,
   Id,
-  MeSettings,
+  MeSettingsUpdate,
   RegisterDeviceRequest,
   RememberRequest,
-  TimeZone,
 } from '@kithfield/contracts';
 import { type Context, Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
@@ -21,12 +20,6 @@ type RouteEnv = { Bindings: Bindings; Variables: { person: string } };
 
 /** An Expo push token, as `getExpoPushTokenAsync` gives it. */
 const EXPO_PUSH_TOKEN = /^Expo(nent)?PushToken\[[^\]]+\]$/;
-
-const SettingsBody = MeSettings.partial()
-  .extend({ timeZone: TimeZone.optional() })
-  .refine((s) => Object.values(s).some((v) => v !== undefined), {
-    message: 'Change at least one setting',
-  });
 
 const fail = (c: Context, status: 400 | 401 | 404 | 409, code: ErrorCode, fields?: string[]) =>
   c.json<ErrorBody>({ error: fields === undefined ? { code } : { code, fields } }, status);
@@ -100,14 +93,11 @@ export function cottageRoutes(): Hono<RouteEnv> {
     return c.json({ actionKey });
   });
 
-  // Settings, and the person's time zone, which the app sends on first launch and whenever the
-  // phone's zone changes. The zone is not a setting yet in the contracts, so it is read here.
+  // The app sends `timeZone` and `quietHours` on first launch and whenever the phone's zone changes.
   app.patch('/v1/me/settings', signedIn, async (c) => {
-    const body = await bodyOf(c, SettingsBody);
+    const body = await bodyOf(c, MeSettingsUpdate);
     if (!body.ok) return body.response;
-    const { timeZone, ...update } = body.value;
-    const cottage = cottageOf(c.env, c.get('person'));
-    return c.json(await cottage.updateSettings(update, timeZone));
+    return c.json(await cottageOf(c.env, c.get('person')).updateSettings(body.value));
   });
 
   app.put('/v1/me/hibernate', signedIn, async (c) => {

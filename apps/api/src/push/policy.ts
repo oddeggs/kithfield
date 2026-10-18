@@ -87,13 +87,16 @@ export interface QuietWindow {
 }
 
 /**
- * Every window a push must wait out: the house floor in the person's zone, and their own quiet
- * hours (in their own zone) when they set some.
+ * Every window a push must wait out, in the person's zone: the house floor, and their own quiet
+ * hours when they set some.
  */
 export function quietWindows(own: QuietHours | null, zone: string): QuietWindow[] {
   return own === null
     ? [{ ...FLOOR_QUIET, timeZone: zone }]
-    : [{ ...FLOOR_QUIET, timeZone: zone }, own];
+    : [
+        { ...FLOOR_QUIET, timeZone: zone },
+        { ...own, timeZone: zone },
+      ];
 }
 
 /** When no window applies any more, or null when none applies at `at`. */

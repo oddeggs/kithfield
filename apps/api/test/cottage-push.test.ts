@@ -90,7 +90,7 @@ describe('the cottage decides on pushes', () => {
     const person = freshPerson();
     const cottage = await cottageWithFarm(person, 'farm-a');
     // 23:00 UTC is 06:00 in Hanoi: still before 8am there.
-    await cottage.updateSettings({}, 'Asia/Ho_Chi_Minh');
+    await cottage.updateSettings({ timeZone: 'Asia/Ho_Chi_Minh' });
     useTestClock('2026-10-18T23:00:00Z');
     await cottage.deliver(delivery({ farm: 'farm-a', seq: 2 }));
     expect(queue.jobs()).toEqual([]);
@@ -152,7 +152,7 @@ describe('quiet hours always hold', () => {
     const cottage = await cottageWithFarm(person, 'farm-a');
     expect((await cottage.settings()).settings.quietHours).toBeNull();
     // Midday UTC is 1am in Auckland.
-    await cottage.updateSettings({}, 'Pacific/Auckland');
+    await cottage.updateSettings({ timeZone: 'Pacific/Auckland' });
     await cottage.deliver(delivery({ farm: 'farm-a', seq: 2 }));
     expect(queue.jobs()).toEqual([]);
     expect((await ledgerOf(person))[0]).toMatchObject({ decision: 'held' });

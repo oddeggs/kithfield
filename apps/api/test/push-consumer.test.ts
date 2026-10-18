@@ -348,7 +348,6 @@ it('keeps a pushed job’s farm name as the title, and the app’s for a push wi
   recordPushQueue();
   const person = freshPerson();
   const cottage = cottageOf(env, person);
-  await cottage.updateSettings({ quietHours: { from: '00:00', to: '00:00', timeZone: 'UTC' } });
   await cottage.registerDevice('phone-1', {
     platform: 'android',
     name: 'Pixel',

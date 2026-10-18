@@ -1,4 +1,4 @@
-import { MeSettings, type MeSettingsUpdate, TimeZone } from '@kithfield/contracts';
+import { MeSettings, type MeSettingsUpdate } from '@kithfield/contracts';
 import { z } from 'zod';
 
 import { type QuietWindow, quietWindows } from '../push/policy';
@@ -11,18 +11,18 @@ export const CottageProfile = z.object({
   nudgesSinceBack: z.int().min(0),
   /** A note from the safety team waits to be fetched. */
   safetyNote: z.boolean(),
-  /** The person's own time zone, as the app last sent it; null until it does. */
-  timeZone: TimeZone.nullable(),
 });
 export type CottageProfile = z.infer<typeof CottageProfile>;
 
 /**
- * A new cottage's settings. No quiet hours of the person's own: the house floor (10pm to 8am in
- * their zone) holds pushes anyway. Friends may draw them into together stickers unless they opt
+ * A new cottage's settings. The app sends the person's `timeZone` on first launch; until then the
+ * zone is UTC. No quiet hours of their own: the house floor (10pm to 8am in their zone) holds
+ * pushes anyway. Friends may draw them into together stickers unless they opt
  * out in settings (design 08); exporting one still asks everyone in it.
  */
 export const DEFAULT_SETTINGS: MeSettings = {
   lang: 'en',
+  timeZone: 'UTC',
   quietHours: null,
   discoverableByPhone: false,
   lightWindow: true,
@@ -36,11 +36,7 @@ const DEFAULT_PROFILE: CottageProfile = {
   hibernating: false,
   nudgesSinceBack: 0,
   safetyNote: false,
-  timeZone: null,
 };
-
-/** Until the app sends the person's zone, the floor is kept in UTC. */
-export const FALLBACK_ZONE = 'UTC';
 
 export function readProfile(sql: SqlStorage): CottageProfile {
   const row = sql.exec<{ json: string }>('SELECT json FROM profile WHERE id = 1').toArray()[0];
@@ -64,9 +60,9 @@ export function updateProfile(
   return next;
 }
 
-/** The person's zone: as the app sent it, else their quiet hours' zone, else UTC. */
+/** The person's zone, as the app last sent it. */
 export function zoneOf(profile: CottageProfile): string {
-  return profile.timeZone ?? profile.settings.quietHours?.timeZone ?? FALLBACK_ZONE;
+  return profile.settings.timeZone;
 }
 
 /** Every quiet window the person's pushes wait out. */
@@ -74,13 +70,8 @@ export function quietOf(profile: CottageProfile): QuietWindow[] {
   return quietWindows(profile.settings.quietHours, zoneOf(profile));
 }
 
-/** Applies a settings change and, when the app sends one, the person's time zone. */
-export function applySettings(
-  profile: CottageProfile,
-  update: Partial<MeSettingsUpdate>,
-  timeZone?: string,
-): CottageProfile {
+export function applySettings(profile: CottageProfile, update: MeSettingsUpdate): CottageProfile {
   const given = Object.entries(update).filter(([, value]) => value !== undefined);
   const settings = MeSettings.parse({ ...profile.settings, ...Object.fromEntries(given) });
-  return { ...profile, settings, timeZone: timeZone ?? profile.timeZone };
+  return { ...profile, settings };
 }

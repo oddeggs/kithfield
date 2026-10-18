@@ -1,6 +1,4 @@
-import { Critter } from '@kithfield/contracts';
-
-import { CottageFarm } from './chats';
+import { CottageFarm, Critter } from '@kithfield/contracts';
 
 /**
  * A farm the cottage hasn't been told about, read from D1: `farms (kind, name, pair)` and, for a

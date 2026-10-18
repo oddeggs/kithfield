@@ -23,7 +23,7 @@ export interface RenderedPush {
 
 /**
  * A job's copy in the person's language, or null when the copy key is not in the catalogue. A
- * name the cottage didn't know reads "A friend"; a mention is the name and the message's own words.
+ * name the cottage didn't know reads "A friend".
  * The title is the farm's name, or the app's for a push with no farm.
  */
 export function renderPush(job: PushJob, lang: Lang, title: string | null): RenderedPush | null {
@@ -31,11 +31,8 @@ export function renderPush(job: PushJob, lang: Lang, title: string | null): Rend
     ...job.copy.params,
     name: job.copy.params['name'] ?? lookup(lang, 'push.aFriend'),
   };
-  const text = lookup(lang, job.copy.key, params);
-  if (text === job.copy.key) return null;
-  const preview = job.copy.params['preview'];
-  const body =
-    job.copy.key === 'push.mention' && preview !== undefined ? `${text} ${preview}` : text;
+  const body = lookup(lang, job.copy.key, params);
+  if (body === job.copy.key) return null;
   return {
     title: title ?? lookup(lang, 'push.app'),
     body,

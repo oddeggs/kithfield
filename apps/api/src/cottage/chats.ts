@@ -1,36 +1,15 @@
 import {
   type ChatListItem,
   type CottageDelivery,
-  FarmId,
+  type CottageFarm,
   FarmKind,
-  FarmName,
   VisitPeer,
-  peerMatches,
 } from '@kithfield/contracts';
-import { z } from 'zod';
 
 /** At most this many things wait in Quick Tend per farm (`ChatListItem.waiting`). */
 const WAITING_CAP = 99;
 /** The chat list frame carries at most this many rows. */
 const CHATS_CAP = 500;
-
-/**
- * What the chat list needs about a farm that its events don't say: its kind, its name or, for a
- * visit, the other person, and the person's own pin. Whoever changes these (joining, renaming,
- * a peer's new critter) tells the cottage with `upsertFarm`.
- */
-export const CottageFarm = z
-  .object({
-    farm: FarmId,
-    farmKind: FarmKind,
-    name: FarmName.nullable(),
-    with: VisitPeer.nullable(),
-    pinned: z.boolean().optional(),
-  })
-  .refine((f) => peerMatches(f.farmKind === 'visit', f.name, f.with), {
-    message: 'A visit has a peer and no name; a farm the opposite',
-  });
-export type CottageFarm = z.infer<typeof CottageFarm>;
 
 /** One thing waiting in Quick Tend. */
 export interface WaitingItem {
@@ -56,17 +35,19 @@ type FarmRow = {
   for_you: number | null;
 };
 
+/**
+ * What the chat list needs about a farm that its events don't say: its kind, and its name or,
+ * for a visit, the other person. The person's own pin and mute stay as they were.
+ */
 export function upsertFarm(sql: SqlStorage, info: CottageFarm): void {
   sql.exec(
-    `INSERT INTO farms (farm, farm_kind, name, with_json, pinned) VALUES (?, ?, ?, ?, ?)
+    `INSERT INTO farms (farm, farm_kind, name, with_json) VALUES (?, ?, ?, ?)
      ON CONFLICT (farm) DO UPDATE SET farm_kind = excluded.farm_kind, name = excluded.name,
-       with_json = excluded.with_json, pinned = coalesce(?, farms.pinned)`,
+       with_json = excluded.with_json`,
     info.farm,
     info.farmKind,
     info.name,
     info.with === null ? null : JSON.stringify(info.with),
-    info.pinned === true ? 1 : 0,
-    info.pinned === undefined ? null : Number(info.pinned),
   );
 }
 

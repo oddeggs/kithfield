@@ -42,7 +42,7 @@ describe('decide', () => {
   });
 
   it('holds a push in quiet hours until they end, before any budget is spent', () => {
-    const quiet = quietWindows({ from: '11:00', to: '13:30', timeZone: 'UTC' }, 'UTC');
+    const quiet = quietWindows({ from: '11:00', to: '13:30' }, 'UTC');
     expect(decide({ ...base, quiet, sentToday: 5 })).toEqual({
       action: 'hold',
       until: Date.UTC(2026, 9, 18, 13, 30),
@@ -108,13 +108,13 @@ describe('knocks', () => {
 
 describe('quiet hours', () => {
   it('always keeps the house floor, 10pm to 8am in the person’s zone, with their own hours', () => {
-    const own = { from: '07:00', to: '09:30', timeZone: 'UTC' };
+    const own = { from: '07:00', to: '09:30' };
     // 23:00 UTC: inside the floor, which ends at 08:00, inside their own hours until 09:30.
     expect(holdUntil(Date.UTC(2026, 9, 18, 23, 0), quietWindows(own, 'UTC'))).toBe(
       Date.UTC(2026, 9, 19, 9, 30),
     );
     // Their own hours never lift the floor.
-    const daytime = { from: '13:00', to: '14:00', timeZone: 'UTC' };
+    const daytime = { from: '13:00', to: '14:00' };
     expect(holdUntil(Date.UTC(2026, 9, 18, 23, 0), quietWindows(daytime, 'UTC'))).toBe(
       Date.UTC(2026, 9, 19, 8, 0),
     );

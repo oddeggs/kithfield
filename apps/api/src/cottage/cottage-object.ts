@@ -1,6 +1,7 @@
 import {
   type ChatListItem,
   CottageDelivery,
+  CottageFarm,
   type CottageServerFrame,
   type MeSettings,
   MeSettingsUpdate,
@@ -12,7 +13,6 @@ import {
   RememberRequest,
   type RememberSeed,
   type SocketErrorCode,
-  TimeZone,
 } from '@kithfield/contracts';
 import { DurableObject } from 'cloudflare:workers';
 
@@ -87,9 +87,9 @@ export class CottageDO extends DurableObject<Bindings> {
     await this.scheduleAlarm();
   }
 
-  /** The person lives on this farm or visit: its kind, name or peer, and their pin. */
-  upsertFarm(info: chats.CottageFarm): void {
-    const parsed = chats.CottageFarm.parse(info);
+  /** The person lives on this farm or visit: its kind, and its name or peer. */
+  upsertFarm(info: CottageFarm): void {
+    const parsed = CottageFarm.parse(info);
     chats.upsertFarm(this.sql, parsed);
     this.sendRow(parsed.farm, this.now);
   }
@@ -166,11 +166,10 @@ export class CottageDO extends DurableObject<Bindings> {
     return { settings, hibernating };
   }
 
-  /** Changes settings and, when the app sends it, the person's time zone. */
-  updateSettings(update: Partial<MeSettingsUpdate>, timeZone?: string): MeSettings {
-    const parsed = Object.keys(update).length === 0 ? {} : MeSettingsUpdate.parse(update);
-    const zone = timeZone === undefined ? undefined : TimeZone.parse(timeZone);
-    return updateProfile(this.sql, (profile) => applySettings(profile, parsed, zone)).settings;
+  /** Changes settings, the person's time zone among them. */
+  updateSettings(update: MeSettingsUpdate): MeSettings {
+    const parsed = MeSettingsUpdate.parse(update);
+    return updateProfile(this.sql, (profile) => applySettings(profile, parsed)).settings;
   }
 
   /** Hibernating pauses every push and nudge. */
