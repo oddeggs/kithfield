@@ -1,3 +1,4 @@
+import { getRandomValues } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -6,6 +7,7 @@ import type { CreateFarmResponse, JoinResponse } from '@kithfield/contracts';
 import { farmView } from '@kithfield/farm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createOpIdMaker } from '../src/data/op-id';
 import { Phone } from './person';
 import { startLocalApi, type LocalApi } from './wrangler';
 
@@ -16,6 +18,7 @@ import { startLocalApi, type LocalApi } from './wrangler';
 
 // Typed here: without Expo's generated types, React Native's `process` global is untyped.
 const env = process.env as Partial<Record<string, string>>;
+const newOpId = createOpIdMaker((n) => getRandomValues(new Uint8Array(n)));
 const PORT = Number(env['E2E_PORT'] ?? 8804);
 const TRANSCRIPT = env['E2E_TRANSCRIPT'] ?? join(tmpdir(), `kithfield-e2e-${Date.now()}.log`);
 
@@ -176,20 +179,14 @@ describe('two friends on a farm', () => {
     const first = await bea.client.send(farm, 'knock', { to: pip.person });
     expect(first.status).toBe('queued');
     await until('first knock acked', settled(bea));
+    // The phone holds today's knock, so it refuses a second one itself, by the farm's own rules.
     const second = await bea.client.send(farm, 'knock', { to: pip.person });
-    if (second.status !== 'queued') throw new Error('expected the second knock to queue');
-    await until('second knock rejected', () =>
-      bea.client.rejections().some((r) => r.opId === second.opId),
-    );
-    expect(bea.client.rejections().find((r) => r.opId === second.opId)?.reason).toBe(
-      'limit_reached',
-    );
-    const again = await bea.api.command(farm, {
-      opId: second.opId,
-      kind: 'knock',
-      payload: { to: pip.person },
-    });
-    expect(again).toEqual({ result: 'rejected', opId: second.opId, reason: 'limit_reached' });
+    expect(second).toEqual({ status: 'refused', reason: 'limit_reached' });
+    // Sent past the phone, the farm refuses it too, and answers the same when it comes again.
+    const knock = { opId: newOpId(), kind: 'knock', payload: { to: pip.person } } as const;
+    const refused = await bea.api.command(farm, knock);
+    expect(refused).toEqual({ result: 'rejected', opId: knock.opId, reason: 'limit_reached' });
+    expect(await bea.api.command(farm, knock)).toEqual(refused);
   });
 
   it('upgrades with an email code and keeps the person', async () => {
