@@ -27,6 +27,8 @@
  * - `useDataStatus()`: `sessionEnded` (offer sign-in) and `banned`.
  *
  * Writing:
+ * - `useCanWrite(farm)(actor, write)` dry-runs a write by the same rules, queuing nothing, so a
+ *   screen offers only what the farm would take.
  * - `useSend(farm)(kind, payload)` queues a write and draws it at once. It answers `queued` with
  *   its op id, or `refused` with the reason when the shared rules already say no. A queued write
  *   is retried until the farm answers; a rejection is final and shows in `useRejections`.
@@ -67,7 +69,7 @@ export {
   type HttpMethod,
 } from './api-client';
 export type { DataClient, DataStatus, HeldElsewhere } from './data-client';
-export type { FarmRules } from './farm-rules';
+export type { CommandCheck, FarmRules } from './farm-rules';
 export type { FarmLink, BlockedCode } from './farm-connection';
 export type { CottageLink, CottageState } from './cottage-connection';
 export type { EnqueueResult, FarmReplicaState, PendingWrite, SyncReport } from './farm-replica';
@@ -90,4 +92,5 @@ export {
   usePresence,
   useRejections,
   useSend,
+  useCanWrite,
 } from './react';

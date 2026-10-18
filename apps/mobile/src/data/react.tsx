@@ -17,7 +17,7 @@ import type { DataClient, DataStatus } from './data-client';
 import type { NetworkSwitch } from './dev-network';
 import type { FarmLink } from './farm-connection';
 import type { EnqueueResult, FarmReplica, FarmReplicaState } from './farm-replica';
-import type { FarmRules } from './farm-rules';
+import type { CommandCheck, FarmRules } from './farm-rules';
 import type { PresenceState } from './presence-store';
 import { createSelection } from './selection';
 import type { StoredEvent, StoredRejection } from './sync-store';
@@ -145,6 +145,26 @@ export function useFarmEvents(farm: FarmId, limit = 50): readonly StoredEvent[] 
 export function useFarmLink(farm: FarmId): FarmLink {
   const client = useDataClient();
   return useSyncExternalStore(client.subscribe, () => client.link(farm));
+}
+
+/**
+ * A dry run of a write: whether the farm would take it from `actor` now, by the same shared rules
+ * `useSend` runs (null until the farm is read from SQLite). Re-renders whenever the farm changes,
+ * so what a screen offers follows the farm.
+ */
+export function useCanWrite(
+  farm: FarmId,
+): ((actor: string, write: { kind: string; payload: unknown }) => CommandCheck) | null {
+  const replica = useReplica(farm);
+  const state = useSyncExternalStore(
+    replica?.subscribe ?? noSubscribe,
+    replica?.getState ?? nothing,
+  );
+  // A new function on every change of the farm, so memoised readers check again.
+  return useMemo(
+    () => (replica && state ? (actor, write) => replica.canWrite(actor, write) : null),
+    [replica, state],
+  );
 }
 
 /** A function that makes a write on a farm. */
