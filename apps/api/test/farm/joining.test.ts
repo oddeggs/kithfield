@@ -25,6 +25,7 @@ import {
   cast,
   critter,
   farmStub,
+  freshFarmId,
   newPerson,
   type Person,
   plantFarm,
@@ -363,6 +364,28 @@ describe('the gate', () => {
     expect((await api(kit, 'GET', `/v1/farms/${home.farm}/gate`)).status).toBe(404);
     const after = await api(kit, 'POST', `/v1/farms/${home.farm}/gate`, { ...wave, opId: op(3) });
     expect(after.body).toMatchObject({ result: 'rejected', reason: 'not_allowed' });
+  });
+
+  it('counts friends made on farms, not on visits', async () => {
+    const { pip, fig, kit } = await cast('pip', 'fig', 'kit');
+    const home = await plantFarm(pip, [fig]);
+    // Fig and Kit share only a porch.
+    const porch = freshFarmId();
+    await farmStub(porch).create({
+      farm: porch,
+      kind: 'visit',
+      name: null,
+      land: 'porch',
+      timeZone: 'UTC',
+      hemisphere: 'north',
+      keeper: null,
+      pair: [fig.id, kit.id].sort().join(':'),
+      members: [
+        { person: fig.id, profile: profile(fig), via: 'visit' },
+        { person: kit.id, profile: profile(kit), via: 'visit' },
+      ],
+    });
+    expect((await api(kit, 'GET', `/v1/farms/${home.farm}/gate`)).status).toBe(404);
   });
 
   it('takes one gesture a farm day from each visitor, and limits how fast they come', async () => {

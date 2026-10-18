@@ -212,7 +212,7 @@ export const takeWaiting = async (
 
 /**
  * Whether `visitor` lives on another farm with at least one member of `farm`: friends of friends
- * may visit; strangers may not.
+ * may visit; strangers may not. Only farms count: sharing a visit (a porch) doesn't.
  */
 export const knowsSomeoneOn = async (
   db: D1Database,
@@ -222,6 +222,7 @@ export const knowsSomeoneOn = async (
   (await db
     .prepare(
       `SELECT 1 FROM memberships v
+       JOIN farms vf ON vf.id = v.farm_id AND vf.kind = 'farm'
        JOIN memberships o ON o.farm_id = v.farm_id AND o.person_id <> v.person_id AND o.left_at IS NULL
        JOIN memberships t ON t.person_id = o.person_id AND t.farm_id = ? AND t.left_at IS NULL
        WHERE v.person_id = ? AND v.left_at IS NULL AND v.farm_id <> ? LIMIT 1`,
