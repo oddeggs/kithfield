@@ -1,4 +1,4 @@
-import { HttpUrl, type Lang, type WeatherAttribution } from '@kithfield/contracts';
+import { HttpUrl, type Lang, WeatherAttribution } from '@kithfield/contracts';
 import { z } from 'zod';
 
 import {
@@ -28,6 +28,16 @@ const AppleAttribution = z.object({
 /** A path or URL from Apple's answer, made absolute against WeatherKit's origin. */
 const absolute = (path: string): string => HttpUrl.parse(new URL(path, WEATHERKIT_ORIGIN).href);
 
+/** Apple's legal page from its answer, or its known one when the answer names none it can use. */
+const legalOf = (path: string | undefined): string => {
+  if (path === undefined || path.trim() === '') return WEATHERKIT_LEGAL_URL;
+  try {
+    return absolute(path.trim());
+  } catch {
+    return WEATHERKIT_LEGAL_URL;
+  }
+};
+
 const defaultCache = (): Cache => (caches as unknown as { default: Cache }).default;
 
 export type AttributionDeps = { fetch: typeof fetch; cache: () => Cache };
@@ -43,7 +53,7 @@ const fetchApple = async (deps: AttributionDeps, lang: Lang): Promise<WeatherAtt
     serviceName: apple.serviceName,
     markLight: absolute(apple['logoLight@3x']),
     markDark: absolute(apple['logoDark@3x']),
-    legalUrl: absolute(apple.legalPageURL ?? WEATHERKIT_LEGAL_URL),
+    legalUrl: legalOf(apple.legalPageURL),
   };
 };
 
@@ -64,9 +74,10 @@ export const weatherAttribution = async (
   const key = `https://weather-cache.kithfield.internal/attribution/${source}/${lang}`;
   try {
     const hit = await full.cache().match(key);
-    if (hit !== undefined) return await hit.json<WeatherAttribution>();
+    const kept = hit === undefined ? null : WeatherAttribution.safeParse(await hit.json());
+    if (kept?.success === true) return kept.data;
   } catch {
-    // A cache that can't be read is a miss.
+    // A cache that can't be read, or holds something incomplete, is a miss.
   }
   const attribution = await fetchApple(full, lang);
   try {

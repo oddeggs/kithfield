@@ -64,6 +64,49 @@ describe('the weather attribution', () => {
     expect(signals[0]).toBeInstanceOf(AbortSignal);
   });
 
+  it("always names a legal page, Apple's own when its answer names none it can use", async () => {
+    const legal = 'https://weatherkit.apple.com/legal-attribution.html';
+    for (const legalPageURL of [undefined, '', '   ', 'http://[broken', 'ftp://example.com/x']) {
+      const answer = legalPageURL === undefined ? apple('en') : { ...apple('en'), legalPageURL };
+      const got = await weatherAttribution('weatherkit', 'en', {
+        fetch: () => Promise.resolve(Response.json(answer)),
+        cache: memoryCache(),
+      });
+      expect(got?.legalUrl, String(legalPageURL)).toBe(legal);
+    }
+    const named = await weatherAttribution('weatherkit', 'en', {
+      fetch: () =>
+        Promise.resolve(Response.json({ ...apple('en'), legalPageURL: '/legal/vi.html' })),
+      cache: memoryCache(),
+    });
+    expect(named?.legalUrl).toBe('https://weatherkit.apple.com/legal/vi.html');
+  });
+
+  it('asks Apple again rather than serve a kept attribution without its legal page', async () => {
+    const cache = memoryCache();
+    const key = 'https://weather-cache.kithfield.internal/attribution/weatherkit/en';
+    const { legalUrl: _dropped, ...partial } = {
+      source: 'weatherkit',
+      serviceName: 'Apple Weather',
+      markLight: 'https://weatherkit.apple.com/a.png',
+      markDark: 'https://weatherkit.apple.com/b.png',
+      legalUrl: 'https://weatherkit.apple.com/legal-attribution.html',
+    };
+    await cache().put(key, Response.json(partial));
+    let asked = 0;
+    const got = await weatherAttribution('weatherkit', 'en', {
+      fetch: () => {
+        asked++;
+        return Promise.resolve(Response.json(apple('en')));
+      },
+      cache,
+    });
+    expect(asked).toBe(1);
+    expect(WeatherAttribution.parse(got).legalUrl).toBe(
+      'https://weatherkit.apple.com/legal-attribution.html',
+    );
+  });
+
   it('asks Apple once a day per language', async () => {
     let asked = 0;
     const fetcher = () => {
