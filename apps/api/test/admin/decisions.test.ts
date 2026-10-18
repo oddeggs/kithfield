@@ -13,7 +13,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { isBanned } from '../../src/auth';
 import { TestSocket } from '../farm/support/client';
-import { api, farmStub, hostOf, newPerson, type Person } from '../farm/support/doubles';
+import { api, farmStub, newPerson, type Person } from '../farm/support/doubles';
 import {
   ANA,
   desk,
@@ -255,14 +255,7 @@ describe('decisions on a report', () => {
     const kept = await newPerson('bramkept');
     const stub = farmStub(lot.farm);
     await stub.mergePerson(lot.bram.id, kept.id);
-    // The snapshot carries the merge as `aliases` (contracts); the farm object keeps it in its
-    // own table today, so the test writes it into the state the way the snapshot should hold it.
-    await hostOf(stub, (host) => {
-      const state = host.farm.state;
-      if (state !== null) {
-        host.farm.replaceState({ ...state, aliases: { [lot.bram.id]: kept.id } });
-      }
-    });
+    expect((await stub.state())?.aliases).toEqual({ [lot.bram.id]: kept.id });
     const id = await fileReport(lot);
     const detail = ReportDetail.parse((await desk(access, ANA, 'GET', `/reports/${id}`)).body);
     expect(detail.reported.person).toBe(kept.id);
