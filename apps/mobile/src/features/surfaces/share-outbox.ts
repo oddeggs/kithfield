@@ -43,6 +43,14 @@ function filesNamedIn(raw: string | null): string[] {
   }
 }
 
+function readDraft(raw: string | null) {
+  try {
+    return ShareDraft.safeParse(JSON.parse(raw ?? 'null'));
+  } catch {
+    return null;
+  }
+}
+
 /**
  * The drafts waiting, oldest first. One the app can't send as it is (over a limit, or not a draft
  * at all) is removed with its files and counted in `refused`, so the person hears about it.
@@ -56,12 +64,7 @@ export async function pendingDrafts(
     if (!name.endsWith('.json') || name.endsWith('.sent.json')) continue;
     const file = APP_GROUP_PATHS.shareOutbox + name;
     const raw = await group.read(file);
-    let parsed: ReturnType<typeof ShareDraft.safeParse> | null = null;
-    try {
-      parsed = ShareDraft.safeParse(JSON.parse(raw ?? 'null'));
-    } catch {
-      parsed = null;
-    }
+    const parsed = readDraft(raw);
     if (parsed?.success) {
       drafts.push({ file, draft: parsed.data });
       continue;
