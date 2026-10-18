@@ -2,6 +2,9 @@ import { Stack } from 'expo-router';
 
 import { useTheme } from '../../../ui/theme/theme-provider';
 
+/** A link straight to a pushed screen still has the tab's first screen under it to go back to. */
+export const unstable_settings = { initialRouteName: 'index' };
+
 /**
  * The Farm tab's stack. The farm's moments (welcome back, move-in, removal, leaving) cover the
  * screen; your bubble is a short sheet that leaves the farm and its bubbles in view.
