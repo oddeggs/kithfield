@@ -1,26 +1,29 @@
 import { z } from 'zod';
 
-/** The farm socket protocol version, sent in `hello`. Bumped only on a breaking frame change. */
+/**
+ * The socket protocol version this package speaks, sent in `hello`. The server compares it and
+ * answers `protocol_unsupported` when it can't serve it. Bumped only on a breaking frame change.
+ */
 export const PROTOCOL_VERSION = 1;
 
 /** Limits the docs and design notes set; schemas below use them. */
 export const LIMITS = {
-  /** Critters per farm (11-05, 11-07). */
+  /** Critters per farm. */
   members: 24,
   farmName: 32,
   displayName: 32,
-  /** A status bubble: 40 characters, shown for 24 hours (04-23). */
+  /** A status bubble: 40 characters, shown for 24 hours. */
   status: 40,
   pins: 10,
   message: 4000,
   fireflyWords: 80,
-  /** Friends drawn into one together sticker (08-02). */
+  /** Friends drawn into one together sticker. */
   stickerFriends: 4,
   mediaItems: 10,
-  /** Voice notes: 5 minutes at most (04-12). */
+  /** Voice notes: 5 minutes at most. */
   voiceMs: 5 * 60_000,
   waveform: 64,
-  /** Files up to 100 MB (05-10); presigned multipart above 50 MB. */
+  /** Files up to 100 MB; presigned multipart above 50 MB. */
   uploadBytes: 100 * 1024 * 1024,
   multipartAboveBytes: 50 * 1024 * 1024,
   /** Events per `events` batch, and how far behind a phone may be before it gets a snapshot. */
@@ -59,7 +62,7 @@ export type EpochMs = z.infer<typeof EpochMs>;
 export const LocalDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/);
 export type LocalDate = z.infer<typeof LocalDate>;
 
-/** A birthday: month and day only, `MM-DD` (07-01). */
+/** A birthday: month and day only, `MM-DD`. */
 export const MonthDay = z.string().regex(/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/);
 export type MonthDay = z.infer<typeof MonthDay>;
 
@@ -94,7 +97,7 @@ export type Season = z.infer<typeof Season>;
 export const Hemisphere = z.enum(['north', 'south']);
 export type Hemisphere = z.infer<typeof Hemisphere>;
 
-/** The six care families, always in this order (15-01). */
+/** The six care families, always in this order. */
 export const CareFamily = z.enum(['dew', 'words', 'pictures', 'voices', 'gestures', 'gatherings']);
 export type CareFamily = z.infer<typeof CareFamily>;
 
@@ -153,9 +156,15 @@ export type Role = z.infer<typeof Role>;
 export const FarmKind = z.enum(['farm', 'visit']);
 export type FarmKind = z.infer<typeof FarmKind>;
 
-/** The twelve warm reactions (05-11), by their icon names. */
+/** How a member's cottage came to be left behind. Used by `left` events and the snapshot. */
+export const Departure = z.enum(['left', 'removed', 'account_deleted']);
+export type Departure = z.infer<typeof Departure>;
+
+/**
+ * The warm reactions, by their icon names. The tray's dewdrop is not a reaction: it is a `dewdrop`
+ * event with a `target`, drawn in the reaction row.
+ */
 export const Reaction = z.enum([
-  'dewdrop',
   'sun',
   'heart',
   'sprout',
@@ -170,9 +179,13 @@ export const Reaction = z.enum([
 ]);
 export type Reaction = z.infer<typeof Reaction>;
 
-/** An uploaded object in R2, keyed `farm/<farmId>/<uuid>`. */
+/** An object key in R2: `farm/<farm id>/<uuid>`. */
+export const MediaKey = z.string().regex(/^farm\/[A-Za-z0-9_-]{1,64}\/[0-9a-f-]{36}$/);
+export type MediaKey = z.infer<typeof MediaKey>;
+
+/** An uploaded object in R2. */
 export const MediaRef = z.object({
-  key: z.string().regex(/^farm\/[A-Za-z0-9_-]{1,64}\/[0-9a-f-]{36}$/),
+  key: MediaKey,
   mime: z.string().regex(/^[a-z]+\/[a-z0-9.+-]{1,80}$/),
   bytes: z.int().min(1).max(LIMITS.uploadBytes),
   width: z.int().min(1).optional(),
@@ -184,7 +197,7 @@ export type MediaRef = z.infer<typeof MediaRef>;
 
 export const HttpUrl = z.url({ protocol: /^https?$/ }).max(LIMITS.url);
 
-/** A place typed for a plan (06-01). Coordinates only when picked from a map result. */
+/** A place typed for a plan. Coordinates only when picked from a map result. */
 export const Place = z.object({
   name: text(120),
   address: text(200).optional(),
@@ -193,12 +206,13 @@ export const Place = z.object({
 });
 export type Place = z.infer<typeof Place>;
 
-/** The keeper's town: sets the farm's day boundaries, season and weather. Coarse, never device location. */
+/**
+ * The keeper's town, set in farm settings, for weather only. Coarse, never device location. The
+ * farm's day boundaries and season come from its time zone and hemisphere instead.
+ */
 export const FarmPlace = z.object({
   city: text(80),
   country: CountryCode,
-  timeZone: TimeZone,
-  hemisphere: Hemisphere,
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
 });

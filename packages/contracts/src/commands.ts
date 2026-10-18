@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import {
+  CardSignedPayload,
   CheckinPayload,
   DewdropPayload,
   FireflyPayload,
@@ -30,10 +31,9 @@ import {
 import {
   CritterChangedPayload,
   FireCommandPayload,
-  HibernatePayload,
   LeftCommandPayload,
   RemovedCommandPayload,
-  SettingsChangedPayload,
+  SettingsCommandPayload,
   StatusPayload,
 } from './payloads/farm';
 import { OpId, Seq } from './primitives';
@@ -62,6 +62,7 @@ export const commandOptions = <E extends z.ZodRawShape>(extra: E) => {
     c('hug', HugPayload),
     c('quiet_note', QuietNotePayload),
     c('slow_post', SlowPostCommandPayload),
+    c('card_signed', CardSignedPayload),
     c('seed_planted', SeedPlantedPayload),
     c('seed_changed', SeedChangedPayload),
     c('vote', VotePayload),
@@ -69,13 +70,12 @@ export const commandOptions = <E extends z.ZodRawShape>(extra: E) => {
     c('checkin', CheckinPayload),
     c('gift', GiftPayload),
     c('scrapbook_page', ScrapbookPagePayload),
-    c('hibernate', HibernatePayload),
     c('status', StatusPayload),
     c('fire', FireCommandPayload),
     c('left', LeftCommandPayload),
     c('removed', RemovedCommandPayload),
     c('critter_changed', CritterChangedPayload),
-    c('settings_changed', SettingsChangedPayload),
+    c('settings_changed', SettingsCommandPayload),
   ] as const;
 };
 
@@ -91,7 +91,10 @@ export const COMMAND_KINDS: readonly CommandKind[] = FarmCommand.options.map(
 
 /**
  * Why a write was refused. A rejection is final: the outbox drops the write and the UI explains.
- * Duplicate `opId`s are never rejected; they are acked again with the original seq.
+ * A duplicate `opId` is answered with its original outcome: an applied write is acked again with
+ * its original seq, and a rejected write stays rejected with its original reason, so the farm
+ * stores rejected op ids too. A phone whose app is too old gets a socket `error` instead, and its
+ * outbox keeps the write.
  */
 export const RejectReason = z.enum([
   /** The payload failed the schema or a farm rule. */
@@ -113,8 +116,6 @@ export const RejectReason = z.enum([
   'farm_frozen',
   /** The writer is paused by the safety team: can read, can't post. */
   'account_paused',
-  /** The phone's rules are older than the farm's; it needs a fresh snapshot. */
-  'rules_outdated',
 ]);
 export type RejectReason = z.infer<typeof RejectReason>;
 
@@ -124,7 +125,10 @@ export type Ack = z.infer<typeof Ack>;
 export const Rejection = z.object({ opId: OpId, reason: RejectReason });
 export type Rejection = z.infer<typeof Rejection>;
 
-/** The HTTP command response; the socket sends the same outcome as an `ack` or `rejected` frame. */
+/**
+ * The HTTP command response. On the socket the farm first broadcasts the new `event` to every
+ * socket, the writer's included, then sends the writer its `ack` (or just `rejected`).
+ */
 export const CommandResult = z.discriminatedUnion('result', [
   Ack.extend({ result: z.literal('ack') }),
   Rejection.extend({ result: z.literal('rejected') }),

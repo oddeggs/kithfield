@@ -3,10 +3,14 @@ import { z } from 'zod';
 import {
   ArtId,
   Critter,
+  Departure,
   DisplayName,
+  EpochMs,
   FarmId,
+  FarmKind,
   FarmName,
   FarmPlace,
+  Hemisphere,
   LIMITS,
   LocalDate,
   MonthDay,
@@ -14,6 +18,8 @@ import {
   PlantId,
   Role,
   Season,
+  Seq,
+  TimeZone,
   Weather,
   text,
 } from '../primitives';
@@ -21,10 +27,13 @@ import {
 /* Presence */
 
 /** Written by the farm from presence, at most once per person per hour. */
-export const FarmOpenedPayload = z.strictObject({});
+export const FarmOpenedPayload = z.object({});
 export type FarmOpenedPayload = z.infer<typeof FarmOpenedPayload>;
 
-/** Hibernate pauses every nudge on every farm and tucks the critter in (11-01). */
+/**
+ * Hibernate pauses every nudge on every farm and tucks the critter in. A person hibernates once,
+ * over HTTP; the server writes this event on every farm they live on.
+ */
 export const HibernatePayload = z.object({ on: z.boolean() });
 export type HibernatePayload = z.infer<typeof HibernatePayload>;
 
@@ -44,12 +53,31 @@ export type FireCommandPayload = z.infer<typeof FireCommandPayload>;
 
 /**
  * The fire room: `lit` by whoever lights it, `sat` once per person per session (the Voices tend),
- * `out` written by the farm 3 minutes after the last person leaves.
+ * `out` written by the farm (null actor) 3 minutes after the last person leaves.
  */
 export const FirePayload = z.object({ state: z.enum(['lit', 'sat', 'out']) });
 export type FirePayload = z.infer<typeof FirePayload>;
 
 /* Membership */
+
+/**
+ * The farm's identity, always seq 1, written by the farm. The time zone and hemisphere come from the
+ * creator's device settings, never their location; they set day boundaries and seasons. Visits
+ * have no name.
+ */
+export const FarmCreatedPayload = z
+  .object({
+    kind: FarmKind,
+    name: FarmName.nullable(),
+    land: ArtId,
+    timeZone: TimeZone,
+    hemisphere: Hemisphere,
+  })
+  .refine((p) => (p.kind === 'visit') === (p.name === null), {
+    message: 'A farm has a name; a visit has none',
+    path: ['name'],
+  });
+export type FarmCreatedPayload = z.infer<typeof FarmCreatedPayload>;
 
 export const JoinedPayload = z.object({
   name: DisplayName,
@@ -58,14 +86,14 @@ export const JoinedPayload = z.object({
 });
 export type JoinedPayload = z.infer<typeof JoinedPayload>;
 
-export const LeftCommandPayload = z.strictObject({});
+export const LeftCommandPayload = z.object({});
 export type LeftCommandPayload = z.infer<typeof LeftCommandPayload>;
 
 /**
  * Leaving is quiet. `account_deleted` comes from account deletion: phones then tombstone everything
  * the actor wrote.
  */
-export const LeftPayload = z.object({ how: z.enum(['quietly', 'account_deleted']) });
+export const LeftPayload = z.object({ how: Departure.exclude(['removed']) });
 export type LeftPayload = z.infer<typeof LeftPayload>;
 
 export const RemovedCommandPayload = z.object({
@@ -74,7 +102,7 @@ export const RemovedCommandPayload = z.object({
 });
 export type RemovedCommandPayload = z.infer<typeof RemovedCommandPayload>;
 
-/** A keeper's removal, or the safety team's (then the actor is the farm). */
+/** A keeper's removal, or the safety team's (then the actor is null). */
 export const RemovedPayload = RemovedCommandPayload.extend({
   by: z.enum(['keeper', 'safety']),
 });
@@ -92,25 +120,44 @@ export const CritterChangedPayload = z
   });
 export type CritterChangedPayload = z.infer<typeof CritterChangedPayload>;
 
-/** One farm setting changed. Keepers only, except `frozen`, which the safety team sets. */
-export const SettingsChangedPayload = z.discriminatedUnion('setting', [
+const keeperSettings = [
   z.object({ setting: z.literal('name'), name: FarmName }),
   z.object({ setting: z.literal('land'), land: ArtId }),
-  z.object({ setting: z.literal('place'), place: FarmPlace }),
+  /** The day boundaries and seasons; from device settings, never location. */
+  z.object({ setting: z.literal('calendar'), timeZone: TimeZone, hemisphere: Hemisphere }),
+  /** The keeper's town, for weather; null stops the weather. */
+  z.object({ setting: z.literal('place'), place: FarmPlace.nullable() }),
   z.object({ setting: z.literal('birthdays'), on: z.boolean() }),
   z.object({ setting: z.literal('approval'), on: z.boolean() }),
   z.object({ setting: z.literal('theme'), theme: ArtId.nullable() }),
   z.object({ setting: z.literal('role'), person: PersonId, role: Role }),
+] as const;
+
+/** A setting a keeper changes. Phones can't send `frozen` or `paused`. */
+export const SettingsCommandPayload = z.discriminatedUnion('setting', [...keeperSettings]);
+export type SettingsCommandPayload = z.infer<typeof SettingsCommandPayload>;
+
+/**
+ * One farm setting changed. `frozen` and `paused` are written by the safety team with a null
+ * actor; a pause lets the person read but not post, and their critter naps until `until`.
+ */
+export const SettingsChangedPayload = z.discriminatedUnion('setting', [
+  ...keeperSettings,
   z.object({ setting: z.literal('frozen'), on: z.boolean() }),
+  z.object({ setting: z.literal('paused'), person: PersonId, until: EpochMs.nullable() }),
 ]);
 export type SettingsChangedPayload = z.infer<typeof SettingsChangedPayload>;
 
 /* Written by the farm */
 
+/** Where the weather came from; each source has its own attribution. Grows with new sources. */
+export const WeatherSource = z.enum(['weatherkit']);
+export type WeatherSource = z.infer<typeof WeatherSource>;
+
 export const WeatherPayload = z.object({
   day: LocalDate,
   weather: Weather,
-  source: z.enum(['weatherkit']),
+  source: WeatherSource,
 });
 export type WeatherPayload = z.infer<typeof WeatherPayload>;
 
@@ -140,7 +187,10 @@ export const RulesChangedPayload = z
   .refine((p) => p.to > p.from, { message: 'Rules only move forward' });
 export type RulesChangedPayload = z.infer<typeof RulesChangedPayload>;
 
-/** A swap made while visiting another farm (15-06): one bundle for one, written on both farms. */
+/**
+ * A swap made while visiting another farm: one bundle for one, once per visit. Written by the farm
+ * on both farms, each with its own trader as actor; `with` is the person on the other farm.
+ */
 export const TradedPayload = z.object({
   with: PersonId,
   otherFarm: FarmId,
@@ -148,3 +198,10 @@ export const TradedPayload = z.object({
   got: PlantId,
 });
 export type TradedPayload = z.infer<typeof TradedPayload>;
+
+/**
+ * An appeal undid a removal: the farm put the target's payload back in its log. Phones refetch
+ * that event by paging (`after = target - 1`, `limit = 1`).
+ */
+export const RestoredPayload = z.object({ target: Seq });
+export type RestoredPayload = z.infer<typeof RestoredPayload>;

@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import {
   ArtId,
+  Critter,
+  DisplayName,
   EpochMs,
   Id,
   LIMITS,
@@ -16,11 +18,18 @@ import {
 
 /* Gestures */
 
-/** A dewdrop on a message (`target`), for a person (`to`; on their birthday it waters the rose), or the farm. */
-export const DewdropPayload = z.object({
-  target: Seq.optional(),
-  to: PersonId.optional(),
-});
+/**
+ * A dewdrop on a message (`target`, drawn in its reaction row), for a person (`to`; on their
+ * birthday it waters the rose), or for the farm (neither). Never both.
+ */
+export const DewdropPayload = z
+  .object({
+    target: Seq.optional(),
+    to: PersonId.optional(),
+  })
+  .refine((p) => p.target === undefined || p.to === undefined, {
+    message: 'A dewdrop goes on a message or to a person, not both',
+  });
 export type DewdropPayload = z.infer<typeof DewdropPayload>;
 
 /** A firefly waits on a doorstep until its person opens it; opening one wakes their critter. */
@@ -41,26 +50,51 @@ export type WavePayload = z.infer<typeof WavePayload>;
 export const KnockPayload = z.object({ to: PersonId });
 export type KnockPayload = z.infer<typeof KnockPayload>;
 
-/** A hug, or an umbrella brought to someone under a rain cloud (05-07). */
-export const HugPayload = z.object({
-  to: PersonId.optional(),
-  umbrella: z.boolean().optional(),
-});
+/** The kinds of warmth a hug can carry. */
+export const Warmth = z.enum(['here', 'thinking', 'soup', 'glow']);
+export type Warmth = z.infer<typeof Warmth>;
+
+/** A hug, or an umbrella brought to someone under a rain cloud (then `to` is required). */
+export const HugPayload = z
+  .object({
+    to: PersonId.optional(),
+    umbrella: z.boolean().optional(),
+    warmth: Warmth.optional(),
+  })
+  .refine((p) => p.umbrella !== true || p.to !== undefined, {
+    message: 'An umbrella is brought to someone',
+    path: ['to'],
+  });
 export type HugPayload = z.infer<typeof HugPayload>;
 
 /** A note marked "no reply needed". */
 export const QuietNotePayload = z.object({ text: text(LIMITS.message) });
 export type QuietNotePayload = z.infer<typeof QuietNotePayload>;
 
+/** When a slow post arrives: the friend's next morning, or the coming weekend, in their time zone. */
+export const SlowPostWhen = z.enum(['morning', 'weekend']);
+export type SlowPostWhen = z.infer<typeof SlowPostWhen>;
+
 export const SlowPostCommandPayload = z.object({
   to: PersonId,
   text: text(LIMITS.message),
+  when: SlowPostWhen,
 });
 export type SlowPostCommandPayload = z.infer<typeof SlowPostCommandPayload>;
 
-/** The farm sets `deliverAt` to the friend's next morning in their time zone (05-05). */
+/**
+ * Written at send time; the farm sets `deliverAt` from `when` and the friend's time zone, and
+ * phones show it only from `deliverAt`. Recalling it is an `unsend`, allowed until `deliverAt`.
+ */
 export const SlowPostPayload = SlowPostCommandPayload.extend({ deliverAt: EpochMs });
 export type SlowPostPayload = z.infer<typeof SlowPostPayload>;
+
+/** Signs a member's birthday card, on their birthday. */
+export const CardSignedPayload = z.object({
+  to: PersonId,
+  text: text(200),
+});
+export type CardSignedPayload = z.infer<typeof CardSignedPayload>;
 
 /* Plans */
 
@@ -70,7 +104,7 @@ export const DayOption = z.object({
 });
 export type DayOption = z.infer<typeof DayOption>;
 
-/** How many yeses a plan needs to sprout (06-01). */
+/** How many yeses a plan needs to sprout. */
 export const Yeses = z.enum(['couple', 'most', 'everyone']);
 export type Yeses = z.infer<typeof Yeses>;
 
@@ -79,24 +113,15 @@ const planFields = {
   days: z.array(DayOption).max(14),
   place: Place.nullable(),
   yeses: Yeses,
-  /** Resting in the shed: "someday" (06-04). */
+  /** Resting in the shed: "someday". */
   someday: z.boolean(),
 };
 
 /**
- * A plan seed, or a remember-me seed (06-05), which is only for its planter: the farm sends it to
- * nobody else.
+ * A plan seed, planted from a message or from nothing. Remember-me seeds are personal and never in
+ * the farm log: see the remember bodies in the HTTP contracts.
  */
-export const SeedPlantedPayload = z.discriminatedUnion('seed', [
-  z.object({ seed: z.literal('plan'), fromSeq: Seq.optional(), ...planFields }),
-  z.object({
-    seed: z.literal('remember'),
-    fromSeq: Seq.optional(),
-    title: text(80),
-    about: PersonId,
-    nudgeAt: EpochMs,
-  }),
-]);
+export const SeedPlantedPayload = z.object({ fromSeq: Seq.optional(), ...planFields });
 export type SeedPlantedPayload = z.infer<typeof SeedPlantedPayload>;
 
 /** Changes to a plan after planting: a day suggested, a place, passing the organiser's hat. */
@@ -127,27 +152,31 @@ export const RsvpPayload = z.object({
 });
 export type RsvpPayload = z.infer<typeof RsvpPayload>;
 
-/** "I'm here" on the day of a hangout (06-06). */
+/** "I'm here" on the day of a hangout. */
 export const CheckinPayload = z.object({ seed: Seq });
 export type CheckinPayload = z.infer<typeof CheckinPayload>;
 
 /* Keepsakes */
 
+/** A product id from the store: an item, a sticker pack or a farm theme. */
+export const ProductId = z.string().regex(/^[a-z0-9_.-]{1,100}$/);
+export type ProductId = z.infer<typeof ProductId>;
+
+const giftFields = {
+  gift: Id,
+  to: PersonId,
+  item: ProductId,
+  wrap: ArtId,
+};
+
 /** A gift on someone's step; opening it shows "opened" to the giver, never a time. */
 export const GiftPayload = z.discriminatedUnion('action', [
-  z.object({
-    action: z.literal('given'),
-    gift: Id,
-    to: PersonId,
-    /** The product id of the item, pack or theme. */
-    item: z.string().regex(/^[a-z0-9_.-]{1,100}$/),
-    wrap: ArtId,
-  }),
+  z.object({ action: z.literal('given'), ...giftFields }),
   z.object({ action: z.literal('opened'), gift: Id }),
 ]);
 export type GiftPayload = z.infer<typeof GiftPayload>;
 
-/** A pressed scrapbook page (07-06), or a page any member hides. */
+/** A pressed scrapbook page, or a page any member hides. */
 export const ScrapbookPagePayload = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('pressed'),
@@ -161,3 +190,24 @@ export const ScrapbookPagePayload = z.discriminatedUnion('action', [
   z.object({ action: z.literal('hidden'), target: Seq }),
 ]);
 export type ScrapbookPagePayload = z.infer<typeof ScrapbookPagePayload>;
+
+/* Visitors at the gate */
+
+/** What a visitor from another farm may do at this farm's gate. They can't read its chat. */
+export const GateGesture = z.discriminatedUnion('gesture', [
+  z.object({ gesture: z.literal('wave') }),
+  z.object({
+    gesture: z.literal('firefly'),
+    to: PersonId,
+    words: text(LIMITS.fireflyWords).optional(),
+  }),
+  z.object({ gesture: z.literal('gift'), ...giftFields }),
+]);
+export type GateGesture = z.infer<typeof GateGesture>;
+
+/** A visitor's gesture, written by the farm with the visitor as actor, and how to draw them. */
+export const GatePayload = z.object({
+  visitor: z.object({ name: DisplayName, critter: Critter }),
+  gesture: GateGesture,
+});
+export type GatePayload = z.infer<typeof GatePayload>;

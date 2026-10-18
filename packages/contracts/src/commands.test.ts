@@ -13,7 +13,7 @@ import { badEventPayloads, bea, eventPayloads, fig, opId } from './samples.test-
 /** Where a command's payload differs from the event the farm stores. */
 const overrides: Partial<Record<CommandKind, object>> = {
   unsend: { target: 14 },
-  slow_post: { to: bea, text: 'a long letter' },
+  slow_post: { to: bea, text: 'a long letter', when: 'weekend' },
   left: {},
   removed: { person: fig, removeMedia: true },
   fire: { state: 'sat' },
@@ -60,6 +60,25 @@ describe('farm commands', () => {
         parsed.success && JSON.stringify(parsed.data.payload) === JSON.stringify(c.payload);
       expect(kept, c.kind).toBe(false);
     }
+  });
+
+  it('keeps the safety team settings out of commands', () => {
+    for (const payload of [
+      { setting: 'frozen', on: true },
+      { setting: 'paused', person: fig, until: null },
+    ]) {
+      expect(FarmCommand.safeParse({ opId, kind: 'settings_changed', payload }).success).toBe(
+        false,
+      );
+    }
+    const calendar = { setting: 'calendar', timeZone: 'Asia/Ho_Chi_Minh', hemisphere: 'north' };
+    roundTrip({ opId, kind: 'settings_changed', payload: calendar });
+  });
+
+  it('hibernates over HTTP, not as a farm command', () => {
+    expect(FarmCommand.safeParse({ opId, kind: 'hibernate', payload: { on: true } }).success).toBe(
+      false,
+    );
   });
 
   it('needs a lowercase UUIDv7 op id', () => {
