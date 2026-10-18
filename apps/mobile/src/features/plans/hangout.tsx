@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 
 import { useOpenFarm } from '../../data';
+import { pickFromLibrary, useUpload } from '../media';
 import { ArtIcon } from '../../ui/art/art-view';
 import { Glass } from '../../ui/components/glass';
 import { useToast } from '../../ui/components/toast';
@@ -19,7 +20,6 @@ import { Arriving, Campfire } from './hangout-art';
 import { personOn } from './people';
 import { fireside } from './plan-look';
 import { planTime } from './plan-status';
-import { hangoutPhoto } from './photo-seam';
 import { useMe, usePlan, usePlanRejections, usePlanSend } from './use-plans';
 
 /** A dark glass control over the fire. */
@@ -101,7 +101,12 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
       ? t('plans.hangout.where', { place: seed.place.name, time: formatTime(t, time) })
       : seed.place.name
     : null;
-  const addPhoto = hangoutPhoto();
+  const upload = useUpload();
+  // A photo from the day goes into the farm's chat, uploaded by the media queue.
+  const addPhoto = async () => {
+    const assets = await pickFromLibrary();
+    if (assets.length > 0) await upload.sendPicked(farm, assets);
+  };
 
   const checkIn = async () => {
     if (!seed || busy || imHere) return;
@@ -214,10 +219,8 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
           <FireButton
             label={t('plans.hangout.photo')}
             icon="camera"
-            disabled={!addPhoto || !seed}
-            onPress={() => {
-              if (addPhoto && seed) void addPhoto(farm, seed.seq).catch(() => show(t('plans.refused')));
-            }}
+            disabled={!seed}
+            onPress={() => void addPhoto().catch(() => show(t('plans.refused')))}
           />
           <FireButton
             label={t('plans.hangout.directions')}
