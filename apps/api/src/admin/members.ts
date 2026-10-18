@@ -1,7 +1,7 @@
 import { type MemberRecord, type ModerationAction, Species } from '@kithfield/contracts';
 
+import { blockerCount } from '../auth';
 import type { Bindings } from '../env';
-import { blockedByCount } from './blocking';
 import { ruleFromDb } from './ids';
 import { farmsOf, personOf } from './store';
 
@@ -57,7 +57,7 @@ export async function memberRecord(
       .prepare('SELECT COUNT(*) AS n FROM report_filings WHERE reporter_id = ?')
       .bind(person)
       .first<{ n: number }>(),
-    blockedByCount(env, person),
+    blockerCount(env.DB, person),
   ]);
   if (who === null && reports.results.length === 0) return null;
 

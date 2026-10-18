@@ -2,6 +2,7 @@ import { BlockList, type CottageDelivery, ErrorBody } from '@kithfield/contracts
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { blockerCount } from '../src/auth';
 import { readSignIn, sendCode, signInWithCode, watchLetters } from '../src/auth/testing/client';
 import { cottageClock } from '../src/cottage/clock';
 import {
@@ -11,6 +12,7 @@ import {
   recordPushQueue,
   useTestClock,
 } from './cottage-doubles';
+import { report, thursdayLot } from './admin/support';
 import { api, cast, newPerson } from './farm/support/doubles';
 
 beforeEach(() => {
@@ -112,6 +114,39 @@ describe('a blocked person’s news in the blocker’s cottage', () => {
     await cottage.deliver(delivery(farm, fig.id, 2));
     expect(queue.jobs()).toEqual([]);
     expect(await cottage.waiting()).toEqual([]);
+  });
+});
+
+describe('blocking from a report', () => {
+  it('blocks the reported person for real: listed, counted on the desk, and their news pushes nothing', async () => {
+    const lot = await thursdayLot();
+    const filed = await report(lot.june, {
+      farm: lot.farm,
+      about: { about: 'event', seq: lot.unkind },
+      reason: 'unkind',
+      alsoBlock: true,
+    });
+    expect(filed.status).toBe(201);
+    expect((await blocked(lot.june)).map((b) => b.person)).toEqual([lot.bram.id]);
+    expect(await blockerCount(env.DB, lot.bram.id)).toBe(1);
+
+    const queue = recordPushQueue();
+    const farm = `farm-blocks-${crypto.randomUUID().slice(0, 8)}`;
+    const cottage = await cottageWithFarm(lot.june.id, farm);
+    const news = (actor: string, seq: number): CottageDelivery => ({
+      farm,
+      seq,
+      kind: 'firefly',
+      actor,
+      at: cottageClock.now(),
+      preview: null,
+      forYou: true,
+      connected: false,
+    });
+    await cottage.deliver(news(lot.bram.id, 2));
+    expect(queue.jobs()).toEqual([]);
+    await cottage.deliver(news(lot.pip.id, 3));
+    expect(queue.jobs()).toEqual([expect.objectContaining({ person: lot.june.id, seq: 3 })]);
   });
 });
 

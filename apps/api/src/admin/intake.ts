@@ -5,9 +5,9 @@ import {
   type ReportReason,
 } from '@kithfield/contracts';
 
+import { blockPerson } from '../auth';
 import type { Bindings } from '../env';
 import { farmStub } from '../farm/http';
-import { blockFromReport } from './blocking';
 import { mintId, ruleToDb } from './ids';
 import { aimedAt, categorize, dueAfter, excerptOf, suggestedRule } from './signals';
 import { filingsOf, openReportFor } from './store';
@@ -153,7 +153,7 @@ export async function takeReport(
       .run();
     if (created.meta.changes > 0) {
       await file(id).run();
-      if (req.alsoBlock) await blockFromReport(env, reporter, reported);
+      if (req.alsoBlock) await blockPerson(env.DB, reporter, reported, now);
       return { ok: true, report: id };
     }
     // Someone else opened the case a moment earlier: join it.
@@ -178,6 +178,6 @@ export async function takeReport(
       )
       .run();
   }
-  if (req.alsoBlock) await blockFromReport(env, reporter, reported);
+  if (req.alsoBlock) await blockPerson(env.DB, reporter, reported, now);
   return { ok: true, report: report.id };
 }

@@ -1,7 +1,7 @@
 import type { FarmCommand, PersonId, RejectReason } from '@kithfield/contracts';
 
+import { eitherBlocked } from '../auth';
 import type { Bindings } from '../env';
-import { blocks } from './blocks';
 import { roleOf } from './d1';
 
 /*
@@ -66,5 +66,5 @@ export const refusalOf = async (
   if (!ADDRESSED.has(cmd.kind) || typeof to !== 'string') return null;
   const recipient = personOf(to);
   if (recipient === actor) return null;
-  return (await blocks.isBlocked(env, actor, recipient)) ? 'unavailable' : null;
+  return (await eitherBlocked(env.DB, actor, recipient)) ? 'unavailable' : null;
 };

@@ -7,9 +7,9 @@ import {
   type ReportDetail,
 } from '@kithfield/contracts';
 
+import { blockerCount } from '../auth';
 import type { Bindings } from '../env';
 import { auditStatement } from './audit';
-import { blockedByCount } from './blocking';
 import type { Moderator } from './moderator';
 import { farmNameOf, filingsOf, loadReport, personOf, toReport } from './store';
 
@@ -132,7 +132,7 @@ export async function openReport(
     )
       .bind(report.reported, report.id, report.receivedAt)
       .first<{ n: number }>(),
-    blockedByCount(env, report.reported),
+    blockerCount(env.DB, report.reported),
   ]);
   const context = (report.context ?? [])
     .flatMap((e) => {

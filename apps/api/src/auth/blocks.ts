@@ -24,6 +24,32 @@ export async function eitherBlocked(db: D1Database, a: string, b: string): Promi
   return row !== null;
 }
 
+/**
+ * `blocker` blocks `blocked`, from the app or from a report's "also block". Never disclosed to the
+ * blocked person; blocking twice keeps the first time.
+ */
+export async function blockPerson(
+  db: D1Database,
+  blocker: string,
+  blocked: string,
+  at: number,
+): Promise<void> {
+  if (blocker === blocked) return;
+  await db
+    .prepare('INSERT OR IGNORE INTO blocks (blocker_id, blocked_id, at) VALUES (?, ?, ?)')
+    .bind(blocker, blocked, at)
+    .run();
+}
+
+/** How many people block `person`, for the safety desk. */
+export async function blockerCount(db: D1Database, person: string): Promise<number> {
+  const row = await db
+    .prepare('SELECT COUNT(*) AS n FROM blocks WHERE blocked_id = ?')
+    .bind(person)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
 type BlockRow = {
   blocked_id: string;
   at: number;
@@ -102,11 +128,7 @@ export function blockRoutes(): Hono<SessionEnv> {
       .bind(person.data)
       .first();
     if (known === null) return errorResponse(c, 404, 'not_found');
-    await c.env.DB.prepare(
-      'INSERT OR IGNORE INTO blocks (blocker_id, blocked_id, at) VALUES (?, ?, ?)',
-    )
-      .bind(c.var.person, person.data, Date.now())
-      .run();
+    await blockPerson(c.env.DB, c.var.person, person.data, Date.now());
     return c.body(null, 204);
   });
 
