@@ -21,7 +21,9 @@ import { Txt } from '../../../ui/type/text';
 import {
   dewdropped,
   menuActions,
+  menuDeadlines,
   myReaction,
+  reactionWrite,
   reactionsPicked,
   shownText,
   type MenuAction,
@@ -30,7 +32,7 @@ import { DEWDROP, isKnownReaction, quickReactions, type TrayReaction } from '../
 import { open, routes } from '../routes';
 import { useGestureRejections, useGestureSend } from '../send';
 import { useOverlayClose } from '../ui/presentation';
-import { seqParam, useGestureFarm } from '../use-gesture-farm';
+import { seqParam, useDeadlines, useGestureFarm } from '../use-gesture-farm';
 import { LiftedBubble } from './lifted-bubble';
 import { EditCard, MenuCard, useMenuSurface } from './menu-card';
 import { MeaningLabel, ReactionPill } from './reaction-pill';
@@ -84,15 +86,22 @@ export function MessageMenu() {
   const me = g.me ?? '';
   const mine = event?.actor === me;
   const text = event ? shownText(event, g.events) : null;
-  const current = event ? myReaction(g.events, seq, me) : null;
-  const dewed = event ? dewdropped(g.events, seq, me) : false;
+  const current = event ? myReaction(g.events, g.pending, seq, me) : null;
+  const dewed = event ? dewdropped(g.events, g.pending, seq, me) : false;
+  useDeadlines(event ? menuDeadlines(event) : []);
   const quick = useMemo(() => quickReactions(reactionsPicked(g.events, me)), [g.events, me]);
   const chosen = new Set<TrayReaction>();
   if (dewed) chosen.add(DEWDROP);
   if (current && isKnownReaction(current)) chosen.add(current);
   const shownFocus = focus ?? [...chosen][0] ?? DEWDROP;
   const actions = event
-    ? menuActions({ event, me, now: g.now, pinned: g.pins.includes(seq), hasText: text !== null })
+    ? menuActions({
+        event,
+        me,
+        text,
+        pinned: g.pins.includes(seq),
+        can: (write) => g.can(write)?.ok ?? false,
+      })
     : [];
 
   const shown = useSharedValue(0);
@@ -114,13 +123,10 @@ export function MessageMenu() {
 
   const pick = async (id: TrayReaction) => {
     if (!event) return;
-    let ok = true;
-    if (id === DEWDROP) {
-      if (dewed) toast.show(t('gestures.reaction.dewdropGiven'), 'dewdrop');
-      else ok = await send('dewdrop', { target: seq }, { haptic: 'soft' });
-    } else {
-      ok = await send('reaction', { target: seq, reaction: current === id ? null : id });
-    }
+    const write = reactionWrite({ id, target: seq, events: g.events, pending: g.pending, me });
+    // A dewdrop already left (in the log or still in the outbox) is never written twice.
+    if (!write) return;
+    const ok = await send(write.kind, write.payload, id === DEWDROP ? { haptic: 'soft' } : {});
     if (ok) setTimeout(() => close(), SETTLE_MS);
   };
 

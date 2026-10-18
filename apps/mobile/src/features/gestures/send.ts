@@ -5,9 +5,13 @@ import { useDataClient, useRejections, useSend } from '../../data';
 import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics, type Haptic } from '../../ui/motion/haptics';
+import { createInFlight, inFlightKey } from './model/in-flight';
 
 /** Writes made from a gesture screen, so the farm's later refusals can be explained here. */
 const ours = new Set<string>();
+
+/** Writes being queued now, shared by every gesture screen, so a double tap writes once. */
+const inFlight = createInFlight();
 
 export interface GestureSendOptions {
   /** The haptic as it leaves your hand; none for writes that aren't care. */
@@ -26,7 +30,9 @@ export function useRejectCopy(): (reason: RejectReason) => string {
 /**
  * Makes a write on a farm through the outbox, exactly as the contract has it. The shared rules
  * check it first: when they say no, nothing is queued and the reason shows in a toast. A write
- * the farm refuses later is explained by `useGestureRejections`. Answers whether it was queued.
+ * the farm refuses later is explained by `useGestureRejections`. A second write about the same
+ * thing while the first is still being queued (a double tap) is dropped. Answers whether it was
+ * queued.
  */
 export function useGestureSend(
   farm: FarmId,
@@ -35,18 +41,19 @@ export function useGestureSend(
   const toast = useToast();
   const reject = useRejectCopy();
   return useCallback(
-    async (kind, payload, options = {}) => {
-      const result = await send(kind, payload);
-      if (result.status === 'refused') {
-        toast.show(reject(result.reason));
-        return false;
-      }
-      ours.add(result.opId);
-      if (options.haptic) haptics[options.haptic]();
-      if (options.sent) toast.show(options.sent, options.icon);
-      return true;
-    },
-    [send, toast, reject],
+    (kind, payload, options = {}) =>
+      inFlight.once(inFlightKey(farm, kind, payload), async () => {
+        const result = await send(kind, payload);
+        if (result.status === 'refused') {
+          toast.show(reject(result.reason));
+          return false;
+        }
+        ours.add(result.opId);
+        if (options.haptic) haptics[options.haptic]();
+        if (options.sent) toast.show(options.sent, options.icon);
+        return true;
+      }),
+    [farm, send, toast, reject],
   );
 }
 

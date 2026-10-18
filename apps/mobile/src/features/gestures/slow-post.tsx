@@ -10,13 +10,13 @@ import { TextField } from '../../ui/components/text-field';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
-import { slowPostsOnTheWay } from './model/care';
+import { slowPostsTo } from './model/care';
 import { defaultFriend, friendsOf } from './model/people';
 import { useGestureSend } from './send';
 import { DoorPicker } from './ui/door-picker';
 import { leave } from './ui/presentation';
 import { SceneScreen } from './ui/scene-screen';
-import { one, useGestureFarm } from './use-gesture-farm';
+import { one, useDeadlines, useGestureFarm } from './use-gesture-farm';
 
 const ART_H = 560;
 const SHEET_TOP = 516;
@@ -52,8 +52,11 @@ export function SlowPostScreen() {
   const name = friend?.name ?? t('gestures.aFriend');
   const mine = g.friend(g.me);
   const picking = one(params.to) === undefined && g.state?.kind !== 'visit';
-  const onTheWay =
-    to && g.me ? slowPostsOnTheWay({ events: g.events, me: g.me, to, now: g.now }) : [];
+  const posts = to && g.me ? slowPostsTo({ events: g.events, me: g.me, to }) : [];
+  // Each can be brought back until it arrives: the farm's rule, asked as a dry run, and looked at
+  // again the moment one arrives.
+  useDeadlines(posts.map((p) => p.deliverAt));
+  const onTheWay = posts.filter((p) => g.can({ kind: 'unsend', payload: { target: p.seq } })?.ok);
 
   const go = async () => {
     const text = letter.trim();

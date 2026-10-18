@@ -84,6 +84,13 @@ function ReactionButton({
           : palette.fillSoft
         : 'transparent';
   const meaning = t(`gestures.meaning.${item.id}`);
+  // A dewdrop left stays left: care given isn't taken back, so it can't be tapped again.
+  const given = item.id === DEWDROP && chosen;
+  const label = given
+    ? t('gestures.reaction.dewdropGiven')
+    : chosen
+      ? t('gestures.reaction.picked', { meaning })
+      : meaning;
   return (
     <Press
       onPress={() => {
@@ -96,10 +103,11 @@ function ReactionButton({
         onPress(item.id);
       }}
       haptic="soft"
+      disabled={given}
       radius={BUTTON / 2}
       accessibilityRole="button"
       accessibilityState={{ selected: chosen }}
-      accessibilityLabel={chosen ? t('gestures.reaction.picked', { meaning }) : meaning}
+      accessibilityLabel={label}
     >
       <Animated.View
         style={[

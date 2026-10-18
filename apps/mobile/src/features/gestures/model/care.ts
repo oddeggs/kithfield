@@ -1,38 +1,11 @@
 import { isTombstone } from '@kithfield/contracts';
 
-import type { LogEvent } from './message';
+import type { LogEvent, PendingCare } from './message';
 
 const field = (payload: unknown, key: string): unknown =>
   typeof payload === 'object' && payload !== null && key in payload
     ? (payload as Record<string, unknown>)[key]
     : undefined;
-
-/** A write still in the outbox, as the replica lists it. */
-export interface Unsent {
-  readonly kind: string;
-  readonly payload: unknown;
-  readonly acked: boolean;
-}
-
-/**
- * Whether you have knocked on this friend's window today (farm time), counting a knock still on
- * its way. One knock per friend per day is a farm rule; this lets the screen say so before trying.
- */
-export function knockedToday(input: {
-  readonly events: readonly LogEvent[];
-  readonly pending: readonly Unsent[];
-  readonly me: string;
-  readonly to: string;
-  readonly today: string;
-}): boolean {
-  const { events, pending, me, to, today } = input;
-  const logged = events.some(
-    (e) => e.kind === 'knock' && e.actor === me && e.day === today && field(e.payload, 'to') === to,
-  );
-  return (
-    logged || pending.some((p) => p.kind === 'knock' && !p.acked && field(p.payload, 'to') === to)
-  );
-}
 
 /**
  * Who has sent warmth to someone since their cloud went up (hugs and umbrellas), by person,
@@ -54,18 +27,23 @@ export function warmthFrom(input: {
   return people;
 }
 
-/** Whether you have already brought this friend an umbrella since their cloud went up. */
+/**
+ * Whether you have already brought this friend an umbrella since their cloud went up, in the log
+ * or still in the outbox: one umbrella is enough.
+ */
 export const umbrellaBrought = (input: {
   readonly events: readonly LogEvent[];
+  readonly pending: readonly PendingCare[];
   readonly to: string;
   readonly since: number;
   readonly me: string;
 }): boolean =>
-  input.events.some(
+  [
+    ...input.events.filter((e) => e.actor === input.me && e.at >= input.since),
+    ...input.pending,
+  ].some(
     (e) =>
       e.kind === 'hug' &&
-      e.actor === input.me &&
-      e.at >= input.since &&
       field(e.payload, 'to') === input.to &&
       field(e.payload, 'umbrella') === true,
   );
@@ -76,13 +54,16 @@ export interface OnTheWay {
   readonly deliverAt: number;
 }
 
-export function slowPostsOnTheWay(input: {
+/**
+ * Your slow posts to a friend that haven't been recalled, oldest first, with when each arrives.
+ * Whether one can still be recalled is the farm's rule, asked of the data layer.
+ */
+export function slowPostsTo(input: {
   readonly events: readonly LogEvent[];
   readonly me: string;
   readonly to: string;
-  readonly now: number;
 }): OnTheWay[] {
-  const { events, me, to, now } = input;
+  const { events, me, to } = input;
   const recalled = new Set(
     events
       .filter((e) => e.kind === 'unsend')
@@ -98,6 +79,5 @@ export function slowPostsOnTheWay(input: {
         !recalled.has(e.seq) &&
         field(e.payload, 'to') === to,
     )
-    .map((e) => ({ seq: e.seq, deliverAt: Number(field(e.payload, 'deliverAt') ?? 0) }))
-    .filter((p) => p.deliverAt > now);
+    .map((e) => ({ seq: e.seq, deliverAt: Number(field(e.payload, 'deliverAt') ?? 0) }));
 }

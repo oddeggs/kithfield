@@ -55,7 +55,9 @@ export function HeavyWeatherScreen() {
   const known = senders.filter((f) => f !== null);
   const names = known.map((f) => f.name ?? t('gestures.aFriend'));
   const brought =
-    to !== null && g.me !== null && umbrellaBrought({ events: g.events, to, since, me: g.me });
+    to !== null &&
+    g.me !== null &&
+    umbrellaBrought({ events: g.events, pending: g.pending, to, since, me: g.me });
 
   const sentLine =
     names.length === 0

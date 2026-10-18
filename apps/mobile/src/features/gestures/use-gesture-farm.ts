@@ -1,19 +1,21 @@
 import type { FarmState } from '@kithfield/contracts';
-import { farmDay, farmView, type FarmView } from '@kithfield/farm';
+import { farmView, type FarmView } from '@kithfield/farm';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 
 import {
+  useCanWrite,
   useFarm,
   useFarmEvents,
   useOpenFarm,
+  type CommandCheck,
   type PendingWrite,
   type StoredEvent,
 } from '../../data';
 import { useSession } from '../../ui/session/session';
 import { friendOf, type Friend } from './model/people';
 
-/** How many of the farm's newest events a gesture screen reads (edits, reactions, knocks today). */
+/** How many of the farm's newest events a gesture screen reads (edits, reactions, warmth). */
 const RECENT = 400;
 
 /** The time, refreshed each minute: edit windows, slow posts and clouds read it. */
@@ -24,6 +26,20 @@ export function useMinuteClock(): number {
     return () => clearInterval(id);
   }, []);
   return now;
+}
+
+/**
+ * Re-renders exactly when the next of `deadlines` passes (an edit window closing, a slow post
+ * arriving), so what a screen offers changes at that moment, not on the next minute.
+ */
+export function useDeadlines(deadlines: readonly number[]): void {
+  const [, setTick] = useState(0);
+  const next = Math.min(...deadlines.filter((d) => d > Date.now()));
+  useEffect(() => {
+    if (!Number.isFinite(next)) return;
+    const id = setTimeout(() => setTick((n) => n + 1), Math.max(0, next - Date.now()) + 1);
+    return () => clearTimeout(id);
+  }, [next]);
 }
 
 /** A route parameter as one string, or undefined when it's missing or empty. */
@@ -46,12 +62,15 @@ export interface GestureFarm {
   readonly pending: readonly PendingWrite[];
   readonly pins: readonly number[];
   readonly now: number;
-  /** The farm's own day now, for one-a-day rules. */
-  readonly today: string | null;
   readonly season: string;
   /** Sleepy, misty, clouds and the rest, as the shared rules compute them now. */
   readonly view: FarmView | null;
   readonly friend: (person: string | null) => Friend | null;
+  /**
+   * Whether the farm would take a write from you now, by the shared rules (a dry run, nothing is
+   * queued). Null until the farm is read.
+   */
+  readonly can: (write: { kind: string; payload: unknown }) => CommandCheck | null;
 }
 
 /**
@@ -68,18 +87,20 @@ export function useGestureFarm(): GestureFarm {
   const events = useFarmEvents(farm, RECENT);
   const now = useMinuteClock();
   const state = replica?.state ?? null;
+  const canWrite = useCanWrite(farm);
+  const me = person?.id ?? null;
   const view = useMemo(() => (state ? farmView(state, now) : null), [state, now]);
   return {
     farm,
-    me: person?.id ?? null,
+    me,
     state,
     events,
     pending: replica?.pending ?? [],
     pins: state?.pins ?? [],
     now,
-    today: state ? farmDay(state, now) : null,
     season: state?.season.season ?? 'autumn',
     view,
     friend: (p) => friendOf(state, p),
+    can: (write) => (canWrite && me ? canWrite(me, write) : null),
   };
 }

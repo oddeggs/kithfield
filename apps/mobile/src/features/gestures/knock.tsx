@@ -16,7 +16,6 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
-import { knockedToday } from './model/care';
 import { defaultFriend, friendsOf } from './model/people';
 import { useGestureSend } from './send';
 import { DoorPicker } from './ui/door-picker';
@@ -48,11 +47,9 @@ export function KnockScreen() {
   const name = friend?.name ?? t('gestures.aFriend');
   const kind = friend?.kind ?? 'hedgehog';
   const dozing = g.view?.critters.find((c) => c.person === to)?.sleepy ?? false;
-  const done =
-    to !== null &&
-    g.me !== null &&
-    g.today !== null &&
-    knockedToday({ events: g.events, pending: g.pending, me: g.me, to, today: g.today });
+  // One knock per friend per farm day: the farm's rule, asked as a dry run.
+  const check = to ? g.can({ kind: 'knock', payload: { to } }) : null;
+  const done = check !== null && !check.ok;
 
   const tilt = useSharedValue(0);
   const wobble = useAnimatedStyle(() => ({ transform: [{ rotate: `${tilt.get()}deg` }] }));

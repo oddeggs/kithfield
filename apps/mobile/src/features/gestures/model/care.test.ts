@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { knockedToday, slowPostsOnTheWay, umbrellaBrought, warmthFrom } from './care';
+import { slowPostsTo, umbrellaBrought, warmthFrom } from './care';
 import { fitsUpload, sizeOf, sortOf } from './files';
 import type { LogEvent } from './message';
 import {
@@ -19,23 +19,6 @@ const ev = (
   extra: Partial<LogEvent> = {},
 ): LogEvent => ({ seq, at: 0, actor, kind, payload, ...extra });
 
-describe('knocks', () => {
-  const base = { me: 'me', to: 'pip', today: '2026-10-18', pending: [] };
-
-  it('allows one knock per friend per farm day', () => {
-    const yesterday = [ev(3, 'knock', 'me', { to: 'pip' }, { day: '2026-10-17' })];
-    expect(knockedToday({ ...base, events: yesterday })).toBe(false);
-    const today = [ev(4, 'knock', 'me', { to: 'pip' }, { day: '2026-10-18' })];
-    expect(knockedToday({ ...base, events: today })).toBe(true);
-    expect(knockedToday({ ...base, to: 'bea', events: today })).toBe(false);
-  });
-
-  it('counts a knock still in the outbox', () => {
-    const pending = [{ kind: 'knock', payload: { to: 'pip' }, acked: false }];
-    expect(knockedToday({ ...base, events: [], pending })).toBe(true);
-  });
-});
-
 describe('heavy weather', () => {
   const events = [
     ev(1, 'hug', 'bea', { to: 'fig', warmth: 'soup' }, { at: 50 }),
@@ -50,23 +33,20 @@ describe('heavy weather', () => {
   });
 
   it('knows you already brought an umbrella', () => {
-    expect(umbrellaBrought({ events, to: 'fig', since: 100, me: 'me' })).toBe(true);
-    expect(umbrellaBrought({ events, to: 'fig', since: 200, me: 'me' })).toBe(false);
+    expect(umbrellaBrought({ events, pending: [], to: 'fig', since: 100, me: 'me' })).toBe(true);
+    expect(umbrellaBrought({ events, pending: [], to: 'fig', since: 200, me: 'me' })).toBe(false);
   });
 });
 
-describe('slow posts on their way', () => {
-  it('lists yours to that friend until they arrive, and not once recalled', () => {
+describe('slow posts to a friend', () => {
+  it('lists yours to that friend with when each arrives, and not once recalled', () => {
     const events = [
       ev(1, 'slow_post', 'me', { to: 'bea', text: 'a', when: 'morning', deliverAt: 500 }),
       ev(2, 'slow_post', 'me', { to: 'bea', text: 'b', when: 'weekend', deliverAt: 900 }),
       ev(3, 'slow_post', 'me', { to: 'pip', text: 'c', when: 'morning', deliverAt: 900 }),
       ev(4, 'unsend', 'me', { target: 2, by: 'author' }),
     ];
-    expect(slowPostsOnTheWay({ events, me: 'me', to: 'bea', now: 100 })).toEqual([
-      { seq: 1, deliverAt: 500 },
-    ]);
-    expect(slowPostsOnTheWay({ events, me: 'me', to: 'bea', now: 600 })).toEqual([]);
+    expect(slowPostsTo({ events, me: 'me', to: 'bea' })).toEqual([{ seq: 1, deliverAt: 500 }]);
   });
 });
 

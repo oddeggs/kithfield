@@ -6,7 +6,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
-import { dewdropped, myReaction } from './model/message';
+import { dewdropped, myReaction, reactionWrite } from './model/message';
 import { ALL_REACTIONS, DEWDROP, type TrayReaction } from './model/reactions';
 import { useGestureSend } from './send';
 import { OverlaySheet } from './ui/overlay-sheet';
@@ -32,22 +32,13 @@ export function ReactionsScreen() {
   const send = useGestureSend(g.farm);
   const { closing, close } = useOverlayClose();
   const me = g.me ?? '';
-  const current = seq ? myReaction(g.events, seq, me) : null;
-  const dewed = seq ? dewdropped(g.events, seq, me) : false;
+  const current = seq ? myReaction(g.events, g.pending, seq, me) : null;
+  const dewed = seq ? dewdropped(g.events, g.pending, seq, me) : false;
 
   const pick = async (id: TrayReaction) => {
     if (seq === undefined) return;
-    if (id === DEWDROP) {
-      if (!dewed && !(await send('dewdrop', { target: seq }, { haptic: 'soft' }))) return;
-    } else if (
-      !(await send(
-        'reaction',
-        { target: seq, reaction: current === id ? null : id },
-        { haptic: 'soft' },
-      ))
-    ) {
-      return;
-    }
+    const write = reactionWrite({ id, target: seq, events: g.events, pending: g.pending, me });
+    if (!write || !(await send(write.kind, write.payload, { haptic: 'soft' }))) return;
     close();
   };
 
@@ -94,10 +85,16 @@ export function ReactionsScreen() {
               <Press
                 key={r.id}
                 onPress={() => void pick(r.id)}
-                disabled={seq === undefined}
+                disabled={seq === undefined || (r.id === DEWDROP && dewed)}
                 radius={18}
                 accessibilityState={{ selected: mineNow }}
-                accessibilityLabel={mineNow ? t('gestures.reaction.picked', { meaning }) : meaning}
+                accessibilityLabel={
+                  r.id === DEWDROP && dewed
+                    ? t('gestures.reaction.dewdropGiven')
+                    : mineNow
+                      ? t('gestures.reaction.picked', { meaning })
+                      : meaning
+                }
                 style={{
                   width: tile,
                   alignItems: 'center',

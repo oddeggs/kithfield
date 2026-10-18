@@ -66,19 +66,44 @@ export function shownText(event: LogEvent, events: readonly LogEvent[]): string 
   return str(event.payload, 'text');
 }
 
-/** The reaction this person has on an event now, or null. One per person; `null` took it back. */
-export function myReaction(events: readonly LogEvent[], target: number, me: string): string | null {
+/** A write still in this phone's outbox: yours, not yet in the farm's log. */
+export interface PendingCare {
+  readonly kind: string;
+  readonly payload: unknown;
+}
+
+/**
+ * The reaction this person has on an event now, or null: one per person, `null` took it back.
+ * Reactions still in the outbox count, newest last, so a reopened menu shows what you just did.
+ */
+export function myReaction(
+  events: readonly LogEvent[],
+  pending: readonly PendingCare[],
+  target: number,
+  me: string,
+): string | null {
   let current: string | null = null;
-  for (const e of events) {
-    if (e.kind !== 'reaction' || e.actor !== me || num(e.payload, 'target') !== target) continue;
+  const writes = [...events.filter((e) => e.actor === me), ...pending];
+  for (const e of writes) {
+    if (e.kind !== 'reaction' || num(e.payload, 'target') !== target) continue;
     current = str(e.payload, 'reaction');
   }
   return current;
 }
 
-/** Whether this person already left a dewdrop on the event: one is all it needs. */
-export const dewdropped = (events: readonly LogEvent[], target: number, me: string): boolean =>
-  events.some((e) => e.kind === 'dewdrop' && e.actor === me && num(e.payload, 'target') === target);
+/**
+ * Whether this person already left a dewdrop on the event, in the log or still in the outbox:
+ * one is all it needs.
+ */
+export const dewdropped = (
+  events: readonly LogEvent[],
+  pending: readonly PendingCare[],
+  target: number,
+  me: string,
+): boolean =>
+  [...events.filter((e) => e.actor === me), ...pending].some(
+    (e) => e.kind === 'dewdrop' && num(e.payload, 'target') === target,
+  );
 
 /** The reactions this person has picked, oldest first, to order their tray. */
 export const reactionsPicked = (events: readonly LogEvent[], me: string): string[] =>
@@ -87,41 +112,72 @@ export const reactionsPicked = (events: readonly LogEvent[], me: string): string
     .map((e) => str(e.payload, 'reaction'))
     .filter((r): r is string => r !== null);
 
+/**
+ * The write a tap in the reaction tray makes, or null when there is nothing to send: the dewdrop
+ * goes once (a second would count care twice), a reaction toggles yours.
+ */
+export function reactionWrite(input: {
+  readonly id: string;
+  readonly target: number;
+  readonly events: readonly LogEvent[];
+  readonly pending: readonly PendingCare[];
+  readonly me: string;
+}): { kind: string; payload: unknown } | null {
+  const { id, target, events, pending, me } = input;
+  if (id === 'dewdrop') {
+    return dewdropped(events, pending, target, me)
+      ? null
+      : { kind: 'dewdrop', payload: { target } };
+  }
+  const current = myReaction(events, pending, target, me);
+  return { kind: 'reaction', payload: { target, reaction: current === id ? null : id } };
+}
+
 export type MenuAction =
   'reply' | 'edit' | 'pin' | 'unpin' | 'plant' | 'copy' | 'forward' | 'unsend' | 'report';
 
-/** Whether a message can still be edited: messages only, for 15 minutes after sending. */
-export const editOpen = (event: LogEvent, now: number): boolean =>
-  event.kind === 'message' && now - event.at <= EDIT_WINDOW_MS;
-
-/** Whether the writer can still take it back: any time, but a slow post only until it arrives. */
-export function canUnsend(event: LogEvent, now: number): boolean {
-  if (event.kind !== 'slow_post') return true;
-  const deliverAt = num(event.payload, 'deliverAt');
-  return deliverAt === null || deliverAt > now;
-}
+/** Whether the farm would take a write now: the data layer's dry run of the shared rules. */
+export type CanWrite = (write: { kind: string; payload: unknown }) => boolean;
 
 /**
- * The long-press menu for an event, in order. Your own: reply, edit (15 minutes), pin, plant,
- * copy, forward, unsend. Someone else's: reply, pin, plant, copy, forward, report.
+ * The long-press menu for an event, in order: reply, edit, pin or take down, plant, copy, forward,
+ * then unsend for your own or report for someone else's. What the farm would refuse (an edit after
+ * its window, unsending a slow post that has arrived) is not offered: the shared rules decide.
  */
 export function menuActions(input: {
   readonly event: LogEvent;
   readonly me: string;
-  readonly now: number;
+  readonly text: string | null;
   readonly pinned: boolean;
-  readonly hasText: boolean;
+  readonly can: CanWrite;
 }): MenuAction[] {
-  const { event, me, now, pinned, hasText } = input;
+  const { event, me, text, pinned, can } = input;
   if (isTombstone(event.payload) || !MENU_KINDS.has(event.kind)) return [];
+  const target = event.seq;
   const mine = event.actor === me;
-  const actions: MenuAction[] = ['reply'];
-  if (mine && editOpen(event, now)) actions.push('edit');
-  actions.push(pinned ? 'unpin' : 'pin');
-  if (PLANTABLE.has(event.kind)) actions.push('plant');
-  if (hasText) actions.push('copy');
+  const actions: MenuAction[] = [];
+  if (can({ kind: 'message', payload: { text: text ?? '…', replyTo: target } })) {
+    actions.push('reply');
+  }
+  if (mine && text && can({ kind: 'edit', payload: { target, text } })) actions.push('edit');
+  if (can({ kind: 'pin', payload: { target, on: !pinned } }))
+    actions.push(pinned ? 'unpin' : 'pin');
+  const plan = { fromSeq: target, title: '…', days: [], place: null, yeses: 'most', someday: true };
+  if (PLANTABLE.has(event.kind) && can({ kind: 'seed_planted', payload: plan })) {
+    actions.push('plant');
+  }
+  if (text) actions.push('copy');
   if (FORWARDABLE.has(event.kind)) actions.push('forward');
-  if (mine && canUnsend(event, now)) actions.push('unsend');
+  if (mine && can({ kind: 'unsend', payload: { target } })) actions.push('unsend');
   if (!mine) actions.push('report');
   return actions;
+}
+
+/**
+ * When what the menu offers changes on its own: the edit window closing, a slow post arriving. The
+ * menu looks again at each, so it never offers a write the farm would refuse.
+ */
+export function menuDeadlines(event: LogEvent): number[] {
+  const deliverAt = num(event.payload, 'deliverAt');
+  return [event.at + EDIT_WINDOW_MS, ...(deliverAt === null ? [] : [deliverAt])];
 }

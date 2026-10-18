@@ -2,9 +2,9 @@ import { describe, expect, it } from '@jest/globals';
 
 import { forwardWrite, togglePick } from './forward';
 import {
-  canUnsend,
   dewdropped,
   menuActions,
+  menuDeadlines,
   myReaction,
   shownText,
   type LogEvent,
@@ -30,57 +30,59 @@ describe('the long-press menu', () => {
   const now = 100 * MIN;
   const mine = ev(5, 'message', 'me', { text: 'picnic?' }, now - 5 * MIN);
   const theirs = ev(6, 'message', 'bea', { text: 'yes' }, now - 5 * MIN);
+  const anything = () => true;
 
-  it('offers your own message edit within 15 minutes, unsend any time, never report', () => {
-    expect(menuActions({ event: mine, me: 'me', now, pinned: false, hasText: true })).toEqual([
-      'reply',
-      'edit',
-      'pin',
-      'plant',
-      'copy',
-      'forward',
-      'unsend',
-    ]);
+  it('offers your own message edit and unsend, never report', () => {
+    expect(
+      menuActions({ event: mine, me: 'me', text: 'picnic?', pinned: false, can: anything }),
+    ).toEqual(['reply', 'edit', 'pin', 'plant', 'copy', 'forward', 'unsend']);
+  });
+
+  it('offers only what the farm would take, as the shared rules say', () => {
+    const asked: string[] = [];
+    const rules = (w: { kind: string }) => {
+      asked.push(w.kind);
+      return w.kind !== 'edit' && w.kind !== 'unsend';
+    };
     const later = menuActions({
       event: mine,
       me: 'me',
-      now: now + 20 * MIN,
+      text: 'picnic?',
       pinned: false,
-      hasText: true,
+      can: rules,
     });
     expect(later).not.toContain('edit');
-    expect(later).toContain('unsend');
+    expect(later).not.toContain('unsend');
+    expect(asked).toEqual(expect.arrayContaining(['edit', 'unsend', 'pin']));
   });
 
   it("offers a friend's message report instead of edit and unsend", () => {
-    expect(menuActions({ event: theirs, me: 'me', now, pinned: true, hasText: true })).toEqual([
-      'reply',
-      'unpin',
-      'plant',
-      'copy',
-      'forward',
-      'report',
-    ]);
+    expect(
+      menuActions({ event: theirs, me: 'me', text: 'yes', pinned: true, can: anything }),
+    ).toEqual(['reply', 'unpin', 'plant', 'copy', 'forward', 'report']);
   });
 
   it('has nothing for an unsent message or a farm record', () => {
     const gone = ev(7, 'message', 'bea', { tombstone: 'unsent' });
-    expect(menuActions({ event: gone, me: 'me', now, pinned: false, hasText: false })).toEqual([]);
+    expect(
+      menuActions({ event: gone, me: 'me', text: null, pinned: false, can: anything }),
+    ).toEqual([]);
     const joined = ev(8, 'joined', 'bea', {});
-    expect(menuActions({ event: joined, me: 'me', now, pinned: false, hasText: false })).toEqual(
-      [],
-    );
+    expect(
+      menuActions({ event: joined, me: 'me', text: null, pinned: false, can: anything }),
+    ).toEqual([]);
   });
 
-  it('lets a slow post be recalled only until it arrives', () => {
-    const post = ev(9, 'slow_post', 'me', {
-      to: 'bea',
-      text: 'hi',
-      when: 'morning',
-      deliverAt: now + MIN,
-    });
-    expect(canUnsend(post, now)).toBe(true);
-    expect(canUnsend(post, now + 2 * MIN)).toBe(false);
+  it('looks again when the edit window closes and when a slow post arrives', () => {
+    const post = ev(
+      9,
+      'slow_post',
+      'me',
+      { to: 'bea', text: 'hi', when: 'morning', deliverAt: now + 60 * MIN },
+      now,
+    );
+    expect(menuDeadlines(post)).toEqual([now + 15 * MIN, now + 60 * MIN]);
+    expect(menuDeadlines(mine)).toEqual([now + 10 * MIN]);
   });
 });
 
@@ -106,9 +108,18 @@ describe('what a message shows', () => {
       ev(3, 'reaction', 'bea', { target: 1, reaction: 'moon' }),
       ev(4, 'reaction', 'me', { target: 1, reaction: null }),
     ];
-    expect(myReaction(events, 1, 'me')).toBeNull();
-    expect(myReaction(events.slice(0, 2), 1, 'me')).toBe('sun');
-    expect(dewdropped([ev(5, 'dewdrop', 'me', { target: 1 })], 1, 'me')).toBe(true);
+    expect(myReaction(events, [], 1, 'me')).toBeNull();
+    expect(myReaction(events.slice(0, 2), [], 1, 'me')).toBe('sun');
+    expect(
+      myReaction(
+        events.slice(0, 2),
+        [{ kind: 'reaction', payload: { target: 1, reaction: 'moon' } }],
+        1,
+        'me',
+      ),
+    ).toBe('moon');
+    expect(dewdropped([ev(5, 'dewdrop', 'me', { target: 1 })], [], 1, 'me')).toBe(true);
+    expect(dewdropped([], [{ kind: 'dewdrop', payload: { target: 1 } }], 1, 'me')).toBe(true);
   });
 });
 
