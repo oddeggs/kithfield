@@ -5,6 +5,7 @@ export {
   useTravelShownAll,
   type TravelAnchorProps,
 } from './anchors';
+export { useRipples } from './effects';
 export { travelIds } from './ids';
 export type { Box, Point } from './geometry';
 export type { AnchorId } from './registry';

@@ -57,11 +57,30 @@ See them all in the motion lab (`kithfield-dev://motion-lab`, development builds
 
 ## Wired in the features
 
-| Transition                               | Where                                                                                                                                                                                          |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Transition | Where |
+|---|---|
 | A critter travels (bubble → farm → card) | `features/chat/room/message-row.tsx` and `meet.ts` (the face, and VoiceOver's "See {name} on the farm"), `features/farm/farm-scene.tsx` and `farm-canvas.tsx` (the critter's spot and drawing) |
-| Planting a seed (→ Seed bed tab)         | `features/plans/plant-sheet.tsx`                                                                                                                                                               |
-| A firefly's flight to a door             | `features/gestures/firefly.tsx`                                                                                                                                                                |
+| Picker to farm (the carry to the stage) | `features/onboarding/screens/critter-screen.tsx` |
+| Planting a seed (→ Seed bed tab) | `features/plans/plant-sheet.tsx` |
+| A firefly's flight to a door | `features/gestures/firefly.tsx` |
+| A dewdrop's ripples | `features/chat/room/reactions.tsx` (the dew chip; `useRipples`) |
+| Answers fold into the bouquet | `features/gestures/quick-tend.tsx` |
+
+## Played in the lab, waiting on their screens
+
+Each of these plays in the motion lab with real art; the call a screen makes is the lab's own.
+
+| Transition | Lab stage | What the feature needs |
+|---|---|---|
+| Picker to farm: the walk home | `lab/move-in-demo.tsx` | The move-in moment (`features/farm`) flies `{ critter, hops }` from the path's foot to the new cottage's door spot, then lights the window |
+| Starting a visit | `lab/visit-demo.tsx` | The porch header (`header-art.tsx`, `PorchArt`) puts a `TravelSpot` on each seat and fades its cast in from `useTravelShownAll`; the critter card flies both critters to them as the porch opens |
+| The dewdrop's sprout | `lab/dewdrop-demo.tsx` | The chat header (`FarmHeaderArt`) puts a `TravelSpot` where the sprout comes up; the dew chip flies `{ scene: 'plant', … }` to it with `fade: 'in'` |
+| A gift | `lab/gift-demo.tsx` | The gift screens (`09 Shop and Plus`) aren't built |
+| The fire | `lab/fire-demo.tsx` | The fire room (`16 Fire Room and Calls`) isn't built; the flame flies `{ fire }` to the island's box |
+| Hangout photos pressing into a flower | `lab/photo-demo.tsx` | The scrapbook's first open after a hangout. The photo viewer's zoom is standard (native), and photos are not art, so they don't fly in the overlay |
+| Harvest | `lab/harvest-demo.tsx` | The Sunday recap (`07 Rhythm`) isn't built |
+| A sticker | `lab/sticker-demo.tsx` | The sticker picker (`08 Stickers`) isn't built |
+| The farm reacts to a message | `lab/reacts-demo.tsx` | The farm home lights the sender's lamp (two drawings) and pops a bubble over them, once per 4 s; not travel, so it belongs in `features/farm` |
 
 ## Farm home ↔ chat, under the finger (not wired yet)
 

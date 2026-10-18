@@ -6,6 +6,7 @@ import { Avatar } from '../../../ui/art/avatar';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { TravelAnchor, travelIds, useRipples } from '../../../ui/travel';
 import { Txt } from '../../../ui/type/text';
 import { DEWDROP, type RowMark } from '../../gestures';
 import { lookOf } from '../model/people';
@@ -30,11 +31,17 @@ function DewChip({ item }: { readonly item: BubbleItem }) {
   const { palette } = useTheme();
   const colours = useChatColours();
   const { t } = useLocale();
-  const { toggleDew } = useRoom();
+  const { toggleDew, farm } = useRoom();
   const label = useDewLabel(item.dew);
+  // Leaving a dewdrop spreads two ripples from it; taking it back runs them in (signature motion).
+  const ripples = useRipples();
+  const dew = travelIds.dewdrop(farm, item.seq ?? -1);
   return (
     <Press
-      onPress={() => toggleDew(item)}
+      onPress={() => {
+        ripples(dew, item.myDew !== null);
+        toggleDew(item);
+      }}
       radius={16}
       haptic="soft"
       accessibilityLabel={`${label}. ${item.myDew !== null ? t('chat.bubble.dewdropOff') : t('chat.bubble.dewdropOn')}`}
@@ -50,7 +57,9 @@ function DewChip({ item }: { readonly item: BubbleItem }) {
         boxShadow: colours.chipShadow,
       }}
     >
-      <ArtIcon name="dewdrop" size={20} color={palette.text} />
+      <TravelAnchor id={dew}>
+        <ArtIcon name="dewdrop" size={20} color={palette.text} />
+      </TravelAnchor>
       <Txt variant="bubbleState" color={colours.chipInk}>
         {label}
       </Txt>

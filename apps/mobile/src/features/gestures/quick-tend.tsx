@@ -12,6 +12,7 @@ import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { timing, TravelAnchor, travelIds, useTravel, type SpriteSpec } from '../../ui/travel';
 import { Txt } from '../../ui/type/text';
 import { createGrace } from './model/grace';
 import { friendOf } from './model/people';
@@ -28,6 +29,39 @@ import { markOurs, useGestureRejections, useRejectCopy } from './send';
 import { useGestureColours } from './ui/colours';
 
 const keyOf = (i: QuickTendItem) => `${i.farm}:${i.seq}`;
+
+/** An answered card rolled into one stem of the bouquet, and where it lands. */
+const STEM = 90;
+const stemArt: SpriteSpec = {
+  scene: 'plant',
+  attrs: { name: 'rose', stage: 2, color: 'none' },
+  width: STEM,
+  height: STEM,
+  drawings: 2,
+};
+
+/**
+ * An answer rolls into a stem and drops into the bouquet; undone, it unrolls back into its card
+ * (signature motion). Only while the bouquet shows.
+ */
+function useStems() {
+  const travel = useTravel();
+  return (key: string, back: boolean) => {
+    if (!travel.has(travelIds.bouquet)) return;
+    const card = travelIds.tendCard(key);
+    travel.fly({
+      from: back ? travelIds.bouquet : card,
+      to: back ? card : travelIds.bouquet,
+      sprite: stemArt,
+      ...(back ? { fromWidth: STEM * 0.6, fit: 0.25 } : { startFit: 0.25, toWidth: STEM * 0.6 }),
+      arc: 40,
+      fade: 'out',
+      hideSource: false,
+      hideTarget: false,
+      durationMs: timing('bouquet', 'perCard'),
+    });
+  };
+}
 
 /**
  * Quick Tend: after time away, three gentle cards for the friends hoping to hear from you,
@@ -48,6 +82,7 @@ export function QuickTendScreen() {
   const [states, setStates] = useState<Record<string, FarmState | null>>({});
   const [sent, setSent] = useState<Record<string, QuickReply>>({});
   const grace = useRef(createGrace(UNDO_MS)).current;
+  const stems = useStems();
 
   const load = useCallback(() => {
     setFailed(false);
@@ -80,10 +115,12 @@ export function QuickTendScreen() {
       });
     });
     setSent((s) => ({ ...s, [key]: r }));
+    stems(key, false);
   };
   const undo = (item: QuickTendItem) => {
     const key = keyOf(item);
     if (!grace.undo(key)) return;
+    stems(key, true);
     setSent(({ [key]: _gone, ...rest }) => rest);
   };
 
@@ -154,14 +191,15 @@ export function QuickTendScreen() {
         </View>
         <View style={{ paddingHorizontal: 16, gap: 8, marginTop: 16 }}>
           {cards.map((item) => (
-            <QuickTendCard
-              key={keyOf(item)}
-              item={item}
-              who={whoOf(item)}
-              sent={sent[keyOf(item)] ?? null}
-              onReply={(r) => reply(item, r)}
-              onUndo={() => undo(item)}
-            />
+            <TravelAnchor key={keyOf(item)} id={travelIds.tendCard(keyOf(item))}>
+              <QuickTendCard
+                item={item}
+                who={whoOf(item)}
+                sent={sent[keyOf(item)] ?? null}
+                onReply={(r) => reply(item, r)}
+                onUndo={() => undo(item)}
+              />
+            </TravelAnchor>
           ))}
           {rest.length > 0 && oldest ? (
             <Press
@@ -179,7 +217,9 @@ export function QuickTendScreen() {
                 alignItems: 'center',
               }}
             >
-              <ArtLoop scene="bouquet" width={84} height={84} />
+              <TravelAnchor id={travelIds.bouquet}>
+                <ArtLoop scene="bouquet" width={84} height={84} />
+              </TravelAnchor>
               <View style={{ flex: 1, gap: 4 }}>
                 <Txt variant="trayTitle" style={{ lineHeight: 19.2 }}>
                   {t('gestures.quickTend.bouquet')}
