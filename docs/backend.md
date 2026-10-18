@@ -131,6 +131,7 @@ Farm content never lives in D1. A report copies its context (the reported event 
 - A push's `data` is `PushData {farm, seq, kind, push}` (contracts): `push` is the cottage's id for it, which the app sends back with `POST /v1/push/opened` (`PushOpenedRequest {id}`) when the push is opened. When three of a kind from a farm go unopened in a row, that kind rests on the farm.
 - Nudges: `few` is two a week, `some` four. They back off after two go ignored: one last "I'll stop knocking", then nothing until the person comes back (`design/10`).
 - A knock to call (an invite to sit together) is pushed at most once an hour per porch and is never collapsed. It expires after 60 seconds and never becomes a missed-call push.
+- A friend asking to take a together sticker with you in it out of Kithfield pushes you once, the first time that friend asks (`TOGETHER_ASK_PUSH`, `push.togetherAsk`), as one of the farm's pushes for the day; over the budget it folds into "A few things on the farm". Opened, it shows the asks (Settings › Stickers with you in them).
 
 ## 7. Deletion and moderation
 

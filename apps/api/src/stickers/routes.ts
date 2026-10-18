@@ -11,6 +11,7 @@ import { Hono } from 'hono';
 import type { SessionEnv } from '../auth';
 import { roleOf } from '../farm/d1';
 import { body, fail, member, signedIn } from '../farm/http';
+import { pushAsks } from './ask-push';
 import { answerAsk, askToExport, asksOf, drawablePeople } from './together-store';
 
 /*
@@ -37,7 +38,9 @@ export function stickersRoutes(): Hono<SessionEnv> {
     if (people.includes(asker)) return fail(c, 400, 'bad_request', ['people']);
     const drawable = new Set(await drawablePeople(c.env, req.farm, asker));
     if (people.some((p) => !drawable.has(p))) return fail(c, 404, 'not_found');
-    const ok = await askToExport(c.env.DB, { asker, farm: req.farm, people, at: Date.now() });
+    const at = Date.now();
+    const { ok, asked } = await askToExport(c.env.DB, { asker, farm: req.farm, people, at });
+    await pushAsks(c.env, { asker, farm: req.farm, at }, asked);
     return c.json({ ok } satisfies TogetherExportConsents);
   });
 

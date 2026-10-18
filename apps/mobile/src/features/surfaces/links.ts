@@ -11,7 +11,9 @@ export type SurfaceTarget =
   | { readonly to: 'fire'; readonly farm: FarmId }
   | { readonly to: 'critter'; readonly farm: FarmId; readonly person: PersonId }
   | { readonly to: 'plan'; readonly farm: FarmId; readonly seed: number }
-  | { readonly to: 'share' };
+  | { readonly to: 'share' }
+  /** Friends asking to take a together sticker with you in it out of Kithfield (a push). */
+  | { readonly to: 'stickerAsks' };
 
 export function surfaceLink(scheme: string, target: SurfaceTarget): SurfaceLink {
   const params: [string, string][] = [['to', target.to]];
@@ -30,6 +32,7 @@ export function targetOf(params: Readonly<Record<string, string | string[] | und
   };
   const to = one('to');
   if (to === 'share') return { to } as const;
+  if (to === 'stickerAsks') return { to } as const;
   const farm = FarmId.safeParse(one('farm'));
   if (!farm.success) return null;
   if (to === 'farm' || to === 'fire') return { to, farm: farm.data } as const;

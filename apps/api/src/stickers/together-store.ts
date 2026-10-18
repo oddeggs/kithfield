@@ -46,13 +46,21 @@ export async function drawablePeople(
 export async function askToExport(
   db: D1Database,
   ask: { asker: string; farm: string; people: readonly string[]; at: number },
-): Promise<string[]> {
+): Promise<{ ok: string[]; asked: string[] }> {
+  const marks = ask.people.map(() => '?').join(', ');
+  // Who this asker asks for the first time: only they hear about it.
+  const before = await db
+    .prepare(
+      `SELECT subject_id FROM together_consents WHERE asker_id = ? AND subject_id IN (${marks})`,
+    )
+    .bind(ask.asker, ...ask.people)
+    .all<{ subject_id: string }>();
+  const known = new Set(before.results.map((r) => r.subject_id));
   const insert = db.prepare(
     `INSERT OR IGNORE INTO together_consents (subject_id, asker_id, farm_id, ok, asked_at)
      VALUES (?, ?, ?, NULL, ?)`,
   );
   await db.batch(ask.people.map((p) => insert.bind(p, ask.asker, ask.farm, ask.at)));
-  const marks = ask.people.map(() => '?').join(', ');
   const { results } = await db
     .prepare(
       `SELECT subject_id FROM together_consents
@@ -61,7 +69,10 @@ export async function askToExport(
     .bind(ask.asker, ...ask.people)
     .all<{ subject_id: string }>();
   const yes = new Set(results.map((r) => r.subject_id));
-  return ask.people.filter((p) => yes.has(p));
+  return {
+    ok: ask.people.filter((p) => yes.has(p)),
+    asked: ask.people.filter((p) => !known.has(p)),
+  };
 }
 
 type AskRow = { asker_id: string; farm_id: string; asked_at: number; ok: number | null };

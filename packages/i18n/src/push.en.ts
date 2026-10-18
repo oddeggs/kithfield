@@ -31,6 +31,9 @@ export const pushEn = {
   'push.nudge.last': 'I’ll stop knocking. The farm will wait.',
   /** A remember-me seed's nudge. The seed's title already names the friend. */
   'push.remember': 'You planted a seed: {title}. Maybe ask how it went?',
+  /** A friend asking, once, to take a together sticker with the person in it out of Kithfield. */
+  'push.togetherAsk':
+    '{name} drew you into a sticker and would like to share it outside Kithfield. It’s up to you.',
   /** The plan's day starting on the Lock Screen (its Live Activity), shown quietly. */
   'push.planDay.start': '{title} is today.',
 } as const satisfies EnCatalogue;

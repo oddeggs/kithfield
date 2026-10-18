@@ -6,6 +6,7 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { farmRoutes } from '../farm/routes';
 import { useValley } from '../farm/valley-store';
 import { openFire } from '../fire/fire-glow';
+import { stickerRoutes } from '../stickers/routes';
 import { targetOf } from './links';
 
 /**
@@ -29,6 +30,11 @@ export function SurfaceOpen() {
     const go = async () => {
       if (target === null || target.to === 'share') {
         router.replace(farmRoutes.home());
+        return;
+      }
+      if (target.to === 'stickerAsks') {
+        router.replace(farmRoutes.home());
+        router.push(stickerRoutes.asks());
         return;
       }
       const lives = valley.farms.some((f) => f.farm === target.farm);

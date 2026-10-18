@@ -5,6 +5,7 @@ import {
   NotificationCategory,
   PlanPushData,
   PushData,
+  TOGETHER_ASK_PUSH,
   type FarmCommand,
   type FarmId,
   type OpId,
@@ -92,6 +93,10 @@ export function readResponse(
   const push = pushData(data);
   if (push === null) return { kind: 'none' };
   if (actionIdentifier === DEFAULT_ACTION) {
+    // A friend asking about a together sticker opens the asks, whatever farm it came from.
+    if (push.kind === TOGETHER_ASK_PUSH) {
+      return { kind: 'open', target: { to: 'stickerAsks' }, push: push.push };
+    }
     if (push.farm === null) return { kind: 'none' };
     const target: SurfaceTarget =
       'seed' in push && typeof push.seed === 'number'

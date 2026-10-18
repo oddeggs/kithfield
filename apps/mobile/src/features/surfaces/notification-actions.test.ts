@@ -64,6 +64,15 @@ describe('answering a push from the lock screen', () => {
       target: { to: 'farm', farm: 'f_lot' },
     });
   });
+
+  it('opens the asks about together stickers for a friend’s ask', () => {
+    const ask = { farm: 'f_lot', seq: null, kind: 'together_ask', push: 'p3' };
+    expect(readResponse(DEFAULT_ACTION, null, ask, opId)).toEqual({
+      kind: 'open',
+      target: { to: 'stickerAsks' },
+      push: 'p3',
+    });
+  });
 });
 
 describe('an answer’s op id', () => {

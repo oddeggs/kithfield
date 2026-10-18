@@ -116,6 +116,12 @@ export const PushJob = z.object({
 export type PushJob = z.infer<typeof PushJob>;
 
 /**
+ * The kind of the push a friend's ask about a together sticker comes as (`PushJob.kind`, read back
+ * from `PushData.kind`): the first time they ask to take one with you in it out of Kithfield.
+ */
+export const TOGETHER_ASK_PUSH = 'together_ask';
+
+/**
  * A push's `data`, as the app reads it when the push is opened: the farm and event to open, and
  * `push`, the cottage's id for this push, which the app sends back (`PushOpenedRequest`).
  */

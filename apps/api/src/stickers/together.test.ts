@@ -8,6 +8,7 @@ import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { nextOp, plantThrough } from '../../test/admin/support';
+import { ledgerOf, MIDDAY, useTestClock } from '../../test/cottage-doubles';
 import { api, cast, type Person, useTestPorts } from '../../test/farm/support/doubles';
 import { type AccountDeletedJob, purgeAccount } from '../auth/purge';
 import { mergeStepStatements } from '../auth/merge-steps';
@@ -110,6 +111,21 @@ describe('taking a together sticker out of Kithfield', () => {
     expect(await asks(pip)).toEqual([{ ...ask, ok: true }]);
     expect((await asks(fig)).map((a) => a.ok)).toEqual([false]);
     expect(await asks(june)).toEqual([]);
+  });
+
+  it('tells each friend by push the first time they are asked, and never again', async () => {
+    useTestClock(MIDDAY);
+    const { june, pip, fig, farm } = await lot();
+    await exportAsk(june, farm, [pip]);
+    await exportAsk(june, farm, [pip, fig]);
+    const asked = async (who: Person) =>
+      (await ledgerOf(who.id)).filter((r) => r['kind'] === 'together_ask');
+    // Everyone moving in spent the farm's pushes for today: the ask folds into "a few things".
+    expect(await asked(pip)).toEqual([
+      expect.objectContaining({ farm, seq: null, decision: 'collapsed', reason: 'budget' }),
+    ]);
+    expect(await asked(fig)).toHaveLength(1);
+    expect(await asked(june)).toEqual([]);
   });
 
   it('lets a friend change their answer', async () => {
