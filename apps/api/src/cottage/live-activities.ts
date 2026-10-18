@@ -1,9 +1,10 @@
-import type { CottageDelivery, FarmState } from '@kithfield/contracts';
+import type { CottageDelivery, FarmState, PushJob } from '@kithfield/contracts';
 import { t } from '@kithfield/i18n';
 
 import type { Bindings } from '../env';
 import { type ApnsConfig, apnsConfig, type LiveActivityPush, sendLiveActivity } from '../push/apns';
-import { holdUntil } from '../push/policy';
+import { collapseKeyFor } from '../push/catalogue';
+import { holdUntil, localClock } from '../push/policy';
 import {
   endPayload,
   FIRE_OUT,
@@ -16,8 +17,8 @@ import {
 } from '../surfaces/live-activity';
 import * as activities from './activities';
 import { isMuted, knockForOf, knowsFarm } from './chats';
-import type { Intake } from './intake';
-import { quietOf, readProfile } from './profile';
+import { budgetCall, type Intake, ledger, spend } from './intake';
+import { quietOf, readProfile, zoneOf } from './profile';
 
 /*
  * The person's Live Activities, moved from the server when their phone isn't running the app:
@@ -193,8 +194,9 @@ async function startPlanDay(intake: Intake, config: ApnsConfig, row: PlanDayRow)
   if (!state || !seed || !window || !goingTo(seed, intake.person)) return;
   const attributes = planDayAttributes(env.ENVIRONMENT, state, seed, window);
   const people = planDayState(state, seed);
-  const lang = readProfile(sql).settings.lang;
-  const body = t(lang, 'push.planDay.start', { title: attributes.title });
+  const profile = readProfile(sql);
+  const body = t(profile.settings.lang, 'push.planDay.start', { title: attributes.title });
+  if (!(await spendBudget(intake, row, attributes.title))) return;
   const payload = startPayload(
     attributes,
     people,
@@ -213,6 +215,43 @@ async function startPlanDay(intake: Intake, config: ApnsConfig, row: PlanDayRow)
     row.farm,
     row.seed,
   );
+}
+
+/**
+ * The start's alert is the farm's push for the day: it goes through the person's budget like any
+ * plan push (a farm's one push a day, and a kind resting after unopened ones), and is ledgered.
+ * Over the budget it doesn't start remotely; the app starts it when the person opens it.
+ */
+async function spendBudget(intake: Intake, row: PlanDayRow, title: string): Promise<boolean> {
+  const { sql, now, person } = intake;
+  const { date } = localClock(now, zoneOf(readProfile(sql)));
+  const job: PushJob = {
+    person,
+    farm: row.farm,
+    kind: 'plan_day',
+    seq: row.seed,
+    collapseKey: collapseKeyFor('farm', row.farm, date, row.seed),
+    copy: { key: 'push.planDay.start', params: { title } },
+    forYou: true,
+    at: now,
+  };
+  const { decision, spendKey } = budgetCall(intake, job, false);
+  const base = {
+    person,
+    kind: job.kind,
+    farm: row.farm,
+    seq: row.seed,
+    collapseKey: job.collapseKey,
+    at: now,
+  };
+  if (decision.action !== 'send') {
+    const reason = decision.action === 'skip' ? decision.reason : 'budget';
+    await ledger(intake.env.DB, [{ ...base, decision: 'skipped', reason }]);
+    return false;
+  }
+  spend(sql, spendKey, now);
+  await ledger(intake.env.DB, [{ ...base, decision: 'sent', reason: 'live_activity' }]);
+  return true;
 }
 
 async function endPlanDay(intake: Intake, config: ApnsConfig | null, row: PlanDayRow) {

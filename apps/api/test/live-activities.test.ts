@@ -14,7 +14,13 @@ import {
   zonedTime,
 } from '../src/surfaces/live-activity';
 import { readRequest, testApnsKey } from './support/apns-key';
-import { cottageWithFarm, freshPerson, recordPushQueue, useTestClock } from './cottage-doubles';
+import {
+  cottageWithFarm,
+  freshPerson,
+  ledgerOf,
+  recordPushQueue,
+  useTestClock,
+} from './cottage-doubles';
 
 const seed = (over: Partial<SeedState> = {}): SeedState => ({
   seq: 20,
@@ -379,5 +385,58 @@ describe('a farm the cottage doesn’t know', () => {
     useTestClock('2026-10-18T14:01:00Z');
     await runInDurableObject(cottage, (instance) => instance.alarm());
     expect(sent).toEqual([]);
+  });
+});
+
+describe('the plan’s day and the push budget', () => {
+  async function planReady() {
+    const { person, cottage } = await personOnPhone();
+    await cottage.setActivityStartToken('phone-1', PHONE_START);
+    farm = farmWith([seed({ rsvps: [{ person, answer: 'in' }] })], ['pip', person]);
+    await cottage.deliver(delivery(30, 'rsvp'));
+    const stub = env.COTTAGE.get(env.COTTAGE.idFromName(person));
+    return { person, cottage, stub };
+  }
+
+  const starts = () => sent.filter((s) => s.body.aps['event'] === 'start');
+
+  it('counts as the farm’s one push of the day, and is ledgered', async () => {
+    const { person, cottage, stub } = await planReady();
+    useTestClock('2026-10-18T14:01:00Z');
+    await runInDurableObject(stub, (instance) => instance.alarm());
+    expect(starts()).toHaveLength(1);
+    // Someone moving in later that day finds the farm's push spent: it goes as "a few things".
+    const queue = recordPushQueue();
+    await cottage.deliver({ ...delivery(40, 'joined'), actor: 'otis' });
+    expect(queue.jobs().map((j) => j.copy.key)).toEqual(['push.farm.few']);
+    const rows = await ledgerOf(person);
+    expect(rows).toContainEqual(
+      expect.objectContaining({ kind: 'plan_day', farm: 'farm-a', seq: 20, decision: 'sent' }),
+    );
+  });
+
+  it('doesn’t start remotely once the farm’s push for the day is spent', async () => {
+    const { person, cottage, stub } = await planReady();
+    useTestClock('2026-10-18T13:00:00Z');
+    await cottage.deliver({ ...delivery(40, 'joined'), actor: 'otis' });
+    useTestClock('2026-10-18T14:01:00Z');
+    await runInDurableObject(stub, (instance) => instance.alarm());
+    expect(starts()).toEqual([]);
+    expect(await ledgerOf(person)).toContainEqual(
+      expect.objectContaining({ kind: 'plan_day', decision: 'skipped', reason: 'budget' }),
+    );
+  });
+
+  it('doesn’t start remotely while plan pushes rest on the farm', async () => {
+    const { stub } = await planReady();
+    await runInDurableObject(stub, (_i, state) =>
+      state.storage.sql.exec(
+        "INSERT INTO resting (farm, type, until, since) VALUES ('farm-a', 'plans', ?, 0)",
+        Date.UTC(2026, 9, 25),
+      ),
+    );
+    useTestClock('2026-10-18T14:01:00Z');
+    await runInDurableObject(stub, (instance) => instance.alarm());
+    expect(starts()).toEqual([]);
   });
 });
