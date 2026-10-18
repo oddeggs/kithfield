@@ -19,7 +19,7 @@ import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
-import { PlanHeader, useBottomButtonOffset, leave } from './chrome';
+import { leave, PlanHeader, useBottomButtonOffset, useFromTop } from './chrome';
 import { personOn, type PlanPerson } from './people';
 import { organiserHat, usePlanLook } from './plan-look';
 import { answerSeenBy, canPassHat } from './plan-status';
@@ -35,7 +35,15 @@ const ORDER = { in: 0, maybe: 1, out: 2, none: 3 } as const;
  * The hat-wearer's critter with the hat on, hopping once when the hat passes to them. The stage is
  * a still: at this size a breathing loop would take more of the art cache than a loop may.
  */
-function HatStage({ wearer, season }: { readonly wearer: PlanPerson; readonly season: string }) {
+function HatStage({
+  wearer,
+  season,
+  top,
+}: {
+  readonly wearer: PlanPerson;
+  readonly season: string;
+  readonly top: number;
+}) {
   const look = usePlanLook();
   const reduce = useReduceMotion();
   const y = useSharedValue(0);
@@ -52,7 +60,7 @@ function HatStage({ wearer, season }: { readonly wearer: PlanPerson; readonly se
     <View
       style={{
         position: 'absolute',
-        top: 112,
+        top,
         left: 28,
         right: 28,
         height: 230,
@@ -94,6 +102,7 @@ export function RepliesScreen({ farm, seq }: { readonly farm: FarmId; readonly s
   const look = usePlanLook();
   const { t } = useLocale();
   const offset = useBottomButtonOffset();
+  const fromTop = useFromTop();
   const me = useMe();
   const send = usePlanSend(farm);
   const here = usePlan(farm, seq);
@@ -126,10 +135,10 @@ export function RepliesScreen({ farm, seq }: { readonly farm: FarmId; readonly s
           : { text: t('plans.hat.waiting'), color: look.waiting };
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <PlanHeader title={t('plans.hat.screen')} top={56} />
-      <HatStage wearer={wearer} season={state.season.season} />
+      <PlanHeader title={t('plans.hat.screen')} top={fromTop(56)} />
+      <HatStage wearer={wearer} season={state.season.season} top={fromTop(112)} />
       <ScrollView
-        contentContainerStyle={{ paddingTop: 356, paddingBottom: offset + 56 + 20 }}
+        contentContainerStyle={{ paddingTop: fromTop(356), paddingBottom: offset + 56 + 20 }}
       >
         <View style={{ paddingHorizontal: 22, gap: 6 }}>
           <Txt variant="displayM" multiline style={{ fontSize: 24, lineHeight: 26.4 }}>

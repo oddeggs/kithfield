@@ -98,3 +98,15 @@ export function leave(): void {
   if (router.canGoBack()) router.back();
   else router.replace('/seedbed');
 }
+
+/** The status bar's height on the phone the design is drawn for (iPhone 16). */
+const DESIGN_TOP_INSET = 59;
+
+/**
+ * Places something the design sets `y` points from the top of the screen, below this phone's own
+ * status bar: the same spot on the phone the design is drawn for, and clear of a taller one.
+ */
+export function useFromTop(): (y: number) => number {
+  const { top } = useSafeAreaInsets();
+  return (y) => top + (y - DESIGN_TOP_INSET);
+}

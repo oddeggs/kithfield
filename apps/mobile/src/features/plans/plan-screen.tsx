@@ -12,7 +12,7 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { formatDay, settleDayFor, weekdayName, weekdayShort } from './dates';
 import { placeSuggestions } from './draft';
-import { PlanHeader, useBottomButtonOffset } from './chrome';
+import { PlanHeader, useBottomButtonOffset, useFromTop } from './chrome';
 import { personOn, youLast, type PlanPerson } from './people';
 import { ConditionCard, DayChoices, InSoFar, PlaceChoice } from './plan-sections';
 import { usePlanLook } from './plan-look';
@@ -207,6 +207,7 @@ export function PlanScreen({ farm, seq }: { readonly farm: FarmId; readonly seq:
   const { palette } = useTheme();
   const { t } = useLocale();
   const offset = useBottomButtonOffset();
+  const fromTop = useFromTop();
   const me = useMe();
   const send = usePlanSend(farm);
   const here = usePlan(farm, seq);
@@ -214,9 +215,9 @@ export function PlanScreen({ farm, seq }: { readonly farm: FarmId; readonly seq:
   if (!here || !plan) {
     return (
       <View style={{ flex: 1, backgroundColor: palette.background }}>
-        <PlanHeader title="" top={HEADER_TOP} />
+        <PlanHeader title="" top={fromTop(HEADER_TOP)} />
         {here ? (
-          <Txt variant="body" color={palette.secondary} style={{ marginTop: CONTENT_TOP, marginHorizontal: 20 }}>
+          <Txt variant="body" color={palette.secondary} style={{ marginTop: fromTop(CONTENT_TOP), marginHorizontal: 20 }}>
             {t('plans.plan.gone')}
           </Txt>
         ) : null}
@@ -236,10 +237,10 @@ export function PlanScreen({ farm, seq }: { readonly farm: FarmId; readonly seq:
   const params = { farm, seed: String(seq) };
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <PlanHeader title={seed.title ?? ''} top={HEADER_TOP} />
+      <PlanHeader title={seed.title ?? ''} top={fromTop(HEADER_TOP)} />
       <ScrollView
         contentContainerStyle={{
-          paddingTop: CONTENT_TOP,
+          paddingTop: fromTop(CONTENT_TOP),
           paddingBottom: offset + (bottom ? 56 + 20 : 0),
           gap: 22,
         }}

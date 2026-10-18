@@ -11,6 +11,7 @@ import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { addToCalendar } from './calendar';
+import { useFromTop } from './chrome';
 import { personOn, youLast } from './people';
 import { peopleIn, type BedEntry } from './plan-status';
 import { SeedArt } from './seed-art';
@@ -36,6 +37,7 @@ export function SeedBed() {
   const { palette } = useTheme();
   const { t } = useLocale();
   const insets = useSafeAreaInsets();
+  const fromTop = useFromTop();
   const { show } = useToast();
   const me = useMe();
   const { entries, states, loading } = useSeedBed();
@@ -59,7 +61,7 @@ export function SeedBed() {
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView
         contentContainerStyle={{
-          paddingTop: Math.max(TITLE_TOP, insets.top + 7),
+          paddingTop: fromTop(TITLE_TOP),
           paddingBottom: tabBarClearance(insets.bottom),
           flexGrow: 1,
         }}
