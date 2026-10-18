@@ -21,7 +21,7 @@ import {
   type Birthday,
 } from '../birthday';
 import { countryOf } from '../calendar';
-import { afterSignIn, routes } from '../flow';
+import { routes } from '../flow';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
 import {
@@ -153,7 +153,7 @@ export function AgeScreen() {
       const monthDay = bloom ? monthDayOf(birthday) : null;
       update({ birthday: monthDay });
       if (monthDay) await data.api.updateProfile({ birthday: monthDay });
-      await progress.go(afterSignIn(await progress.me()));
+      await progress.go(progress.next(await progress.me()));
     } catch {
       setError(t('onboarding.failed'));
     } finally {

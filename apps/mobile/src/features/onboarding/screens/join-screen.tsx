@@ -9,7 +9,7 @@ import { ErrorState } from '../../../ui/components/state-shell';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
-import { afterSignIn, hasSignIn, routes } from '../flow';
+import { hasSignIn, routes } from '../flow';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
 import { Body, BottomBar, Title, TopBar, useDesignTop, useSceneAttrs } from '../kit';
@@ -93,7 +93,7 @@ export function JoinScreen() {
     if (!invite) return;
     update({ path: { kind: 'join', code }, invite });
     const me = await progress.me().catch(() => null);
-    if (me && hasSignIn(me)) await progress.go(afterSignIn(me));
+    if (me && hasSignIn(me)) await progress.go(progress.next(me));
     else router.push(routes.signIn);
   };
 

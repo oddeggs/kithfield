@@ -3,7 +3,10 @@ import Constants from 'expo-constants';
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 
 import { useAccount } from '../../ui/session/account';
-import { FIRST_CHOICE, type CritterChoice } from './critters';
+import { keychain } from '../../ui/session/push-registration';
+import { useSession } from '../../ui/session/session';
+import { choiceOf, FIRST_CHOICE, type CritterChoice } from './critters';
+import { readDraft } from './draft';
 import type { Path } from './flow';
 import { createOnboardingApi, type OnboardingApi } from './onboarding-api';
 
@@ -45,7 +48,12 @@ const FlowContext = createContext<Flow | null>(null);
 /** Holds the way in's state for its screens, and its calls to the API. */
 export function FlowProvider({ children }: { readonly children: ReactNode }) {
   const account = useAccount();
-  const [state, setState] = useState<FlowState>(initial);
+  const person = useSession().person?.id ?? null;
+  // A way in cut short after the critter was chosen picks up with that critter.
+  const [state, setState] = useState<FlowState>(() => {
+    const draft = person ? readDraft(keychain, person) : null;
+    return draft ? { ...initial, name: draft.name, choice: choiceOf(draft.critter) } : initial;
+  });
   const api = useMemo(
     () =>
       createOnboardingApi({

@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { Alert, Text, useWindowDimensions, View } from 'react-native';
 
 import { ApiError } from '../../../data/api-client';
-import { useDataClient } from '../../../data';
 import { Avatar } from '../../../ui/art/avatar';
 import { Button } from '../../../ui/components/button';
 import { Segmented } from '../../../ui/components/segmented';
@@ -26,6 +25,8 @@ import {
   useSceneAttrs,
 } from '../kit';
 import { AccessoryOptions, CoatOptions, MarkOptions } from '../look-options';
+import { moveIn as moveInWith } from '../move-in';
+import { useProgress } from '../progress';
 
 type Tab = 'coat' | 'mark' | 'accessory';
 
@@ -41,7 +42,7 @@ export function LookScreen() {
   const { width } = useWindowDimensions();
   const top = useDesignTop();
   const scene = useSceneAttrs();
-  const data = useDataClient();
+  const progress = useProgress();
   const { state, update } = useFlow();
   const [tab, setTab] = useState<Tab>('accessory');
   const [busy, setBusy] = useState(false);
@@ -86,10 +87,14 @@ export function LookScreen() {
     setError(null);
     const critter = critterOf(choice);
     try {
-      await data.api.updateProfile({ name: chosenName, critter });
-      if (state.path.kind === 'join') {
-        await data.api.join(state.path.code, { name: chosenName, critter });
-      }
+      if (!progress.person) throw new Error('No person to move in');
+      // Joining writes the profile only once the farm took them; a new farm, once it's planted.
+      await moveInWith(
+        progress.person,
+        state.path,
+        { name: chosenName, critter },
+        progress.moveInDeps,
+      );
       router.push(routes.notifications);
     } catch (failure) {
       const code = failure instanceof ApiError ? failure.code : null;

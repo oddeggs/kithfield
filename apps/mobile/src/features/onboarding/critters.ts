@@ -140,3 +140,10 @@ export function farmmateCheck(
   const alike = same.find((f) => f.name !== null) ?? same[0];
   return alike ? { kind: 'alike', farmmate: alike } : null;
 }
+
+/** A critter the API describes, back as a picker choice (for a way in resumed on this phone). */
+export function choiceOf(critter: Critter): CritterChoice {
+  const mark = MARKS.find((m) => m === critter.mark) ?? 'none';
+  const accessory = ACCESSORIES.find((a) => a === critter.accessory) ?? 'none';
+  return { species: critter.species, coat: critter.coat, mark, accessory };
+}

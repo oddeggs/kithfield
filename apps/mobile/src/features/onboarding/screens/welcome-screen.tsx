@@ -6,7 +6,7 @@ import { Button } from '../../../ui/components/button';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
-import { hasSignIn, resumeAt, routes } from '../flow';
+import { hasSignIn, routes } from '../flow';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
 import { PaperFade } from '../fades';
@@ -32,7 +32,7 @@ export function WelcomeScreen() {
     progress.me().then(
       (me) => {
         if (!live || !hasSignIn(me)) return;
-        const next = resumeAt(me);
+        const next = progress.resume(me);
         if (next === 'done') void progress.finish();
         else if (next !== routes.welcome) router.replace(next);
       },

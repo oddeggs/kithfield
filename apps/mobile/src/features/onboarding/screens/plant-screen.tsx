@@ -5,7 +5,6 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Share, useWindowDimensions, View } from 'react-native';
 
-import { useDataClient } from '../../../data';
 import { Avatar } from '../../../ui/art/avatar';
 import { Button } from '../../../ui/components/button';
 import { TextField } from '../../../ui/components/text-field';
@@ -16,6 +15,8 @@ import { Txt } from '../../../ui/type/text';
 import { hemisphereOf } from '../calendar';
 import { critterOf, lookOf } from '../critters';
 import { routes } from '../flow';
+import { plantFirstFarm } from '../move-in';
+import { useProgress } from '../progress';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
 import {
@@ -56,7 +57,7 @@ export function PlantScreen() {
   const top = useDesignTop();
   const scene = useSceneAttrs();
   const toast = useToast();
-  const data = useDataClient();
+  const progress = useProgress();
   const { state, update } = useFlow();
   const [farmName, setFarmName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -66,12 +67,18 @@ export function PlantScreen() {
   /** The farm, planted now if it isn't yet. */
   const planted = async () => {
     if (state.planted) return state.planted;
-    const farm = await data.api.createFarm({
-      name: farmName.trim(),
-      land: FIRST_LAND,
-      timeZone: getCalendars()[0]?.timeZone ?? 'UTC',
-      hemisphere: hemisphereOf(getLocales()[0]?.regionCode),
-    });
+    if (!progress.person) throw new Error('No person to plant for');
+    // Planting, then becoming the critter chosen on this phone: only now is the way in done.
+    const farm = await plantFirstFarm(
+      progress.person,
+      {
+        name: farmName.trim(),
+        land: FIRST_LAND,
+        timeZone: getCalendars()[0]?.timeZone ?? 'UTC',
+        hemisphere: hemisphereOf(getLocales()[0]?.regionCode),
+      },
+      progress.moveInDeps,
+    );
     update({ planted: farm });
     return farm;
   };

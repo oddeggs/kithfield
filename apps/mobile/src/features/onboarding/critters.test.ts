@@ -4,6 +4,7 @@ import { Critter, Species } from '@kithfield/contracts';
 import {
   CRITTERS,
   DEFAULT_COAT,
+  choiceOf,
   critterOf,
   crittersShaped,
   farmmateCheck,
@@ -57,5 +58,13 @@ describe('the critter picker', () => {
       farmmate: twin,
     });
     expect(farmmateCheck({ ...fox, species: 'owl' }, [plain, twin])).toBeNull();
+  });
+});
+
+describe('a critter resumed on this phone', () => {
+  it('comes back as the choice it was made from', () => {
+    const choice = { ...fox, coat: 'arctic', mark: 'blaze' } as const;
+    expect(choiceOf(critterOf(choice))).toEqual(choice);
+    expect(choiceOf(critterOf({ ...fox, accessory: 'none' })).accessory).toBe('none');
   });
 });

@@ -9,7 +9,6 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
-import { afterSignIn } from '../flow';
 import { useFlow } from '../flow-state';
 import { BarAction, ErrorLine, Title, TopBar, useDesignTop, useInks } from '../kit';
 import { useProgress } from '../progress';
@@ -137,7 +136,7 @@ export function HouseRulesScreen() {
     try {
       const me = await progress.me();
       await api.acceptTerms({ version: me.currentTermsVersion });
-      await progress.go(afterSignIn(me));
+      await progress.go(progress.next(me));
     } catch {
       setError(t('onboarding.failed'));
     }
