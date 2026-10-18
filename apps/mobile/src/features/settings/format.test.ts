@@ -7,6 +7,7 @@ import {
   dayIn,
   desktopCodeOf,
   hemisphereOfZone,
+  isOwnLink,
   linkExpiry,
   lookOf,
   muteChoiceOf,
@@ -133,15 +134,32 @@ describe('invite links', () => {
 
 describe('the computer sign-in code', () => {
   const code = 'Ab3_dE5-fG7hJ9kL';
-  it('reads the code alone or at the end of a link', () => {
-    expect(desktopCodeOf(code)).toBe(code);
-    expect(desktopCodeOf(`https://kith.fm/desktop#${code}`)).toBe(code);
-    expect(desktopCodeOf(`https://kithfield.com/desktop?code=${code}`)).toBe(code);
+  it('reads the code only from a Kithfield desktop link', () => {
+    expect(desktopCodeOf(`https://kithfield.com/desktop#${code}`)).toBe(code);
+    expect(desktopCodeOf(`https://dev.kithfield.com/desktop#${code}`)).toBe(code);
   });
 
-  it('ignores anything else the camera sees', () => {
-    expect(desktopCodeOf('https://example.com')).toBeNull();
-    expect(desktopCodeOf('short')).toBeNull();
+  it('ignores codes on their own, on other hosts or paths, and anything else', () => {
+    expect(desktopCodeOf(code)).toBeNull();
+    expect(desktopCodeOf(`https://kith.fm/desktop#${code}`)).toBeNull();
+    expect(desktopCodeOf(`https://kithfield.com.evil.example/desktop#${code}`)).toBeNull();
+    expect(desktopCodeOf(`http://kithfield.com/desktop#${code}`)).toBeNull();
+    expect(desktopCodeOf(`https://kithfield.com/invite#${code}`)).toBeNull();
+    expect(desktopCodeOf(`https://kithfield.com/desktop?code=${code}`)).toBeNull();
+    expect(desktopCodeOf('https://kithfield.com/desktop#short')).toBeNull();
     expect(desktopCodeOf('')).toBeNull();
+  });
+});
+
+describe('the keepsakes download', () => {
+  it('opens only a link on the API’s own host', () => {
+    const api = 'https://dev.kithfield.com/api';
+    expect(isOwnLink('https://dev.kithfield.com/api/v1/me/export/x/download?sig=1', api)).toBe(
+      true,
+    );
+    expect(isOwnLink('https://evil.example/x.zip', api)).toBe(false);
+    expect(isOwnLink('http://dev.kithfield.com/api/x', api)).toBe(false);
+    expect(isOwnLink('not a url', api)).toBe(false);
+    expect(isOwnLink('http://localhost:8856/api/v1/x', 'http://localhost:8856/api')).toBe(true);
   });
 });

@@ -177,15 +177,22 @@ export const linkExpiry = (life: LinkLife, now: number): number | null =>
 export const shortLink = (url: string) => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
 /**
- * The one-time code in a computer's sign-in QR: the code itself, or the last part of a link that
- * carries it (`https://kith.fm/desktop#<code>`). Null for anything else the camera sees.
+ * The one-time code in a computer's sign-in QR: only from `https://kithfield.com/desktop#<code>`
+ * (or the development host). Null for anything else the camera sees. Read with a pattern, not
+ * `URL`, which React Native only half implements.
  */
 export function desktopCodeOf(data: string): string | null {
-  const text = data.trim();
-  const last =
-    text
-      .split(/[#/?=]/)
-      .filter((s) => s !== '')
-      .pop() ?? '';
-  return /^[A-Za-z0-9_-]{16,128}$/.test(last) ? last : null;
+  const match = /^https:\/\/(?:dev\.)?kithfield\.com\/desktop#([A-Za-z0-9_-]{16,128})$/.exec(
+    data.trim(),
+  );
+  return match?.[1] ?? null;
+}
+
+const originOf = (url: string) =>
+  /^(https?:\/\/[^/?#@]+)(?:[/?#]|$)/i.exec(url)?.[1]?.toLowerCase();
+
+/** Whether a link the server handed back points at the API's own scheme and host. */
+export function isOwnLink(link: string, apiBase: string): boolean {
+  const own = originOf(apiBase);
+  return own !== undefined && originOf(link) === own;
 }

@@ -154,7 +154,7 @@ export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.cancel': 'Huỷ',
   'settings.link.title': 'Hướng vào mã trên máy tính',
   'settings.link.body':
-    'Mở kith.fm/desktop hoặc ứng dụng Kithfield. Nông trại và tin nhắn của bạn được chuyển sang, có mã hoá.',
+    'Mở kithfield.com/desktop hoặc ứng dụng Kithfield. Nông trại và tin nhắn của bạn được chuyển sang, có mã hoá.',
   'settings.link.close': 'Đóng',
   'settings.link.ask': 'Đăng nhập “{name}”?',
   'settings.link.where': '{platform} · {place} · vừa xong',

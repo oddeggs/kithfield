@@ -164,7 +164,7 @@ export const settingsEn = {
   'settings.cancel': 'Cancel',
   'settings.link.title': 'Point at the code on your computer',
   'settings.link.body':
-    'Open kith.fm/desktop or the Kithfield app. Your farms and messages travel over, encrypted.',
+    'Open kithfield.com/desktop or the Kithfield app. Your farms and messages travel over, encrypted.',
   'settings.link.close': 'Close',
   'settings.link.ask': 'Sign in “{name}”?',
   'settings.link.where': '{platform} · {place} · just now',

@@ -15,7 +15,8 @@ import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { ApiError } from '../api/request';
 import { useSettingsApi } from '../api/use-api';
-import { seasonHere } from '../format';
+import { isOwnLink, seasonHere } from '../format';
+import { apiBase } from '../links';
 import { confirmIdentity } from '../identity';
 import { useRemote } from '../use-remote';
 import { markDeleted } from './deletion';
@@ -79,15 +80,20 @@ export function DeleteAccountScreen() {
     return () => clearInterval(timer);
   }, [api, preparing]);
 
+  // Only a download on the API's own host is opened.
+  const download = (url: string) => {
+    if (isOwnLink(url, apiBase())) void WebBrowser.openBrowserAsync(url);
+    else toast.show(t('settings.failed'));
+  };
   const keepsakes = () => {
     if (exp?.state === 'ready' && exp.url) {
-      void WebBrowser.openBrowserAsync(exp.url);
+      download(exp.url);
       return;
     }
     api.startExport().then(
       (s) => {
         setExp(s);
-        if (s.state === 'ready' && s.url) void WebBrowser.openBrowserAsync(s.url);
+        if (s.state === 'ready' && s.url) download(s.url);
       },
       () => toast.show(t('settings.failed')),
     );
