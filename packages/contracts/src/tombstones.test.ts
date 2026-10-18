@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { EVENT_KINDS, FarmEvent, type EventKind } from './events';
 import { Tombstone, TombstoneFacts } from './payloads/tombstone';
-import { at, bea, eventPayloads, opId } from './samples.test-data';
+import { at, bea, critter, eventPayloads, opId } from './samples.test-data';
 import { TOMBSTONE_KEEPS, tombstoneOf } from './tombstones';
 
 /** Kinds that can never be tombstoned: the farm's own, and farm settings. */
@@ -63,7 +63,8 @@ const eventOf = (kind: EventKind) => ({
   opId,
   at,
   actor: bea,
-  rulesVersion: 1,
+  day: '2026-10-18',
+  rulesVersion: 2,
   kind,
   payload: eventPayloads[kind],
 });
@@ -96,7 +97,9 @@ describe('tombstones keep what the reducer reads', () => {
       expect(Object.keys(tombstone.facts ?? {}).sort()).toEqual(
         (keeps[kind] ?? []).filter((k) => tombstone.facts && k in tombstone.facts).sort(),
       );
-      expect(JSON.stringify(tombstone)).not.toMatch(/text|caption|words|name|critter/);
+      expect(JSON.stringify(tombstone)).not.toMatch(
+        /"(text|caption|words|name|birthday|visitor)":/,
+      );
     },
   );
 
@@ -110,6 +113,16 @@ describe('tombstones keep what the reducer reads', () => {
       got: { plant: 'plum', variant: null },
     });
     expect(facts('message')).toBeUndefined();
+    expect(facts('joined')).toEqual({ critter, via: 'invite' });
+    expect(facts('critter_changed')).toBeUndefined();
+    const changed = { ...eventOf('critter_changed'), payload: { critter, birthday: '04-12' } };
+    expect(tombstoneOf(FarmEvent.parse(changed), 'removed', 3).facts).toEqual({ critter });
+    expect(facts('status')).toEqual({ status: 'words' });
+    const cloud = tombstoneOf(
+      FarmEvent.parse({ ...eventOf('status'), payload: { status: 'cloud', raised: true } }),
+      'unsent',
+    );
+    expect(cloud.facts).toEqual({ status: 'cloud', raised: true });
     const removal = tombstoneOf(FarmEvent.parse(eventOf('dewdrop')), 'removed', 3);
     expect(removal).toEqual({ tombstone: 'removed', rule: 3, facts: { target: 14 } });
   });
