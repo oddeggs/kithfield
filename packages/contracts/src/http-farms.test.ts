@@ -7,7 +7,15 @@ import { describeSchemas } from './schema-runner.test-data';
 
 const url = 'https://kithfield.com/i/thursday-lot';
 const key = 'farm/f_thursday_lot/0192f1e2-3b4c-7d5e-8f60-123456789abc';
-const event = { seq: 41, opId, at, actor: bea, rulesVersion: 1, kind: 'message' };
+const event = {
+  seq: 41,
+  opId,
+  at,
+  day: '2026-10-18',
+  actor: bea,
+  rulesVersion: 2,
+  kind: 'message',
+};
 const invite = { code: 'thursday-lot', url, expiresAt: null };
 const calendar = { timeZone: 'Europe/London', hemisphere: 'north' };
 const gate = {

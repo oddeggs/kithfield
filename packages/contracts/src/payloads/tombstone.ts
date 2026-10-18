@@ -1,11 +1,13 @@
 import { z } from 'zod';
 
-import { Departure, Id, PersonId, RuleRef, Seq } from '../primitives';
+import { Critter, Departure, Id, PersonId, RuleRef, Seq } from '../primitives';
 import { Crop } from './farm';
 
 /**
  * The facts a tombstone keeps: only what the farm reducer reads for growth, caps, roses, the
- * doorstep, pins and plans, never content. Which keys each kind keeps is `TOMBSTONE_KEEPS`.
+ * doorstep, pins, plans, members and status bubbles, never content (no words, names, birthdays or
+ * media). A critter is art ids only, as a former member's cottage keeps it. Which keys each kind
+ * keeps is `TOMBSTONE_KEEPS`.
  */
 export const TombstoneFacts = z
   .object({
@@ -24,6 +26,13 @@ export const TombstoneFacts = z
     how: Departure.exclude(['removed']),
     gave: Crop.nullable(),
     got: Crop.nullable(),
+    /** A member's critter, from `joined` or `critter_changed`: a tombstoned join adds a nameless member. */
+    critter: Critter,
+    via: z.enum(['created', 'invite', 'visit']),
+    /** Which status was set, so an unsend clears the right one; never the words. */
+    status: z.enum(['words', 'cloud', 'battery']),
+    raised: z.boolean(),
+    battery: z.enum(['open', 'resting']),
   })
   .partial();
 export type TombstoneFacts = z.infer<typeof TombstoneFacts>;
