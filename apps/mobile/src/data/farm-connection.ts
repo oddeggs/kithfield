@@ -274,11 +274,6 @@ export function createFarmConnection(deps: FarmConnectionDeps) {
     resume(): void {
       socket.resume();
     },
-    /** Reconnects now, with a fresh token (after the person changed). */
-    restart(): void {
-      tokens.invalidate(farm);
-      socket.reconnect();
-    },
     /** Stops for good, as for a ban another socket heard about. */
     block: (code: BlockedCode) => guard('farm.block', block(code)),
     /** Whether someone is writing; never stored. */

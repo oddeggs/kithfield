@@ -155,6 +155,8 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
     store,
     cottage,
     rules: deps.rules,
+    /** Reports a problem (no content), as the data layer's own failures are. */
+    report,
 
     /** One farm's replica, read from SQLite on first use. */
     replica,
@@ -239,8 +241,13 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
       deps.tokens.clear();
       setStatus({ sessionEnded: false });
       cottage.restart();
-      open?.restart();
+      open?.stop();
+      open = null;
+      guard('focus', focus());
     },
+
+    /** The session ended outside the sockets (a launch found it gone): stop and offer sign-in. */
+    endSession: () => sessionEnded(),
 
     /**
      * Before signing out: sends what it can, then (unless writes are still waiting and `force` is
