@@ -18,8 +18,9 @@
       "routes": [{ "pattern": "dev.kithfield.com/api/*", "zone_name": "kithfield.com" }],
       // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses),
       // expired keepsakes exports, the safety desk's retention, the media sweep, and the purge of
-      // accounts whose 30 days are over.
-      "triggers": { "crons": ["17 3 * * *"] },
+      // accounts whose 30 days are over. Hourly at :07: the Sunday recap letters that are due in each
+      // farm's time zone, and the AI's words owed a delete.
+      "triggers": { "crons": ["17 3 * * *", "7 * * * *"] },
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
       // Sign-in identity token audiences (public ids, not secrets).
       "vars": {
@@ -60,6 +61,9 @@
         },
       ],
       "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media-dev" }],
+      // Workers AI: voice-note captions, their translation and the Sunday recap letter. It always
+      // runs on Cloudflare, also from `wrangler dev`; the tests stand in for it.
+      "ai": { "binding": "AI", "remote": true },
       // Per-address limit on handing out sign-in nonces (keyed on cf-connecting-ip).
       "ratelimits": [
         {
@@ -109,6 +113,17 @@
           "namespace_id": "1251",
           "simple": { "limit": 10, "period": 60 },
         },
+        // Asking for AI captions, per person and per farm.
+        {
+          "name": "AI_LIMIT",
+          "namespace_id": "1255",
+          "simple": { "limit": 30, "period": 60 },
+        },
+        {
+          "name": "AI_FARM_LIMIT",
+          "namespace_id": "1257",
+          "simple": { "limit": 120, "period": 60 },
+        },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
       "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@kithfield.com"] }],
@@ -136,8 +151,9 @@
       "routes": [{ "pattern": "kithfield.com/api/*", "zone_name": "kithfield.com" }],
       // Daily at 03:17 UTC: the waitlist's retention (unconfirmed rows, sent letters' addresses),
       // expired keepsakes exports, the safety desk's retention, the media sweep, and the purge of
-      // accounts whose 30 days are over.
-      "triggers": { "crons": ["17 3 * * *"] },
+      // accounts whose 30 days are over. Hourly at :07: the Sunday recap letters that are due in each
+      // farm's time zone, and the AI's words owed a delete.
+      "triggers": { "crons": ["17 3 * * *", "7 * * * *"] },
       // COMMIT_SHA is overridden at deploy time (`--var COMMIT_SHA:<sha>`).
       // Sign-in identity token audiences (public ids, not secrets).
       "vars": {
@@ -178,6 +194,8 @@
         },
       ],
       "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "kithfield-media" }],
+      // Workers AI: voice-note captions, their translation and the Sunday recap letter.
+      "ai": { "binding": "AI", "remote": true },
       // Per-address limit on handing out sign-in nonces (keyed on cf-connecting-ip).
       "ratelimits": [
         {
@@ -226,6 +244,17 @@
           "name": "REPORT_LIMIT",
           "namespace_id": "1252",
           "simple": { "limit": 10, "period": 60 },
+        },
+        // Asking for AI captions, per person and per farm.
+        {
+          "name": "AI_LIMIT",
+          "namespace_id": "1256",
+          "simple": { "limit": 30, "period": 60 },
+        },
+        {
+          "name": "AI_FARM_LIMIT",
+          "namespace_id": "1258",
+          "simple": { "limit": 120, "period": 60 },
         },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.

@@ -12,6 +12,8 @@ export default defineConfig(async () => {
     plugins: [
       cloudflareTest({
         wrangler: { configPath: './wrangler.jsonc', environment: 'dev' },
+        // Workers AI is always remote; tests never reach Cloudflare and stand in for the binding.
+        remoteBindings: false,
         // Fresh secrets per run: tests never share one with `.dev.vars` or a deployment.
         miniflare: {
           bindings: {

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 
 import { adminRoutes, safetyRoutes } from './admin/routes';
+import { voiceCaptionRoutes } from './ai';
 import { authRoutes } from './auth';
 import { exportRoutes } from './auth/export-routes';
 import { cottageRoutes } from './cottage/routes';
@@ -29,6 +30,7 @@ export function createApp(): Hono<AppEnv> {
   app.route('/v1', farmApi());
   app.route('/v1', mediaRoutes());
   app.route('/v1', rhythmRoutes());
+  app.route('/v1', voiceCaptionRoutes());
 
   app.notFound((c) => c.json({ error: { code: 'not_found' } }, 404));
 
