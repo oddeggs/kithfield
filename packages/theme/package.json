@@ -1,0 +1,17 @@
+{
+  "name": "@kithfield/theme",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Colour, type, spacing, radii and motion tokens from 01 Foundations, and the embedded fonts",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./fonts/*": "./fonts/*",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  }
+}
