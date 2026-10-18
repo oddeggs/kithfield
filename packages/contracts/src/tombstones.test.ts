@@ -24,16 +24,12 @@ const IGNORED: Partial<Record<EventKind, readonly string[]>> = {
   edit: ['target'],
   /** Reactions grow nothing. */
   reaction: ['target'],
-  /**
-   * A plan edit's own sprouting fields aren't kept yet: a safety removal of one is followed by the
-   * farm's restoring `seed_changed`; an editor's account deletion still loses them.
-   */
-  seed_changed: ['days', 'yeses', 'someday'],
 };
 
-/** Facts worked out from a payload rather than copied: a planting keeps whether it had a place. */
+/** Facts worked out from a payload rather than copied: a plan keeps whether it had a place. */
 const DERIVED: Partial<Record<EventKind, readonly string[]>> = {
   seed_planted: ['placed'],
+  seed_changed: ['placed'],
 };
 
 const keeps = TOMBSTONE_KEEPS as Partial<Record<EventKind, readonly string[]>>;
@@ -125,6 +121,32 @@ describe('tombstones keep what the reducer reads', () => {
       yeses: 'most',
       someday: false,
       placed: true,
+    });
+    // A plan edit keeps only what it changed, the same way; never where.
+    expect(facts('seed_changed')).toEqual({ seed: 20, hat: bea, settleOn: '2026-10-22' });
+    expect(
+      tombstoneOf(
+        FarmEvent.parse({
+          ...eventOf('seed_changed'),
+          payload: {
+            seed: 20,
+            title: 'Supper',
+            days: [{ date: '2026-10-24', time: '18:00' }],
+            place: null,
+            yeses: 'everyone',
+            someday: true,
+            settleOn: null,
+          },
+        }),
+        'author_deleted',
+      ).facts,
+    ).toEqual({
+      seed: 20,
+      days: ['2026-10-24'],
+      placed: false,
+      yeses: 'everyone',
+      someday: true,
+      settleOn: null,
     });
     expect(facts('traded')).toEqual({
       gave: { plant: 'lavender', variant: 'rain_kissed' },

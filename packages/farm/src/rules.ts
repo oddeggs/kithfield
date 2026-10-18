@@ -9,7 +9,7 @@
  * plan's settling day counts once it has come, its day is fixed once it sprouts, and a check-in
  * counts only on a sprouted plan's own day. Version 4: the farm's restoration project, a farm
  * theme the farm switches on by itself once friends' chip-in covers it, and plans that can sprout
- * from a tombstoned planting's facts.
+ * from the facts a tombstoned planting or plan edit keeps.
  */
 export const RULES_VERSION = 4;
 
@@ -18,8 +18,9 @@ export const PLAN_DAY_RULES_VERSION = 3;
 
 /**
  * The first rules version where a planting that arrives tombstoned can still sprout, from the
- * facts its tombstone keeps (its dates, yeses, someday and whether it had a place), so a phone
- * catching up past an unsent or deleted plan grows hangouts the same as live.
+ * facts its tombstone keeps (its dates, yeses, someday and whether it had a place), and a
+ * tombstoned plan edit still changes those and the settling day, so a phone catching up past an
+ * unsent or deleted plan or edit grows hangouts the same as live.
  */
 export const PLAN_FACTS_RULES_VERSION = 4;
 

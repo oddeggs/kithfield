@@ -226,6 +226,51 @@ describe('Tombstones', () => {
     expect(growthOf(caughtUp)).toEqual(growthOf(live));
   });
 
+  it('grows a plan the same after its editor deletes their account', () => {
+    // Pip plants a plan with two days and nowhere yet; Bea settles it on the first, adds a place
+    // and asks for most yeses. It sprouts and gets a check-in; then Bea deletes her account.
+    const log = newFarm();
+    const seed = log.add('seed_planted', pip, {
+      ...plan,
+      days: [{ date: '2026-10-18' }, { date: '2026-10-19' }],
+    });
+    log.add('seed_changed', bea, {
+      seed: seed.seq,
+      days: [{ date: '2026-10-18', time: '18:00' }],
+      place: { name: 'The park' },
+      yeses: 'most',
+      settleOn: '2026-10-18',
+    });
+    log.add('rsvp', pip, { seed: seed.seq, answer: 'in' });
+    log.add('rsvp', fig, { seed: seed.seq, answer: 'in' });
+    log.add('checkin', pip, { seed: seed.seq });
+    log.add('checkin', fig, { seed: seed.seq });
+    const goodbye = log.add('left', bea, { how: 'account_deleted' });
+    const [created, ...rest] = log.events;
+    if (created?.kind !== 'farm_created') throw new Error('no farm');
+    const live = reduce(createFarm(created), rest);
+    const caughtUp = reduce(
+      createFarm(created),
+      rest.map((e) => (e.actor === bea && e !== goodbye ? tombstoned(e, 'author_deleted') : e)),
+    );
+    const sprouting = (state: FarmState) => ({
+      ...growthOf(state),
+      seeds: state.seeds.map((s) => ({
+        days: s.days.map((d) => d.date),
+        place: s.place !== null || s.placed === true,
+        yeses: s.yeses,
+        someday: s.someday,
+        settleOn: s.settleOn,
+        checkins: s.checkins,
+        sproutedAt: s.sproutedAt,
+      })),
+    });
+    expect(live.seeds[0]?.sproutedAt).not.toBeNull();
+    expect(sprouting(caughtUp)).toEqual(sprouting(live));
+    // The editor's words and place are not kept: only that there was one.
+    expect(caughtUp.seeds[0]).toMatchObject({ title: 'Picnic', place: null, placed: true });
+  });
+
   it('lets a tombstoned planting sprout from its facts, and reads older rules as before', () => {
     const log = newFarm();
     const seed = log.add('seed_planted', bea, { ...plan, place: { name: 'Park' } });

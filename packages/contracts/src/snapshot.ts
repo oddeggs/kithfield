@@ -128,8 +128,9 @@ export const SeedState = z
     checkins: people,
     sproutedAt: EpochMs.nullable(),
     /**
-     * A plan rebuilt from its tombstoned planting (unsent, no title or place) that may still
-     * sprout: whether it had a place. Set only until the plan is unsent on this farm; never drawn.
+     * Whether the plan has a place it can't show: one rebuilt from its tombstoned planting
+     * (unsent, no title or place) that may still sprout, or a live one a tombstoned edit gave a
+     * place. Gone once the plan is unsent on this farm or an edit names a place; never drawn.
      */
     placed: z.boolean().optional(),
   })

@@ -35,15 +35,17 @@ export const TombstoneFacts = z
     raised: z.boolean(),
     battery: z.enum(['open', 'resting']),
     /**
-     * What a plan needs to sprout, from its planting: the dates of its day options (never their
-     * times), how many yeses it needs, whether it rests for someday, and whether it had a place
-     * (never which). A planting unsent or removed can then still sprout on a phone catching up,
-     * exactly as it did live.
+     * What a plan needs to sprout, from its planting or an edit: the dates of its day options
+     * (never their times), how many yeses it needs, whether it rests for someday, whether it had a
+     * place (never which), and an edit's settling day. A planting or edit unsent, removed or whose
+     * author deleted their account then grows the plan on a phone catching up exactly as it did
+     * live.
      */
     days: z.array(LocalDate).max(14),
     yeses: Yeses,
     someday: z.boolean(),
     placed: z.boolean(),
+    settleOn: LocalDate.nullable(),
   })
   .partial();
 export type TombstoneFacts = z.infer<typeof TombstoneFacts>;

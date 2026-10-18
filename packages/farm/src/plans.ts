@@ -210,6 +210,57 @@ export const applySeedPlanted = (
   return { ...state, seeds: seeds.slice(-MAX_SEEDS) };
 };
 
+/** What a plan edit changes that sprouting reads: never its words, times or where. */
+interface SproutEdit {
+  readonly days?: readonly LocalDate[];
+  readonly placed?: boolean;
+  readonly yeses?: SeedState['yeses'];
+  readonly someday?: boolean;
+  readonly settleOn?: LocalDate | null;
+}
+
+const isDate = (value: unknown): value is LocalDate => typeof value === 'string';
+
+/** The sprouting facts a tombstoned edit kept, from the plan-facts rules on. */
+const keptEdit = (facts: Record<string, unknown>): SproutEdit => {
+  const days = facts['days'];
+  const settleOn = facts['settleOn'];
+  return {
+    ...(Array.isArray(days) ? { days: days.filter(isDate) } : {}),
+    ...(typeof facts['placed'] === 'boolean' ? { placed: facts['placed'] } : {}),
+    ...(isYeses(facts['yeses']) ? { yeses: facts['yeses'] } : {}),
+    ...(typeof facts['someday'] === 'boolean' ? { someday: facts['someday'] } : {}),
+    ...(settleOn === null || isDate(settleOn) ? { settleOn } : {}),
+  };
+};
+
+/**
+ * A plan with an edit's sprouting facts. A plan without content keeps only whether it has a place;
+ * a live one that an edit gave a place it can't know keeps that it has one (`placed`), and loses
+ * its place when the edit took it away.
+ */
+const withSproutEdit = (seed: SeedState, edit: SproutEdit, dayFixed: boolean): SeedState => {
+  const { placed: _placed, ...rest } = seed;
+  const place =
+    edit.placed === undefined
+      ? {}
+      : seed.unsent
+        ? { placed: edit.placed }
+        : !edit.placed
+          ? { place: null }
+          : seed.place === null
+            ? { placed: true }
+            : {};
+  return {
+    ...(edit.placed === undefined ? seed : rest),
+    ...place,
+    ...(edit.days !== undefined && !dayFixed ? { days: edit.days.map((date) => ({ date })) } : {}),
+    ...(edit.yeses !== undefined ? { yeses: edit.yeses } : {}),
+    ...(edit.someday !== undefined ? { someday: edit.someday } : {}),
+    ...(edit.settleOn !== undefined && !dayFixed ? { settleOn: edit.settleOn } : {}),
+  };
+};
+
 export const applySeedChanged = (
   state: FarmState,
   event: EventOf<'seed_changed'>,
@@ -220,27 +271,30 @@ export const applySeedChanged = (
   const clock = clockOf(event, day);
   return updateSeed(state, facts['seed'], clock, (seed) => {
     const hat = typeof facts['hat'] === 'string' ? { hat: facts['hat'] } : {};
-    if (isTombstone(p)) return { ...seed, ...hat };
+    // A sprouted plan keeps its day.
+    const dayFixed = planDayRules(clock) && seed.sproutedAt !== null;
+    if (isTombstone(p)) {
+      // From the plan-facts rules, a tombstoned edit still changes what the plan sprouts from.
+      if (event.rulesVersion < PLAN_FACTS_RULES_VERSION) return { ...seed, ...hat };
+      if (seed.unsent && !contentless(seed)) return { ...seed, ...hat };
+      return { ...withSproutEdit(seed, keptEdit(facts), dayFixed), ...hat };
+    }
     if (seed.unsent) {
       if (!contentless(seed)) return { ...seed, ...hat };
       // A plan without content takes an edit's sprouting facts, never its words or place.
-      const dayFixed = planDayRules(clock) && seed.sproutedAt !== null;
-      return {
-        ...seed,
-        ...hat,
-        ...(p.days !== undefined && !dayFixed
-          ? { days: p.days.map((d) => ({ date: d.date })) }
-          : {}),
+      const edit: SproutEdit = {
+        ...(p.days !== undefined ? { days: p.days.map((d) => d.date) } : {}),
         ...(p.place !== undefined ? { placed: p.place !== null } : {}),
         ...(p.yeses !== undefined ? { yeses: p.yeses } : {}),
         ...(p.someday !== undefined ? { someday: p.someday } : {}),
-        ...(p.settleOn !== undefined && !dayFixed ? { settleOn: p.settleOn } : {}),
+        ...(p.settleOn !== undefined ? { settleOn: p.settleOn } : {}),
       };
+      return { ...withSproutEdit(seed, edit, dayFixed), ...hat };
     }
-    // A sprouted plan keeps its day.
-    const dayFixed = planDayRules(clock) && seed.sproutedAt !== null;
+    // A place set in words replaces one only known to have been there.
+    const { placed: _placed, ...known } = seed;
     return {
-      ...seed,
+      ...(p.place !== undefined ? known : seed),
       ...hat,
       ...(p.title !== undefined ? { title: p.title } : {}),
       ...(p.days !== undefined && !dayFixed ? { days: p.days } : {}),

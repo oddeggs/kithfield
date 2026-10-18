@@ -23,7 +23,7 @@ export const TOMBSTONE_KEEPS = {
   card_signed: ['to'],
   gate: ['action', 'to', 'gift'],
   seed_planted: ['days', 'yeses', 'someday', 'placed'],
-  seed_changed: ['seed', 'hat'],
+  seed_changed: ['seed', 'hat', 'days', 'yeses', 'someday', 'placed', 'settleOn'],
   vote: ['seed', 'option', 'on'],
   rsvp: ['seed', 'answer'],
   checkin: ['seed'],
@@ -47,6 +47,15 @@ const factSource = (event: FarmEvent): Record<string, unknown> => {
     const p = event.payload;
     // Dates only, and whether there was a place: never times, a title or where.
     return { ...p, days: p.days.map((d) => d.date), placed: p.place !== null };
+  }
+  if (event.kind === 'seed_changed') {
+    const p = event.payload;
+    // Only what the edit changed: dates without times, and whether it set a place, never where.
+    return {
+      ...p,
+      days: p.days?.map((d) => d.date),
+      placed: p.place === undefined ? undefined : p.place !== null,
+    };
   }
   if (event.kind !== 'gate') return payload;
   const { gesture, ...rest } = event.payload.gesture;
