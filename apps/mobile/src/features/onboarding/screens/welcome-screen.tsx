@@ -52,7 +52,8 @@ export function WelcomeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SceneArt scene="gate" width={width} height={610} attrs={scene} />
-      <PaperFade width={width} top={470} height={140} />
+      {/* The gate already fades into paper by day; at night it fades into the sky. */}
+      {scene.night ? <PaperFade width={width} top={470} height={140} /> : null}
       {/* The words sit just above the buttons, so a longer language grows upward. */}
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 44 }}>
         <View style={{ paddingHorizontal: 28, gap: 12, marginBottom: 7 }}>
