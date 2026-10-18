@@ -9,8 +9,9 @@ import { dropCaptionsBy, dropLettersFrom } from './store';
  *   once a request is answered.
  * - Account deletion: both of the above.
  * - A merge: captions and letter sources move to the kept person.
- * An unsent or removed voice note's captions go with its media (a trigger on the media index), and
- * the hourly sweep deletes their words.
+ * An unsent voice note's captions go with its media (a trigger on the media index), and the hourly
+ * sweep deletes their words. One the safety team removes keeps its audio for an appeal, so the
+ * removal drops its captions itself (`farm/safety.ts`).
  */
 
 registerAiForgetStep('ai', async (env, job) => {

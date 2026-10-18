@@ -6,6 +6,7 @@ import {
   type RuleRef,
 } from '@kithfield/contracts';
 
+import { dropCaptions } from '../ai/store';
 import { forgetMedia } from '../media/deletion';
 import { followUpFor } from './followups';
 import type { FarmHost } from './host';
@@ -55,7 +56,24 @@ export const removeEvent = async (
   const events = restoring === null ? [written] : [written, restoring];
   host.publish(events);
   await host.settle(events);
+  if (original.kind === 'voice') await forgetCaptions(host, target);
   return { ok: true, seq: written.seq };
+};
+
+/**
+ * A removed voice note's captions and transcript go at once. Its audio is held for an appeal, so
+ * nothing else would let go of them; a failure is left to the hourly sweep's retry.
+ */
+const forgetCaptions = async (host: FarmHost, target: number): Promise<void> => {
+  const farm = host.farm.state?.farm;
+  if (farm === undefined) return;
+  try {
+    await dropCaptions(host.env, farm, target);
+  } catch (error) {
+    console.error('removed voice note captions not dropped', {
+      error: error instanceof Error ? error.message : 'unknown',
+    });
+  }
 };
 
 /** An appeal undid a removal: the held payload goes back and the farm writes `restored`. */

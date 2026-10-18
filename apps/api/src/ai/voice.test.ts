@@ -161,6 +161,22 @@ describe('voice-note captions', () => {
     expect(await env.MEDIA.head(captionKey(farm, seq, 'en'))).toBeNull();
   });
 
+  it('purges the captions at once when the safety team removes the voice note', async () => {
+    const queued = watchAiQueue();
+    const { pip, fig } = await cast('pip', 'fig');
+    const { farm, seq, audio, stub } = await voiceNote(pip, [fig]);
+    await consent(pip, 'voice_notes');
+    await ask(fig, farm, seq, 'en');
+    await deliver(new ScriptedAi().hears('Something against the rules'), queued);
+    expect(await env.MEDIA.head(captionKey(farm, seq, 'en'))).not.toBeNull();
+
+    expect(await stub.removeEvent(seq, 3)).toMatchObject({ ok: true });
+    expect(await rows(farm, seq)).toEqual([]);
+    expect(await env.MEDIA.head(captionKey(farm, seq, 'en'))).toBeNull();
+    // The audio itself is held for an appeal.
+    expect(await env.MEDIA.head(audio.key)).not.toBeNull();
+  });
+
   it('purges the captions of a person who asks to forget, or whose account is deleted', async () => {
     const queued = watchAiQueue();
     const { pip, fig } = await cast('pip', 'fig');
