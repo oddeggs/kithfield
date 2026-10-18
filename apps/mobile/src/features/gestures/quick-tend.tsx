@@ -13,6 +13,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
+import { createGrace } from './model/grace';
 import { friendOf } from './model/people';
 import {
   bouquetParts,
@@ -52,9 +53,7 @@ export function QuickTendScreen() {
   const [failed, setFailed] = useState(false);
   const [states, setStates] = useState<Record<string, FarmState | null>>({});
   const [sent, setSent] = useState<Record<string, QuickReply>>({});
-  const waiting = useRef(
-    new Map<string, { timer: ReturnType<typeof setTimeout>; go: () => void }>(),
-  );
+  const grace = useRef(createGrace(UNDO_MS)).current;
 
   const load = useCallback(() => {
     setFailed(false);
@@ -80,36 +79,22 @@ export function QuickTendScreen() {
   }, [items, client]);
 
   // Leaving sends every answer still in its grace period.
-  useEffect(() => {
-    const pending = waiting.current;
-    return () => {
-      for (const w of pending.values()) {
-        clearTimeout(w.timer);
-        w.go();
-      }
-      pending.clear();
-    };
-  }, []);
+  useEffect(() => () => grace.flush(), [grace]);
 
   const reply = (item: QuickTendItem, r: QuickReply) => {
     const key = keyOf(item);
     const { kind, payload } = writeOf(item, r, t(`gestures.quickTend.reply.${r.words}`));
-    const go = () => {
-      waiting.current.delete(key);
+    grace.hold(key, () => {
       void client.send(item.farm, kind, payload).then((result) => {
         if (result.status === 'queued') markOurs(result.opId);
         else toast.show(reject(result.reason));
       });
-    };
-    waiting.current.set(key, { timer: setTimeout(go, UNDO_MS), go });
+    });
     setSent((s) => ({ ...s, [key]: r }));
   };
   const undo = (item: QuickTendItem) => {
     const key = keyOf(item);
-    const w = waiting.current.get(key);
-    if (!w) return;
-    clearTimeout(w.timer);
-    waiting.current.delete(key);
+    if (!grace.undo(key)) return;
     setSent(({ [key]: _gone, ...rest }) => rest);
   };
 
