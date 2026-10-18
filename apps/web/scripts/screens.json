@@ -1,0 +1,17 @@
+{
+  "scrolling": {
+    "17-landing": "/",
+    "17-landing-vi": "/vi"
+  },
+  "framed": {
+    "17-05": "/i/thursday-lot",
+    "17-06": "/waitlist",
+    "17-07": "/waitlist/thanks?confirmed=1",
+    "17-08": "/privacy",
+    "17-09": "/terms",
+    "17-10": "/support",
+    "17-11": "/delete-account",
+    "17-12": "/contact",
+    "17-13": "/press"
+  }
+}

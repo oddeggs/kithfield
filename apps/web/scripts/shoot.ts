@@ -5,9 +5,11 @@
  *   pnpm --filter @kithfield/web shoot -- --base http://127.0.0.1:4321 --out <dir> [--only landing]
  *
  * - The landing pages at 390, 834 and 1440 wide, one viewport per scroll stop that
- *   `design/renders/index.json` lists (`17-landing/1440/evening-03` …), at the render's scale.
- * - The pages from `17 Website` at the width of their browser frame in the design; their renders
+ *   `design/renders/index.json` lists for it, at the render's scale.
+ * - The website's other pages at the width of their browser frame in the design; their renders
  *   are cropped to the page inside the frame (`<id>.crop.png`) so the two line up.
+ *
+ * `screens.json` names the page each render shows.
  *
  * As in the renders, the art is drawn at one instant (4.5 s into its loop) once the fonts are in,
  * and transitions are settled before each capture.
@@ -39,6 +41,11 @@ interface RenderEntry {
   height: number;
   scale: number;
 }
+/** Which page each render shows, by the render's id (`screens.json`, beside this script). */
+const screens = JSON.parse(readFileSync(join(import.meta.dirname, 'screens.json'), 'utf8')) as {
+  scrolling: Record<string, string>;
+  framed: Record<string, string>;
+};
 const index = JSON.parse(readFileSync(join(rendersDir, 'index.json'), 'utf8')) as {
   renders: Record<string, RenderEntry>;
 };
@@ -105,10 +112,7 @@ const browser = await chromium.launch();
 const shots: string[] = [];
 try {
   if (!values.only || values.only === 'landing') {
-    for (const [slug, path] of [
-      ['17-landing', '/'],
-      ['17-landing-vi', '/vi'],
-    ] as const) {
+    for (const [slug, path] of Object.entries(screens.scrolling)) {
       for (const width of [390, 834, 1440]) {
         const stops = Object.entries(index.renders)
           .filter(([id]) => id.startsWith(`${slug}/${width}/`))
@@ -133,21 +137,11 @@ try {
   }
 
   if (!values.only || values.only === 'pages') {
-    // Each screen's page, and the width of its frame in `17 Website`.
-    const pages: [string, string, number][] = [
-      ['17-05', '/i/thursday-lot', 1100],
-      ['17-06', '/waitlist', 900],
-      ['17-07', '/waitlist/thanks', 900],
-      ['17-08', '/privacy', 900],
-      ['17-09', '/terms', 900],
-      ['17-10', '/support', 900],
-      ['17-11', '/delete-account', 900],
-      ['17-12', '/contact', 900],
-      ['17-13', '/press', 1100],
-    ];
-    for (const [id, path, width] of pages) {
+    // Each framed screen's page, at the width of its frame (the render less 14 px each side).
+    for (const [id, path] of Object.entries(screens.framed)) {
       const render = index.renders[id];
       if (!render) continue;
+      const width = render.width - 28;
       // The frame sits 14 px in, under a 44 px browser bar.
       const height = render.height - 28 - 44;
       const { page, close } = await open(width, height, render.scale, path, invitePreview);

@@ -1,5 +1,5 @@
 /**
- * Lays out the link-preview cards (`17-14`, `17-15`) on the art package's Canvas 2D adapter: the
+ * Lays out the link-preview cards on the art package's Canvas 2D adapter: the
  * scene drawn by the renderer, the paper wash over it and the type, as the design sets them in
  * CSS pixels at 600 × 315 and bakes at 2×.
  */
