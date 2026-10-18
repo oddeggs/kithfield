@@ -137,7 +137,7 @@ export function HeaderBar({
       pointerEvents="box-none"
       style={{
         position: 'absolute',
-        top: Math.max(insets.top, 20) + 4,
+        top: Math.max(insets.top - 1, 20),
         left: 16,
         right: 16,
         flexDirection: 'row',

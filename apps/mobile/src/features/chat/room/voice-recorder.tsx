@@ -244,7 +244,7 @@ export function RecorderPanel({
         bottom: 0,
         paddingTop: 14,
         paddingHorizontal: 12,
-        paddingBottom: Math.max(bottomInset, 20) + 14,
+        paddingBottom: Math.max(bottomInset, 20),
         backgroundColor: colours.recorderBg,
         borderTopLeftRadius: 26,
         borderTopRightRadius: 26,

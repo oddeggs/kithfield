@@ -152,10 +152,8 @@ function useShake(failed: boolean) {
 
 export interface BubbleRowProps {
   readonly item: BubbleItem;
-  /** The first of a run of one person's bubbles: their name goes above it. */
+  /** The first of a run of one person's bubbles: their name goes above it, their critter beside. */
   readonly first: boolean;
-  /** The last of a run: their critter goes beside it. */
-  readonly last: boolean;
   /** Your newest message that has landed says "Sent". */
   readonly showSent: boolean;
 }
@@ -164,7 +162,7 @@ export interface BubbleRowProps {
  * A bubble in its row: the friend's critter and name, the bubble, its dewdrops and its state.
  * Swipe right to reply; long-press for the message menu.
  */
-export function BubbleRow({ item, first, last, showSent }: BubbleRowProps) {
+export function BubbleRow({ item, first, showSent }: BubbleRowProps) {
   const { palette } = useTheme();
   const { t } = useLocale();
   const reduce = useReduceMotion();
@@ -271,7 +269,7 @@ export function BubbleRow({ item, first, last, showSent }: BubbleRowProps) {
           ]}
         >
           {!item.mine ? (
-            last && person?.critter ? (
+            first && person?.critter ? (
               <Avatar
                 kind={person.critter.species}
                 look={lookOf(person.critter)}

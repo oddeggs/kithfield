@@ -197,6 +197,7 @@ function PinCard({
         radius={4}
         accessibilityLabel={`${room.nameOf(pin.actor)}: ${pin.text}. ${t('chat.pins.open')}`}
         style={{
+          flexGrow: 1,
           backgroundColor: colours.corkCard,
           borderRadius: 4,
           paddingTop: 16,

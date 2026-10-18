@@ -20,7 +20,8 @@ import { useChatColours } from '../ui/chat-colours';
 import { useRoom } from './room-context';
 import { VoiceBubble } from './voice-bubble';
 
-export const BUBBLE_MAX = 262;
+/** 262 points of words, as the design sets them, plus the bubble's own padding. */
+export const BUBBLE_MAX = 290;
 const R = 20;
 const TAIL = 6;
 

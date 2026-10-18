@@ -87,15 +87,15 @@ export function sprouted(
   return state?.seeds.some((s) => s.seq === planted.seq && s.sproutedAt !== null) ?? false;
 }
 
-/** Where each bubble sits in a run of one person's bubbles: names go on the first, critters the last. */
-export function runsOf(rows: readonly TimelineItem[]): { first: boolean; last: boolean }[] {
+/** Where each bubble sits in a run of one person's bubbles: names and critters go on the first. */
+export function runsOf(rows: readonly TimelineItem[]): { first: boolean }[] {
   const actorAt = (i: number) => {
     const r = rows[i];
     return r?.type === 'bubble' ? `${r.mine ? 'me' : (r.actor ?? '')}` : null;
   };
   return rows.map((r, i) => {
-    if (r.type !== 'bubble') return { first: true, last: true };
+    if (r.type !== 'bubble') return { first: true };
     const who = actorAt(i);
-    return { first: actorAt(i - 1) !== who, last: actorAt(i + 1) !== who };
+    return { first: actorAt(i - 1) !== who };
   });
 }

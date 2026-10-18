@@ -256,7 +256,8 @@ export function SearchScreen({ farm: start }: { readonly farm: string | null }) 
       style={{
         flex: 1,
         backgroundColor: palette.background,
-        paddingTop: Math.max(insets.top, 20) + 4,
+        // A sheet already sits below the status bar.
+        paddingTop: 16,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 }}>

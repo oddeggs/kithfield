@@ -387,7 +387,6 @@ function ChatRoom({ farm, seq, reply, edit }: ChatScreenProps) {
                   item={item}
                   now={data.now}
                   first={runs[index]?.first ?? true}
-                  last={runs[index]?.last ?? true}
                   showSent={item.key === lastSent}
                   lit={item.key === lit}
                 />

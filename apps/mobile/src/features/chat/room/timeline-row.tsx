@@ -40,14 +40,12 @@ export const TimelineRow = memo(function TimelineRow({
   item,
   now,
   first,
-  last,
   showSent,
   lit,
 }: {
   readonly item: TimelineItem;
   readonly now: number;
   readonly first: boolean;
-  readonly last: boolean;
   readonly showSent: boolean;
   readonly lit: boolean;
 }) {
@@ -57,7 +55,7 @@ export const TimelineRow = memo(function TimelineRow({
       case 'day':
         return <DayDivider at={item.at} now={now} />;
       case 'bubble':
-        return <BubbleRow item={item} first={first} last={last} showSent={showSent} />;
+        return <BubbleRow item={item} first={first} showSent={showSent} />;
       case 'unsent':
         return <UnsentLine actor={item.actor} by={item.by} />;
       case 'line':

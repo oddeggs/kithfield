@@ -184,7 +184,7 @@ export function MediaScreen({ farm }: { readonly farm: string }) {
       style={{
         flex: 1,
         backgroundColor: palette.background,
-        paddingTop: Math.max(insets.top, 20) + 4,
+        paddingTop: Math.max(insets.top - 1, 20),
       }}
     >
       <View

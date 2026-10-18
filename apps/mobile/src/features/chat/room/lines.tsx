@@ -224,6 +224,36 @@ export function TypingLine({ people }: { readonly people: readonly PersonId[] })
       : people.length === 2
         ? t('chat.typing.two', { a, b })
         : t('chat.typing.many', { a, b });
+  if (room.visit && people.length === 1) {
+    // On a porch: their critter beside the line, writing at a little desk above the words (04-07).
+    const critter = room.people.get(people[0] ?? '')?.critter;
+    return (
+      <View
+        accessible
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={text}
+        style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}
+      >
+        {critter ? (
+          <Avatar kind={critter.species} look={lookOf(critter)} size={30} />
+        ) : (
+          <View style={{ width: 30 }} />
+        )}
+        <View style={{ gap: 4 }}>
+          <ArtLoop
+            scene="writing"
+            width={96}
+            height={46}
+            attrs={{ kind: critter?.species ?? 'rabbit' }}
+            style={{ marginLeft: 2 }}
+          />
+          <Txt variant="handS" color={colours.hand} style={{ paddingLeft: 4 }}>
+            {text}
+          </Txt>
+        </View>
+      </View>
+    );
+  }
   return (
     <View
       accessible
