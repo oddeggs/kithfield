@@ -69,7 +69,7 @@ export function Toggle({
               height: KNOB,
               borderRadius: KNOB / 2,
               backgroundColor: knobColour,
-              boxShadow: '0 2px 4px rgba(0,0,0,.2)',
+              boxShadow: palette.knobShadow,
             },
             thumb,
           ]}

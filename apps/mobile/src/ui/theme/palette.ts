@@ -1,4 +1,6 @@
-import { day, glass, night, type Appearance } from '@kithfield/theme';
+import { day, glass, night, shadows, type Appearance } from '@kithfield/theme';
+
+import { AVATAR_PAPER } from '../art/avatar-frame';
 
 /**
  * The colours the component library paints with, by job, in each appearance. Palette colours come
@@ -57,7 +59,20 @@ export interface Palette {
   };
   sheetShadow: string;
   grabber: string;
-  tabBar: { fill: string; blurTint: 'light' | 'dark'; border: string; activeBg: string };
+  /** The dimming under a modal sheet (at the sheet's own opacity). */
+  scrim: string;
+  /** What a pressed control darkens toward (`press.darken`). */
+  pressShade: string;
+  knobShadow: string;
+  /** Behind a critter the renderer has no tint for. */
+  avatarPaper: string;
+  tabBar: {
+    fill: string;
+    blurTint: 'light' | 'dark';
+    border: string;
+    activeBg: string;
+    shadow: string;
+  };
   tabActive: string;
   tabInactive: string;
   honey: string;
@@ -109,7 +124,7 @@ const dayPalette: Palette = {
     suggestionFg: '#3f5a31',
     invitedBg: day.mossTint,
   },
-  segment: { track: '#EFE7DA', thumb: day.card, shadow: '0 1px 4px rgba(42,34,29,.18)' },
+  segment: { track: '#EFE7DA', thumb: day.card, shadow: shadows.segment },
   toggle: { on: day.moss, off: ink(0.18), knob: '#ffffff' },
   bubble: {
     yoursBg: day.moss,
@@ -120,13 +135,18 @@ const dayPalette: Palette = {
     failedBorder: '#c9734e',
     failedText: day.clay,
   },
-  sheetShadow: '0 -8px 30px -14px rgba(60,40,20,.35)',
+  sheetShadow: shadows.sheet,
   grabber: ink(0.18),
+  scrim: '#000000',
+  pressShade: '#000000',
+  knobShadow: '0 2px 4px rgba(0,0,0,.2)',
+  avatarPaper: AVATAR_PAPER,
   tabBar: {
     fill: glass.tabBarDay.fill,
     blurTint: 'light',
     border: glass.tabBarDay.border,
     activeBg: ink(0.08),
+    shadow: shadows.tabBar,
   },
   tabActive: day.ink,
   tabInactive: '#7d7168',
@@ -142,7 +162,7 @@ const dayPalette: Palette = {
   },
   firefly,
   dewdropTint: '#E3EEF0',
-  trayShadow: '0 14px 40px -16px rgba(40,25,10,.4)',
+  trayShadow: shadows.tray,
   creditText: '#3a302a',
   glassButton: { fill: glass.button.fill, border: glass.button.border },
 };
@@ -190,11 +210,17 @@ const nightPalette: Palette = {
   },
   sheetShadow: '0 -8px 30px -14px rgba(0,0,0,.4)',
   grabber: white(0.3),
+  scrim: '#000000',
+  pressShade: '#000000',
+  knobShadow: '0 2px 4px rgba(0,0,0,.2)',
+  avatarPaper: AVATAR_PAPER,
   tabBar: {
     fill: glass.tabBarNight.fill,
     blurTint: 'dark',
     border: glass.tabBarNight.border,
     activeBg: white(0.1),
+    // The design keeps the day bar's shadow at night (`12 States`).
+    shadow: shadows.tabBar,
   },
   tabActive: night.moon,
   tabInactive: night.dim,

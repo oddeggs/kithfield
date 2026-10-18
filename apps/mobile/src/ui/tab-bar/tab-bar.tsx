@@ -1,8 +1,10 @@
+import { sizes } from '@kithfield/theme';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import { View } from 'react-native';
 
 import { haptics } from '../motion/haptics';
-import { tabs, useTabActivity, type TabName } from './tab-activity';
+import { useTabDots, useYou } from './tab-activity';
+import { tabs, type TabName } from './tabs';
 import { TabBarView } from './tab-bar-view';
 
 const isTab = (name: string): name is TabName => (tabs as readonly string[]).includes(name);
@@ -14,7 +16,8 @@ const SIDE = 16;
 
 /** The tab bar for expo-router's tabs: floats over each tab's screen, which runs under it. */
 export function TabBar({ state, emitter, navigateToTab, insets }: BottomTabBarProps) {
-  const { dots, you } = useTabActivity();
+  const dots = useTabDots();
+  const you = useYou();
   const focused = state.routes[state.index];
   const active = focused && isTab(focused.name) ? focused.name : 'farm';
   const keyOf = (tab: TabName) => state.routes.find((r) => r.name === tab)?.key;
@@ -50,5 +53,5 @@ export function TabBar({ state, emitter, navigateToTab, insets }: BottomTabBarPr
 /** Room a tab's screen leaves at its bottom so its last row clears the floating bar. */
 export function tabBarClearance(bottomInset: number): number {
   const bottom = bottomInset > 0 ? bottomInset - LIFT_UNDER_INDICATOR : BOTTOM_WITHOUT_INDICATOR;
-  return bottom + 64 + 12;
+  return bottom + sizes.tabBar + 12;
 }
