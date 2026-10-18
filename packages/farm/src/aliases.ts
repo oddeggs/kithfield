@@ -9,6 +9,9 @@ import type { FarmEvent, FarmState, PersonId } from '@kithfield/contracts';
 /** Payload keys that hold a person id or a list of them, in a payload or a tombstone's facts. */
 const PERSON_KEYS = ['to', 'person', 'with', 'hat', 'people', 'mentions'] as const;
 
+/** Objects inside a payload that name people too: a tombstone's facts, a gate's gesture. */
+const NESTED_KEYS = ['facts', 'gesture'] as const;
+
 type Aliases = Pick<FarmState, 'aliases'>;
 
 /** Who a person id is now: the kept person for a merged-away id, else itself. */
@@ -24,7 +27,7 @@ const moveValue = (state: Aliases, value: unknown): unknown => {
   return value.map((v: unknown) => (typeof v === 'string' ? aliasOf(state, v) : v));
 };
 
-/** A payload (or its tombstone's facts) with the people it names moved; the same object if none. */
+/** A payload (or an object inside it) with the people it names moved; the same object if none. */
 const moveFields = (state: Aliases, fields: Record<string, unknown>): Record<string, unknown> => {
   let moved: Record<string, unknown> | null = null;
   for (const key of PERSON_KEYS) {
@@ -34,13 +37,13 @@ const moveFields = (state: Aliases, fields: Record<string, unknown>): Record<str
     moved ??= { ...fields };
     moved[key] = next;
   }
-  const facts = fields['facts'];
-  if (typeof facts === 'object' && facts !== null && !Array.isArray(facts)) {
-    const nextFacts = moveFields(state, facts as Record<string, unknown>);
-    if (nextFacts !== facts) {
-      moved ??= { ...fields };
-      moved['facts'] = nextFacts;
-    }
+  for (const key of NESTED_KEYS) {
+    const inner = fields[key];
+    if (typeof inner !== 'object' || inner === null || Array.isArray(inner)) continue;
+    const next = moveFields(state, inner as Record<string, unknown>);
+    if (next === inner) continue;
+    moved ??= { ...fields };
+    moved[key] = next;
   }
   return moved ?? fields;
 };

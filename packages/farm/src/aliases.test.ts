@@ -1,9 +1,21 @@
-import type { FarmState } from '@kithfield/contracts';
+import type { FarmEvent, FarmState } from '@kithfield/contracts';
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
 import { aliasOf, withAliases } from './aliases';
-import { DAY, T0, bea, expectSnapshot, fig, newFarm, pip } from './farm.test-data';
-import { applyEvent, reduce } from './reducer';
+import { buildLog, history } from './arbitrary.test-data';
+import {
+  DAY,
+  T0,
+  bea,
+  critter,
+  expectSnapshot,
+  fig,
+  kit as kitAt,
+  newFarm,
+  pip,
+} from './farm.test-data';
+import { applyEvent, createFarm, reduce } from './reducer';
 import { farmView } from './view';
 
 /** An install that was signed in anonymously, then merged into Pip. */
@@ -84,5 +96,37 @@ describe('person aliases', () => {
     expect(farmView(old, T0 + DAY).doorstep.map((d) => d.from)).toEqual([pip]);
     const next = applyEvent(old, log.add('farm_opened', anon, {}));
     expect(next.members.find((m) => m.person === pip)?.lastOpenedAt).toBe(log.at);
+  });
+});
+
+describe('person aliases, for any history', () => {
+  it('grows the farm the same whether Pip wrote as Pip or as an install merged into Pip', () => {
+    fc.assert(
+      fc.property(history, ({ kind, steps }) => {
+        const { events } = buildLog(kind, steps);
+        const [created, ...rest] = events;
+        if (created?.kind !== 'farm_created') throw new Error('no farm');
+        const start = { ...createFarm(created), aliases: { [anon]: pip } };
+        const asAnon = rest.map(
+          (event) =>
+            JSON.parse(
+              JSON.stringify(event).replaceAll(JSON.stringify(pip), JSON.stringify(anon)),
+            ) as FarmEvent,
+        );
+        expect(reduce(start, asAnon)).toEqual(reduce(start, rest));
+      }),
+      { numRuns: 150 },
+    );
+  });
+
+  it('maps the person a gate gesture is for', () => {
+    const log = newFarm();
+    const gate = log.add('gate', kitAt, {
+      visitor: { name: 'Kit', critter },
+      gesture: { gesture: 'firefly', to: anon },
+    });
+    expect(withAliases(merged(log.state()), gate).payload).toMatchObject({
+      gesture: { gesture: 'firefly', to: pip },
+    });
   });
 });
