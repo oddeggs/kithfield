@@ -66,7 +66,7 @@ describe('a plan’s day', () => {
 
   it('follows a plan without a time from 9 to 5, never longer than iOS keeps an activity', () => {
     // The clocks go back in London that night: still 09:00 to 17:00 on the farm's clock.
-    const london = { ...farmWith([], []), timeZone: 'Europe/London' } as FarmState;
+    const london = { ...farmWith([], []), timeZone: 'Europe/London' };
     const allDay = seed({ days: [{ date: '2026-10-25' }] });
     expect(planDayWindow(london, allDay)).toEqual({
       day: '2026-10-25',
