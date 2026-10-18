@@ -1,7 +1,7 @@
 import type { FarmId, FarmState, PersonId } from '@kithfield/contracts';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
-import { usePresence, type PresenceState } from '../../data';
+import { usePresence } from '../../data';
 import { useAppActive } from '../../ui/motion/visibility';
 import { CaptionSender } from './caption-sender';
 import type { FireApi } from './fire-api';
@@ -13,16 +13,10 @@ import { captionsWanted } from './room-model';
  * quietly when it closes, and your voice sent for captions only while it should be.
  */
 
-/**
- * Who is by the fire, from the farm socket's `presence` frame. Older data layers leave `fire` out
- * of the presence they keep; they read as nobody.
- */
+/** Who is by the fire, from the farm socket's `presence` frame. */
 export function useFireCircle(farm: FarmId): readonly PersonId[] {
-  const presence: PresenceState & { readonly fire?: readonly PersonId[] } = usePresence(farm);
-  return presence.fire ?? NOBODY;
+  return usePresence(farm).fire;
 }
-
-const NOBODY: readonly PersonId[] = [];
 
 /** A person's name and critter on the farm, through its aliases; "a friend" when unknown. */
 export function memberOf(state: FarmState | null, id: string) {

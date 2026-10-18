@@ -227,3 +227,13 @@ describe('the outbox', () => {
     expect(r.getState().state).toEqual(r.getState().confirmed);
   });
 });
+
+describe('presence', () => {
+  it('keeps who is by the fire from the presence frame, and nobody when a server leaves it out', async () => {
+    const r = await replica();
+    await r.handle({ type: 'presence', here: [BEA], fire: [BEA] });
+    expect(r.presence.getState()).toEqual({ here: [BEA], typing: [], fire: [BEA] });
+    await r.handle({ type: 'presence', here: [BEA] });
+    expect(r.presence.getState().fire).toEqual([]);
+  });
+});
