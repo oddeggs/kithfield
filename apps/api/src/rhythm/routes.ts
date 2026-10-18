@@ -1,8 +1,8 @@
-import { PersonId, WeatherAttributionQuery } from '@kithfield/contracts';
+import { PersonId, ScrapbookQuery, WeatherAttributionQuery } from '@kithfield/contracts';
 import { Hono } from 'hono';
 
 import type { SessionEnv } from '../auth';
-import { type Ctx, fail, signedIn } from '../farm/http';
+import { type Ctx, fail, farmStub, member, signedIn } from '../farm/http';
 import { weatherAttribution } from './attribution';
 import { gateList } from './gates';
 
@@ -42,6 +42,16 @@ export const rhythmRoutes = (): Hono<SessionEnv> => {
     const friend = raw === undefined ? null : PersonId.safeParse(raw);
     if (friend !== null && !friend.success) return fail(c, 400, 'bad_request', ['person']);
     return c.json(await gateList(c.env, c.get('person'), friend?.data ?? null));
+  });
+
+  /** The farm's scrapbook, newest pages first, for its members. */
+  app.get('/farms/:id/scrapbook', signedIn, async (c) => {
+    const m = await member(c);
+    if (m instanceof Response) return m;
+    const query = ScrapbookQuery.safeParse(c.req.query());
+    if (!query.success) return badQuery(c, query.error.issues);
+    const book = await farmStub(c.env, m.farm).scrapbook(m.person, query.data.before ?? null);
+    return book === null ? fail(c, 404, 'not_found') : c.json(book);
   });
 
   return app;
