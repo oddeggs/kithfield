@@ -13,7 +13,8 @@ const device = {
 };
 const settings = {
   lang: 'vi',
-  quietHours: { from: '22:00', to: '07:30', timeZone: 'Asia/Ho_Chi_Minh' },
+  timeZone: 'Asia/Ho_Chi_Minh',
+  quietHours: { from: '22:00', to: '07:30' },
   discoverableByPhone: false,
   lightWindow: true,
   nudges: 'few',
@@ -24,6 +25,14 @@ const hash = 'a'.repeat(64);
 const remember = { farm, fromSeq: 12, about: bea, title: "Bea's interview", nudgeAt: at };
 
 const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
+  SignInNonceResponse: [
+    [{ nonce: 'n'.repeat(43), expiresAt: at }],
+    [
+      { nonce: 'n'.repeat(43) },
+      { nonce: 'n'.repeat(42), expiresAt: at },
+      { nonce: `${'n'.repeat(42)}=`, expiresAt: at },
+    ],
+  ],
   RtTokenRequest: [[{}, { farm }], [{ farm: 'bad id!' }]],
   RtTokenResponse: [
     [{ token: 'x'.repeat(32), expiresAt: at }],
@@ -73,9 +82,23 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
   BlockList: [[{ blocked: [pip] }], [{ blocked: ['bad id!'] }]],
   RegisterDeviceResponse: [[{ actionKey: 'k'.repeat(43) }], [{ actionKey: 'short' }]],
   SignInMethod: [['apple', 'phone'], ['anonymous']],
-  QuietHours: [[settings.quietHours], [{ from: '24:00', to: '07:00', timeZone: 'UTC' }]],
-  MeSettings: [[settings, { ...settings, quietHours: null }], [{ ...settings, nudges: 'daily' }]],
-  MeSettingsUpdate: [[{ nudges: 'off' }, { quietHours: null }], [{}]],
+  QuietHours: [[settings.quietHours], [{ from: '24:00', to: '07:00' }, { from: '22:00' }]],
+  MeSettings: [
+    [settings, { ...settings, quietHours: null }],
+    [
+      { ...settings, nudges: 'daily' },
+      { ...settings, timeZone: undefined },
+      { ...settings, timeZone: 'Saigon' },
+    ],
+  ],
+  MeSettingsUpdate: [
+    [
+      { nudges: 'off' },
+      { quietHours: null },
+      { timeZone: 'Europe/London', quietHours: settings.quietHours },
+    ],
+    [{}, { timeZone: 'GMT+7' }],
+  ],
   Me: [
     [
       {

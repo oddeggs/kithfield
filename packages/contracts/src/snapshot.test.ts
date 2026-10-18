@@ -26,6 +26,15 @@ describe('snapshot', () => {
     }));
     const broken: unknown[] = [
       { ...farmState, members: tooMany },
+      { ...farmState, plants: [{ ...farmState.plants[0], rareRolledOn: 'yesterday' }] },
+      { ...farmState, plants: [{ ...farmState.plants[0], rareRolledOn: undefined }] },
+      { ...farmState, members: [{ ...farmState.members[0], lastWokenAt: undefined }] },
+      { ...farmState, former: [{ ...farmState.former[0], joinedAt: undefined }] },
+      { ...farmState, members: [{ ...farmState.members[0], status: { text: 'hi', at } }] },
+      { ...farmState, seeds: [{ ...farmState.seeds[0], unsent: true }] },
+      { ...farmState, seeds: [{ ...farmState.seeds[0], title: null }] },
+      { ...farmState, seeds: [{ ...farmState.seeds[1], place: { name: 'Willow bend' } }] },
+      { ...farmState, seeds: [{ ...farmState.seeds[0], unsent: undefined }] },
       { ...farmState, timeZone: undefined },
       { ...farmState, hemisphere: 'east' },
       { ...farmState, members: [{ ...farmState.members[0], pausedUntil: true }] },

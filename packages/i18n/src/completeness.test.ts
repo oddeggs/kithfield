@@ -7,8 +7,16 @@ describe('findCatalogueProblems', () => {
   it('passes a complete translation', () => {
     expect(
       findCatalogueProblems(
-        { 'a.x': 'Hello {name}', 'a.y': { one: '{count} critter', other: '{count} critters' } },
-        { 'a.x': 'Chào {name}', 'a.y': { other: '{count} bạn thú' } },
+        {
+          'a.x': 'Hello {name}',
+          'a.y': { one: '{count} critter', other: '{count} critters' },
+          'a.z': '{name}: {preview}',
+        },
+        {
+          'a.x': 'Chào {name}',
+          'a.y': { other: '{count} bạn thú' },
+          'a.z': '{name} nói: {preview}',
+        },
       ),
     ).toEqual([]);
   });
@@ -44,13 +52,19 @@ describe('findCatalogueProblems', () => {
   it('flags empty English and placeholders that are not plain names', () => {
     expect(
       findCatalogueProblems(
-        { 'a.blank': '', 'a.spaced': 'Hi {first name}' },
-        { 'a.blank': 'Trống', 'a.spaced': 'Chào {first name}' },
+        { 'a.blank': '', 'a.spaced': 'Hi {first name}', 'a.dashed': '{first-name}: {preview}' },
+        {
+          'a.blank': 'Trống',
+          'a.spaced': 'Chào {first name}',
+          'a.dashed': 'Chào {first-name}: {preview}',
+        },
       ),
     ).toEqual([
       'a.blank: empty in English',
       'a.spaced: placeholder {first name} in English is not a plain name',
       'a.spaced: placeholder {first name} in the translation is not a plain name',
+      'a.dashed: placeholder {first-name} in English is not a plain name',
+      'a.dashed: placeholder {first-name} in the translation is not a plain name',
     ]);
   });
 
