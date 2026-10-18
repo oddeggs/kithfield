@@ -7,6 +7,10 @@ import { glossaryEn } from './glossary.en';
 import { glossarySameInBoth, glossaryVi } from './glossary.vi';
 import { pushEn } from './push.en';
 import { pushSameInBoth, pushVi } from './push.vi';
+import { safetyEn } from './safety.en';
+import { safetySameInBoth, safetyVi } from './safety.vi';
+import { settingsEn } from './settings.en';
+import { settingsSameInBoth, settingsVi } from './settings.vi';
 import { shellEn } from './shell.en';
 import { shellSameInBoth, shellVi } from './shell.vi';
 import { signInCodeEn } from './sign-in-code.en';
@@ -27,6 +31,8 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'gallery', file: 'gallery', en: galleryEn, vi: galleryVi, sameInBoth: gallerySameInBoth },
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
+  { name: 'safety', file: 'safety', en: safetyEn, vi: safetyVi, sameInBoth: safetySameInBoth },
+  { name: 'settings', file: 'settings', en: settingsEn, vi: settingsVi, sameInBoth: settingsSameInBoth },
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
   { name: 'syncLab', file: 'sync-lab', en: syncLabEn, vi: syncLabVi, sameInBoth: [] },
@@ -41,6 +47,8 @@ export const en = {
   ...galleryEn,
   ...glossaryEn,
   ...pushEn,
+  ...safetyEn,
+  ...settingsEn,
   ...shellEn,
   ...signInCodeEn,
   ...syncLabEn,
@@ -55,6 +63,8 @@ export const vi = {
   ...galleryVi,
   ...glossaryVi,
   ...pushVi,
+  ...safetyVi,
+  ...settingsVi,
   ...shellVi,
   ...signInCodeVi,
   ...syncLabVi,
