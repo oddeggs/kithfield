@@ -1,7 +1,7 @@
 import type { Bindings } from './env';
 
 /** The queues in `wrangler.jsonc`, by their name without the `kithfield-` prefix and `-dev` suffix. */
-export const queueNames = ['push', 'media', 'ai', 'deletion'] as const;
+export const queueNames = ['push', 'media-jobs', 'ai', 'deletion'] as const;
 export type QueueName = (typeof queueNames)[number];
 
 export type QueueHandler = (
