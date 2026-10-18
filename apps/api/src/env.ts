@@ -25,6 +25,9 @@ export const secretNames = [
   'R2_ACCOUNT_ID',
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
+  // Kithfield's Telegram bot (from @BotFather): makes a person's sticker set with the Bot API
+  // once they confirm in Telegram. Not used until the Telegram export routes exist.
+  'TELEGRAM_BOT_TOKEN',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
