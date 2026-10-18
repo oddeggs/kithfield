@@ -68,7 +68,7 @@ function ActionTile({
 }
 
 /**
- * A critter's card (04-06): who they are, how they are, a visit to their porch, the gestures you
+ * A critter's card: who they are, how they are, a visit to their porch, the gestures you
  * can leave them, and mute, report or block.
  */
 export function CritterCard({

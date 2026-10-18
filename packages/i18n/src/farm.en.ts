@@ -3,7 +3,7 @@ import type { EnCatalogue } from './catalogue-types';
 /**
  * The farm: the farm home and its sheet, critter cards, the valley of farms, planting a new farm,
  * move-in day, leaving, removal, a sleeping cottage, welcome back and status bubbles
- * (`04 Farm and Chat`). Credits name people and kinds of care, never how much.
+ * (the farm and chat designs). Credits name people and kinds of care, never how much.
  */
 export const farmEn = {
   'farm.someone': 'a friend',

@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { NewFarm } from '../../features/farm/new-farm';
 import { useTheme } from '../../ui/theme/theme-provider';
 
-/** Plant a new farm (04-18), over the valley. */
+/** Plant a new farm, over the valley. */
 export default function FarmNew() {
   const { palette } = useTheme();
   return (

@@ -28,7 +28,7 @@ import { sceneHeight } from './scene-layout';
 import { useNow } from './use-now';
 import { useFarmFlags, useValley } from './valley-store';
 
-/** The sheet overlaps the bottom of the farm by this much (04-01: the farm 540, the sheet at 500). */
+/** The sheet overlaps the bottom of the farm by this much (the farm is drawn 540 tall, the sheet rests at 500). */
 const OVERLAP = 40;
 
 /**
@@ -158,7 +158,7 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
 }
 
 /**
- * Says once that the person was taken off the farm the tab last showed (04-21). Leaving by choice
+ * Says once that the person was taken off the farm the tab last showed. Leaving by choice
  * says nothing; a farm the phone can't tell about says nothing either.
  */
 function useGoneNote(gone: FarmId | null, forget: () => void) {

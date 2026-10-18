@@ -27,7 +27,7 @@ import { useBob } from './speech-bubble';
 import { useNow } from './use-now';
 import { useValley, type FarmRow } from './valley-store';
 
-/** The valley scene's five islands, and where each one's label sits (04-17), on 393 by 640. */
+/** The valley scene's five islands, and where each one's label sits, on 393 by 640. */
 const ISLANDS = [
   { x: 106, y: 192 },
   { x: 287, y: 269 },
@@ -193,7 +193,7 @@ function ValleyCard({ farm, onGo }: { readonly farm: FarmRow; readonly onGo: () 
 }
 
 /**
- * The valley (04-17): every farm you live on, each on its own island down the river. Tap one to
+ * The valley: every farm you live on, each on its own island down the river. Tap one to
  * see it in the card below and go there; + plants a new one.
  */
 export function ValleyScreen() {

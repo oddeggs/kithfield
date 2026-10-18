@@ -25,7 +25,7 @@ import { useValley } from './valley-store';
 const W = 393;
 
 /**
- * Leaving a farm quietly (04-20): the cottage dozes with a "gone wandering" sign and nobody is
+ * Leaving a farm quietly: the cottage dozes with a "gone wandering" sign and nobody is
  * told. It writes `left`, and the Farm tab moves to another farm you live on.
  */
 export function LeaveFarm({ farm }: { readonly farm: FarmId }) {
@@ -99,7 +99,7 @@ function rulesUrl(language: string): string {
 }
 
 /**
- * Taken off a farm (04-21), shown once: the farm's name, never who made the change, and the way
+ * Taken off a farm, shown once: the farm's name, never who made the change, and the way
  * on to the farms that are still yours.
  */
 export function RemovedFromFarm({ farm }: { readonly farm: FarmId }) {
@@ -155,7 +155,7 @@ export function RemovedFromFarm({ farm }: { readonly farm: FarmId }) {
 }
 
 /**
- * A cottage left behind (04-22): whoever went wandering, their lantern still lit. Their old
+ * A cottage left behind: whoever went wandering, their lantern still lit. Their old
  * messages keep their name; a keeper can send them an invite back.
  */
 export function SleepingCottage({

@@ -12,7 +12,7 @@ const GLASS_SHADOW = '0 8px 24px -12px rgba(60,40,20,0.3)';
 
 /**
  * The glass pills over the farm: its name (tap for the valley of farms) and the season in hand
- * lettering (04-01).
+ * lettering.
  */
 export function FarmHeader({
   name,

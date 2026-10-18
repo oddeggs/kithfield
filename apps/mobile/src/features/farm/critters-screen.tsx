@@ -21,7 +21,7 @@ import { useNow } from './use-now';
 const W = 393;
 
 /**
- * Who lives here (04-05): every critter on the farm in a grid, how each one is, and a way to
+ * Who lives here: every critter on the farm in a grid, how each one is, and a way to
  * invite someone or leave a firefly for a friend who's dozing.
  */
 export function CrittersScreen({ farm }: { readonly farm: FarmId }) {

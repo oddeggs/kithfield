@@ -141,7 +141,7 @@ export function FarmScene({
     wishes.push({
       key: 'plan',
       text: plan.seed.title,
-      // Beside the flag, as 04-01 draws "picnic?".
+      // Beside the flag, as the farm home draws "picnic?".
       x: width * LANDMARKS.stake.x + 21,
       y: height * LANDMARKS.stake.y + 2,
       maxWidth: 150,

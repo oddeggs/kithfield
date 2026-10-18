@@ -16,7 +16,7 @@ import { Txt } from '../../ui/type/text';
 import type { ViewStyleProp } from '../../ui/style';
 import { overArt } from './over-art';
 
-/** Bubbles bob 2 points on a 3-second loop (`04 Farm and Chat`, 04-23). */
+/** Bubbles bob 2 points on a 3-second loop. */
 const BOB = 2;
 const BOB_MS = 3000;
 

@@ -30,7 +30,7 @@ export const validStatus = (text: string) =>
   text.trim().length > 0 && text.trim().length <= LIMITS.status;
 
 /**
- * Your bubble (04-23): a status over your critter for 24 hours, 40 characters at most, written
+ * Your bubble: a status over your critter for 24 hours, 40 characters at most, written
  * with the `status` command. Clearing it writes the same command with no words.
  */
 export function BubbleEditor({ farm }: { readonly farm: FarmId }) {

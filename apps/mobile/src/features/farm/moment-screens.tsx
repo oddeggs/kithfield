@@ -21,7 +21,7 @@ import { SpeechBubble } from './speech-bubble';
 
 const W = 393;
 
-/** Welcome back (04-16): the farm says hello after a week or more away. Hugs, never a list. */
+/** Welcome back: the farm says hello after a week or more away. Hugs, never a list. */
 export function WelcomeBack({ farm }: { readonly farm: FarmId }) {
   const { t } = useLocale();
   const { palette } = useTheme();
@@ -93,10 +93,10 @@ export function WelcomeBack({ farm }: { readonly farm: FarmId }) {
   );
 }
 
-/** Confetti falls on twos for 4 seconds (04-19), then the scene rests. */
+/** Confetti falls on twos for 4 seconds, then the scene rests. */
 const CONFETTI_MS = 4000;
 
-/** Move-in day (04-19): a new critter's cottage is lit, and the neighbours come out. */
+/** Move-in day: a new critter's cottage is lit, and the neighbours come out. */
 export function MoveIn({ farm, person }: { readonly farm: FarmId; readonly person: PersonId }) {
   const { t } = useLocale();
   const { palette } = useTheme();

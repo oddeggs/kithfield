@@ -3,7 +3,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { CritterCard } from '../../features/farm/critter-card';
 import { useTheme } from '../../ui/theme/theme-provider';
 
-/** A critter's card over the farm (04-05, 04-06): `farm` and `person`. */
+/** A critter's card over the farm: `farm` and `person`. */
 export default function FarmCritter() {
   const { palette } = useTheme();
   const { farm, person } = useLocalSearchParams<{ farm: string; person: string }>();

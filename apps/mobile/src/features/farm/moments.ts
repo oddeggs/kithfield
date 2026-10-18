@@ -1,12 +1,12 @@
 import type { FarmState, PersonId } from '@kithfield/contracts';
 
 /*
- * The moments the farm shows once when it opens: welcome back after a long while away (04-16) and
- * a neighbour moving in (04-19). Each is decided from the farm as the phone held it before this
+ * The moments the farm shows once when it opens: welcome back after a long while away and
+ * a neighbour moving in. Each is decided from the farm as the phone held it before this
  * visit and a flag the phone keeps, so it shows once and never again for the same thing.
  */
 
-/** Away this long, the farm says welcome back (`04 Farm and Chat`, 04-16). */
+/** Away this long, the farm says welcome back. */
 export const WELCOME_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 /** Your own move-in is celebrated if you moved in this recently and haven't seen the farm. */
 export const OWN_MOVE_IN_MS = 24 * 60 * 60 * 1000;

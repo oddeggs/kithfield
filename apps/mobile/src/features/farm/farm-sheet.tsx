@@ -72,7 +72,7 @@ export interface SheetActions {
 }
 
 /**
- * The farm's sheet (04-01): who the field thanks, the plans in the seed bed, a friend who has
+ * The farm's sheet: who the field thanks, the plans in the seed bed, a friend who has
  * been napping, and what waits on your step. Kinds of care and names, never how much.
  */
 export function FarmSheetContent({

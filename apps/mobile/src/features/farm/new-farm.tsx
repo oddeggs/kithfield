@@ -22,7 +22,7 @@ import { deviceTimeZone, hemisphereOf } from './calendar';
 import { backToFarm } from './routes';
 import { useValley } from './valley-store';
 
-/** The four lands and the season strip each one's palette is drawn from (04-18). */
+/** The four lands and the season strip each one's palette is drawn from. */
 export const LANDS = [
   { id: 'meadow', strip: 'spring' },
   { id: 'orchard', strip: 'summer' },
@@ -50,7 +50,7 @@ function LandTile({
 }) {
   const { palette } = useTheme();
   const reduce = useReduceMotion();
-  // The chosen land's tile grows to 1.04 (04-18).
+  // The chosen land's tile grows to 1.04.
   const scale = useSharedValue(on ? 1.04 : 1);
   useEffect(() => {
     scale.set(sheetTo(on ? 1.04 : 1, reduce));
@@ -91,7 +91,7 @@ function LandTile({
 }
 
 /**
- * Planting a new farm (04-18): a name, a land for its palette, and the creator as its keeper. It
+ * Planting a new farm: a name, a land for its palette, and the creator as its keeper. It
  * is planted with `POST /v1/farms`, its first invite goes out on the share sheet, and the farm
  * opens on move-in day.
  */

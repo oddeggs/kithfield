@@ -25,7 +25,7 @@ export interface CanvasCritter {
   readonly poses: CritterPoses;
 }
 
-/** Season changes cross-fade the whole scene (`04 Farm and Chat`, developer notes). */
+/** Season changes cross-fade the whole scene (the farm's developer notes). */
 const SEASON_FADE_MS = 1200;
 
 /**
