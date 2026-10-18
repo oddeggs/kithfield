@@ -148,9 +148,9 @@ export function BarAction({
   return (
     <Press onPress={onPress} darken={false} hitSlop={10} accessibilityLabel={label}>
       <Txt
-        variant="buttonText"
+        variant={size === 17 ? 'button' : 'buttonText'}
         color={tone === 'go' ? inks.mossText : inks.secondary}
-        style={{ fontSize: size, lineHeight: size, paddingHorizontal: tone === 'go' ? 0 : 6 }}
+        style={{ paddingHorizontal: tone === 'go' ? 0 : 6 }}
       >
         {label}
       </Txt>

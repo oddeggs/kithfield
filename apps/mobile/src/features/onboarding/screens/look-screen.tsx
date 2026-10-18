@@ -130,11 +130,7 @@ export function LookScreen() {
         onBack={() => router.back()}
         inset={20}
         designTop={56}
-        center={
-          <Txt variant="rowTitle" style={{ fontSize: 17, lineHeight: 17 }}>
-            {t('onboarding.look.title')}
-          </Txt>
-        }
+        center={<Txt variant="button">{t('onboarding.look.title')}</Txt>}
         trailing={<BarAction label={t('onboarding.done')} tone="go" size={17} onPress={go} />}
       />
       <View
@@ -174,7 +170,7 @@ export function LookScreen() {
           {t('onboarding.look.your', { critter: critterName })}
         </Txt>
         <Press onPress={() => askName()} darken={false} hitSlop={12}>
-          <Txt variant="caption" color={palette.secondary} style={{ fontSize: 14, lineHeight: 14 }}>
+          <Txt variant="chip" color={palette.secondary}>
             {t('onboarding.look.name')}{' '}
             <Text style={{ fontWeight: '600', color: name ? palette.text : inks.mossText }}>
               {name || t('onboarding.look.nameAdd')}

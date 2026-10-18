@@ -44,11 +44,7 @@ function ShapeChip({
         borderColor: palette.chip.border,
       }}
     >
-      <Txt
-        variant="chip"
-        color={on ? palette.chip.selectedFg : palette.text}
-        style={{ fontWeight: '600', fontSize: 13.5, lineHeight: 13.5 }}
-      >
+      <Txt variant="segment" color={on ? palette.chip.selectedFg : palette.text}>
         {label}
       </Txt>
     </Press>
@@ -112,7 +108,7 @@ export function CritterScreen() {
           <Txt
             variant="label"
             color="#6b5f55"
-            style={{ fontSize: 11, lineHeight: 11, fontWeight: '600', letterSpacing: 0.66 }}
+            style={{ fontSize: 11, fontWeight: '600', letterSpacing: 0.66 }}
           >
             {t(`onboardingCritters.shape.${kind.shape}`)}
           </Txt>

@@ -89,7 +89,7 @@ function Select({
       <Txt variant="button" color={value ? palette.text : palette.placeholder} numberOfLines={1}>
         {value ?? label}
       </Txt>
-      <Txt variant="body" color={palette.chevron} style={{ fontSize: 17, lineHeight: 17 }}>
+      <Txt variant="button" color={palette.chevron}>
         ▾
       </Txt>
     </Press>

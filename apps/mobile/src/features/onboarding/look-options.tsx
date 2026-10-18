@@ -43,7 +43,7 @@ export function CoatOptions({
                 boxShadow: ring(on),
               }}
             />
-            <Txt variant="note" color={palette.body} style={{ fontSize: 12.5, lineHeight: 12.5 }}>
+            <Txt variant="code" color={palette.body}>
               {label}
             </Txt>
           </Press>
@@ -133,7 +133,7 @@ export function AccessoryOptions({
               size={52}
               style={{ boxShadow: ring(on) }}
             />
-            <Txt variant="note" color={palette.body} style={{ fontSize: 12, lineHeight: 12 }}>
+            <Txt variant="note" color={palette.body}>
               {label}
             </Txt>
           </Press>

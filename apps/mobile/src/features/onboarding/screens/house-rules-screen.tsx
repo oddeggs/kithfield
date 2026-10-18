@@ -80,7 +80,7 @@ function Row({
         </Txt>
       </View>
       {onPress ? (
-        <Txt variant="chevron" color="#b3a99f" style={{ fontSize: 20, lineHeight: 20 }}>
+        <Txt variant="chevron" color={palette.chevron}>
           ›
         </Txt>
       ) : null}

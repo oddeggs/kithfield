@@ -36,7 +36,7 @@ function FriendRow({
   const { t, fontLocale } = useLocale();
   const { palette } = useTheme();
   const reduce = useReduceMotion();
-  const letter = fontFor({ ...componentType.fieldValue, size: 18, lineHeight: 18 }, fontLocale);
+  const letter = fontFor({ ...componentType.fieldValue, size: 18, lineHeight: 24 }, fontLocale);
   return (
     <View
       style={{
