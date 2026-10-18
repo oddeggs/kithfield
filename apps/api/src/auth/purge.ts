@@ -78,6 +78,7 @@ async function deleteRows(env: Bindings, person: string): Promise<void> {
     'DELETE FROM farm_visitors WHERE person_id = ?',
     'DELETE FROM farm_merges WHERE from_person = ?1 OR into_person = ?1',
     'DELETE FROM blocks WHERE blocker_id = ?',
+    'DELETE FROM desktop_links WHERE person_id = ?',
     // The farm's link keeps working, made by nobody now.
     'UPDATE invites SET created_by = NULL WHERE created_by = ?',
     'DELETE FROM people WHERE id = ?',

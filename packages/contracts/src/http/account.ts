@@ -81,12 +81,37 @@ export const DeviceList = z.object({
 });
 export type DeviceList = z.infer<typeof DeviceList>;
 
-/** `POST /v1/desktop-link` from a computer: a one-time QR code that lives 60 seconds. */
+/** `POST /v1/desktop-link` from a computer, with no session: what the phone will be shown. */
+export const DesktopLinkRequest = z.object({ name: text(64), platform: Platform });
+export type DesktopLinkRequest = z.infer<typeof DesktopLinkRequest>;
+
+/**
+ * A one-time code for the QR that lives 60 seconds (ask again for a fresh one), and the secret only
+ * this computer holds, to collect its session once the phone approves.
+ */
 export const DesktopLinkResponse = z.object({
   code: z.string().regex(/^[A-Za-z0-9_-]{16,128}$/),
+  secret: z.string().regex(/^[A-Za-z0-9_-]{32,128}$/),
   expiresAt: EpochMs,
 });
 export type DesktopLinkResponse = z.infer<typeof DesktopLinkResponse>;
+
+/** `POST /v1/desktop-link/:code/session {secret}`: the computer asks whether the phone answered. */
+export const DesktopLinkSessionRequest = z.object({
+  secret: z.string().regex(/^[A-Za-z0-9_-]{32,128}$/),
+});
+export type DesktopLinkSessionRequest = z.infer<typeof DesktopLinkSessionRequest>;
+
+/**
+ * Still waiting (ask again until `expiresAt`), turned down on the phone, or approved: the session
+ * token for this computer, handed over once. An unknown, expired or collected code answers 404.
+ */
+export const DesktopLinkSession = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('waiting'), expiresAt: EpochMs }),
+  z.object({ status: z.literal('declined') }),
+  z.object({ status: z.literal('approved'), token: z.string().min(16).max(512), person: PersonId }),
+]);
+export type DesktopLinkSession = z.infer<typeof DesktopLinkSession>;
 
 /** `GET /v1/desktop-link/:code` on the phone: what it shows before Face ID approves. */
 export const DesktopLinkPreview = z.object({

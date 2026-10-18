@@ -73,9 +73,28 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
     [{ devices: [device, { ...device, city: null, current: false }] }],
     [{ devices: [{ ...device, platform: 'tv' }] }],
   ],
+  DesktopLinkRequest: [
+    [{ name: "June's MacBook Air", platform: 'macos' }],
+    [
+      { name: '', platform: 'macos' },
+      { name: 'PC', platform: 'tv' },
+    ],
+  ],
   DesktopLinkResponse: [
-    [{ code: 'abcdefghijklmnop', expiresAt: at }],
-    [{ code: 'short', expiresAt: at }],
+    [{ code: 'abcdefghijklmnop', secret: 's'.repeat(43), expiresAt: at }],
+    [
+      { code: 'short', secret: 's'.repeat(43), expiresAt: at },
+      { code: 'abcdefghijklmnop', expiresAt: at },
+    ],
+  ],
+  DesktopLinkSessionRequest: [[{ secret: 's'.repeat(43) }], [{ secret: 'short' }]],
+  DesktopLinkSession: [
+    [
+      { status: 'waiting', expiresAt: at },
+      { status: 'declined' },
+      { status: 'approved', token: 't'.repeat(32), person: pip },
+    ],
+    [{ status: 'approved', person: pip }, { status: 'expired' }],
   ],
   DesktopLinkPreview: [
     [{ name: "June's MacBook Air", platform: 'macos', city: 'London' }],

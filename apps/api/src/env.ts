@@ -75,6 +75,8 @@ export type Bindings = Secrets & {
   readonly WAITLIST_LIMIT: RateLimit;
   /** At most 5 account deletion requests or code tries a minute per client address. */
   readonly DELETION_REQUEST_LIMIT: RateLimit;
+  /** Desktop sign-in by QR: codes asked per address, and looked up or answered per person. */
+  readonly DESKTOP_LINK_LIMIT: RateLimit;
   /** Reports and appeals from the app, per person. */
   readonly REPORT_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
