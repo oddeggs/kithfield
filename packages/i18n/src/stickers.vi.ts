@@ -200,6 +200,9 @@ export const stickersVi: ViCatalogue<typeof stickersEn> = {
   'stickers.export.saved': 'Đã lưu vào Ảnh',
   'stickers.export.photosDenied':
     'Kithfield chưa lưu được vào Ảnh. Bạn có thể cho phép trong Cài đặt.',
+  'stickers.export.comingSoon': 'Sắp có',
+  'stickers.export.stop': 'Dừng',
+  'stickers.export.saving': 'Đang lưu vào Ảnh…',
   'stickers.export.footer':
     'Nhãn dán cùng nhau chỉ được đưa ra ngoài khi mọi người đồng ý. Mỗi người bạn trong đó chỉ được hỏi một lần.',
 
@@ -214,6 +217,10 @@ export const stickersVi: ViCatalogue<typeof stickersEn> = {
   'stickers.adding.notInstalled': 'Chưa có trên điện thoại này',
   'stickers.adding.notYet': 'Sắp có',
   'stickers.adding.failed': 'Chưa đóng gói được. Thử lại nhé?',
+  'stickers.adding.tooBig': 'Lúc này quá lớn với WhatsApp',
+  'stickers.adding.dropped': {
+    other: '{count} nhãn dán quá lớn với WhatsApp nên ở lại Kithfield.',
+  },
   'stickers.adding.open': 'Mở',
   'stickers.adding.setName': '{name} của Kithfield',
   'stickers.adding.telegram': {

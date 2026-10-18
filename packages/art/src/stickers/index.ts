@@ -16,7 +16,7 @@ export {
 export { concat, crc32 } from './formats/bytes';
 export { changedRect, cropRgba, type Rect } from './formats/delta';
 export { changedIndexRect, encodeIndexedPng } from './formats/indexed-png';
-export { buildPalette, indexer, type Palette } from './formats/palette';
+export { buildPalette, indexer, paletteBuilder, type Palette } from './formats/palette';
 export {
   headerOf,
   isPng,

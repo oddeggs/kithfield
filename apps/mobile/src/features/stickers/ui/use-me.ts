@@ -1,5 +1,5 @@
 import type { Critter, Me } from '@kithfield/contracts';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useDataClient } from '../../../data';
 import { useSession } from '../../../ui/session/session';
@@ -35,10 +35,6 @@ export function useMe(): {
       live = false;
     };
   }, [client, id, ask]);
-  return {
-    person: id,
-    name: me?.name ?? null,
-    critter: me?.critter ?? null,
-    refresh: () => setAsk((n) => n + 1),
-  };
+  const refresh = useCallback(() => setAsk((n) => n + 1), []);
+  return { person: id, name: me?.name ?? null, critter: me?.critter ?? null, refresh };
 }

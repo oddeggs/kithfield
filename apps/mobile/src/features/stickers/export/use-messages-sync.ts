@@ -1,31 +1,38 @@
-import type { Critter } from '@kithfield/contracts';
 import { useEffect, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { useArt } from '../../../ui/art/art-provider';
 import { useLocale } from '../../../ui/locale/locale-provider';
+import { useMe } from '../ui/use-me';
 import { syncMessages } from './messages';
 import { ownPack } from './pack';
 
 export type MessagesState = 'checking' | 'on' | 'updating' | 'unavailable';
 
 /**
- * Keeps the Messages drawer wearing what the critter wears now: whenever the pack's drawing
- * changes (an outfit, a coat, the language) it is baked again into the App Group, behind the
- * screen, a frame at a time when the JS thread is idle.
+ * Keeps the Messages drawer wearing what the critter wears now, for as long as it is mounted
+ * (the export screen; an app-level host for the whole session). The person's critter is read
+ * again whenever the app comes back to the foreground, and when the pack's drawing changed (an
+ * outfit, a coat, the language) it is made again into the App Group, behind the screen, a frame
+ * at a time when the JS thread is idle, through the one bake queue.
  */
-export function useMessagesSync(me: {
-  readonly name: string | null;
-  readonly critter: Critter | null;
-}): {
+export function useMessagesSync(): {
   readonly state: MessagesState;
   readonly progress: number;
 } {
   const store = useArt();
   const { t } = useLocale();
-  const critter = me.critter;
+  const me = useMe();
+  const { refresh, critter, name } = me;
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') refresh();
+    });
+    return () => sub.remove();
+  }, [refresh]);
   const stickers = useMemo(
-    () => (critter ? ownPack(t, { name: me.name, critter }) : null),
-    [t, me.name, critter],
+    () => (critter ? ownPack(t, { name, critter }) : null),
+    [t, name, critter],
   );
   const key = JSON.stringify(stickers?.map((s) => s.attrs) ?? null);
   const [state, setState] = useState<MessagesState>('checking');

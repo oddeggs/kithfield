@@ -32,26 +32,27 @@ interface Histogram {
   readonly sum: Float64Array;
 }
 
-function histogram(frames: readonly Uint8Array[], step: number): Histogram {
-  const count = new Uint32Array(BINS);
-  const sum = new Float64Array(BINS * 4);
-  for (const px of frames) {
-    for (let i = 0; i < px.length; i += 4 * step) {
-      const a = px[i + 3] ?? 0;
-      if (a < CLEAR) continue;
-      const r = px[i] ?? 0;
-      const g = px[i + 1] ?? 0;
-      const b = px[i + 2] ?? 0;
-      const bin = binOf(r, g, b, a);
-      count[bin] = (count[bin] ?? 0) + 1;
-      const s = bin * 4;
-      sum[s] = (sum[s] ?? 0) + r;
-      sum[s + 1] = (sum[s + 1] ?? 0) + g;
-      sum[s + 2] = (sum[s + 2] ?? 0) + b;
-      sum[s + 3] = (sum[s + 3] ?? 0) + a;
-    }
+function emptyHistogram(): Histogram {
+  return { count: new Uint32Array(BINS), sum: new Float64Array(BINS * 4) };
+}
+
+/** Counts one frame's pixels (every `step`th) into the histogram. */
+function addFrame(h: Histogram, px: Uint8Array, step: number): void {
+  const { count, sum } = h;
+  for (let i = 0; i < px.length; i += 4 * step) {
+    const a = px[i + 3] ?? 0;
+    if (a < CLEAR) continue;
+    const r = px[i] ?? 0;
+    const g = px[i + 1] ?? 0;
+    const b = px[i + 2] ?? 0;
+    const bin = binOf(r, g, b, a);
+    count[bin] = (count[bin] ?? 0) + 1;
+    const o = bin * 4;
+    sum[o] = (sum[o] ?? 0) + r;
+    sum[o + 1] = (sum[o + 1] ?? 0) + g;
+    sum[o + 2] = (sum[o + 2] ?? 0) + b;
+    sum[o + 3] = (sum[o + 3] ?? 0) + a;
   }
-  return { count, sum };
 }
 
 /** A bin's mean colour channel `c`. */
@@ -99,7 +100,27 @@ function split(h: Histogram, box: Box, channel: number): [Box, Box] | null {
 
 /** The palette for a sticker's frames: up to `size` entries, entry 0 clear. */
 export function buildPalette(frames: readonly Uint8Array[], size = 256, step = 2): Palette {
-  const h = histogram(frames, step);
+  const builder = paletteBuilder(step);
+  for (const px of frames) builder.add(px);
+  return builder.build(size);
+}
+
+/**
+ * A palette built a frame at a time, so a bake holds one frame's pixels, not all of them: `add`
+ * each frame as it is drawn, then `build` (as many times, at as many sizes, as needed).
+ */
+export function paletteBuilder(step = 2): {
+  add(px: Uint8Array): void;
+  build(size?: number): Palette;
+} {
+  const h = emptyHistogram();
+  return {
+    add: (px) => addFrame(h, px, step),
+    build: (size = 256) => medianCut(h, size),
+  };
+}
+
+function medianCut(h: Histogram, size: number): Palette {
   const used: number[] = [];
   for (let bin = 0; bin < BINS; bin++) if ((h.count[bin] ?? 0) > 0) used.push(bin);
   let boxes: Box[] = used.length > 0 ? [boxOf(h, Int32Array.from(used))] : [];

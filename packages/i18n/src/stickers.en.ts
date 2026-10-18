@@ -223,6 +223,9 @@ export const stickersEn = {
   'stickers.export.save': 'Save',
   'stickers.export.saved': 'Saved to Photos',
   'stickers.export.photosDenied': 'Kithfield can’t save to Photos. You can allow it in Settings.',
+  'stickers.export.comingSoon': 'Coming soon',
+  'stickers.export.stop': 'Stop',
+  'stickers.export.saving': 'Saving to Photos…',
   'stickers.export.footer':
     'Together stickers only export with everyone’s OK. Each friend in one gets asked once.',
 
@@ -238,6 +241,11 @@ export const stickersEn = {
   'stickers.adding.notInstalled': 'Not on this phone',
   'stickers.adding.notYet': 'Coming soon',
   'stickers.adding.failed': 'That didn’t pack. Try again?',
+  'stickers.adding.tooBig': 'Too big for WhatsApp just now',
+  'stickers.adding.dropped': {
+    one: '{count} sticker was too big for WhatsApp and stays in Kithfield.',
+    other: '{count} stickers were too big for WhatsApp and stay in Kithfield.',
+  },
   'stickers.adding.open': 'Open',
   'stickers.adding.setName': '{name} by Kithfield',
   'stickers.adding.telegram': {

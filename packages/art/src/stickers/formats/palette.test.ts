@@ -3,7 +3,7 @@ import { unzlibSync } from 'fflate';
 
 import { assembleApng, readApng } from './apng';
 import { changedIndexRect, encodeIndexedPng } from './indexed-png';
-import { buildPalette, indexer } from './palette';
+import { buildPalette, indexer, paletteBuilder } from './palette';
 import { headerOf, readChunks } from './png';
 
 /** A frame of `w`×`h` RGBA where `paint` gives each pixel. */
@@ -33,6 +33,15 @@ describe('a sticker’s palette', () => {
     const colourOf = (i: number) => Array.from(palette.colours.subarray(i * 4, i * 4 + 4));
     expect(colourOf(idx[3] ?? 0)).toEqual(red);
     expect(colourOf(idx[7] ?? 0)).toEqual(ink);
+  });
+
+  it('comes out the same built a frame at a time', () => {
+    const a = frame(16, 16, (x, y) => [(x * 16) % 256, (y * 16) % 256, 90, 255]);
+    const b = frame(16, 16, (x) => (x < 8 ? clear : ink));
+    const builder = paletteBuilder();
+    builder.add(a);
+    builder.add(b);
+    expect(builder.build(32)).toEqual(buildPalette([a, b], 32));
   });
 
   it('never holds more colours than asked', () => {

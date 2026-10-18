@@ -1,19 +1,27 @@
 import type { Art } from '@kithfield/art';
+import {
+  assembleAnimatedWebp,
+  assembleApng,
+  changedIndexRect,
+  changedRect,
+  encodeIndexedPng,
+  indexer,
+  LOOP_FRAMES,
+  paletteBuilder,
+  type Palette,
+  type Rect,
+} from '@kithfield/art/stickers';
 import { AlphaType, ColorType, ImageFormat, Skia, type SkImage } from '@shopify/react-native-skia';
 
 import { whenIdle } from '../../../ui/art/art-provider';
-import { assembleApng } from '@kithfield/art/stickers';
-import { changedRect, type Rect } from '@kithfield/art/stickers';
-import { changedIndexRect, encodeIndexedPng } from '@kithfield/art/stickers';
-import { buildPalette, indexer } from '@kithfield/art/stickers';
-import { assembleAnimatedWebp } from '@kithfield/art/stickers';
-import { LOOP_FRAMES } from '@kithfield/art/stickers';
 
 /*
- * Stickers made on the phone, from the same drawings the app shows: each frame drawn by the art
- * at the export's size, only the part that changed since the frame before kept, and the parts
- * joined into one animated file that fits the other app's limit. A sticker over the limit is
- * made again with fewer colours or at a lower quality, then with fewer frames a second.
+ * Stickers made on the phone, from the same drawings the app shows. Each frame is drawn by the
+ * art, read, and let go at once, so a bake holds one frame's pixels at a time (and, for Messages,
+ * each frame's palette indexes, a byte a pixel). Only the part that changed since the frame
+ * before is kept, and the parts are joined into one animated file that fits the other app's
+ * limit. A sticker over the limit is made again with fewer colours or at a lower quality, then
+ * with fewer frames a second. The JS thread gets a turn between every frame.
  */
 
 /** The loop's own length, in seconds: the pose's seamless length, else two seconds. */
@@ -36,13 +44,14 @@ export interface BakeSpec {
   readonly colours?: readonly number[];
 }
 
-interface Frame {
-  readonly image: SkImage;
-  readonly px: Uint8Array;
+/** A baked sticker, and whether it fits the spec's limit. */
+export interface Baked {
+  readonly bytes: Uint8Array;
+  readonly fits: boolean;
 }
 
 /** Lets the JS thread draw a frame of the screen between frames of a bake. */
-const breathe = () => new Promise<void>((resolve) => whenIdle(resolve));
+export const breathe = () => new Promise<void>((resolve) => whenIdle(resolve));
 
 function pixelsOf(image: SkImage): Uint8Array {
   const px = image.readPixels(0, 0, {
@@ -55,24 +64,31 @@ function pixelsOf(image: SkImage): Uint8Array {
   return px;
 }
 
-async function drawFrames(
+/**
+ * Draws each frame of the loop and hands it over, then lets its image go. False when cancelled.
+ */
+async function eachFrame(
   art: Art,
   attrs: Readonly<Record<string, string>>,
   size: number,
   fps: number,
   cancelled: () => boolean,
-): Promise<Frame[] | null> {
+  use: (px: Uint8Array, image: SkImage) => void,
+): Promise<boolean> {
   const req = { scene: 'sticker', width: size, height: size, dpr: 1, attrs: { ...attrs } };
   const count = Math.max(1, Math.round(loopSeconds(attrs['pose']) * fps));
-  const frames: Frame[] = [];
   for (let i = 0; i < count; i++) {
-    if (cancelled()) return null;
+    if (cancelled()) return false;
     const image = art.image(req, i / fps);
     if (!image) throw new Error('The sticker drew nothing');
-    frames.push({ image, px: pixelsOf(image) });
+    try {
+      use(pixelsOf(image), image);
+    } finally {
+      image.dispose();
+    }
     await breathe();
   }
-  return frames;
+  return true;
 }
 
 /** A rectangle of an image as a still WebP. */
@@ -90,8 +106,10 @@ function webpOf(image: SkImage, rect: Rect, quality: number): Uint8Array {
       Skia.XYWHRect(0, 0, rect.w, rect.h),
       Skia.Paint(),
     );
-  const bytes = surface.makeImageSnapshot().encodeToBytes(ImageFormat.WEBP, quality);
-  surface.dispose?.();
+  const part = surface.makeImageSnapshot();
+  const bytes = part.encodeToBytes(ImageFormat.WEBP, quality);
+  part.dispose();
+  surface.dispose();
   return bytes;
 }
 
@@ -102,59 +120,83 @@ interface Part {
   durationMs: number;
 }
 
-/** Frames as kept parts: a frame that changes nothing holds the one before it longer. */
-function partsOf<T>(
-  frames: readonly T[],
-  fps: number,
-  diff: (prev: T, next: T) => Rect | null,
-  full: Rect,
-  encode: (frame: T, rect: Rect) => Uint8Array,
-): Part[] {
-  const parts: Part[] = [];
-  let prev: T | null = null;
-  for (const f of frames) {
-    const rect = prev === null ? full : diff(prev, f);
-    const last = parts[parts.length - 1];
-    if (rect === null && last) last.durationMs += 1000 / fps;
-    else {
-      const r = rect ?? full;
-      parts.push({ bytes: encode(f, r), x: r.x, y: r.y, durationMs: 1000 / fps });
-    }
-    prev = f;
+/** Keeps a frame's changed part, or holds the frame before it longer when nothing changed. */
+function keep(parts: Part[], rect: Rect | null, fps: number, encode: (r: Rect) => Uint8Array) {
+  const last = parts[parts.length - 1];
+  if (rect === null && last) {
+    last.durationMs += 1000 / fps;
+    return;
   }
-  return parts;
+  if (rect === null) return;
+  parts.push({ bytes: encode(rect), x: rect.x, y: rect.y, durationMs: 1000 / fps });
 }
 
-function apng(frames: readonly Frame[], spec: BakeSpec, fps: number, colours: number): Uint8Array {
-  const { size } = spec;
-  const palette = buildPalette(
-    frames.map((f) => f.px),
-    colours,
-  );
-  const toIndexes = indexer(palette);
-  const indexes = frames.map((f) => toIndexes(f.px));
-  const parts = partsOf(
-    indexes,
-    fps,
-    (a, b) => changedIndexRect(a, b, size, size),
-    { x: 0, y: 0, w: size, h: size },
-    (f, r) => encodeIndexedPng(f, size, palette, r),
-  );
-  return assembleApng(
-    { width: size, height: size, loops: 0 },
-    parts.map((p) => ({ png: p.bytes, x: p.x, y: p.y, delayMs: Math.round(p.durationMs) })),
-  );
+/** Indexes in a big palette, moved to their nearest colours in a smaller one. */
+function remap(indexes: readonly Uint8Array[], from: Palette, to: Palette): Uint8Array[] {
+  const table = indexer(to)(from.colours);
+  return indexes.map((idx) => idx.map((i) => table[i] ?? 0));
 }
 
-function webp(frames: readonly Frame[], spec: BakeSpec, fps: number, quality: number): Uint8Array {
+async function apngs(
+  art: Art,
+  attrs: Readonly<Record<string, string>>,
+  spec: BakeSpec,
+  fps: number,
+  cancelled: () => boolean,
+): Promise<Uint8Array[] | null> {
   const { size } = spec;
-  const parts = partsOf(
-    frames,
-    fps,
-    (a, b) => changedRect(a.px, b.px, size, size, 2),
-    { x: 0, y: 0, w: size, h: size },
-    (f, r) => webpOf(f.image, r, quality),
-  );
+  // First pass: the colours. Second: each frame as indexes in the fullest palette.
+  const builder = paletteBuilder();
+  if (!(await eachFrame(art, attrs, size, fps, cancelled, (px) => builder.add(px)))) return null;
+  const sizes = spec.colours ?? [256];
+  const full = builder.build(sizes[0]);
+  const toIndexes = indexer(full);
+  const indexes: Uint8Array[] = [];
+  if (!(await eachFrame(art, attrs, size, fps, cancelled, (px) => indexes.push(toIndexes(px))))) {
+    return null;
+  }
+  const out: Uint8Array[] = [];
+  for (const [n, colours] of sizes.entries()) {
+    const palette = n === 0 ? full : builder.build(colours);
+    const frames = n === 0 ? indexes : remap(indexes, full, palette);
+    const parts: Part[] = [];
+    let prev: Uint8Array | null = null;
+    for (const f of frames) {
+      const rect =
+        prev === null ? { x: 0, y: 0, w: size, h: size } : changedIndexRect(prev, f, size, size);
+      keep(parts, rect, fps, (r) => encodeIndexedPng(f, size, palette, r));
+      prev = f;
+      await breathe();
+    }
+    out.push(
+      assembleApng(
+        { width: size, height: size, loops: 0 },
+        parts.map((p) => ({ png: p.bytes, x: p.x, y: p.y, delayMs: Math.round(p.durationMs) })),
+      ),
+    );
+    if ((out[out.length - 1]?.length ?? Infinity) <= spec.maxBytes) break;
+  }
+  return out;
+}
+
+async function webp(
+  art: Art,
+  attrs: Readonly<Record<string, string>>,
+  spec: BakeSpec,
+  fps: number,
+  quality: number,
+  cancelled: () => boolean,
+): Promise<Uint8Array | null> {
+  const { size } = spec;
+  const parts: Part[] = [];
+  let prev: Uint8Array | null = null;
+  const drawn = await eachFrame(art, attrs, size, fps, cancelled, (px, image) => {
+    const rect =
+      prev === null ? { x: 0, y: 0, w: size, h: size } : changedRect(prev, px, size, size, 2);
+    keep(parts, rect, fps, (r) => webpOf(image, r, quality));
+    prev = px;
+  });
+  if (!drawn) return null;
   return assembleAnimatedWebp(
     { width: size, height: size, loops: 0 },
     parts.map((p) => ({ webp: p.bytes, x: p.x, y: p.y, durationMs: Math.round(p.durationMs) })),
@@ -163,28 +205,34 @@ function webp(frames: readonly Frame[], spec: BakeSpec, fps: number, quality: nu
 
 /**
  * One sticker as an animated file: the `sticker` scene with `attrs`, looping, the best that fits
- * `spec.maxBytes`. Null when cancelled; the smallest it could make when nothing fits.
+ * `spec.maxBytes` (or the smallest it could make, with `fits: false`). Null when cancelled.
  */
 export async function bakeSticker(
   art: Art,
   attrs: Readonly<Record<string, string>>,
   spec: BakeSpec,
   cancelled: () => boolean = () => false,
-): Promise<Uint8Array | null> {
+): Promise<Baked | null> {
   let smallest: Uint8Array | null = null;
+  const consider = (bytes: Uint8Array) => {
+    if (smallest === null || bytes.length < smallest.length) smallest = bytes;
+    return bytes.length <= spec.maxBytes;
+  };
   for (const fps of spec.fps) {
-    const frames = await drawFrames(art, attrs, spec.size, fps, cancelled);
-    if (frames === null) return null;
-    const steps = spec.format === 'apng' ? (spec.colours ?? [256]) : (spec.qualities ?? [75]);
-    for (const step of steps) {
-      const bytes =
-        spec.format === 'apng' ? apng(frames, spec, fps, step) : webp(frames, spec, fps, step);
-      if (bytes.length <= spec.maxBytes) return bytes;
-      if (smallest === null || bytes.length < smallest.length) smallest = bytes;
-      await breathe();
+    if (spec.format === 'apng') {
+      const tries = await apngs(art, attrs, spec, fps, cancelled);
+      if (tries === null) return null;
+      for (const bytes of tries) if (consider(bytes)) return { bytes, fits: true };
+    } else {
+      for (const quality of spec.qualities ?? [75]) {
+        const bytes = await webp(art, attrs, spec, fps, quality, cancelled);
+        if (bytes === null) return null;
+        if (consider(bytes)) return { bytes, fits: true };
+      }
     }
   }
-  return smallest;
+  const best: Uint8Array | null = smallest;
+  return best === null ? null : { bytes: best, fits: false };
 }
 
 /** A still of the sticker (the art's own still moment), as a PNG: tray icons and covers. */
@@ -199,5 +247,7 @@ export function bakeStill(
     t,
   );
   if (!image) throw new Error('The sticker drew nothing');
-  return image.encodeToBytes(ImageFormat.PNG, 100);
+  const bytes = image.encodeToBytes(ImageFormat.PNG, 100);
+  image.dispose();
+  return bytes;
 }

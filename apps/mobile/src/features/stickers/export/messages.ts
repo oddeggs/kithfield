@@ -1,21 +1,31 @@
 import type { Art } from '@kithfield/art';
+import { MESSAGES } from '@kithfield/art/stickers';
 import Constants from 'expo-constants';
 import { Directory, File, Paths } from 'expo-file-system';
 
-import { checkMessagesSticker, MESSAGES } from '@kithfield/art/stickers';
 import { bakeSticker, type BakeSpec } from './bake';
-import { packSignature, type PackSticker } from './pack';
+import type { PackSticker } from './pack';
+import { bakePlan, stickerSignature } from './plan';
+import { bakeQueue } from './queue';
 
 /*
  * The Messages sticker drawer reads the App Group: every APNG in `surfaces/stickers/`, in file
- * name order, with `manifest.json` naming each one for VoiceOver. The app rewrites the folder
- * whenever the pack's drawing changes (an outfit, a coat, the language), and leaves it alone
- * otherwise.
+ * name order, with `manifest.json` naming each one for VoiceOver. When the pack's drawing changes
+ * (an outfit, a coat, the language) the app makes the stickers that changed into a folder beside
+ * it, keeps the ones that didn't, and swaps the new folder in only once it is whole: the drawer
+ * never offers half an old pack and half a new one. A bake cut short carries on where it stopped.
  */
 
-/** The folder in the App Group. */
+/** The folder in the App Group (`APP_GROUP_PATHS` doesn't name it yet). */
 export const STICKERS_FOLDER = 'surfaces/stickers/';
+/** Where the next pack is made before it is swapped in. */
+const NEXT_FOLDER = 'surfaces/stickers-next/';
 const MANIFEST = 'manifest.json';
+/** In the next folder: the stickers made so far, for carrying on after an interruption. */
+const PROGRESS = 'progress.json';
+
+/** Bumped when the way the drawer's files are made changes, so old ones are made again. */
+const FORMAT = 'apng-palette-2';
 
 /**
  * How the drawer's stickers are made: Messages takes up to 500 KB each, 300 to 618 px across.
@@ -29,49 +39,70 @@ export const MESSAGES_SPEC: BakeSpec = {
   colours: [256, 160, 96],
 };
 
-/** Bumped when the way the drawer's files are made changes, so old ones are made again. */
-const SIGNATURE = 'apng-palette-1';
+interface Entry {
+  readonly file: string;
+  readonly label: string;
+  /** What the file was made from (`stickerSignature`). */
+  readonly sig: string;
+}
 
 export interface MessagesManifest {
-  readonly signature: string;
-  readonly stickers: readonly { readonly file: string; readonly label: string }[];
+  readonly stickers: readonly Entry[];
+}
+
+function groupRoot(): Directory | null {
+  const group = (Constants.expoConfig?.extra as { appGroup?: string } | undefined)?.appGroup;
+  return group ? (Paths.appleSharedContainers[group] ?? null) : null;
 }
 
 /** The App Group's sticker folder, or null where the App Group isn't there (tests, Android). */
 export function stickerFolder(): Directory | null {
-  const group = (Constants.expoConfig?.extra as { appGroup?: string } | undefined)?.appGroup;
-  const root = group ? Paths.appleSharedContainers[group] : undefined;
+  const root = groupRoot();
   return root ? new Directory(root, STICKERS_FOLDER) : null;
 }
 
-async function readManifest(folder: Directory): Promise<MessagesManifest | null> {
+async function readEntries(folder: Directory, name: string): Promise<Entry[]> {
   try {
-    const file = new File(folder, MANIFEST);
-    if (!file.exists) return null;
-    return JSON.parse(await file.text()) as MessagesManifest;
+    const file = new File(folder, name);
+    if (!file.exists) return [];
+    const parsed = JSON.parse(await file.text()) as Partial<MessagesManifest>;
+    const list: unknown = parsed.stickers;
+    return Array.isArray(list) ? (list as Entry[]) : [];
   } catch {
-    return null;
+    return [];
   }
+}
+
+async function writeJson(folder: Directory, name: string, value: unknown): Promise<void> {
+  const file = new File(folder, name);
+  if (!file.exists) file.create();
+  await file.write(JSON.stringify(value));
+}
+
+/** The stickers a folder holds as made, by file stem, when their files are there. */
+function madeIn(folder: Directory, entries: readonly Entry[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const e of entries)
+    if (new File(folder, e.file).exists) out[e.file.replace(/\.png$/, '')] = e.sig;
+  return out;
 }
 
 /** Whether the drawer already holds this pack as drawn now. */
 export async function messagesCurrent(stickers: readonly PackSticker[]): Promise<boolean> {
   const folder = stickerFolder();
   if (!folder?.exists) return false;
-  const manifest = await readManifest(folder);
+  const entries = await readEntries(folder, MANIFEST);
   return (
-    manifest?.signature === packSignature(stickers, SIGNATURE) &&
-    manifest.stickers.every((s) => new File(folder, s.file).exists)
+    entries.length === stickers.length &&
+    bakePlan(stickers, madeIn(folder, entries), FORMAT).make.length === 0
   );
 }
 
 export type MessagesResult = 'unchanged' | 'written' | 'unavailable' | 'cancelled';
 
-let running: Promise<MessagesResult> | null = null;
-
 /**
- * Brings the drawer up to date with the pack: bakes each sticker, writes it, then the manifest,
- * then takes away files of an older pack. One at a time; a second call while one runs waits for it.
+ * Brings the drawer up to date with the pack, through the one bake queue (never alongside a
+ * WhatsApp or Photos bake).
  */
 export function syncMessages(
   art: Art,
@@ -79,11 +110,7 @@ export function syncMessages(
   onProgress: (done: number, total: number) => void = () => undefined,
   cancelled: () => boolean = () => false,
 ): Promise<MessagesResult> {
-  const next = (running ?? Promise.resolve<MessagesResult>('unchanged'))
-    .catch((): MessagesResult => 'unchanged')
-    .then(() => write(art, stickers, onProgress, cancelled));
-  running = next;
-  return next;
+  return bakeQueue(() => write(art, stickers, onProgress, cancelled));
 }
 
 async function write(
@@ -92,37 +119,49 @@ async function write(
   onProgress: (done: number, total: number) => void,
   cancelled: () => boolean,
 ): Promise<MessagesResult> {
-  const folder = stickerFolder();
-  if (folder === null) return 'unavailable';
+  const root = groupRoot();
+  if (root === null) return 'unavailable';
   if (await messagesCurrent(stickers)) return 'unchanged';
-  if (!folder.exists) folder.create({ intermediates: true });
-  const written: { file: string; label: string }[] = [];
+  const live = new Directory(root, STICKERS_FOLDER);
+  const next = new Directory(root, NEXT_FOLDER);
+  if (!next.exists) next.create({ intermediates: true });
+  const progress = await readEntries(next, PROGRESS);
+  const inNext = madeIn(next, progress);
+  const inLive = live.exists ? madeIn(live, await readEntries(live, MANIFEST)) : {};
+  const written: Entry[] = progress.filter((e) => inNext[e.file.replace(/\.png$/, '')] === e.sig);
   onProgress(0, stickers.length);
   for (const [i, s] of stickers.entries()) {
-    const bytes = await bakeSticker(art, s.attrs, MESSAGES_SPEC, cancelled);
-    if (bytes === null) return 'cancelled';
-    if (checkMessagesSticker(bytes).length > 0 && __DEV__) {
-      console.warn(`The ${s.id} sticker is over what Messages takes`, checkMessagesSticker(bytes));
-    }
+    const sig = stickerSignature(s, FORMAT);
     const name = `${s.stem}.png`;
-    const file = new File(folder, name);
-    if (file.exists) file.delete();
-    file.create();
-    await file.write(bytes);
-    written.push({ file: name, label: s.label });
+    const target = new File(next, name);
+    if (inNext[s.stem] !== sig) {
+      if (inLive[s.stem] === sig) {
+        if (target.exists) target.delete();
+        new File(live, name).copySync(target);
+      } else {
+        const baked = await bakeSticker(art, s.attrs, MESSAGES_SPEC, cancelled);
+        if (baked === null) return 'cancelled';
+        if (target.exists) target.delete();
+        target.create();
+        await target.write(baked.bytes);
+      }
+      written.push({ file: name, label: s.label, sig });
+      await writeJson(next, PROGRESS, { stickers: written });
+    }
     onProgress(i + 1, stickers.length);
   }
+  // The whole pack is made: name it, keep only its files, and swap it in.
+  const order = new Map(stickers.map((s, i) => [`${s.stem}.png`, i]));
   const manifest: MessagesManifest = {
-    signature: packSignature(stickers, SIGNATURE),
-    stickers: written,
+    stickers: written
+      .filter((e) => order.has(e.file))
+      .sort((a, b) => (order.get(a.file) ?? 0) - (order.get(b.file) ?? 0)),
   };
-  const m = new File(folder, MANIFEST);
-  if (m.exists) m.delete();
-  m.create();
-  await m.write(JSON.stringify(manifest));
-  const keep = new Set([MANIFEST, ...written.map((w) => w.file)]);
-  for (const entry of folder.list()) {
+  await writeJson(next, MANIFEST, manifest);
+  const keep = new Set([MANIFEST, ...manifest.stickers.map((e) => e.file)]);
+  for (const entry of next.list())
     if (entry instanceof File && !keep.has(entry.name)) entry.delete();
-  }
+  if (live.exists) live.delete();
+  next.rename(STICKERS_FOLDER.replace(/^surfaces\/|\/$/g, ''));
   return 'written';
 }

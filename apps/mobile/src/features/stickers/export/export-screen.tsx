@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -43,8 +43,15 @@ export function ExportScreen() {
     () => (critter ? ownPack(t, { name: me.name, critter }) : []),
     [t, me.name, critter],
   );
-  const messages = useMessagesSync(me);
-  const [saving, setSaving] = useState(false);
+  const messages = useMessagesSync();
+  const [saving, setSaving] = useState<number | null>(null);
+  const stopSaving = useRef(false);
+  useEffect(
+    () => () => {
+      stopSaving.current = true;
+    },
+    [],
+  );
   const [firstFarm, setFirstFarm] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
@@ -63,12 +70,22 @@ export function ExportScreen() {
 
   const save = () => {
     if (!critter) return;
-    setSaving(true);
-    void saveToPhotos(store.art, stickers).then((result) => {
-      setSaving(false);
+    if (saving !== null) {
+      stopSaving.current = true;
+      return;
+    }
+    stopSaving.current = false;
+    setSaving(0);
+    void saveToPhotos(
+      store.art,
+      stickers,
+      (done, total) => setSaving(total > 0 ? done / total : 0),
+      () => stopSaving.current,
+    ).then((result) => {
+      setSaving(null);
       if (result === 'saved') toast.show(t('stickers.export.saved'));
       else if (result === 'denied') toast.show(t('stickers.export.photosDenied'));
-      else toast.show(t('stickers.adding.failed'));
+      else if (result === 'failed') toast.show(t('stickers.adding.failed'));
     });
   };
 
@@ -170,10 +187,12 @@ export function ExportScreen() {
             title={t('stickers.export.telegram')}
             sub={t('stickers.export.telegram.sub')}
             trailing={
+              // Telegram sets come from Kithfield's bot, which isn't connected yet.
               <Pill
-                label={t('stickers.export.add')}
-                kind="ink"
-                onPress={() => router.push(stickerRoutes.adding())}
+                label={t('stickers.export.comingSoon')}
+                kind="outline"
+                disabled
+                onPress={() => undefined}
               />
             }
           />
@@ -195,13 +214,12 @@ export function ExportScreen() {
             icon="photo"
             iconColour={palette.text}
             title={t('stickers.export.photos')}
-            sub={t('stickers.export.photos.sub')}
+            sub={saving === null ? t('stickers.export.photos.sub') : t('stickers.export.saving')}
             last
             trailing={
               <Pill
-                label={t('stickers.export.save')}
+                label={saving === null ? t('stickers.export.save') : t('stickers.export.stop')}
                 kind="outline"
-                disabled={saving}
                 onPress={save}
               />
             }

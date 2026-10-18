@@ -30,11 +30,3 @@ export function ownPack(
     };
   });
 }
-
-/**
- * What a pack's files depend on: the critter as drawn and the words. When this is unchanged the
- * files already written are still right; an outfit change or a new language makes new ones.
- */
-export function packSignature(stickers: readonly PackSticker[], format: string): string {
-  return JSON.stringify([format, stickers.map((s) => [s.stem, s.attrs])]);
-}
