@@ -40,14 +40,17 @@ export const forgetMedia = (db: D1Database, keys: readonly string[]): Promise<vo
   dropRows(db, keys);
 
 /**
- * Account deletion: deletes every object the person uploaded, on every farm and visit, and their
- * index rows. Answers how many objects went. Run it before the person's D1 rows are deleted.
+ * Account deletion: deletes every object the person uploaded or forwarded, on every farm and
+ * visit, their index rows and their forwarding records. Answers how many objects went. Run it
+ * before the person's D1 rows are deleted.
  */
 export async function deletePersonMedia(
   env: Pick<Bindings, 'MEDIA' | 'DB'>,
   person: PersonId,
 ): Promise<number> {
-  return deleteObjects(env, await deletableOf(env.DB, person));
+  const deleted = await deleteObjects(env, await deletableOf(env.DB, person));
+  await env.DB.prepare('DELETE FROM media_copies WHERE person_id = ?').bind(person).run();
+  return deleted;
 }
 
 /** A farm that is gone: deletes every object on it that the index knows. */

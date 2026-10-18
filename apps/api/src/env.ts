@@ -59,6 +59,8 @@ export type Bindings = Secrets & {
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Gestures at another farm's gate, per visitor. */
   readonly GATE_LIMIT: RateLimit;
+  /** At most 60 upload URLs (and forwarding copies) a minute per person. */
+  readonly MEDIA_LIMIT: RateLimit;
   /** At most 5 waitlist sign-ups a minute per client address. */
   readonly WAITLIST_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */

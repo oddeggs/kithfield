@@ -1,18 +1,20 @@
 import {
   CompleteUploadRequest,
-  LIMITS,
-  ReadUrlsRequest,
   type CompleteUploadResponse,
-  type ReadUrlsResponse,
+  MediaKey,
   UploadUrlRequest,
   type UploadUrlResponse,
 } from '@kithfield/contracts';
 import { Hono } from 'hono';
+import { z } from 'zod';
 
 import type { SessionEnv } from '../auth';
 import { roleOf } from '../farm/d1';
-import { body, fail, sessionOrActionKey, signedIn } from '../farm/http';
-import { markCompleted, mediaRow, mediaRows, recordUpload } from './index-store';
+import { body, type Ctx, fail, sessionOrActionKey } from '../farm/http';
+import { copyRoute } from './copy';
+import { dropRow, markCompleted, mediaRow, recordUpload } from './index-store';
+import { proxyRoute } from './proxy-route';
+import { readRoute } from './read-route';
 import {
   isMultipart,
   MAX_BYTES,
@@ -23,23 +25,26 @@ import {
   partSizes,
   SINGLE_URL_MS,
 } from './rules';
-import {
-  farmOfKey,
-  MEDIA_KEY,
-  MIN_SIGNING_KEY_LENGTH,
-  readExpiry,
-  signedReadUrl,
-} from './signature';
-import { bindingEtags, dropProxyParts, putProxyPart } from './proxy-parts';
-import { PROXY_PATH, proxyEnabled, uploadSigner, verifyProxyPut } from './uploads';
+import { bindingEtags, dropProxyParts } from './proxy-parts';
+import { proxyEnabled, uploadSigner } from './uploads';
 
 /*
- * The media routes, mounted at `/v1`: upload URLs, finishing a multipart upload, signed reads and,
- * in development only, the upload proxy (`uploads.ts`).
+ * The media routes, mounted at `/v1`: upload URLs, finishing and cancelling an upload, signed
+ * reads, forwarding copies and, in development only, the upload proxy (`uploads.ts`).
  */
 
 /** An S3 ETag arrives quoted; R2's binding wants the bare value. */
 const bareEtag = (etag: string) => etag.replace(/^W\//, '').replace(/^"|"$/g, '');
+
+/** Upload URLs and copies a person may ask for: 60 a minute. False (answer 429) once over. */
+export const withinMediaLimit = async (c: Ctx, person: string) =>
+  (await c.env.MEDIA_LIMIT.limit({ key: person })).success;
+
+/** `POST /v1/media/abort`: the uploader gives up on an upload before its message is sent. */
+export const AbortUploadRequest = z.object({
+  key: MediaKey,
+  uploadId: z.string().min(1).max(512).optional(),
+});
 
 export const mediaRoutes = (): Hono<SessionEnv> => {
   const app = new Hono<SessionEnv>();
@@ -53,6 +58,7 @@ export const mediaRoutes = (): Hono<SessionEnv> => {
     if (req instanceof Response) return req;
     const person = c.get('person');
     if ((await roleOf(c.env.DB, req.farm, person)) === null) return fail(c, 404, 'not_found');
+    if (!(await withinMediaLimit(c, person))) return fail(c, 429, 'rate_limited');
     if (!mimeFits(req.kind, req.mime)) return fail(c, 400, 'bad_request', ['mime']);
     if (req.bytes > MAX_BYTES[req.kind]) return fail(c, 413, 'too_large', ['bytes']);
     const signer = uploadSigner(
@@ -125,9 +131,14 @@ export const mediaRoutes = (): Hono<SessionEnv> => {
       const done = await c.env.MEDIA.resumeMultipartUpload(row.key, req.uploadId).complete(etags);
       size = done.size;
     } catch (error) {
-      // A part missing or uploaded with another ETag, or an upload R2 no longer has.
-      console.warn('multipart complete refused', { error });
-      return fail(c, 409, 'conflict', ['parts']);
+      // R2 may have finished it on an earlier try whose answer was lost: then the object is there.
+      const head = await c.env.MEDIA.head(row.key);
+      if (head === null || head.size !== row.bytes) {
+        // A part missing or uploaded with another ETag, or an upload R2 no longer has.
+        console.warn('multipart complete refused', { error });
+        return fail(c, 409, 'conflict', ['parts']);
+      }
+      size = head.size;
     }
     if (size !== row.bytes) {
       await c.env.MEDIA.delete(row.key);
@@ -139,74 +150,32 @@ export const mediaRoutes = (): Hono<SessionEnv> => {
   });
 
   /**
-   * Signed, short-lived read URLs on the media Worker. Only keys on farms the caller lives on, that
-   * were uploaded through these routes and aren't quarantined, are signed; others are left out,
-   * so one stale key never fails a screenful.
+   * Cancels an upload the uploader no longer wants: aborts its multipart upload (so R2 drops the
+   * parts), deletes whatever single PUT landed, and forgets the key. Only before anything points at
+   * it.
    */
-  app.post('/media/read-urls', signedIn, async (c) => {
-    const req = await body(c, ReadUrlsRequest);
+  app.post('/media/abort', sessionOrActionKey, async (c) => {
+    const req = await body(c, AbortUploadRequest);
     if (req instanceof Response) return req;
-    const secret = c.env.MEDIA_SIGNING_KEY;
-    if (secret === undefined || secret.length < MIN_SIGNING_KEY_LENGTH) {
-      return fail(c, 503, 'unavailable');
-    }
-    const person = c.get('person');
-    const keys = [...new Set(req.keys)];
-    const rows = await mediaRows(c.env.DB, keys);
-    const member = new Map<string, boolean>();
-    const expiresAt = readExpiry(Date.now());
-    const urls: ReadUrlsResponse['urls'] = [];
-    for (const key of keys) {
-      const farm = farmOfKey(key);
-      const row = rows.get(key);
-      if (farm === null || row === undefined || row.quarantined_at !== null) continue;
-      if (!member.has(farm)) member.set(farm, (await roleOf(c.env.DB, farm, person)) !== null);
-      if (member.get(farm) !== true) continue;
-      urls.push({
-        key,
-        url: await signedReadUrl(c.env.MEDIA_ORIGIN, secret, key, expiresAt),
-        expiresAt,
-      });
-    }
-    return c.json({ urls } satisfies ReadUrlsResponse);
-  });
-
-  /**
-   * The development upload proxy: a PUT to a URL the routes above signed, written through the R2
-   * binding. Answers like R2 does: 200 with the ETag. Not served where presigning works.
-   */
-  app.put(`${PROXY_PATH}/farm/:farm/:id`, async (c) => {
-    if (!proxyEnabled(c.env)) return fail(c, 404, 'not_found');
-    const key = `farm/${c.req.param('farm')}/${c.req.param('id')}`;
-    if (!MEDIA_KEY.test(key)) return fail(c, 404, 'not_found');
-    const target = await verifyProxyPut(c.env, key, new URL(c.req.url).searchParams, Date.now());
-    if (target === null) return fail(c, 403, 'forbidden');
-    const length = Number(c.req.header('content-length'));
-    const stream = c.req.raw.body;
-    if (length !== target.bytes || stream === null) return fail(c, 400, 'bad_request', ['bytes']);
-    if (target.bytes > LIMITS.uploadBytes) return fail(c, 413, 'too_large');
-
-    if (target.part === undefined) {
-      if (c.req.header('content-type') !== target.mime) {
-        return fail(c, 400, 'bad_request', ['content-type']);
-      }
-      const object = await c.env.MEDIA.put(key, stream, {
-        httpMetadata: { contentType: target.mime },
-      });
-      c.header('ETag', `"${object?.etag ?? ''}"`);
-      return c.body(null, 200);
-    }
-    try {
-      const { uploadId, number } = target.part;
-      const part = await c.req.arrayBuffer();
-      if (part.byteLength !== target.bytes) return fail(c, 400, 'bad_request', ['bytes']);
-      c.header('ETag', `"${await putProxyPart(c.env.MEDIA, key, uploadId, number, part)}"`);
-      return c.body(null, 200);
-    } catch (error) {
-      console.warn('upload part refused', { error });
+    const row = await mediaRow(c.env.DB, req.key);
+    if (
+      row === null ||
+      row.person_id !== c.get('person') ||
+      row.quarantined_at !== null ||
+      row.referenced_at !== null ||
+      (row.upload_id !== null && row.upload_id !== req.uploadId)
+    ) {
       return fail(c, 404, 'not_found');
     }
+    if (row.upload_id !== null) {
+      await c.env.MEDIA.resumeMultipartUpload(row.key, row.upload_id)
+        .abort()
+        .catch(() => undefined);
+    }
+    await c.env.MEDIA.delete(row.key);
+    await dropRow(c.env.DB, row.key);
+    return c.body(null, 204);
   });
 
-  return app;
+  return app.route('/', readRoute()).route('/', copyRoute()).route('/', proxyRoute());
 };

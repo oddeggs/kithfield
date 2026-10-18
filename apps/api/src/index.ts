@@ -1,5 +1,6 @@
 import { createApp } from './app';
 import type { Bindings } from './env';
+import { sweepMedia } from './media';
 import { consumeQueue } from './queues';
 import { keepWaitlistTidy } from './web/waitlist-store';
 
@@ -15,5 +16,7 @@ export default {
   // The daily cron (`wrangler.jsonc` triggers).
   scheduled: (controller, env, ctx) => {
     ctx.waitUntil(keepWaitlistTidy(env.DB, controller.scheduledTime));
+    // Uploads left unfinished for a week.
+    ctx.waitUntil(sweepMedia(env, controller.scheduledTime));
   },
 } satisfies ExportedHandler<Bindings>;

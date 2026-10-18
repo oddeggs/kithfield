@@ -16,10 +16,11 @@ export type MediaRow = {
   completed_at: number | null;
   quarantined_at: number | null;
   report_id: string | null;
+  referenced_at: number | null;
 };
 
 const COLUMNS =
-  'key, farm_id, person_id, kind, mime, bytes, upload_id, created_at, completed_at, quarantined_at, report_id';
+  'key, farm_id, person_id, kind, mime, bytes, upload_id, created_at, completed_at, quarantined_at, report_id, referenced_at';
 
 /** Records a key as an upload URL is handed out for it. */
 export const recordUpload = (
@@ -143,4 +144,27 @@ export async function dropRows(db: D1Database, keys: readonly string[]): Promise
       .bind(...chunk)
       .run();
   }
+}
+
+/** Forgets one key's row (an upload cancelled or swept before it was ever sent). */
+export const dropRow = (db: D1Database, key: string) =>
+  db.prepare('DELETE FROM media_objects WHERE key = ? AND quarantined_at IS NULL').bind(key).run();
+
+/**
+ * Whether the key's bytes are all in R2 and it may be read: finished multipart uploads, and
+ * single PUTs once R2 holds the declared size (marked finished the first time that is seen).
+ */
+export async function isFinished(
+  db: D1Database,
+  bucket: R2Bucket,
+  row: MediaRow,
+  now: number,
+): Promise<boolean> {
+  if (row.quarantined_at !== null) return false;
+  if (row.completed_at !== null) return true;
+  if (row.upload_id !== null) return false;
+  const head = await bucket.head(row.key);
+  if (head === null || head.size !== row.bytes) return false;
+  await markCompleted(db, row.key, now);
+  return true;
 }

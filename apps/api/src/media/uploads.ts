@@ -7,8 +7,9 @@ import { presign } from './sigv4';
  *
  * Deployed, uploads go straight to R2: URLs presigned for R2's S3-compatible endpoint
  * (`<account>.r2.cloudflarestorage.com`) with the R2 API token, so no byte passes through a
- * Worker. A presigned PUT signs `content-length` (and a single PUT its `content-type`), so the
- * phone can only send the size and type it declared.
+ * Worker. A presigned PUT signs `content-length` (and a single PUT its `content-type` and
+ * `if-none-match: *`), so the phone can only send the size and type it declared, and a single PUT
+ * can only create its object, never overwrite it. The phone sends exactly those headers.
  *
  * `wrangler dev` simulates the R2 binding but has no S3 endpoint to presign for. In the `dev`
  * environment without the R2 token (a laptop, the Workers test pool) uploads go through the API's
@@ -82,7 +83,8 @@ export function uploadSigner(env: Bindings, apiOrigin: string): UploadSigner | n
           url,
           headers: {
             'content-length': String(t.bytes),
-            ...(t.part === undefined ? { 'content-type': t.mime } : {}),
+            // A single PUT may only create its object, never replace it.
+            ...(t.part === undefined ? { 'content-type': t.mime, 'if-none-match': '*' } : {}),
           },
           credentials: { accessKeyId: r2.accessKeyId, secretAccessKey: r2.secret, region: 'auto' },
           at: new Date(now),

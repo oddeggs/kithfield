@@ -89,9 +89,19 @@ export async function signedReadUrl(
   return `${origin}/${key}?exp=${exp}&sig=${sig}`;
 }
 
+/** The URL's path without its leading slash, decoded; null when it doesn't decode. */
+function decodedPath(url: URL): string | null {
+  try {
+    return decodeURIComponent(url.pathname.slice(1));
+  } catch {
+    return null;
+  }
+}
+
 /** The object key a read URL is for, when it is signed and not yet expired; else null. */
 export async function verifyReadUrl(secret: string, url: URL, now: number): Promise<string | null> {
-  const key = decodeURIComponent(url.pathname.slice(1));
+  const key = decodedPath(url);
+  if (key === null) return null;
   const exp = url.searchParams.get('exp') ?? '';
   const sig = url.searchParams.get('sig') ?? '';
   if (!MEDIA_KEY.test(key) || !/^\d{1,12}$/.test(exp)) return null;
@@ -101,10 +111,12 @@ export async function verifyReadUrl(secret: string, url: URL, now: number): Prom
 
 /** The media key in a URL Cloudflare's scanning flagged (any media URL, signed or not). */
 export function keyOfMediaUrl(text: string): string | null {
+  let url: URL;
   try {
-    const key = decodeURIComponent(new URL(text).pathname.slice(1));
-    return MEDIA_KEY.test(key) ? key : null;
+    url = new URL(text);
   } catch {
     return null;
   }
+  const key = decodedPath(url);
+  return key !== null && MEDIA_KEY.test(key) ? key : null;
 }

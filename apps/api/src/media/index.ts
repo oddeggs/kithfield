@@ -16,3 +16,6 @@ export {
   type UrgentReportOpener,
 } from './quarantine';
 export { isQuarantined } from './index-store';
+export { markMediaReferenced, sweepMedia, type SweepOptions, type SweepResult } from './sweep';
+export { CopyMediaRequest, type CopyMediaResponse } from './copy';
+export { AbortUploadRequest } from './routes';
