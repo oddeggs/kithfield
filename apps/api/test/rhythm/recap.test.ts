@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import worker from '../../src/index';
 import { recapLetters, unwrittenLetters } from '../../src/rhythm/letters';
+import { pollinatorFor } from '../../src/rhythm/pollinator';
 import { recapFacts } from '../../src/rhythm/recap-facts';
 import { op } from '../farm/support/client';
 import {
@@ -276,5 +277,33 @@ describe('the Sunday recap', () => {
     const farm = await plantFarm(pip);
     expect((await recap(kit, farm)).status).toBe(404);
     expect((await recap(null, farm)).status).toBe(401);
+  });
+});
+
+describe('the best pollinator', () => {
+  const both = (a: string, b: string) => [
+    { person: a, reasons: ['kept_it_warm' as const] },
+    { person: b, reasons: ['kept_it_warm' as const] },
+  ];
+  const remember = (farm: string, week: string, person: string) =>
+    env.DB.prepare(
+      `INSERT INTO recap_pollinators (farm_id, week, person_id, reason, chosen_at)
+       VALUES (?, ?, ?, 'kept_it_warm', 0)`,
+    )
+      .bind(farm, week, person)
+      .run();
+
+  it('is someone else who qualifies once the remembered one has left, or nobody', async () => {
+    const { pip } = await cast('pip');
+    const { farm } = await plantFarm(pip);
+    await remember(farm, '2054-10-18', 'p_gone');
+    const qualities = [...both('p_gone', 'p_here')].filter((q) => q.person === 'p_here');
+    const now = noon('2054-10-18');
+    const members = ['p_here', 'p_quiet'];
+    expect(await pollinatorFor(env.DB, farm, '2054-10-18', qualities, members, now)).toEqual({
+      person: 'p_here',
+      reason: 'kept_it_warm',
+    });
+    expect(await pollinatorFor(env.DB, farm, '2054-10-18', [], ['p_quiet'], now)).toBeNull();
   });
 });

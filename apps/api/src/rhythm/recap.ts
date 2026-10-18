@@ -35,7 +35,14 @@ export const weeklyRecap = async (
   facts: RecapFacts,
   now: number,
 ): Promise<WeeklyRecap> => {
-  const pollinator = await pollinatorFor(env.DB, farm, facts.week, facts.qualities, now);
+  const pollinator = await pollinatorFor(
+    env.DB,
+    farm,
+    facts.week,
+    facts.qualities,
+    facts.members,
+    now,
+  );
   const letter = await recapLetters.current.letter(env, {
     farm,
     week: facts.week,

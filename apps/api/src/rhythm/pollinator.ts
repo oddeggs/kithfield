@@ -39,19 +39,28 @@ export const pickPollinator = (
   return chosen === undefined || reason === undefined ? null : { person: chosen.person, reason };
 };
 
-/** The week's pollinator: remembered, or picked now and remembered; null when nobody tended. */
+/**
+ * The week's pollinator: remembered, or picked now and remembered; null when nobody tended. When
+ * the remembered one no longer lives on the farm, someone else who qualifies is named instead (not
+ * remembered over them), or nobody.
+ */
 export const pollinatorFor = async (
   db: D1Database,
   farm: string,
   week: LocalDate,
   qualities: RecapFacts['qualities'],
+  members: readonly PersonId[],
   now: number,
 ): Promise<Pollinator | null> => {
+  const current = new Set(members);
   const kept = await remembered(db, farm, week);
-  if (kept !== null) return { person: kept.person_id, reason: kept.reason };
+  if (kept !== null && current.has(kept.person_id)) {
+    return { person: kept.person_id, reason: kept.reason };
+  }
+  const here = qualities.filter((q) => current.has(q.person) && q.person !== kept?.person_id);
   const last = await remembered(db, farm, addDays(week, -7));
-  const pick = pickPollinator(farm, week, qualities, last?.person_id ?? null);
-  if (pick === null) return null;
+  const pick = pickPollinator(farm, week, here, last?.person_id ?? null);
+  if (pick === null || kept !== null) return pick;
   await db
     .prepare(
       `INSERT OR IGNORE INTO recap_pollinators (farm_id, week, person_id, reason, chosen_at)
