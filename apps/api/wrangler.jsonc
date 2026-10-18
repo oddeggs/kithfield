@@ -42,6 +42,8 @@
         "WEATHERKIT_TEAM_ID": "YFND2EEW8S",
         "WEATHERKIT_KEY_ID": "UC6TN76PKY",
         "WEATHERKIT_SERVICE_ID": "com.kithfield.app",
+        // The farm rules version farms move to and start on: dev runs the newest rules.
+        "RULES_TARGET": "4",
       },
       "durable_objects": {
         "bindings": [
@@ -158,6 +160,8 @@
         "WEATHERKIT_TEAM_ID": "YFND2EEW8S",
         "WEATHERKIT_KEY_ID": "UC6TN76PKY",
         "WEATHERKIT_SERVICE_ID": "com.kithfield.app",
+        // The farm rules version farms move to and start on, held at what the store's phones read.
+        "RULES_TARGET": "3",
       },
       "durable_objects": {
         "bindings": [

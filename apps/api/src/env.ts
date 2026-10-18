@@ -57,6 +57,11 @@ export type Bindings = Secrets & {
   readonly WEATHERKIT_TEAM_ID: string;
   readonly WEATHERKIT_KEY_ID: string;
   readonly WEATHERKIT_SERVICE_ID: string;
+  /**
+   * The newest farm rules version this environment moves farms to (a whole number; prd holds farms
+   * at the rules every phone in the store can read). Unset, the server's own `RULES_VERSION`.
+   */
+  readonly RULES_TARGET?: string;
   /** One farm object per farm or visit. */
   readonly FARM: DurableObjectNamespace<FarmDO>;
   /** One cottage object per person. */
