@@ -5,7 +5,8 @@ import { api, cast, plantFarm, useTestPorts } from '../farm/support/doubles';
 import { boughtConsumable } from './support';
 
 beforeEach(() => {
-  useTestPorts({ at: Date.now() });
+  // Farms here start on the rules before farm-written themes.
+  useTestPorts({ at: Date.now(), rulesVersion: RESTORATION_RULES_VERSION - 1 });
 });
 
 describe('a covered farm theme on a farm whose rules are older than farm-written themes', () => {
