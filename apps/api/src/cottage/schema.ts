@@ -86,6 +86,13 @@ export const COTTAGE_SCHEMA = [
     since INTEGER NOT NULL,
     PRIMARY KEY (farm, type)
   )`,
+  // When each farm's latest widget refresh (a silent push) went or is due to go, by reason.
+  `CREATE TABLE IF NOT EXISTS surface_refresh (
+    farm TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    send_at INTEGER NOT NULL,
+    PRIMARY KEY (farm, reason)
+  )`,
   // Set once the person's account is purged: a late delivery or farm row is never taken in again.
   `CREATE TABLE IF NOT EXISTS purged (id INTEGER PRIMARY KEY CHECK (id = 1))`,
 ] as const;

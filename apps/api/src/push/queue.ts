@@ -1,4 +1,4 @@
-import { PersonId, type PushJob } from '@kithfield/contracts';
+import { FarmId, PersonId, type PushJob, SurfaceRefreshData } from '@kithfield/contracts';
 import { z } from 'zod';
 
 import type { Bindings } from '../env';
@@ -22,7 +22,16 @@ export const ReceiptCheck = z.object({
 });
 export type ReceiptCheck = z.infer<typeof ReceiptCheck>;
 
-export type PushQueueMessage = PushJob | ReceiptCheck;
+/**
+ * A silent push asking the person's phones to redraw their widgets (`SurfaceRefreshData`), from
+ * the cottage, which spaces them out. Never an alert, never in the budget or the ledger.
+ */
+export const SurfaceRefreshJob = z.object({
+  surfaceRefresh: SurfaceRefreshData.extend({ person: PersonId, farm: FarmId }),
+});
+export type SurfaceRefreshJob = z.infer<typeof SurfaceRefreshJob>;
+
+export type PushQueueMessage = PushJob | ReceiptCheck | SurfaceRefreshJob;
 
 /** Expo's receipts are ready within 15 minutes of a send. */
 export const RECEIPT_DELAY_SECONDS = 15 * 60;

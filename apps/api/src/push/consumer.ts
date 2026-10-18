@@ -13,7 +13,8 @@ import {
   sendToExpo,
 } from './expo';
 import { type LedgerRow, writeLedger } from './ledger';
-import { enqueuePush, RECEIPT_DELAY_SECONDS, ReceiptCheck } from './queue';
+import { enqueuePush, RECEIPT_DELAY_SECONDS, ReceiptCheck, SurfaceRefreshJob } from './queue';
+import { sendRefreshes } from './refresh';
 import { checkReceipts } from './receipts';
 import { expoMessage, renderPush } from './render';
 
@@ -55,10 +56,15 @@ export async function consumePush(
 ): Promise<void> {
   const groups = new Map<string, Queued[]>();
   const checks: { message: Message; check: ReceiptCheck }[] = [];
+  const refreshes: { message: Message; job: SurfaceRefreshJob }[] = [];
   for (const message of batch.messages) {
     const job = PushJob.safeParse(message.body);
     const check = job.success ? null : ReceiptCheck.safeParse(message.body);
-    if (job.success) {
+    const refresh =
+      job.success || check?.success === true ? null : SurfaceRefreshJob.safeParse(message.body);
+    if (refresh?.success === true) {
+      refreshes.push({ message, job: refresh.data });
+    } else if (job.success) {
       const key = `${job.data.person}\n${job.data.collapseKey}`;
       groups.set(key, [...(groups.get(key) ?? []), { message, job: job.data }]);
     } else if (check?.success === true) {
@@ -70,6 +76,7 @@ export async function consumePush(
   }
   await sendJobs([...groups.values()], env, deps);
   await checkReceipts(checks, env, deps);
+  await sendRefreshes(refreshes, env, deps);
 }
 
 /** The job a group of same-key jobs folds into: the latest, as "a few things" if it wasn't already. */

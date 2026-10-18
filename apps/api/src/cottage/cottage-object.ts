@@ -35,6 +35,7 @@ import * as resting from './resting';
 import { applySchema } from './schema';
 import * as seeds from './seeds';
 import * as sockets from './socket';
+import { refreshTargets } from './surface-refresh';
 import { cottageOf } from './stub';
 
 /**
@@ -183,6 +184,11 @@ export class CottageDO extends DurableObject<Bindings> {
     const claim = claimJob(this.intake(), PushJob.parse(job));
     if (claim.action === 'hold') await this.scheduleAlarm();
     return claim;
+  }
+
+  /** Where a farm's widget refresh goes now (a silent push). */
+  refreshTargets(farm: string): devices.PushTarget[] {
+    return refreshTargets(this.sql, farm);
   }
 
   /** Expo says this token is no longer registered. */
