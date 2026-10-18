@@ -1,7 +1,9 @@
 import UserNotifications
 
-/// Adds the farm's still to a push that names a farm (`PushData.farm`), from the images the app
-/// last wrote for its widgets. A push it can't place goes out as it came.
+/// Puts a still on a push before iOS shows it, from the images the app last wrote for its
+/// surfaces: a sprouted seed for a plan (`PlanPushData.seed`), otherwise the farm it names
+/// (`PushData.farm`), by day or by night at the phone's hour. A push it can't place goes out as
+/// it came. Pushes reach it with `mutable-content`.
 final class NotificationService: UNNotificationServiceExtension {
   private var deliver: ((UNNotificationContent) -> Void)?
   private var content: UNMutableNotificationContent?
@@ -16,7 +18,9 @@ final class NotificationService: UNNotificationServiceExtension {
       return
     }
     self.content = content
-    if let attachment = Self.farmStill(for: content.userInfo) {
+    if let name = Self.still(for: content.userInfo, at: Date()),
+      let attachment = Self.attachment(name)
+    {
       content.attachments = [attachment]
     }
     contentHandler(content)
@@ -26,17 +30,35 @@ final class NotificationService: UNNotificationServiceExtension {
     if let deliver, let content { deliver(content) }
   }
 
-  /// The push's `data` sits under `body` when sent through Expo, at the top level from APNs.
-  private static func farmStill(for userInfo: [AnyHashable: Any]) -> UNNotificationAttachment? {
-    let data = userInfo["body"] as? [String: Any] ?? userInfo as? [String: Any] ?? [:]
+  /// The push's `data`: under `body` when sent through Expo, at the top level from APNs.
+  static func data(_ userInfo: [AnyHashable: Any]) -> [String: Any] {
+    userInfo["body"] as? [String: Any] ?? userInfo as? [String: Any] ?? [:]
+  }
+
+  /// Night from 7pm to 7am, as the farm's sky turns.
+  static func isNight(_ date: Date) -> Bool {
+    let hour = Calendar.current.component(.hour, from: date)
+    return hour >= 19 || hour < 7
+  }
+
+  /// The image a push gets: the seed for a plan, the farm's still otherwise.
+  static func still(for userInfo: [AnyHashable: Any], at date: Date) -> String? {
+    let data = data(userInfo)
+    if data["seed"] != nil, SurfaceData.image(SurfaceNames.seed) != nil {
+      return SurfaceNames.seed
+    }
     guard let farmId = data["farm"] as? String,
-      let farm = SurfaceData.read()?.farms.first(where: { $0.farm == farmId }),
-      let source = GroupFiles.url(GroupFiles.images + farm.images.day)
+      let farm = SurfaceData.read()?.farms.first(where: { $0.farm == farmId })
     else { return nil }
+    return isNight(date) ? farm.images.night : farm.images.day
+  }
+
+  private static func attachment(_ name: String) -> UNNotificationAttachment? {
+    guard let source = GroupFiles.url(GroupFiles.images + name) else { return nil }
     // iOS moves an attachment's file, so it gets a copy.
     let copy = FileManager.default.temporaryDirectory.appendingPathComponent(
       UUID().uuidString + ".png")
     guard (try? FileManager.default.copyItem(at: source, to: copy)) != nil else { return nil }
-    return try? UNNotificationAttachment(identifier: "farm", url: copy)
+    return try? UNNotificationAttachment(identifier: "still", url: copy)
   }
 }
