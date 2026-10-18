@@ -1,4 +1,4 @@
-import { motion, travel, type SpringConfig } from '@kithfield/theme';
+import { motion, travel, travelWobble, type SpringConfig } from '@kithfield/theme';
 
 /*
  * The shapes travelling art follows, as plain numbers so the UI thread can read them: a box on
@@ -45,18 +45,25 @@ export function defaultArc(from: Point, to: Point): number {
 
 /**
  * A curve that lifts off `from`, rises `arc` points above the higher of its two ends, and comes
- * down onto `to`. A negative `arc` dips below the lower end instead.
+ * down onto `to`. A negative `arc` dips below the lower end instead. With `loop` (0 to 1) its
+ * inner points cross, so it runs on ahead, swings back and comes round again: a loop on its way.
  */
-export function arcPath(from: Point, to: Point, arc: number = defaultArc(from, to)): Path {
+export function arcPath(
+  from: Point,
+  to: Point,
+  arc: number = defaultArc(from, to),
+  loop = 0,
+): Path {
   'worklet';
   const dx = to.x - from.x;
   // A cubic whose two inner points share a height peaks three quarters of the way to them.
   const top = arc >= 0 ? Math.min(from.y, to.y) - arc : Math.max(from.y, to.y) - arc;
   const lift = (4 / 3) * top - (from.y + to.y) / 6;
+  const k = Math.min(1, Math.max(0, loop)) * 1.8;
   return {
     p0: from,
-    p1: { x: from.x + dx * 0.2, y: lift },
-    p2: { x: from.x + dx * 0.8, y: lift },
+    p1: { x: from.x + dx * (0.2 + k), y: lift },
+    p2: { x: from.x + dx * (0.8 - k), y: lift },
     p3: to,
   };
 }
@@ -85,37 +92,26 @@ export function tangentAt(path: Path, t: number): Point {
   };
 }
 
-/** Signed curvature at `t`, times the path's length so it doesn't depend on its size. */
-export function bendAt(path: Path, t: number): number {
-  'worklet';
-  const u = 1 - t;
-  const { p0, p1, p2, p3 } = path;
-  const d1 = tangentAt(path, t);
-  const d2 = {
-    x: 6 * u * (p2.x - 2 * p1.x + p0.x) + 6 * t * (p3.x - 2 * p2.x + p1.x),
-    y: 6 * u * (p2.y - 2 * p1.y + p0.y) + 6 * t * (p3.y - 2 * p2.y + p1.y),
-  };
-  const speed = Math.hypot(d1.x, d1.y);
-  if (speed < 1e-6) return 0;
-  const length = Math.max(1, distance(p0, p3));
-  return ((d1.x * d2.y - d1.y * d2.x) / (speed * speed * speed)) * length;
-}
-
-/** A bend this sharp (a half circle) tilts the sprite all the way to `travel.wobbleMaxDeg`. */
-const FULL_BEND = 3;
-
 /**
- * The sprite's tilt in degrees at `t`: it leans into the curve, between `travel.wobbleMinDeg` and
- * `travel.wobbleMaxDeg` by how sharply the path bends, and is upright as it leaves and lands.
+ * The sprite's tilt in degrees at progress `t`, on the storyboard's own wobble (`travelWobble`):
+ * one way, then the other, as it flies. Read at the display rate; only the drawings step on twos.
  */
-export function tiltAt(path: Path, t: number): number {
+export function wobbleAt(t: number): number {
   'worklet';
+  const keys = travelWobble;
   const clamped = Math.min(1, Math.max(0, t));
-  const bend = bendAt(path, clamped);
-  if (Math.abs(bend) < 1e-3) return 0;
-  const sharp = Math.min(1, Math.abs(bend) / FULL_BEND);
-  const size = travel.wobbleMinDeg + (travel.wobbleMaxDeg - travel.wobbleMinDeg) * sharp;
-  return Math.sign(bend) * size * Math.sin(Math.PI * clamped);
+  for (let i = 1; i < keys.length; i++) {
+    const a = keys[i - 1];
+    const b = keys[i];
+    if (!a || !b) continue;
+    if (clamped <= b[0]) {
+      const u = (clamped - a[0]) / Math.max(1e-6, b[0] - a[0]);
+      // Eased between keys, as the sample's keyframes ease.
+      const e = u * u * (3 - 2 * u);
+      return a[1] + (b[1] - a[1]) * e;
+    }
+  }
+  return keys[keys.length - 1]?.[1] ?? 0;
 }
 
 /** Which drawing of the flight shows after `ms`: a new one every `travel.drawingSwapMs` (on twos). */

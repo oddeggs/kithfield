@@ -5,15 +5,17 @@ once in the root layout) keeps a transparent overlay above everything, native sh
 included (`FullWindowOverlay` on iOS). A flight measures its two ends, hides their own drawings,
 flies a copy drawn from the art's caches, and hands over to the target's drawing when it lands.
 Everything moves on the UI thread: a spring (`motion.sheet`'s damping, settling in the
-storyboard's time from `transitions`), tilted into the curve and swapping drawings on twos
-(`travel` in `@kithfield/theme`), with the two-drawing landing settle. Under Reduce Motion nothing
-travels: the target's drawing cross-fades in over `motion.fade`.
+storyboard's time from `transitions`), tilting on the storyboard's wobble (`travelWobble`, from
+sample 01) at the display rate while its drawings swap on twos (`travel`), with the two-drawing
+landing settle. Under Reduce Motion nothing travels: the target's drawing cross-fades in over
+`motion.fade`. The overlay is not a VoiceOver modal container, and its canvas exists only while
+something flies (and a few seconds after).
 
 ## The ends
 
 | You have | Use |
 |---|---|
-| A view (an avatar, an icon, a bubble) | `<TravelAnchor id sprite?>` around it: measured, and hidden while its copy flies |
+| A view (an avatar, an icon, a bubble) | `<TravelAnchor id sprite?>` around it: measured, and hidden while its copy flies. Inside a native sheet pass `sheetTop` (the window's height less the sheet's): a sheet's views measure from its own corner |
 | A drawing on your own Skia canvas | `<TravelSpot id box sprite?>` over it (a box in the parent's points), and `useTravelShown(id)` / `useTravelShownAll(ids)` as that drawing's opacity |
 | Nothing to anchor (a tab, a door you measured) | Pass a `Box` in window points instead of an id; `tabIconBox(tab, width, height, insets.bottom)` is a tab's icon |
 
@@ -37,10 +39,17 @@ const flight = travel.fly({
 flight.reverse(); // back along the same path, keeping its speed
 flight.retarget(otherId); // on to somewhere else, keeping its place and speed
 flight.finish(); // straight to the landing
+flight.cancel(); // stop; both ends get their drawings back at once
 ```
 
-A sprite is a scene (`{ scene, attrs, width, height, drawings? }`), a face
-(`{ avatar, look, size }`), a whole critter (`{ critter, look, size, dir? }`) or images already
+Orders given before the flight has started wait for it. Callbacks: `onStart` (the copy shows),
+`onTouchdown`, `onLanded`, `onReturned`. `loop` (0 to 1) draws a loop on the way, `holdMs` keeps
+it on the target dimmed to a slow pulse before handing over, and a scene sprite can carry a
+`halo`. An end hidden by two flights shows again when the last lets it go.
+
+A sprite is a scene (`{ scene, attrs, width, height, drawings?, halo? }`), a face
+(`{ avatar, look, size }`, one drawing: the art's avatar doesn't move), a whole critter
+(`{ critter, look, size, asleep? }`, three drawings of the `pose` scene on twos) or images already
 drawn (`{ sprite }`). Pass `drive` (a shared value 0 to 1) for a flight the finger holds, then
 `release(forward, rate)` when it lets go.
 
@@ -50,8 +59,8 @@ See them all in the motion lab (`kithfield-dev://motion-lab`, development builds
 
 | Transition | Where |
 |---|---|
-| A critter travels (bubble → farm → card) | `features/chat/room/message-row.tsx` (the face), `features/farm/farm-scene.tsx` and `farm-canvas.tsx` (the critter's spot and drawing) |
-| Planting a seed (→ Seed bed) | `features/plans/plant-sheet.tsx` (the seed), `features/chat/room/header.tsx` (the chat's way into the Seed bed) |
+| A critter travels (bubble → farm → card) | `features/chat/room/message-row.tsx` and `meet.ts` (the face, and VoiceOver's "See {name} on the farm"), `features/farm/farm-scene.tsx` and `farm-canvas.tsx` (the critter's spot and drawing) |
+| Planting a seed (→ Seed bed tab) | `features/plans/plant-sheet.tsx` |
 | A firefly's flight to a door | `features/gestures/firefly.tsx` |
 
 ## Farm home ↔ chat, under the finger (not wired yet)

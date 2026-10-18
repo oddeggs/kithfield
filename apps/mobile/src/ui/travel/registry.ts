@@ -1,6 +1,7 @@
 import type { View } from 'react-native';
 import { makeMutable, type AnimatedRef, type SharedValue } from 'react-native-reanimated';
 
+import type { AnchorFace } from './flight';
 import type { Box } from './geometry';
 import type { SpriteSpec } from './sprite';
 
@@ -10,6 +11,15 @@ export type AnchorId = string;
 export interface AnchorEntry {
   /** 1 while the anchor's own drawing shows; travel sets 0 while its copy is in the air. */
   readonly shown: SharedValue<number>;
+  /** How many flights have it hidden: it shows again when the last gives it back. */
+  readonly hidden: SharedValue<number>;
+  /** The two above, as one object a worklet can take. */
+  readonly face: AnchorFace;
+  /**
+   * Inside a native sheet, where the sheet's top sits on the window: its views measure from the
+   * sheet's own corner, so flights measure it on the JS side and add this.
+   */
+  sheetTop: number | null;
   /** The view to measure, once something with this id is on screen. */
   ref: AnimatedRef<View> | null;
   /** Where it last laid out on the window, if it has. */
@@ -35,11 +45,29 @@ export class AnchorRegistry {
     return this.entries.get(id);
   }
 
+  /** The entry for `id`, made if there is none, without holding it (`hold` in an effect). */
+  ensure(id: AnchorId): AnchorEntry {
+    const entry = this.hold(id);
+    entry.holds -= 1;
+    return entry;
+  }
+
   /** The entry for `id`, kept until `release`. */
   hold(id: AnchorId): AnchorEntry {
     let entry = this.entries.get(id);
     if (!entry) {
-      entry = { shown: makeMutable(1), ref: null, box: null, sprite: undefined, holds: 0 };
+      const shown = makeMutable(1);
+      const hidden = makeMutable(0);
+      entry = {
+        shown,
+        hidden,
+        face: { shown, hidden },
+        sheetTop: null,
+        ref: null,
+        box: null,
+        sprite: undefined,
+        holds: 0,
+      };
       this.entries.set(id, entry);
     }
     entry.holds += 1;
@@ -63,7 +91,9 @@ export class AnchorRegistry {
         entry.ref = null;
         entry.sprite = undefined;
         entry.box = null;
+        entry.sheetTop = null;
         // Whatever was hidden for a flight shows again if it comes back.
+        entry.hidden.set(0);
         entry.shown.set(1);
       }
       this.release(id);

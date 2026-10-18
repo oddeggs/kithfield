@@ -1,4 +1,4 @@
-import { critterLayers, type CritterLook, type SceneAttrs } from '@kithfield/art';
+import type { CritterLook, SceneAttrs } from '@kithfield/art';
 import { motion } from '@kithfield/theme';
 import type { SkImage } from '@shopify/react-native-skia';
 
@@ -23,6 +23,8 @@ export interface Sprite {
   readonly drawings: readonly (readonly PlacedImage[])[];
   /** A circle of this colour behind the drawing, clipping it: a critter's face as an avatar. */
   readonly disc?: string;
+  /** A soft glow of this colour around it, a sprite's width across each way (a firefly). */
+  readonly halo?: string;
 }
 
 /**
@@ -37,14 +39,15 @@ export type SpriteSpec =
       readonly height: number;
       /** Drawings of it to swap between on twos (the art's own frames), 1 to 3. */
       readonly drawings?: number;
+      /** A soft glow around it as it flies. */
+      readonly halo?: string;
     }
   | { readonly avatar: string; readonly look?: CritterLook; readonly size: number }
   | {
       readonly critter: string;
       readonly look?: CritterLook;
-      /** The size the art draws it at (its `size`), and the box it is centred in. */
+      /** The box it stands in, as the `pose` scene fits it. */
       readonly size: number;
-      readonly dir?: 1 | -1;
       readonly asleep?: boolean;
     }
   | { readonly sprite: Sprite };
@@ -92,46 +95,48 @@ function avatarSprite(
   };
 }
 
+/** A look as the scenes take it: one worn item, the outfit else the accessory. */
+function lookAttrs(kind: string, look: CritterLook | undefined): SceneAttrs {
+  const item = look?.outfit ?? look?.accessory;
+  return {
+    kind,
+    ...(look?.coat ? { coat: look.coat } : {}),
+    ...(look?.mark ? { mark: look.mark } : {}),
+    ...(item ? { outfit: item.name } : {}),
+    ...(item?.color ? { ocolor: item.color } : {}),
+  };
+}
+
 /**
- * A whole critter standing in a `size` box, feet near its bottom, as the farm and the strip draw
- * it: one drawing, eyes open (asleep, eyes shut), so it never blinks mid-flight.
+ * A whole critter standing in a `size` box, as the design's `pose` scene draws it: three
+ * drawings a frame apart on twos (the art's own breathing), eyes open, or asleep.
  */
 function critterSprite(
   store: ArtStore,
   kind: string,
   look: CritterLook | undefined,
   size: number,
-  dir: 1 | -1,
   asleep: boolean,
 ): Sprite {
-  const states = asleep ? (['sleep'] as const) : (['open'] as const);
-  const feetX = size / 2;
-  const feetY = size * 0.92;
-  const drawings = states.map((state) =>
-    critterLayers(store.art, kind, look ?? {}, { size, state, dir, dpr: store.dpr }).map((l) => ({
-      image: l.image,
-      x: feetX - l.originX,
-      y: feetY - l.originY,
-      w: l.width,
-      h: l.height,
-    })),
-  );
-  return { width: size, height: size, drawings };
+  const attrs = { ...lookAttrs(kind, look), pose: asleep ? 'sleep' : 'awake', color: 'none' };
+  return sceneSprite(store, 'pose', attrs, size, size, MAX_DRAWINGS);
 }
 
 /** The sprite a spec describes, drawn from the art's caches (bake time: the JS thread). */
 export function spriteOf(store: ArtStore, spec: SpriteSpec): Sprite {
   if ('sprite' in spec) return spec.sprite;
   if ('scene' in spec) {
-    return sceneSprite(store, spec.scene, spec.attrs, spec.width, spec.height, spec.drawings ?? 1);
+    const drawn = sceneSprite(
+      store,
+      spec.scene,
+      spec.attrs,
+      spec.width,
+      spec.height,
+      spec.drawings ?? 1,
+    );
+    return spec.halo ? { ...drawn, halo: spec.halo } : drawn;
   }
+  // The art draws a face once (its avatar scene doesn't move), so a face flies as one drawing.
   if ('avatar' in spec) return avatarSprite(store, spec.avatar, spec.look, spec.size);
-  return critterSprite(
-    store,
-    spec.critter,
-    spec.look,
-    spec.size,
-    spec.dir ?? 1,
-    spec.asleep ?? false,
-  );
+  return critterSprite(store, spec.critter, spec.look, spec.size, spec.asleep ?? false);
 }

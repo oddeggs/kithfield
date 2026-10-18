@@ -16,14 +16,7 @@ import { useTravelRegistry } from './travel-host';
  * feature draws itself (a critter on a Skia canvas), as that drawing's opacity.
  */
 export function useTravelShown(id: AnchorId): SharedValue<number> {
-  const registry = useTravelRegistry();
-  const [held, setHeld] = useState(() => ({ id, entry: registry.hold(id) }));
-  if (held.id !== id) {
-    registry.release(held.id);
-    setHeld({ id, entry: registry.hold(id) });
-  }
-  useEffect(() => () => registry.release(held.id), [registry, held.id]);
-  return held.entry.shown;
+  return useTravelShownAll(useMemo(() => [id], [id]))[0] as SharedValue<number>;
 }
 
 interface Measurable {
@@ -31,11 +24,15 @@ interface Measurable {
 }
 
 /** Puts `ref` under `id` while mounted, with the sprite that stands for it. */
-function useAttach(id: AnchorId, sprite: SpriteSpec | undefined) {
+function useAttach(id: AnchorId, sprite: SpriteSpec | undefined, sheetTop: number | null = null) {
   const registry = useTravelRegistry();
   const ref = useAnimatedRef<View>();
   const shown = useTravelShown(id);
   useEffect(() => registry.attach(id, ref), [registry, id, ref]);
+  useEffect(() => {
+    const entry = registry.peek(id);
+    if (entry && entry.ref === ref) entry.sheetTop = sheetTop;
+  }, [registry, id, ref, sheetTop]);
   // What it looks like may change (a critter re-drawn) without it moving.
   useEffect(() => {
     const entry = registry.peek(id);
@@ -60,16 +57,23 @@ function useAttach(id: AnchorId, sprite: SpriteSpec | undefined) {
 export function useTravelShownAll(ids: readonly AnchorId[]): readonly SharedValue<number>[] {
   const registry = useTravelRegistry();
   const key = ids.join('\n');
-  const entries = useMemo(
-    () => ids.map((id) => registry.hold(id)),
-    // `key` stands for the ids.
-    [registry, key],
-  );
+  // Made (not held) while rendering; held from the effect, so a render that never commits
+  // holds nothing.
+  const [entries, setEntries] = useState(() => ids.map((id) => registry.ensure(id)));
+  const [seen, setSeen] = useState(key);
+  if (seen !== key) {
+    setSeen(key);
+    setEntries(ids.map((id) => registry.ensure(id)));
+  }
   useEffect(() => {
     const held = key === '' ? [] : key.split('\n');
+    const now = held.map((id) => registry.hold(id));
+    // An entry let go of between the render and now was made again: show that one.
+    if (now.some((e, i) => e !== entries[i])) setEntries(now);
     return () => {
       for (const id of held) registry.release(id);
     };
+    // `key` stands for the ids; `entries` follows it.
   }, [registry, key]);
   return useMemo(() => entries.map((e) => e.shown), [entries]);
 }
@@ -79,6 +83,11 @@ export interface TravelAnchorProps extends ViewProps {
   readonly id: AnchorId;
   /** What it looks like, drawn from the art, for a flight that leaves from it or lands as it. */
   readonly sprite?: SpriteSpec;
+  /**
+   * Inside a native sheet: where the sheet's top edge sits on the window (the window's height
+   * less the sheet's). A sheet's views measure from the sheet's own corner.
+   */
+  readonly sheetTop?: number;
   readonly children?: ReactNode;
 }
 
@@ -89,12 +98,13 @@ export interface TravelAnchorProps extends ViewProps {
 export function TravelAnchor({
   id,
   sprite,
+  sheetTop,
   style,
   children,
   onLayout,
   ...rest
 }: TravelAnchorProps) {
-  const attached = useAttach(id, sprite);
+  const attached = useAttach(id, sprite, sheetTop ?? null);
   const { ref, shown } = attached;
   const hide = useAnimatedStyle(() => ({ opacity: shown.get() }));
   return (

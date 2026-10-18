@@ -8,12 +8,7 @@ import { TravelAnchor } from '../anchors';
 import type { SpriteSpec } from '../sprite';
 
 /** A critter standing, as the design's `pose` scene draws it (no backdrop). */
-export const poseOf = (kind: string, size: number): SpriteSpec => ({
-  scene: 'pose',
-  attrs: { kind, pose: 'awake', color: 'none' },
-  width: size,
-  height: size,
-});
+export const poseOf = (kind: string, size: number): SpriteSpec => ({ critter: kind, size });
 
 /** A standing critter registered for travel, its feet at `x`, `y` of its parent. */
 export function StandingCritter({

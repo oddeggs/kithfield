@@ -1,13 +1,5 @@
-import {
-  centreOf,
-  drawingAt,
-  pointAt,
-  scaleAt,
-  settleAt,
-  tiltAt,
-  type Box,
-  type Path,
-} from './geometry';
+import { centreOf, drawingAt, pointAt, scaleAt, settleAt, SETTLE_MS, wobbleAt } from './geometry';
+import type { Box, Path } from './geometry';
 
 /** Where a flight is in its life. */
 export const PHASE = {
@@ -15,11 +7,11 @@ export const PHASE = {
   waiting: 0,
   /** In the air, toward the target (or held by a finger). */
   flying: 1,
-  /** Touched down: the two-drawing settle. */
+  /** Touched down: the two-drawing settle, then any hold on the target. */
   settling: 2,
   /** Landed and handed over to the target. */
   landed: 3,
-  /** Back where it started and handed back to the source. */
+  /** Back where it started (or cancelled) and handed back to the source. */
   returned: 4,
 } as const;
 
@@ -35,11 +27,10 @@ export interface FlightGeom {
   readonly toBox: Box | null;
   /** Clock time it touched down, in ms. */
   readonly landedAt: number;
-  /** Whether the two ends' own drawings are hidden yet: a frame after the copy first shows. */
+  /** Whether this flight has hidden the ends' own drawings (a frame after its copy shows). */
   readonly hid: boolean;
-  /** The tilt and drawing held for the current drawing on twos. */
-  readonly step: number;
-  readonly tilt: number;
+  /** How long it stays on the target after settling, dimmed to a slow pulse, before handing over. */
+  readonly holdMs: number;
 }
 
 export interface SpritePose {
@@ -66,10 +57,14 @@ const ramp = (t: number, from: number, to: number) => {
   return Math.min(1, Math.max(0, (t - from) / (to - from)));
 };
 
+/** A slow pulse while it waits on the target: dimmed, breathing every 1.6 s. */
+const PULSE_MS = 1600;
+
 /**
- * The sprite at progress `p` and clock `ms`: on its path, tilted into the curve and swapping
- * drawings on twos, settling in two drawings on landing. With something to become, it fades into
- * that drawing over the last stretch, so the face that left lands as the whole critter.
+ * The sprite at progress `p` and clock `ms`: on its path, tilting on the storyboard's wobble at
+ * the display rate while its drawings swap on twos, settling in two drawings on landing. With
+ * something to become, it fades into that drawing over the last stretch, so the face that left
+ * lands as the whole critter. Held on the target, it dims to a slow pulse.
  */
 export function poseAt(
   geom: FlightGeom,
@@ -81,18 +76,22 @@ export function poseAt(
   'worklet';
   const at = pointAt(geom.path, p);
   const scale = scaleAt(geom.s0, geom.s1, geom.grow, p);
-  const settle = geom.phase === PHASE.settling ? settleAt(ms - geom.landedAt) : null;
+  const since = ms - geom.landedAt;
+  const settle = geom.phase === PHASE.settling ? settleAt(since) : null;
   const sx = settle?.sx ?? 1;
   const sy = settle?.sy ?? 1;
   const flying = geom.phase === PHASE.flying;
   // Before it is measured, and once the target or source has its drawing back, nothing shows.
   const gone =
     geom.phase === PHASE.waiting || geom.phase === PHASE.landed || geom.phase === PHASE.returned;
-  const opacity = morph ? 1 - ramp(p, 0.85, 1) : 1;
+  const holding = geom.phase === PHASE.settling && since >= SETTLE_MS;
+  const pulse = holding ? 0.7 + 0.2 * Math.cos((2 * Math.PI * (since - SETTLE_MS)) / PULSE_MS) : 1;
+  const leftward = geom.path.p3.x < geom.path.p0.x ? -1 : 1;
+  const opacity = (morph ? 1 - ramp(p, 0.85, 1) : 1) * pulse;
   return {
     x: at.x,
     y: at.y,
-    rotate: flying ? geom.tilt : 0,
+    rotate: flying ? wobbleAt(p) * leftward : 0,
     sx: morph ? scale : scale * sx,
     sy: morph ? scale : scale * sy,
     base: scale,
@@ -102,14 +101,6 @@ export function poseAt(
     becomes: morph && !gone ? ramp(p, 0.8, 1) : 0,
     drawing: drawings > 1 ? drawingAt(ms) % drawings : 0,
   };
-}
-
-/** The tilt to hold for the drawing showing at `ms`: it changes only when the drawing does. */
-export function heldTilt(geom: FlightGeom, p: number, ms: number): FlightGeom {
-  'worklet';
-  const step = drawingAt(ms);
-  if (step === geom.step) return geom;
-  return { ...geom, step, tilt: tiltAt(geom.path, p) };
 }
 
 /** Where what the sprite becomes stands: centred on the target. */

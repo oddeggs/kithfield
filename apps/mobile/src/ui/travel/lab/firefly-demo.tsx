@@ -25,12 +25,17 @@ const fireflyArt: SpriteSpec = {
   attrs: { name: 'firefly' },
   width: FIREFLY,
   height: FIREFLY,
+  halo: 'rgba(255,214,110,0.7)',
 };
+/** How high it rises over the farm, and how much of a loop it draws on its way. */
+const FLIGHT_ARC = 150;
+const FLIGHT_LOOP = 0.5;
 const DOORS = [
   { kind: 'owl', side: 'left', x: 40 },
   { kind: 'rabbit', side: 'right', x: 393 - 40 - DOOR_W },
 ] as const;
 const FLIGHT_MS = timing('firefly', 'flight');
+const ARRIVAL_MS = timing('firefly', 'arrival');
 
 /** Where the door scene sets a firefly down: on its step, right of the middle (`S.door`). */
 function stepOf(w: number, h: number) {
@@ -62,10 +67,13 @@ export function FireflyDemo() {
       sprite: fireflyArt,
       fromWidth: FIREFLY,
       toWidth: SPOT * 1.4,
-      arc: 150,
+      arc: FLIGHT_ARC,
+      loop: FLIGHT_LOOP,
       grow: 0.2,
       hideTarget: false,
       durationMs: FLIGHT_MS,
+      // It settles on the step and dims to a slow pulse before the door keeps it.
+      holdMs: ARRIVAL_MS,
       onLanded: () => {
         flight.current = null;
         setWaiting(door);
@@ -90,7 +98,7 @@ export function FireflyDemo() {
       sprite: fireflyArt,
       fromWidth: SPOT * 1.4,
       toWidth: FIREFLY,
-      arc: 150,
+      arc: FLIGHT_ARC,
       hideSource: false,
       durationMs: FLIGHT_MS,
       onLanded: () => {

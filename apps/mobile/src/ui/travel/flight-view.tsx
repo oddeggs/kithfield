@@ -1,4 +1,4 @@
-import { Circle, Group, Image, Skia } from '@shopify/react-native-skia';
+import { Circle, Group, Image, RadialGradient, Skia, vec } from '@shopify/react-native-skia';
 import { useCallback, useEffect } from 'react';
 import type { View } from 'react-native';
 import {
@@ -11,7 +11,14 @@ import {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { stepFlight, startFlight, type FlightPlan, type FlightValues } from './flight';
+import {
+  stepFlight,
+  startFlight,
+  type AnchorFace,
+  type FlightNews,
+  type FlightPlan,
+  type FlightValues,
+} from './flight';
 import { landingCentre, poseAt } from './pose';
 import type { Sprite } from './sprite';
 
@@ -50,8 +57,15 @@ function SpriteDrawings({
   readonly sprite: Sprite;
   readonly current: SharedValue<number>;
 }) {
+  const cx = sprite.width / 2;
+  const cy = sprite.height / 2;
   return (
     <>
+      {sprite.halo ? (
+        <Circle cx={cx} cy={cy} r={sprite.width}>
+          <RadialGradient c={vec(cx, cy)} r={sprite.width} colors={[sprite.halo, 'transparent']} />
+        </Circle>
+      ) : null}
       {sprite.drawings.map((_, i) => (
         <Drawing key={i} sprite={sprite} index={i} current={current} />
       ))}
@@ -66,8 +80,10 @@ export interface FlightViewProps {
   /** What it becomes on landing, drawn still on the target. */
   readonly becomes: Sprite | null;
   readonly toRef: AnimatedRef<View> | null;
+  /** The target's own drawing, hidden while this flies to it. */
+  readonly to: AnchorFace | null;
   readonly drive: DerivedValue<number> | null;
-  readonly onDone: (how: 'touchdown' | 'landed' | 'returned') => void;
+  readonly onDone: (how: FlightNews) => void;
 }
 
 /**
@@ -80,6 +96,7 @@ export function FlightView({
   sprite,
   becomes,
   toRef,
+  to,
   drive,
   onDone,
 }: FlightViewProps) {
@@ -89,18 +106,15 @@ export function FlightView({
   useEffect(() => {
     runOnUI(() => {
       'worklet';
-      // Nothing to leave from (the source has gone): the flight ends before it shows.
-      if (!startFlight(values, plan)) {
-        values.fromShown?.set(1);
-        values.toShown?.set(1);
-        scheduleOnRN(onDone, 'returned');
-      }
+      // Sent back before it left, or nothing to leave from: it ends before it shows.
+      if (startFlight(values, plan, to) !== 'flying') scheduleOnRN(onDone, 'returned');
     })();
     // A flight starts once, when it mounts.
   }, []);
 
   const ends = {
     toRef,
+    to,
     drive,
     spriteWidth: plan.spriteWidth,
     fit: plan.fit,
@@ -112,8 +126,8 @@ export function FlightView({
       'worklet';
       stepFlight(values, info.timeSincePreviousFrame ?? 0, ends, onDone);
     },
-    // The target's ref arrives late when its screen is still opening.
-    [toRef, drive],
+    // The target's ref arrives late when its screen is still opening, or changes on a retarget.
+    [toRef, to, drive],
   );
   useFrameCallback(step);
 

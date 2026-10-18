@@ -13,6 +13,7 @@ import { Press } from '../motion/press';
 import { useReduceMotion } from '../motion/reduce-motion';
 import { useTheme } from '../theme/theme-provider';
 import { useAccessibilitySize } from '../type/accessibility-size';
+import { componentType } from '../type/styles';
 import { Txt } from '../type/text';
 import type { YouCritter } from './tab-activity';
 import { tabs, type TabName } from './tabs';
@@ -21,6 +22,15 @@ const BAR = sizes.tabBar;
 const ITEM = 52;
 const SIDE = 6;
 const ICON = 26;
+/** Between the icon and its label. */
+const LABEL_GAP = 2;
+
+/** How a tab lays out inside the bar: its padding, its icon, and the label line under it. */
+export const tabItemFrame = {
+  padding: SIDE,
+  icon: ICON,
+  labelAndGap: componentType.tab.lineHeight + LABEL_GAP,
+} as const;
 
 const icons: Record<Exclude<TabName, 'you'>, string> = {
   farm: 'farm',
@@ -128,7 +138,7 @@ export function TabBarView({ active, dots, you, onPress, onLongPress }: TabBarVi
                 height: ITEM,
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 2,
+                gap: LABEL_GAP,
               }}
             >
               {tab === 'you' ? (

@@ -21,13 +21,37 @@ import {
   tangentAt,
   type Box,
 } from './geometry';
-import { heldTilt, PHASE, type FlightGeom } from './pose';
+import { PHASE, type FlightGeom } from './pose';
 
 /*
  * One flight on the UI thread: measuring its two ends, the spring that carries it, following a
  * target that moves or arrives late, landing and handing back. Everything here is a worklet;
- * the JS side only starts it and sends it new orders.
+ * the JS side only starts it and sends it orders, which wait for the start if they come first.
  */
+
+/** An end's own drawing: shown unless some flight has hidden it, counted per flight. */
+export interface AnchorFace {
+  readonly shown: SharedValue<number>;
+  readonly hidden: SharedValue<number>;
+}
+
+export function hideAnchor(face: AnchorFace | null) {
+  'worklet';
+  if (face === null) return;
+  face.hidden.set(face.hidden.get() + 1);
+  face.shown.set(0);
+}
+
+export function showAnchor(face: AnchorFace | null) {
+  'worklet';
+  if (face === null) return;
+  const left = Math.max(0, face.hidden.get() - 1);
+  face.hidden.set(left);
+  if (left === 0) face.shown.set(1);
+}
+
+/** An order that came before the flight started, kept until it does. */
+export const ORDER = { none: 0, reverse: 1, forward: 2, back: 3, finish: 4, cancel: 5 } as const;
 
 /** A flight's state on the UI thread. */
 export interface FlightValues {
@@ -44,9 +68,11 @@ export interface FlightValues {
   readonly rate: SharedValue<number>;
   /** 1 while a finger drives the progress. */
   readonly driven: SharedValue<number>;
-  /** The source's and target's own drawings: hidden while their copy flies. */
-  readonly fromShown: SharedValue<number> | null;
-  readonly toShown: SharedValue<number> | null;
+  /** An order given before the start, and the speed it carries. */
+  readonly order: SharedValue<number>;
+  readonly orderRate: SharedValue<number>;
+  /** The source's own drawing (the target's can change, so it travels with each frame). */
+  readonly from: AnchorFace | null;
 }
 
 /** What a flight needs to start, made on the JS side. */
@@ -64,10 +90,27 @@ export interface FlightPlan {
   readonly fromWidth: number | null;
   readonly toWidth: number | null;
   readonly arc: number | null;
+  /** Points it overshoots by to draw a loop on its way (0: none). */
+  readonly loop: number;
   readonly grow: number;
   readonly outMs: number;
   readonly delayMs: number;
+  /** How long it stays on the target, dimmed to a slow pulse, before handing over. */
+  readonly holdMs: number;
 }
+
+/** What each frame needs that can change while the flight is in the air. */
+export interface FlightEnds {
+  readonly toRef: AnimatedRef<View> | null;
+  readonly to: AnchorFace | null;
+  readonly drive: DerivedValue<number> | null;
+  readonly spriteWidth: number;
+  readonly fit: number;
+  readonly toWidth: number | null;
+  readonly outMs: number;
+}
+
+export type FlightNews = 'start' | 'touchdown' | 'landed' | 'returned';
 
 export function measureBox(ref: AnimatedRef<View> | null): Box | null {
   'worklet';
@@ -92,37 +135,74 @@ const springTo = (goal: number, ms: number, velocity: number) => {
   });
 };
 
-/** Starts a measured flight; answers false when the source can't be found to leave from. */
-export function startFlight(v: FlightValues, plan: FlightPlan): boolean {
+/** Ends the flight where it is, giving back whatever it hid. */
+function giveBack(v: FlightValues, to: AnchorFace | null) {
   'worklet';
+  const g = v.geom.get();
+  if (g.hid) {
+    if (v.hides.source) showAnchor(v.from);
+    if (v.hides.target) showAnchor(to);
+  }
+  v.geom.set({ ...g, phase: PHASE.returned, hid: false });
+}
+
+/**
+ * Starts a measured flight, then carries out any order that came first. Answers `flying`,
+ * `returned` (an order sent it back before it left: nothing was hidden) or `missing` (no source
+ * to leave from).
+ */
+export function startFlight(
+  v: FlightValues,
+  plan: FlightPlan,
+  to: AnchorFace | null,
+): 'flying' | 'returned' | 'missing' {
+  'worklet';
+  const order = v.order.get();
+  if (order === ORDER.reverse || order === ORDER.back || order === ORDER.cancel) {
+    giveBack(v, to);
+    return 'returned';
+  }
   const from = measureBox(plan.fromRef) ?? plan.fromBox;
-  if (from === null) return false;
+  if (from === null) {
+    giveBack(v, to);
+    return 'missing';
+  }
   // A target not on screen yet: it rises toward where it will be and is retargeted on arrival.
-  const to = measureBox(plan.toRef) ??
-    plan.toBox ?? {
-      x: from.x,
-      y: from.y - 120,
-      width: from.width,
-      height: from.height,
-    };
+  const target = measureBox(plan.toRef) ??
+    plan.toBox ?? { x: from.x, y: from.y - 120, width: from.width, height: from.height };
   const a = centreOf(from);
-  const b = centreOf(to);
+  const b = centreOf(target);
   v.geom.set({
     phase: PHASE.flying,
-    path: arcPath(a, b, plan.arc ?? defaultArc(a, b)),
+    path: arcPath(a, b, plan.arc ?? defaultArc(a, b), plan.loop),
     s0: (plan.fromWidth ?? from.width * plan.startFit) / plan.spriteWidth,
-    s1: landingScale(to, plan.spriteWidth, plan.fit, plan.toWidth),
+    s1: landingScale(target, plan.spriteWidth, plan.fit, plan.toWidth),
     grow: plan.grow,
-    toBox: to,
+    toBox: target,
     landedAt: 0,
     hid: false,
-    step: -1,
-    tilt: 0,
+    holdMs: plan.holdMs,
   });
   v.goal.set(1);
-  if (v.driven.get() === 0) {
+  if (order === ORDER.finish) {
+    v.driven.set(0);
+    v.p.set(1);
+  } else if (order === ORDER.forward) {
+    v.driven.set(0);
+    v.p.set(springTo(1, plan.outMs, v.orderRate.get()));
+  } else if (v.driven.get() === 0) {
     v.p.set(withDelay(plan.delayMs, springTo(1, plan.outMs, 0)));
   }
+  v.order.set(ORDER.none);
+  return 'flying';
+}
+
+/** Keeps an order for the start, if the flight hasn't started yet. */
+function deferred(v: FlightValues, order: number, rate = 0): boolean {
+  'worklet';
+  if (v.geom.get().phase !== PHASE.waiting) return false;
+  v.order.set(order);
+  v.orderRate.set(rate);
   return true;
 }
 
@@ -159,11 +239,19 @@ export function retargetFlight(
   if (v.driven.get() === 0) v.p.set(springTo(1, ms, next.rate));
 }
 
+/** A new target's drawing hides in place of the old one's, if the flight has hidden its ends. */
+export function swapTarget(v: FlightValues, before: AnchorFace | null, after: AnchorFace | null) {
+  'worklet';
+  if (!v.geom.get().hid || !v.hides.target) return;
+  showAnchor(before);
+  hideAnchor(after);
+}
+
 /** Sends the flight back to its source along the same path, with the speed it has. */
 export function reverseFlight(v: FlightValues, ms: number) {
   'worklet';
-  const g = v.geom.get();
-  if (g.phase !== PHASE.flying) return;
+  if (deferred(v, ORDER.reverse)) return;
+  if (v.geom.get().phase !== PHASE.flying) return;
   v.goal.set(0);
   v.driven.set(0);
   v.p.set(springTo(0, ms, v.rate.get()));
@@ -178,6 +266,7 @@ export function releaseFlight(
   backMs: number,
 ) {
   'worklet';
+  if (deferred(v, forward ? ORDER.forward : ORDER.back, rate)) return;
   if (v.geom.get().phase !== PHASE.flying) return;
   v.driven.set(0);
   v.goal.set(forward ? 1 : 0);
@@ -187,31 +276,36 @@ export function releaseFlight(
 /** Skips to the landing. */
 export function finishFlight(v: FlightValues) {
   'worklet';
+  if (deferred(v, ORDER.finish)) return;
   if (v.geom.get().phase !== PHASE.flying) return;
   v.driven.set(0);
   v.goal.set(1);
   v.p.set(1);
 }
 
+/** Stops the flight where it is and gives both ends their drawings back. */
+export function cancelFlight(v: FlightValues, to: AnchorFace | null) {
+  'worklet';
+  if (deferred(v, ORDER.cancel)) return;
+  const phase = v.geom.get().phase;
+  if (phase === PHASE.landed || phase === PHASE.returned) return;
+  giveBack(v, to);
+}
+
 /** Moves closer than this to the target count as it shifting, not as a new target. */
 const NUDGE = 24;
+/** Near its end, a target that moves is eased toward over a few frames instead of snapped to. */
+const EASE_IN = 0.3;
 
 /**
  * One frame of a flight: follows the finger or the spring, keeps up with a target that moves or
- * arrives, holds the tilt for each drawing on twos, and lands or returns.
+ * arrives, and lands (settling, then holding) or returns.
  */
 export function stepFlight(
   v: FlightValues,
   dt: number,
-  ends: {
-    readonly toRef: AnimatedRef<View> | null;
-    readonly drive: DerivedValue<number> | null;
-    readonly spriteWidth: number;
-    readonly fit: number;
-    readonly toWidth: number | null;
-    readonly outMs: number;
-  },
-  done: (how: 'touchdown' | 'landed' | 'returned') => void,
+  ends: FlightEnds,
+  done: (how: FlightNews) => void,
 ) {
   'worklet';
   const g = v.geom.get();
@@ -221,16 +315,16 @@ export function stepFlight(
   v.clock.set(ms);
   // The copy has been drawn once: now the originals can go without a frame of neither.
   if (!g.hid) {
-    if (v.hides.source) v.fromShown?.set(0);
-    if (v.hides.target) v.toShown?.set(0);
+    if (v.hides.source) hideAnchor(v.from);
+    if (v.hides.target) hideAnchor(ends.to);
     v.geom.set({ ...g, hid: true });
+    scheduleOnRN(done, 'start');
     return;
   }
   if (g.phase === PHASE.settling) {
-    if (ms - g.landedAt >= SETTLE_MS) {
-      v.geom.set({ ...g, phase: PHASE.landed });
-      v.toShown?.set(1);
-      v.fromShown?.set(1);
+    if (ms - g.landedAt >= SETTLE_MS + g.holdMs) {
+      giveBack(v, ends.to);
+      v.geom.set({ ...v.geom.get(), phase: PHASE.landed });
       scheduleOnRN(done, 'landed');
     }
     return;
@@ -244,37 +338,36 @@ export function stepFlight(
   const box = measureBox(ends.toRef);
   const known = g.toBox;
   if (box !== null && known !== null) {
-    const shift = Math.hypot(
-      box.x + box.width / 2 - (known.x + known.width / 2),
-      box.y + box.height / 2 - (known.y + known.height / 2),
-    );
+    const end = centreOf(box);
+    const shift = Math.hypot(end.x - g.path.p3.x, end.y - g.path.p3.y);
     if (shift > NUDGE && p < 0.9) {
       retargetFlight(v, box, ends, ends.outMs * (1 - Math.min(0.8, p)));
       return;
     }
     if (shift > 0.5 || Math.abs(box.width - known.width) > 0.5) {
-      const end = centreOf(box);
-      const dx = end.x - g.path.p3.x;
-      const dy = end.y - g.path.p3.y;
+      // Eased in a little each frame, so a late move near the end never jumps.
+      const k = shift > 2 ? EASE_IN : 1;
+      const dx = (end.x - g.path.p3.x) * k;
+      const dy = (end.y - g.path.p3.y) * k;
       v.geom.set({
         ...g,
-        path: { ...g.path, p2: { x: g.path.p2.x + dx, y: g.path.p2.y + dy }, p3: end },
+        path: {
+          ...g.path,
+          p2: { x: g.path.p2.x + dx, y: g.path.p2.y + dy },
+          p3: { x: g.path.p3.x + dx, y: g.path.p3.y + dy },
+        },
         s1: landingScale(box, ends.spriteWidth, ends.fit, ends.toWidth),
         toBox: box,
       });
     }
   }
 
-  const now = v.geom.get();
-  v.geom.set(heldTilt(now, p, ms));
   if (v.driven.get() === 1) return;
   if (v.goal.get() === 1 && p >= 0.995) {
     v.geom.set({ ...v.geom.get(), phase: PHASE.settling, landedAt: ms });
     scheduleOnRN(done, 'touchdown');
   } else if (v.goal.get() === 0 && p <= 0.005) {
-    v.geom.set({ ...v.geom.get(), phase: PHASE.returned });
-    v.toShown?.set(1);
-    v.fromShown?.set(1);
+    giveBack(v, ends.to);
     scheduleOnRN(done, 'returned');
   }
 }

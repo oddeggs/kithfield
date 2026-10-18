@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { springs, travel } from '@kithfield/theme';
+import { springs, travel, travelWobble } from '@kithfield/theme';
 
 import {
   arcPath,
@@ -8,10 +8,11 @@ import {
   retargetPath,
   scaleAt,
   settleAt,
+  SETTLE_MS,
   SHEET_SETTLE_MS,
   springSettling,
   tangentAt,
-  tiltAt,
+  wobbleAt,
 } from './geometry';
 import { PHASE, poseAt, type FlightGeom } from './pose';
 
@@ -46,16 +47,28 @@ describe('the path travelling art follows', () => {
     expect(pointAt(arcPath(from, to, -40), 0.5).y).toBeCloseTo(Math.max(from.y, to.y) + 40, 6);
   });
 
-  it('tilts into the curve between the storyboard’s bounds, upright at both ends', () => {
-    const path = arcPath(from, to, 80);
-    expect(tiltAt(path, 0)).toBeCloseTo(0, 6);
-    expect(tiltAt(path, 1)).toBeCloseTo(0, 6);
-    const middle = Math.abs(tiltAt(path, 0.5));
-    expect(middle).toBeGreaterThanOrEqual(travel.wobbleMinDeg);
-    expect(middle).toBeLessThanOrEqual(travel.wobbleMaxDeg);
-    // An arc over the top bends one way, a dip the other.
-    expect(Math.sign(tiltAt(path, 0.5))).toBe(-Math.sign(tiltAt(arcPath(from, to, -80), 0.5)));
-    expect(tiltAt({ p0: from, p1: from, p2: to, p3: to }, 0.5)).toBe(0);
+  it('tilts on the storyboard’s wobble, one way then the other, upright as it leaves', () => {
+    expect(wobbleAt(0)).toBe(0);
+    for (const [t, deg] of travelWobble) expect(wobbleAt(t)).toBeCloseTo(deg, 6);
+    // Between keys it eases, never past either.
+    const mid = wobbleAt((travelWobble[1]![0] + travelWobble[2]![0]) / 2);
+    expect(mid).toBeGreaterThan(travelWobble[1]![1]);
+    expect(mid).toBeLessThan(travelWobble[2]![1]);
+    expect(wobbleAt(2)).toBe(travelWobble[travelWobble.length - 1]![1]);
+  });
+
+  it('draws a loop when asked: it runs ahead, swings back, and comes round again', () => {
+    const path = arcPath(from, to, 80, 1);
+    expect(pointAt(path, 0)).toEqual(from);
+    expect(pointAt(path, 1)).toEqual(to);
+    const xs = Array.from({ length: 41 }, (_, i) => pointAt(path, i / 40).x);
+    const turns = xs
+      .slice(1)
+      .filter((x, i) => Math.sign(x - xs[i]!) !== Math.sign(xs[1]! - xs[0]!));
+    expect(turns.length).toBeGreaterThan(0);
+    // Without a loop it only ever moves toward the target.
+    const plain = Array.from({ length: 41 }, (_, i) => pointAt(arcPath(from, to, 80), i / 40).x);
+    expect(plain.every((x, i) => i === 0 || x >= plain[i - 1]!)).toBe(true);
   });
 
   it('swaps drawings on twos', () => {
@@ -122,8 +135,7 @@ describe('the sprite along a flight', () => {
     toBox: { x: 150, y: 200, width: 84, height: 116 },
     landedAt: 0,
     hid: true,
-    step: -1,
-    tilt: 6,
+    holdMs: 0,
   };
 
   it('shows nothing before it is measured or once it has handed over', () => {
@@ -151,9 +163,20 @@ describe('the sprite along a flight', () => {
     expect(morphed.sy).toBeCloseTo(2, 9);
   });
 
-  it('cycles through its drawings and is upright off the path', () => {
+  it('cycles through its drawings on twos, tilting smoothly, mirrored when it flies left', () => {
     expect(poseAt(geom, 0.3, travel.drawingSwapMs * 4, false, 3).drawing).toBe(1);
-    expect(poseAt(geom, 0.3, 0, false, 1).rotate).toBe(6);
+    expect(poseAt(geom, 0.3, 0, false, 1).rotate).toBeCloseTo(wobbleAt(0.3), 9);
+    expect(poseAt(geom, 0.31, 0, false, 1).rotate).not.toBe(poseAt(geom, 0.3, 0, false, 1).rotate);
+    const leftward = { ...geom, path: arcPath(to, from, 80) };
+    expect(poseAt(leftward, 0.3, 0, false, 1).rotate).toBeCloseTo(-wobbleAt(0.3), 9);
     expect(poseAt({ ...geom, phase: PHASE.settling }, 1, 0, false, 1).rotate).toBe(0);
+  });
+
+  it('dims to a slow pulse while it holds on the target', () => {
+    const holding = { ...geom, phase: PHASE.settling, landedAt: 0, holdMs: 800 };
+    const a = poseAt(holding, 1, SETTLE_MS + 10, false, 1).opacity;
+    const b = poseAt(holding, 1, SETTLE_MS + 800, false, 1).opacity;
+    expect(a).toBeLessThan(1);
+    expect(b).toBeLessThan(a);
   });
 });
