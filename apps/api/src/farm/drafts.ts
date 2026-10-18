@@ -1,6 +1,7 @@
 import type { FarmCommand, TimeZone } from '@kithfield/contracts';
+import { addDays, localDay, weekday } from '@kithfield/farm';
 
-import { addDays, localYmd, nextLocalHour, weekday, zonedInstant } from './calendar';
+import { nextLocalHour, zonedInstant } from './calendar';
 
 /* What a phone's command becomes in the log: the parts the farm adds itself. */
 
@@ -14,7 +15,7 @@ const SATURDAY = 6;
 
 const deliverAt = (when: 'morning' | 'weekend', now: number, tz: TimeZone): number => {
   if (when === 'morning') return nextLocalHour(now, MORNING_HOUR, tz);
-  let day = localYmd(now, tz);
+  let day = localDay(now, tz);
   for (;;) {
     const at = zonedInstant(day, WEEKEND_HOUR, tz);
     if (weekday(day) === SATURDAY && at > now) return at;

@@ -1,11 +1,10 @@
-import type { EpochMs, TimeZone } from '@kithfield/contracts';
+import type { EpochMs, LocalDate, TimeZone } from '@kithfield/contracts';
+import { addDays, localDay } from '@kithfield/farm';
 
 /*
  * Wall-clock times in a time zone: when the weather is fetched and when a slow post arrives. Farm
  * days, seasons and harvest day come from `@kithfield/farm`, so the server and every phone agree.
  */
-
-export type Ymd = { year: number; month: number; day: number };
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
@@ -50,30 +49,17 @@ const offsetAt = (at: EpochMs, timeZone: TimeZone): number => {
   return asUtc - Math.floor(at / 1000) * 1000;
 };
 
-/** The instant a local wall-clock time happens in the zone. */
-export const zonedInstant = (date: Ymd, hour: number, timeZone: TimeZone): EpochMs => {
-  const guess = Date.UTC(date.year, date.month - 1, date.day, hour);
+/** The instant a local wall-clock time happens in the zone on a calendar day there. */
+export const zonedInstant = (day: LocalDate, hour: number, timeZone: TimeZone): EpochMs => {
+  const [year = 0, month = 1, date = 1] = day.split('-').map(Number);
+  const guess = Date.UTC(year, month - 1, date, hour);
   const first = guess - offsetAt(guess, timeZone);
   return guess - offsetAt(first, timeZone);
 };
 
-export const localYmd = (at: EpochMs, timeZone: TimeZone): Ymd => {
-  const w = wallClock(at, timeZone);
-  return { year: w.year, month: w.month, day: w.day };
-};
-
-export const addDays = (d: Ymd, days: number): Ymd => {
-  const t = new Date(Date.UTC(d.year, d.month - 1, d.day + days));
-  return { year: t.getUTCFullYear(), month: t.getUTCMonth() + 1, day: t.getUTCDate() };
-};
-
-/** 0 is Sunday. */
-export const weekday = (d: Ymd): number =>
-  new Date(Date.UTC(d.year, d.month - 1, d.day)).getUTCDay();
-
 /** The next time the local clock reads `hour`:00, strictly after `at`. */
 export const nextLocalHour = (at: EpochMs, hour: number, timeZone: TimeZone): EpochMs => {
-  const today = localYmd(at, timeZone);
+  const today = localDay(at, timeZone);
   const t = zonedInstant(today, hour, timeZone);
   return t > at ? t : zonedInstant(addDays(today, 1), hour, timeZone);
 };

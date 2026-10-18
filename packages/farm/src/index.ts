@@ -34,6 +34,7 @@ export {
 export { hashUnit, rareRoll, signatureFor } from './hash';
 export {
   UnknownTimeZoneError,
+  addDays,
   harvestDay,
   isBirthday,
   isKnownTimeZone,
@@ -42,4 +43,5 @@ export {
   seasonDays,
   seasonOf,
   startOfDay,
+  weekday,
 } from './time';
