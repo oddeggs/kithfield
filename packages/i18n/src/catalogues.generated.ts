@@ -23,6 +23,8 @@ import { onboardingEn } from './onboarding.en';
 import { onboardingSameInBoth, onboardingVi } from './onboarding.vi';
 import { onboardingCrittersEn } from './onboarding-critters.en';
 import { onboardingCrittersVi } from './onboarding-critters.vi';
+import { plansEn } from './plans.en';
+import { plansSameInBoth, plansVi } from './plans.vi';
 import { pushEn } from './push.en';
 import { pushSameInBoth, pushVi } from './push.vi';
 import { shellEn } from './shell.en';
@@ -53,6 +55,7 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'moderation', file: 'moderation', en: moderationEn, vi: moderationVi, sameInBoth: moderationSameInBoth },
   { name: 'onboarding', file: 'onboarding', en: onboardingEn, vi: onboardingVi, sameInBoth: onboardingSameInBoth },
   { name: 'onboardingCritters', file: 'onboarding-critters', en: onboardingCrittersEn, vi: onboardingCrittersVi, sameInBoth: [] },
+  { name: 'plans', file: 'plans', en: plansEn, vi: plansVi, sameInBoth: plansSameInBoth },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
@@ -76,6 +79,7 @@ export const en = {
   ...moderationEn,
   ...onboardingEn,
   ...onboardingCrittersEn,
+  ...plansEn,
   ...pushEn,
   ...shellEn,
   ...signInCodeEn,
@@ -99,6 +103,7 @@ export const vi = {
   ...moderationVi,
   ...onboardingVi,
   ...onboardingCrittersVi,
+  ...plansVi,
   ...pushVi,
   ...shellVi,
   ...signInCodeVi,

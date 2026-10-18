@@ -1,6 +1,6 @@
-import { TabPlaceholder } from '../../../ui/tab-bar/tab-placeholder';
+import { SeedBed } from '../../../features/plans/seed-bed';
 
-/** Stands in until the seed bed screens are built here. */
+/** The Seed bed tab: every plan across the person's farms. */
 export default function SeedBedHome() {
-  return <TabPlaceholder title="shell.tab.seedBed" />;
+  return <SeedBed />;
 }
