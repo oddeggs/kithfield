@@ -1,7 +1,8 @@
 import { APIError } from 'better-auth/api';
 
-import { isAddressLocked, mayGetAnotherCode } from './email-code';
+import { hasPendingCode, isAddressLocked, mayGetAnotherCode } from './email-code';
 import { consumeSignInNonce, reserveIdToken } from './nonce';
+import { markCodePending } from './sign-in-scope';
 
 /**
  * Checks made before Better Auth handles a request. Better Auth verifies an identity token's
@@ -109,6 +110,9 @@ async function checkCodeRequest(
   if (path === SEND_CODE_PATH && !(await mayGetAnotherCode(db, body.email, now))) {
     throw refuse('TOO_MANY_REQUESTS', 'rate_limited', 'Too many codes for this address');
   }
+  // A wrong code counts against the address only when a code was sent and waiting; guesses at an
+  // address with nothing pending can't lock it.
+  if (path === CODE_SIGN_IN_PATH && (await hasPendingCode(db, body.email, now))) markCodePending();
 }
 
 export async function checkBeforeAuth(db: D1Database, ctx: BeforeContext): Promise<void> {

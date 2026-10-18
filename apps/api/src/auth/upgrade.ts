@@ -15,7 +15,7 @@ import {
   mergeIntoReturning,
   recordEmailIdentity,
 } from './people';
-import { letterFailed, markCreated, wasCreatedNow } from './sign-in-scope';
+import { codeWasPending, letterFailed, markCreated, wasCreatedNow } from './sign-in-scope';
 
 /**
  * How an anonymous person becomes a signed-in one, keeping their person id.
@@ -97,7 +97,7 @@ async function countCodeOutcome(db: D1Database, ctx: AfterContext): Promise<void
   const returned = ctx.context.returned;
   if (isAPIError(returned)) {
     const code = (returned.body as { code?: unknown } | undefined)?.code;
-    if (code === 'INVALID_OTP') await recordCodeFailure(db, email, Date.now());
+    if (code === 'INVALID_OTP' && codeWasPending()) await recordCodeFailure(db, email, Date.now());
   } else if (ctx.context.newSession) {
     await clearCodeFailures(db, email);
   }

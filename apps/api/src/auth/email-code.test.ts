@@ -82,6 +82,22 @@ describe('email code sign-in', () => {
     expect(row).toEqual({ deleted_at: null });
   });
 
+  it('counts wrong codes only while a code is waiting, so nobody can lock an address silently', async () => {
+    const letters = watchLetters();
+    const email = freshAddress();
+    for (let guess = 0; guess < CODE_FAILURES_PER_ADDRESS + 1; guess += 1) {
+      expect((await signInWithCode(email, '000000')).status).toBe(400);
+    }
+    const counted = await env.DB.prepare(
+      'SELECT COUNT(*) AS n FROM email_code_failures WHERE address_hash = ?',
+    )
+      .bind(await addressHash(email))
+      .first();
+    expect(counted).toEqual({ n: 0 });
+    expect((await sendCode(email)).status).toBe(200);
+    await readSignIn(await signInWithCode(email, letters.codeFor(email)));
+  });
+
   it('locks an address for a day after ten wrong codes, then lets its owner back in', async () => {
     const letters = watchLetters();
     const email = freshAddress();

@@ -10,13 +10,18 @@ interface SignInScope {
   readonly created: Set<string>;
   /** Whether a letter failed to send; Better Auth only logs it, so the hooks answer for it. */
   letterFailed: boolean;
+  /** Whether a sign-in code was waiting for the address this request tries one for. */
+  codePending: boolean;
 }
 
 const storage = new AsyncLocalStorage<SignInScope>();
 
 /** Runs one auth request with its own scope. */
 export function withSignInScope<T>(language: Language, run: () => Promise<T>): Promise<T> {
-  return storage.run({ language, created: new Set(), letterFailed: false }, run);
+  return storage.run(
+    { language, created: new Set(), letterFailed: false, codePending: false },
+    run,
+  );
 }
 
 export function scopeLanguage(): Language {
@@ -42,4 +47,13 @@ export function markLetterFailed(): void {
 
 export function letterFailed(): boolean {
   return storage.getStore()?.letterFailed ?? false;
+}
+
+export function markCodePending(): void {
+  const scope = storage.getStore();
+  if (scope) scope.codePending = true;
+}
+
+export function codeWasPending(): boolean {
+  return storage.getStore()?.codePending ?? false;
 }

@@ -73,6 +73,20 @@ export async function clearCodeFailures(db: D1Database, email: string): Promise<
     .run();
 }
 
+/**
+ * Whether an unexpired sign-in code is waiting for this address: Better Auth's verification row,
+ * named `sign-in-otp-<address>`.
+ */
+export async function hasPendingCode(db: D1Database, email: string, now: number): Promise<boolean> {
+  const row = await db
+    .prepare(
+      'SELECT 1 AS pending FROM verifications WHERE identifier = ? AND expires_at > ? LIMIT 1',
+    )
+    .bind(`sign-in-otp-${email.trim().toLowerCase()}`, new Date(now).toISOString())
+    .first();
+  return row !== null;
+}
+
 async function recordSend(db: D1Database, email: string, now: number): Promise<void> {
   const hash = await addressHash(email);
   await db.batch([
