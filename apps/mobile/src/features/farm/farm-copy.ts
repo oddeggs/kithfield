@@ -137,7 +137,9 @@ export function crowdLine(t: Translate, species: readonly string[]): string {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([s, n]) =>
-      n === 1 ? loose(t)(`farm.species.${s}.a`) : loose(t)(`farm.species.${s}.some`, { count: n }),
+      n === 1
+        ? loose(t)(`farm.species.${s}.a`)
+        : loose(t)(`farm.species.${s}.some`, { count: n, number: numberWord(t, n) }),
     );
   const line = listOf(t, groups);
   // It opens a sentence.
@@ -148,4 +150,18 @@ export function crowdLine(t: Translate, species: readonly string[]): string {
 export function flagOf(t: Translate, title: string): string {
   const word = title.trim().split(/\s+/)[0] ?? title;
   return t('farm.plan.flag', { word: word.toLocaleLowerCase() });
+}
+
+/** A number in words up to the 24 a farm holds ("twelve"), in digits past that. */
+export function numberWord(t: Translate, n: number): string {
+  const k = `farm.number.${n}`;
+  const word = loose(t)(k);
+  return word === k ? String(n) : word;
+}
+
+const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Who lives here, counted in words: "Twelve critters live here". */
+export function headcount(t: Translate, n: number): string {
+  return capital(t('farm.crowd.title', { count: n, number: numberWord(t, n) }));
 }

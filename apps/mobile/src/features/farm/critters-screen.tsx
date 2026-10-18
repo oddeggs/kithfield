@@ -13,7 +13,7 @@ import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { castOf, lookOf } from './farm-bake';
-import { crowdLine } from './farm-copy';
+import { crowdLine, headcount } from './farm-copy';
 import { GlyphButton, Panel, SceneArt } from './panel';
 import { farmRoutes } from './routes';
 import { useNow } from './use-now';
@@ -85,7 +85,7 @@ export function CrittersScreen({ farm }: { readonly farm: FarmId }) {
           showsVerticalScrollIndicator={false}
         >
           <Txt variant="displayM" multiline accessibilityRole="header">
-            {t('farm.crowd.title', { count: members.length })}
+            {headcount(t, members.length)}
           </Txt>
           <Txt variant="sheetBody" multiline color={palette.body}>
             {t(dressed ? 'farm.crowd.dressed' : 'farm.crowd.plain', { critters })}

@@ -155,7 +155,7 @@ export function CritterCard({
             {name}
           </Txt>
           <Txt variant="rowSubtitle" style={{ fontSize: 14 }} color={palette.secondary}>
-            {species}
+            {t('farm.card.kind', { species, name })}
           </Txt>
           <Txt
             variant="handS"

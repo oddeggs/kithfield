@@ -6,6 +6,7 @@ import {
   crowdLine,
   farmCredits,
   flagOf,
+  headcount,
   hoursLeft,
   listOf,
   planLine,
@@ -74,6 +75,12 @@ describe('the farm’s words', () => {
     expect(planLine(en, plan(true, true, true))).toBe('Sprouted. It’s happening.');
   });
 
+  it('counts who lives here in words, as the design writes it', () => {
+    expect(headcount(en, 12)).toBe('Twelve critters live here');
+    expect(headcount(en, 1)).toBe('One critter lives here');
+    expect(headcount(vi, 24)).toBe('Hai mươi tư bạn thú sống ở đây');
+  });
+
   it('writes a plan’s flag in the design’s short hand', () => {
     expect(flagOf(en, 'Picnic by the river')).toBe('picnic?');
   });
@@ -84,7 +91,7 @@ describe('the farm’s words', () => {
   });
 
   it('says who lives here by kind, most first', () => {
-    expect(crowdLine(en, ['rabbit', 'fox', 'rabbit', 'owl'])).toBe('2 rabbits, a fox and an owl');
+    expect(crowdLine(en, ['rabbit', 'fox', 'rabbit', 'owl'])).toBe('Two rabbits, a fox and an owl');
     expect(crowdLine(en, ['fox', 'owl'])).toBe('A fox and an owl');
   });
 });

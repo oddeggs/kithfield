@@ -173,12 +173,15 @@ export function SleepingCottage({
   readonly person: PersonId;
 }) {
   const { t, language } = useLocale();
+  const me = useSession().person?.id ?? null;
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const k = width / W;
   const state = useFarm(farm)?.state ?? null;
   const former = state?.former.find((f) => f.person === person) ?? null;
+  // Only keepers send invites.
+  const keeper = state?.members.some((m) => m.person === me && m.role === 'keeper') ?? false;
   if (!state || !former) return <View style={{ flex: 1, backgroundColor: palette.background }} />;
   const name = former.name ?? t('farm.someone');
   return (
@@ -219,11 +222,13 @@ export function SleepingCottage({
         <Txt variant="sheetBody" multiline color={palette.body}>
           {t('farm.cottage.body', { name })}
         </Txt>
-        <Button
-          label={t('farm.cottage.invite', { name })}
-          kind="go"
-          onPress={() => router.push(farmRoutes.farmSettings(farm))}
-        />
+        {keeper ? (
+          <Button
+            label={t('farm.cottage.invite', { name })}
+            kind="go"
+            onPress={() => router.push(farmRoutes.farmSettings(farm))}
+          />
+        ) : null}
         <Button
           label={t('farm.cottage.rest')}
           kind="secondary"
