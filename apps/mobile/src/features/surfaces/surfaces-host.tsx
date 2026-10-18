@@ -5,12 +5,14 @@ import { AppState, Image, Platform } from 'react-native';
 
 import { useCottage, useDataClient } from '../../data';
 import { useArt } from '../../ui/art/art-provider';
+import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useSession } from '../../ui/session/session';
 import { useUpload } from '../media';
 import { followActivityTokens } from './activity-tokens';
 import { registerBackgroundTask, takeWoken } from './background';
 import { clearSurfacesForSignOut, writtenForSomeoneElse } from './clear';
+import { endOrphanFireActivities } from './fire-activity';
 import { groupRoot, nativeGroupStore } from './group-store';
 import { ACTION_TITLES, categories } from './notification-actions';
 import { openTarget } from './open';
@@ -89,6 +91,7 @@ function Running({ me }: { readonly me: string }) {
   const art = useArt();
   const { t, language } = useLocale();
   const shares = useShareSender();
+  const toast = useToast();
   const { chats } = useCottage();
   const lang = useRef(language);
   lang.current = language;
@@ -109,6 +112,7 @@ function Running({ me }: { readonly me: string }) {
       scheme: appScheme(),
       shares,
       open: openTarget,
+      sharesRefused: () => toast.show(t('surfaces.share.failed')),
       report,
     });
     surfacesRef.current = surfaces;
@@ -121,6 +125,7 @@ function Running({ me }: { readonly me: string }) {
       }
     });
     registerBackgroundTask().catch(report);
+    endOrphanFireActivities().catch(report);
     // Another person on this phone: nothing of the last one stays on the surfaces.
     const group = nativeGroupStore(root);
     void writtenForSomeoneElse(group, me)
@@ -165,7 +170,7 @@ function Running({ me }: { readonly me: string }) {
       responses.remove();
       appState.remove();
     };
-  }, [client, art, me, shares]);
+  }, [client, art, me, shares, t, toast]);
 
   // The lock-screen actions, titled in the person's language. One at a time: each call reads the
   // categories already set and writes them back with its own, so calls side by side lose one.

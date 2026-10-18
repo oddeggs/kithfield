@@ -1,7 +1,7 @@
 import type { FireActivity } from '@kithfield/contracts';
 import { useEffect, useRef } from 'react';
 
-import { surfaces, type SurfacesEvents } from '../../../modules/surfaces';
+import { surfaces, type RunningActivity, type SurfacesEvents } from '../../../modules/surfaces';
 import { surfaceLink } from './links';
 import { appScheme } from './scheme';
 
@@ -17,6 +17,21 @@ type Attributes = Omit<FireActivity['attributes'], 'link'>;
 type State = FireActivity['state'];
 
 let running: { id: string; farm: string } | null = null;
+
+/** Fire activities left from an earlier run of the app (it quit with the fire room open). */
+export function orphanFireActivities(
+  activities: readonly RunningActivity[],
+  runningId: string | null,
+): string[] {
+  return activities.filter((a) => a.kind === 'fire' && a.id !== runningId).map((a) => a.id);
+}
+
+/** Ends what an earlier run left by the fire: nobody is sitting there any more. */
+export async function endOrphanFireActivities(): Promise<void> {
+  if (surfaces === null) return;
+  const orphans = orphanFireActivities(await surfaces.listActivities(), running?.id ?? null);
+  for (const id of orphans) await surfaces.endActivity(id, null);
+}
 
 /** Starts the fire's activity for `farm`, or moves the one already showing to this state. */
 export async function startFireActivity(attributes: Attributes, state: State): Promise<void> {

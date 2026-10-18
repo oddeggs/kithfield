@@ -1,4 +1,4 @@
-import type { FarmId, PersonId, SurfaceLink } from '@kithfield/contracts';
+import { FarmId, PersonId, type SurfaceLink } from '@kithfield/contracts';
 
 /*
  * The links the surfaces open the app with: `<scheme>://surfaces/open?to=…`, read by the
@@ -29,13 +29,17 @@ export function targetOf(params: Readonly<Record<string, string | string[] | und
     return typeof value === 'string' && value !== '' ? value : null;
   };
   const to = one('to');
-  const farm = one('farm');
   if (to === 'share') return { to } as const;
-  if (farm === null) return null;
-  if (to === 'farm' || to === 'fire') return { to, farm } as const;
-  const person = one('person');
-  if (to === 'critter' && person !== null) return { to, farm, person } as const;
+  const farm = FarmId.safeParse(one('farm'));
+  if (!farm.success) return null;
+  if (to === 'farm' || to === 'fire') return { to, farm: farm.data } as const;
+  const person = PersonId.safeParse(one('person'));
+  if (to === 'critter' && person.success) {
+    return { to, farm: farm.data, person: person.data } as const;
+  }
   const seed = Number(one('seed'));
-  if (to === 'plan' && Number.isInteger(seed) && seed > 0) return { to, farm, seed } as const;
+  if (to === 'plan' && Number.isInteger(seed) && seed > 0) {
+    return { to, farm: farm.data, seed } as const;
+  }
   return null;
 }
