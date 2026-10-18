@@ -136,7 +136,7 @@ export function CrittersScreen({ farm }: { readonly farm: FarmId }) {
                   </Txt>
                   <Txt
                     variant="handS"
-                    style={{ fontSize: 13, lineHeight: 14 }}
+                    style={{ fontSize: 13, lineHeight: 13 }}
                     color={asleep ? palette.muted : palette.go.bg}
                     numberOfLines={1}
                   >

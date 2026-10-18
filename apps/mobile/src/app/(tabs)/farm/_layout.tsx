@@ -19,6 +19,8 @@ export default function FarmStack() {
           sheetAllowedDetents: [0.42],
           sheetGrabberVisible: true,
           sheetCornerRadius: 30,
+          // The farm and its bubbles stay bright above it.
+          sheetLargestUndimmedDetentIndex: 0,
           contentStyle: { backgroundColor: palette.sheet },
         }}
       />

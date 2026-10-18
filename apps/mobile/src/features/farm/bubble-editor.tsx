@@ -2,8 +2,8 @@ import { LIMITS, type FarmId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
 import { fontFor, type } from '@kithfield/theme';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { KeyboardAvoidingView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFarmView, useSend } from '../../data';
@@ -44,6 +44,13 @@ export function BubbleEditor({ farm }: { readonly farm: FarmId }) {
   const send = useSend(farm);
   const current = view?.critters.find((c) => c.person === me)?.status ?? null;
   const [text, setText] = useState(current ?? '');
+  // The farm is read from the phone a moment after the sheet opens: show your bubble once it is.
+  const shown = useRef(current !== null);
+  useEffect(() => {
+    if (shown.current || current === null) return;
+    shown.current = true;
+    setText((typed) => (typed === '' ? current : typed));
+  }, [current]);
   const [busy, setBusy] = useState(false);
 
   const write = async (words: string | null) => {
@@ -61,7 +68,11 @@ export function BubbleEditor({ farm }: { readonly farm: FarmId }) {
 
   const font = fontFor({ ...type.handL, size: 21, lineHeight: 25 }, fontLocale);
   return (
-    <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 26, gap: 12 }}>
+    // The keyboard lifts the button with it.
+    <KeyboardAvoidingView
+      behavior="padding"
+      style={{ flex: 1, paddingHorizontal: 20, paddingTop: 26, gap: 12 }}
+    >
       <Txt variant="displayM" accessibilityRole="header">
         {t('farm.bubble.title')}
       </Txt>
@@ -101,13 +112,13 @@ export function BubbleEditor({ farm }: { readonly farm: FarmId }) {
           <Chip key={idea} label={t(idea)} kind="suggestion" onPress={() => setText(t(idea))} />
         ))}
       </View>
-      <View style={{ marginTop: 'auto', marginBottom: Math.max(insets.bottom, 34) }}>
+      <View style={{ marginTop: 'auto', marginBottom: Math.max(insets.bottom, 20) }}>
         <Button
           label={t('farm.bubble.float')}
           disabled={!validStatus(text) || busy}
           onPress={() => void write(text.trim())}
         />
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

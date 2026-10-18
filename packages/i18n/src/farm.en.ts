@@ -206,7 +206,7 @@ export const farmEn = {
 
   /* Your bubble */
   'farm.bubble.title': 'Your bubble',
-  'farm.bubble.placeholder': 'What’s on your mind today?',
+  'farm.bubble.placeholder': "What's on your mind today?",
   'farm.bubble.meta': '24 hours · replies count as tending',
   'farm.bubble.clear': 'Clear',
   'farm.bubble.float': 'Float it',
@@ -295,7 +295,7 @@ export const farmEn = {
 
   /* Welcome back */
   'farm.welcome.missed': 'missed you!!',
-  'farm.welcome.kettle': 'kettle’s on',
+  'farm.welcome.kettle': "kettle's on",
   'farm.welcome.title': 'There you are, {name}.',
   'farm.welcome.body': 'The farm kept your spot warm. Everyone’s so glad you’re back.',
   'farm.welcome.hi': 'Say hi to everyone',
