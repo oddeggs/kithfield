@@ -19,6 +19,20 @@ const queueRow = {
   claimedBy: null,
 };
 
+const appealRow = {
+  appeal: 'ap1',
+  person: 'p_bram',
+  name: 'Bram',
+  action: 'a1',
+  decision: 'remove_warn',
+  category: 'harassment',
+  report: 'R-20418',
+  sentAt: at,
+  status: 'open',
+  reviewer: 'm_kofi',
+  text: 'I was joking.',
+};
+
 const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
   ReportReason: [['unkind', 'something_else'], ['rude']],
   ReportRequest: [
@@ -193,6 +207,26 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
     ],
     [{ appeal: 'ap1', status: 'open' }],
   ],
+  AppealPage: [
+    [
+      { rows: [appealRow], cursor: 'c2' },
+      { rows: [], cursor: null },
+    ],
+    [{ rows: [appealRow] }, { rows: [{ appeal: 'ap1' }], cursor: null }],
+  ],
+  AppealDetail: [
+    [
+      {
+        ...appealRow,
+        decidedBy: 'm_ana',
+        decidedByName: 'Ana R.',
+        decidedAt: at,
+        rule: 3,
+        excerpt: 'honestly nobody here even wants you around',
+      },
+    ],
+    [{ ...appealRow, decidedBy: 'm_ana', decidedAt: at, rule: 3, excerpt: null }],
+  ],
   AppealDecision: [
     [{ outcome: 'keep', reply: 'It stays down.' }],
     [{ outcome: 'maybe', reply: 'x' }],
@@ -223,6 +257,7 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         id: 'l1',
         at,
         by: 'm_kofi',
+        byName: 'Kofi A.',
         what: 'appeal_kept',
         item: 'R-20418',
         rule: 3,
@@ -232,6 +267,7 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         id: 'l2',
         at,
         by: null,
+        byName: null,
         what: 'upload_blocked',
         item: 'H-1192',
         rule: 'child_safety',
@@ -240,7 +276,48 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
     ],
     [{ id: 'l1', at, by: 'm_kofi', what: 'edited', item: 'R-1', rule: null, reason: null }],
   ],
-  ErrorCode: [['under_age', 'farm_full'], ['oops']],
+  ModeratorSelf: [
+    [
+      { moderator: 'm_ana', name: 'Ana R.', role: 'moderator', shiftEndsAt: at },
+      { moderator: 'm_kofi', name: 'Kofi A.', role: 'senior', shiftEndsAt: null },
+    ],
+    [{ moderator: 'm_ana', name: 'Ana R.', role: 'admin', shiftEndsAt: null }],
+  ],
+  AuditPage: [
+    [{ entries: [], cursor: null }],
+    [{ entries: [{ id: 'l1' }], cursor: null }, { entries: [] }],
+  ],
+  ResponseTimes: [
+    [
+      {
+        days: 30,
+        medianFirstActionMs: 11_400_000,
+        urgentWithinHour: { met: 7, due: 7 },
+        standardWithinDay: { met: 123, due: 125 },
+        appealsWithinWeek: { met: 11, due: 11 },
+        appealsOverturned: 3,
+      },
+      {
+        days: 1,
+        medianFirstActionMs: null,
+        urgentWithinHour: { met: 0, due: 0 },
+        standardWithinDay: { met: 0, due: 0 },
+        appealsWithinWeek: { met: 0, due: 0 },
+        appealsOverturned: 0,
+      },
+    ],
+    [
+      {
+        days: 30,
+        medianFirstActionMs: 1,
+        urgentWithinHour: { met: 8, due: 7 },
+        standardWithinDay: { met: 0, due: 0 },
+        appealsWithinWeek: { met: 0, due: 0 },
+        appealsOverturned: 0,
+      },
+    ],
+  ],
+  ErrorCode: [['under_age', 'farm_full', 'code_invalid'], ['oops']],
   ErrorBody: [
     [
       { error: { code: 'not_found' } },
