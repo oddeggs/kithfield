@@ -34,7 +34,7 @@ const RISE = 8;
 
 /**
  * Toasts: the notice card (`01 Foundations`, Cards) arriving at the top of the screen, rising the
- * 8 points the design's hint cards rise (`12 States`, 12-07); under Reduce Motion it only fades.
+ * 8 points the design's hint cards rise (`12 States`, first-run hints); under Reduce Motion it only fades.
  * One at a time, the newest replacing the last.
  */
 export function ToastHost({ children }: { readonly children: ReactNode }) {

@@ -6,7 +6,7 @@ const ReduceMotionContext = createContext<boolean | null>(null);
 
 /**
  * Reduce Motion, read once for the whole app and kept current when it changes in Settings. Art
- * holds still and every move becomes `motion.fade` (`12 States`, 12-10).
+ * holds still and every move becomes `motion.fade` (`12 States`, Reduce Motion).
  */
 export function ReduceMotionProvider({
   forced,

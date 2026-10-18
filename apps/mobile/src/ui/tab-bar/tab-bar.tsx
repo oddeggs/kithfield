@@ -7,7 +7,7 @@ import { TabBarView } from './tab-bar-view';
 
 const isTab = (name: string): name is TabName => (tabs as readonly string[]).includes(name);
 
-/** Space from the screen's bottom edge, as on a phone with a home indicator (04-01: 26 of 34). */
+/** Space from the screen's bottom edge, as on a phone with a home indicator (the farm home draws it 26 above the edge, under a 34-point indicator). */
 const LIFT_UNDER_INDICATOR = 8;
 const BOTTOM_WITHOUT_INDICATOR = 16;
 const SIDE = 16;

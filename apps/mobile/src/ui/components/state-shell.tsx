@@ -16,7 +16,7 @@ export interface ShellAction {
 }
 
 /**
- * An empty list (`12 States`, 12-13 to 12-16): one illustration, one sentence on what will grow
+ * An empty list (`12 States`, the empty states): one illustration, one sentence on what will grow
  * here, one action. Only when the list is truly empty, never while it loads.
  */
 export function EmptyState({
@@ -58,8 +58,8 @@ export function EmptyState({
 }
 
 /**
- * A full-screen error (`12 States`, 12-05), only when nothing is cached: the art, a gentle title,
- * what is still safe, a small support code, and the way on, pinned to the bottom.
+ * A full-screen error (`12 States`, the farm couldn't load), only when nothing is cached: the
+ * art, a gentle title, what is still safe, a small support code, and the way on at the bottom.
  */
 export function ErrorState({
   art,

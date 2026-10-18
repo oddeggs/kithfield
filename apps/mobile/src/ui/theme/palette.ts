@@ -3,7 +3,7 @@ import { day, glass, night, type Appearance } from '@kithfield/theme';
 /**
  * The colours the component library paints with, by job, in each appearance. Palette colours come
  * from `@kithfield/theme`; the tints, hairlines and in-between inks the design writes inline in
- * `01 Foundations` (component library) and `12 States` (12-08, 12-09 at night) are named here.
+ * `01 Foundations` (component library) and `12 States` (the farm and the chat at night) are named here.
  * Night values the design does not draw are taken from the night palette and listed in
  * `docs/undesigned-states.md`.
  */

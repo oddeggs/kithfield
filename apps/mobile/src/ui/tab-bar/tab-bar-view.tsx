@@ -19,7 +19,7 @@ const BAR = sizes.tabBar;
 const ITEM = 52;
 const SIDE = 6;
 const ICON = 26;
-/** At the accessibility text sizes the labels hide and the icons stay (`12 States`, 12-11). */
+/** At the accessibility text sizes the labels hide and the icons stay (`12 States`, largest Dynamic Type). */
 const AX_FONT_SCALE = 1.6;
 
 const icons: Record<Exclude<TabName, 'you'>, string> = {
@@ -43,7 +43,7 @@ export interface TabBarViewProps {
 }
 
 /**
- * The floating glass tab bar (`01 Foundations`; `04 Farm and Chat`, 04-01): 64 tall, four tabs,
+ * The floating glass tab bar (`01 Foundations`; the farm home in `04 Farm and Chat`): 64 tall, four tabs,
  * the active one on a soft pill that springs between tabs, new activity as a honey dot.
  */
 export function TabBarView({ active, dots, you, onPress, onLongPress }: TabBarViewProps) {

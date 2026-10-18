@@ -10,7 +10,7 @@ import {
 /**
  * The shared motion of `01 Foundations` on Reanimated, all on the UI thread. Each helper takes
  * the Reduce Motion flag from `useReduceMotion`: under it a move becomes `motion.fade`, and the
- * caller swaps what moves for what fades (`12 States`, 12-10). Reanimated's own Reduce Motion
+ * caller swaps what moves for what fades (`12 States`, Reduce Motion). Reanimated's own Reduce Motion
  * handling is turned off here, since it would skip the fade too.
  */
 export const easings = {
