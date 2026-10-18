@@ -30,7 +30,7 @@
     }
   },
   "submit": {
-    "dev": { "ios": {} },
-    "prd": { "ios": {} }
+    "dev": { "ios": { "ascAppId": "6824232574" } },
+    "prd": { "ios": { "ascAppId": "6824232249" } }
   }
 }
