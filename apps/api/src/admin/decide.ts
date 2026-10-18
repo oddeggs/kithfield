@@ -77,7 +77,8 @@ function reportUpdate(env: Bindings, report: ReportRow, action: ModerationAction
   const closes = CLOSES.has(action);
   return env.DB.prepare(
     `UPDATE reports SET status = ?, claimed_by = CASE WHEN ? THEN claimed_by ELSE NULL END,
-       first_action_at = COALESCE(first_action_at, ?), closed_at = CASE WHEN ? THEN ? ELSE closed_at END
+       first_action_at = COALESCE(first_action_at, ?),
+       closed_at = CASE WHEN ? THEN COALESCE(closed_at, ?) ELSE closed_at END
      WHERE id = ?`,
   ).bind(reportStatus(action), closes ? 1 : 0, now, closes ? 1 : 0, now, report.id);
 }
@@ -155,6 +156,28 @@ async function carryOut(
   return true;
 }
 
+/**
+ * Closes the report if it is still open, in one statement, so only one decision can. A verdict
+ * on the item also needs no removal from Kithfield to be waiting. True when this call closed it.
+ */
+async function claimClose(
+  env: Bindings,
+  report: string,
+  now: number,
+  verdict: boolean,
+): Promise<boolean> {
+  const waiting = verdict
+    ? ` AND NOT EXISTS (SELECT 1 FROM moderation_actions
+         WHERE report_id = ? AND status = 'awaiting_second')`
+    : '';
+  const result = await env.DB.prepare(
+    `UPDATE reports SET closed_at = ? WHERE id = ? AND closed_at IS NULL${waiting}`,
+  )
+    .bind(...(verdict ? [now, report, report] : [now, report]))
+    .run();
+  return result.meta.changes === 1;
+}
+
 /** `POST /admin/v1/reports/:id/actions`. */
 export async function decide(
   env: Bindings,
@@ -165,10 +188,17 @@ export async function decide(
 ): Promise<DecideOutcome> {
   const report = await loadReport(env.DB, reportId);
   if (report === null) return { ok: false, status: 404, code: 'not_found' };
-  // A closed report can still get an account decision (from the member's record), never a
-  // second verdict on the item itself.
-  if (ITEM_VERDICTS.has(req.action) && report.closedAt !== null) {
-    return { ok: false, status: 409, code: 'conflict' };
+  // The verdict on the item claims the close first, so two at the same moment can't both land,
+  // and none lands while a removal from Kithfield waits for its second moderator. A closed report
+  // can still get an account decision (from the member's record).
+  let claimedClose = false;
+  if (ITEM_VERDICTS.has(req.action)) {
+    if (!(await claimClose(env, report.id, now, true))) {
+      return { ok: false, status: 409, code: 'conflict' };
+    }
+    claimedClose = true;
+  } else if (CLOSES.has(req.action) && req.action !== 'remove_from_kithfield') {
+    claimedClose = await claimClose(env, report.id, now, false);
   }
   const stored: Stored = {
     id: mintId('A'),
@@ -216,10 +246,20 @@ export async function decide(
   ]);
   if (awaiting) return { ok: true, response: { action: stored.id, status: 'awaiting_second' } };
   if (!(await carryOut(env, report, stored, now))) {
-    // Nothing happened on the farm: the decision stays in the log, marked as not carried out.
-    await env.DB.prepare("UPDATE moderation_actions SET status = 'undone' WHERE id = ?")
-      .bind(stored.id)
-      .run();
+    // Nothing happened on the farm: the decision stays in the log, marked as not carried out,
+    // and the report opens again.
+    await env.DB.batch([
+      env.DB.prepare("UPDATE moderation_actions SET status = 'undone' WHERE id = ?").bind(
+        stored.id,
+      ),
+      ...(claimedClose
+        ? [
+            env.DB.prepare(
+              'UPDATE reports SET closed_at = NULL WHERE id = ? AND closed_at = ?',
+            ).bind(report.id, now),
+          ]
+        : []),
+    ]);
     return { ok: false, status: 409, code: 'conflict' };
   }
   return { ok: true, response: { action: stored.id, status: 'applied' } };
@@ -254,6 +294,16 @@ export async function approve(
   }
   const report = await loadReport(env.DB, row.report_id);
   if (report === null) return { ok: false, status: 404, code: 'not_found' };
+  // Someone found no rule broken: a removal can't follow on the same report.
+  if (report.status === 'dismissed') return { ok: false, status: 409, code: 'conflict' };
+  // Only one agreement counts: the first to claim it carries the removal out.
+  const claim = await env.DB.prepare(
+    `UPDATE moderation_actions SET approved_by = ?
+     WHERE id = ? AND status = 'awaiting_second' AND approved_by IS NULL`,
+  )
+    .bind(moderator.id, row.id)
+    .run();
+  if (claim.meta.changes !== 1) return { ok: false, status: 409, code: 'conflict' };
   const stored: Stored = {
     id: row.id,
     action: row.action as ModerationAction,
@@ -262,20 +312,14 @@ export async function approve(
     tellReporters: row.tell_reporters === 1,
     tellMember: row.tell_member === 1,
   };
-  await env.DB.batch([
-    env.DB.prepare('UPDATE moderation_actions SET approved_by = ? WHERE id = ?').bind(
-      moderator.id,
-      row.id,
-    ),
-    auditStatement(env.DB, {
-      at: now,
-      by: moderator.id,
-      what: stored.action,
-      item: report.id,
-      rule: stored.rule,
-      reason: null,
-    }),
-  ]);
+  await auditStatement(env.DB, {
+    at: now,
+    by: moderator.id,
+    what: stored.action,
+    item: report.id,
+    rule: stored.rule,
+    reason: null,
+  }).run();
   if (!(await carryOut(env, report, stored, now))) {
     return { ok: false, status: 409, code: 'conflict' };
   }

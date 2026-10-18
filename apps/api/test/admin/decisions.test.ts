@@ -280,4 +280,60 @@ describe('decisions on a report', () => {
     expect(await isBanned(env.DB, kept.id, Date.now())).toBe(true);
     expect(await isBanned(env.DB, lot.bram.id, Date.now())).toBe(false);
   });
+
+  it('lets only one of two verdicts at the same moment through', async () => {
+    const lot = await thursdayLot();
+    const id = await fileReport(lot);
+    const both = await Promise.all([
+      act(id, { action: 'remove_warn' }),
+      act(id, { action: 'dismiss', rule: null }, KOFI),
+    ]);
+    expect(both.map((r) => r.status).sort()).toEqual([200, 409]);
+    const verdicts = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM moderation_actions WHERE report_id = ? AND status = 'applied'",
+    )
+      .bind(id)
+      .first<{ n: number }>();
+    expect(verdicts?.n).toBe(1);
+  });
+
+  it('refuses a dismissal while a removal from Kithfield waits, and an agreement after one', async () => {
+    const lot = await thursdayLot();
+    const id = await fileReport(lot);
+    const asked = ActionResponse.parse((await act(id, { action: 'remove_from_kithfield' })).body);
+    expect((await act(id, { action: 'dismiss', rule: null }, KOFI)).status).toBe(409);
+    const raced = await Promise.all([
+      act(id, { action: 'dismiss', rule: null }, KOFI),
+      desk(access, KOFI, 'POST', `/actions/${asked.action}/approve`, {}),
+    ]);
+    expect(raced.map((r) => r.status)).toEqual([409, 200]);
+
+    const other = await thursdayLot();
+    const dismissed = await fileReport(other);
+    expect((await act(dismissed, { action: 'dismiss', rule: null })).status).toBe(200);
+    const late = ActionResponse.parse(
+      (await act(dismissed, { action: 'remove_from_kithfield' })).body,
+    );
+    expect((await desk(access, KOFI, 'POST', `/actions/${late.action}/approve`, {})).status).toBe(
+      409,
+    );
+    expect(await isBanned(env.DB, other.bram.id, Date.now())).toBe(false);
+  });
+
+  it('carries out a removal once when two moderators agree at the same moment', async () => {
+    const lot = await thursdayLot();
+    const id = await fileReport(lot);
+    const asked = ActionResponse.parse((await act(id, { action: 'remove_from_kithfield' })).body);
+    const both = await Promise.all([
+      desk(access, KOFI, 'POST', `/actions/${asked.action}/approve`, {}),
+      desk(access, KOFI, 'POST', `/actions/${asked.action}/approve`, {}),
+    ]);
+    expect(both.map((r) => r.status).sort()).toEqual([200, 409]);
+    const agreed = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM audit_log WHERE item = ? AND what = 'remove_from_kithfield'",
+    )
+      .bind(id)
+      .first<{ n: number }>();
+    expect(agreed?.n).toBe(2);
+  });
 });
