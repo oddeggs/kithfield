@@ -8,7 +8,7 @@ private let log = Logger(subsystem: "com.kithfield.stickers", category: "drawer"
 /// PNGs), in the order and with the words its `manifest.json` gives. It reads the folder each
 /// time the drawer opens, so a new outfit shows up without the extension changing.
 final class StickersViewController: MSMessagesAppViewController {
-  private let browser = StickerBrowser(stickerSize: .regular)
+  private let browser = StickerBrowser(stickerSize: .small)
 
   override func viewDidLoad() {
     super.viewDidLoad()
