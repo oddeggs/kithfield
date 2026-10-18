@@ -629,6 +629,8 @@ describe('merging people', () => {
     const again = await TestSocket.open(farm);
     const caught = await again.hello(pip, farm, 4);
     expect(caught.snapshot?.state.members.map((m) => m.person)).toEqual([pip.id, into]);
+    // The snapshot names who the merged-away id is now, so phones draw fig's words as the account.
+    expect(caught.snapshot?.state.aliases).toEqual({ [fig.id]: into });
     again.close();
 
     const edit = await stub.command(into, {
