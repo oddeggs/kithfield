@@ -7,6 +7,7 @@ import { describeSchemas } from './schema-runner.test-data';
 
 const url = 'https://kithfield.com/i/thursday-lot';
 const key = 'farm/f_thursday_lot/0192f1e2-3b4c-7d5e-8f60-123456789abc';
+const copy = 'farm/f_book_club/0192f1e2-3b4c-7d5e-8f60-123456789abd';
 const event = {
   seq: 41,
   opId,
@@ -254,6 +255,35 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
     [{ key, uploadId: 'u1', parts: [] }],
   ],
   CompleteUploadResponse: [[{ key }], [{ key: 'elsewhere/x' }]],
+  AbortUploadRequest: [
+    [{ key }, { key, uploadId: 'u-1' }],
+    [{ key, uploadId: '' }, {}],
+  ],
+  CopyMediaRequest: [
+    [{ fromFarm: farm, keys: [key], farm: 'f_book_club' }],
+    [
+      { fromFarm: farm, keys: [], farm: 'f_book_club' },
+      { fromFarm: farm, keys: [key] },
+    ],
+  ],
+  CopyMediaResponse: [
+    [{ keys: { [key]: copy } }, { keys: {} }],
+    [{ keys: { [key]: 'elsewhere/x' } }, { keys: [copy] }],
+  ],
+  MediaQuarantineRequest: [
+    [
+      { key, source: 'hash_match' },
+      { url: 'https://media.kithfield.com/farm/x?exp=1&sig=a', source: 'member', note: 'n-4471' },
+    ],
+    [{ key, url: 'https://media.kithfield.com/x', source: 'member' }, { source: 'member' }],
+  ],
+  MediaQuarantineResponse: [
+    [
+      { key, evidence: `quarantine/${key}`, first: true, held: true, report: 'R-7KQ2M9XH' },
+      { key, evidence: `quarantine/${key}`, first: false, held: false, report: null },
+    ],
+    [{ key, evidence: key, first: true, held: true, report: null }],
+  ],
   ReadUrlsRequest: [[{ keys: [key] }], [{ keys: [] }, { keys: Array(51).fill(key) }]],
   ReadUrlsResponse: [
     [{ urls: [{ key, url, expiresAt: at }] }],

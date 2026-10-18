@@ -1,6 +1,5 @@
-import { FarmId, LIMITS, MediaKey } from '@kithfield/contracts';
+import { CopyMediaRequest, type CopyMediaResponse } from '@kithfield/contracts';
 import { Hono } from 'hono';
-import { z } from 'zod';
 
 import type { SessionEnv } from '../auth';
 import { roleOf } from '../farm/d1';
@@ -14,17 +13,6 @@ import { farmOfKey } from './signature';
  * sharing it: a key is only ever read on its own farm, and each farm's media is deleted with that
  * farm's events. The copy belongs to the forwarder.
  */
-
-/** `POST /v1/media/copy`: copy finished media from one farm the caller lives on to another. */
-export const CopyMediaRequest = z.object({
-  fromFarm: FarmId,
-  keys: z.array(MediaKey).min(1).max(LIMITS.mediaItems),
-  farm: FarmId,
-});
-export type CopyMediaRequest = z.infer<typeof CopyMediaRequest>;
-
-/** Each original key with its copy on the other farm. */
-export type CopyMediaResponse = { keys: Record<string, string> };
 
 /** The copy this person already made of `from` on `farm`, or the one this call claims. */
 async function claimCopy(db: D1Database, person: string, farm: string, from: string, now: number) {

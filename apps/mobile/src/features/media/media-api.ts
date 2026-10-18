@@ -3,6 +3,7 @@ import {
   ErrorBody,
   ReadUrlsResponse,
   UploadUrlResponse,
+  type AbortUploadRequest,
   type CompleteUploadRequest,
   type UploadUrlRequest,
 } from '@kithfield/contracts';
@@ -16,7 +17,7 @@ export interface MediaApi {
   complete(req: CompleteUploadRequest): Promise<CompleteUploadResponse>;
   readUrls(keys: readonly string[]): Promise<ReadUrlsResponse>;
   /** Gives up on an upload nothing points at yet: R2 drops its parts or its object. */
-  abort(req: { key: string; uploadId?: string }): Promise<null>;
+  abort(req: AbortUploadRequest): Promise<null>;
 }
 
 export interface MediaApiDeps {

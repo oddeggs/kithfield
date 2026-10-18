@@ -78,7 +78,7 @@ Each step is safe to repeat.
 1. Don't open the image. Copy the flagged URL from the email.
 2. Quarantine it: from a report on the desk, the photo's _Quarantine_ button; from Cloudflare's
    notice, `POST /admin/v1/media/quarantine` with `{"url": "<flagged URL>", "note": "<notice
-   reference>"}` through the admin Worker (behind Access).
+reference>"}` through the admin Worker (behind Access).
 3. The urgent report appears at the top of the queue (`source: hash_match`). Remove the event it
    came from (`unsend {by: safety}`) and ban the account from the report.
 4. Report to NCMEC (or the national hotline that applies) within the legal deadline, with the

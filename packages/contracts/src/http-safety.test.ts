@@ -43,6 +43,7 @@ const appealRow = {
   appeal: 'ap1',
   person: 'p_bram',
   name: 'Bram',
+  species: 'badger',
   action: 'a1',
   decision: 'remove_warn',
   category: 'harassment',
@@ -235,6 +236,7 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         appeal: 'ap1',
         person: 'p_bram',
         name: 'Bram',
+        species: 'badger',
         action: 'a1',
         decision: 'remove_warn',
         category: 'harassment',
@@ -244,8 +246,12 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         reviewer: 'm_kofi',
         text: 'I was joking.',
       },
+      { ...appealRow, name: null, species: null },
     ],
-    [{ appeal: 'ap1', status: 'open' }],
+    [
+      { appeal: 'ap1', status: 'open' },
+      { ...appealRow, species: 'dragon' },
+    ],
   ],
   AppealPage: [
     [

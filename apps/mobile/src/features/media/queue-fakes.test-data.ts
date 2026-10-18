@@ -1,5 +1,10 @@
 import { jest } from '@jest/globals';
-import { LIMITS, type UploadUrlRequest, type UploadUrlResponse } from '@kithfield/contracts';
+import {
+  type AbortUploadRequest,
+  LIMITS,
+  type UploadUrlRequest,
+  type UploadUrlResponse,
+} from '@kithfield/contracts';
 
 import { ApiError } from '../../data/api-client';
 import type { MediaApi } from './media-api';
@@ -25,7 +30,7 @@ export class FakeServer {
   /** The headers each PUT carried, in order. */
   headers: Readonly<Record<string, string>>[] = [];
   asked: UploadUrlRequest[] = [];
-  aborted: { key: string; uploadId?: string }[] = [];
+  aborted: AbortUploadRequest[] = [];
   /** What the next PUTs to URLs matching a pattern answer, in order. */
   script: { match: RegExp; answer: PutAnswer }[] = [];
   refuseUploadUrl: ApiError | null = null;

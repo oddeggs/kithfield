@@ -146,13 +146,8 @@ async function appeals(c: Ctx) {
     else if (read1.status === 403) detail = 'yours';
     else if (read1.status !== 404) return failure(c, read1);
   }
-  // Only the open appeal's person is looked up; the list draws everyone else with the desk's
-  // default critter, so a page of appeals is never a page of record reads.
   const species = new Map<string, string>();
-  if (detail !== null && detail !== 'yours') {
-    const record = await read(c, `/members/${detail.person}`, MemberRecord);
-    if (record.ok && record.data.species !== null) species.set(detail.person, record.data.species);
-  }
+  for (const row of rows) if (row.species !== null) species.set(row.person, row.species);
   return page(
     c,
     'appeals',

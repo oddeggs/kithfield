@@ -3,11 +3,11 @@ import {
   ActionResponse,
   AppealDecision,
   Id,
+  MediaQuarantineResponse,
   type ModerationAction,
   RuleRef,
 } from '@kithfield/contracts';
 import { Hono } from 'hono';
-import { z } from 'zod';
 
 import { send } from './api';
 import { tr } from './copy';
@@ -115,7 +115,7 @@ export function formRoutes(): Hono<AdminEnv> {
         source: 'member',
         ...(report === null ? {} : { note: tr('moderation.report.quarantineNote', { report }) }),
       },
-      z.object({ report: Id.nullable() }),
+      MediaQuarantineResponse,
     );
     if (!out.ok) return failure(c, out);
     const opened = out.data?.report ?? report;

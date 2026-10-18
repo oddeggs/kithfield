@@ -1,11 +1,12 @@
-import type {
-  AppealDecision,
-  AppealDetail,
-  AppealPage,
-  AppealRow,
-  AppealStatus,
-  ModerationAction,
-  ReportCategory,
+import {
+  type AppealDecision,
+  type AppealDetail,
+  type AppealPage,
+  type AppealRow,
+  type AppealStatus,
+  type ModerationAction,
+  type ReportCategory,
+  Species,
 } from '@kithfield/contracts';
 
 import type { Bindings } from '../env';
@@ -79,6 +80,7 @@ interface AppealRaw {
   id: string;
   person_id: string;
   name: string | null;
+  critter: string | null;
   action_id: string;
   action: string;
   category: string;
@@ -94,7 +96,7 @@ interface AppealRaw {
   excerpt: string | null;
 }
 
-const SELECT = `SELECT p.id, p.person_id, pe.display_name AS name, p.action_id, a.action,
+const SELECT = `SELECT p.id, p.person_id, pe.display_name AS name, pe.critter, p.action_id, a.action,
     r.category, a.report_id, p.sent_at, p.status, p.reviewer_id, p.text, a.moderator_id,
     m.name AS moderator_name, COALESCE(a.applied_at, a.created_at) AS decided, a.rule, r.excerpt
   FROM appeals p
@@ -103,10 +105,22 @@ const SELECT = `SELECT p.id, p.person_id, pe.display_name AS name, p.action_id, 
   LEFT JOIN people pe ON pe.id = p.person_id
   LEFT JOIN moderators m ON m.id = a.moderator_id`;
 
+const speciesOf = (critter: string | null): AppealRow['species'] => {
+  try {
+    const parsed = Species.safeParse(
+      (JSON.parse(critter ?? 'null') as { species?: unknown } | null)?.species,
+    );
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+};
+
 const toRow = (raw: AppealRaw): AppealRow => ({
   appeal: raw.id,
   person: raw.person_id,
   name: raw.name,
+  species: speciesOf(raw.critter),
   action: raw.action_id,
   decision: raw.action as ModerationAction,
   category: raw.category as ReportCategory,

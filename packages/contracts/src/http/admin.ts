@@ -198,6 +198,8 @@ export const AppealRow = z.object({
   appeal: Id,
   person: PersonId,
   name: DisplayName.nullable(),
+  /** Their critter's species, to draw them; null for a deleted account. */
+  species: Species.nullable(),
   action: Id,
   decision: ModerationAction,
   category: ReportCategory,

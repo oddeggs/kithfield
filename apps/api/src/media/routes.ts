@@ -1,12 +1,11 @@
 import {
+  AbortUploadRequest,
   CompleteUploadRequest,
   type CompleteUploadResponse,
-  MediaKey,
   UploadUrlRequest,
   type UploadUrlResponse,
 } from '@kithfield/contracts';
 import { Hono } from 'hono';
-import { z } from 'zod';
 
 import type { SessionEnv } from '../auth';
 import { roleOf } from '../farm/d1';
@@ -39,12 +38,6 @@ const bareEtag = (etag: string) => etag.replace(/^W\//, '').replace(/^"|"$/g, ''
 /** Upload URLs and copies a person may ask for: 60 a minute. False (answer 429) once over. */
 export const withinMediaLimit = async (c: Ctx, person: string) =>
   (await c.env.MEDIA_LIMIT.limit({ key: person })).success;
-
-/** `POST /v1/media/abort`: the uploader gives up on an upload before its message is sent. */
-export const AbortUploadRequest = z.object({
-  key: MediaKey,
-  uploadId: z.string().min(1).max(512).optional(),
-});
 
 export const mediaRoutes = (): Hono<SessionEnv> => {
   const app = new Hono<SessionEnv>();

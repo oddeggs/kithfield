@@ -1,6 +1,10 @@
-import type { FarmId, PersonId } from '@kithfield/contracts';
+import {
+  type FarmId,
+  MediaQuarantineRequest,
+  type MediaQuarantineResponse,
+  type PersonId,
+} from '@kithfield/contracts';
 import { type Context, Hono, type Env } from 'hono';
-import { z } from 'zod';
 
 import type { Bindings } from '../env';
 import { markQuarantined, mediaRow, setReport } from './index-store';
@@ -59,16 +63,8 @@ export interface QuarantineInput {
   readonly at: number;
 }
 
-export interface QuarantineResult {
-  readonly key: string;
-  readonly evidence: string;
-  /** False when the key was already quarantined. */
-  readonly first: boolean;
-  /** Whether the evidence is held (the object existed, here or already moved). */
-  readonly held: boolean;
-  /** The urgent report, once the reports desk has opened it; null while none is registered. */
-  readonly report: string | null;
-}
+/** What quarantining answers: the contracts' `MediaQuarantineResponse`. */
+export type QuarantineResult = MediaQuarantineResponse;
 
 /** Moves the object to the evidence prefix; true when the evidence is there now. */
 async function holdEvidence(bucket: R2Bucket, key: string): Promise<boolean> {
@@ -118,18 +114,6 @@ export async function quarantineMedia(
   return { key, evidence: evidenceKey(key), first, held, report };
 }
 
-/** `POST …/media/quarantine`: a key or the flagged URL, and an optional note. */
-export const QuarantineRequest = z
-  .object({
-    key: z.string().regex(MEDIA_KEY).optional(),
-    url: z.url().max(2048).optional(),
-    source: z.enum(['hash_match', 'member']).default('hash_match'),
-    note: z.string().trim().min(1).max(500).optional(),
-  })
-  .refine((r) => (r.key === undefined) !== (r.url === undefined), {
-    message: 'a key or a url, not both',
-  });
-
 /**
  * The admin route, for the moderation console's API to mount behind its own guard (Cloudflare
  * Access): `who(c)` names the admin acting. Answers the `QuarantineResult`.
@@ -139,7 +123,7 @@ export function mediaAdminRoutes<E extends Env & { Bindings: Bindings }>(
 ): Hono<E> {
   const app = new Hono<E>();
   app.post('/media/quarantine', async (c) => {
-    const parsed = QuarantineRequest.safeParse(await c.req.json().catch(() => undefined));
+    const parsed = MediaQuarantineRequest.safeParse(await c.req.json().catch(() => undefined));
     if (!parsed.success) return c.json({ error: { code: 'bad_request' } }, 400);
     const { key, url, source, note } = parsed.data;
     const target = key ?? url ?? '';
@@ -154,7 +138,7 @@ export function mediaAdminRoutes<E extends Env & { Bindings: Bindings }>(
       note: note ?? null,
       at: Date.now(),
     });
-    return c.json(result);
+    return c.json(result satisfies MediaQuarantineResponse);
   });
   return app;
 }
