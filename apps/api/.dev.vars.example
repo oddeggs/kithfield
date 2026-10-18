@@ -7,3 +7,5 @@ BETTER_AUTH_SECRET=
 EXPO_ACCESS_TOKEN=
 # Keys the waitlist's address hashes; at least 32 random characters (`openssl rand -base64 32`).
 WAITLIST_EMAIL_KEY=
+# Seals each farm's current invite code (AES-GCM); at least 32 random characters (`openssl rand -base64 32`).
+INVITE_CODE_KEY=

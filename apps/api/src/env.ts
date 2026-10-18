@@ -12,6 +12,8 @@ export const secretNames = [
   'EXPO_ACCESS_TOKEN',
   // Keys the waitlist's address hashes (HMAC-SHA256), so a listed address can't be brute-forced.
   'WAITLIST_EMAIL_KEY',
+  // Seals each farm's current invite code (AES-GCM), so keepers can read their link again.
+  'INVITE_CODE_KEY',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 

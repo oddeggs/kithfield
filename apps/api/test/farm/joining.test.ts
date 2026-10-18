@@ -1,8 +1,10 @@
 import {
   CreateFarmResponse,
+  CurrentInvite,
   FarmEvent,
   FarmGate,
   FarmList,
+  Invite,
   InvitePreview,
   WaitingList,
 } from '@kithfield/contracts';
@@ -156,6 +158,45 @@ describe('planting and joining', () => {
     expect((await api(null, 'GET', `/v1/invites/${invite.code}`)).status).toBe(404);
     const url = (fresh.body as { url: string }).url;
     expect((await api(null, 'GET', `/v1/invites/${codeOf(url)}`)).status).toBe(200);
+  });
+
+  it('shows keepers and helpers the current link again, and nobody else', async () => {
+    const { pip, fig, kit, mo } = await cast('pip', 'fig', 'kit', 'mo');
+    const { farm, invite } = await plant(pip);
+    for (const who of [fig, kit]) {
+      await api(who, 'POST', `/v1/invites/${invite.code}/join`, profile(who));
+    }
+    await farmStub(farm).command(pip.id, {
+      opId: op(1),
+      kind: 'settings_changed',
+      payload: { setting: 'role', person: fig.id, role: 'helper' },
+    });
+    const current = async (who: Person) => {
+      const read = await api(who, 'GET', `/v1/farms/${farm}/invite`);
+      return read.status === 200 ? CurrentInvite.parse(read.body).invite : read.status;
+    };
+    expect(await current(pip)).toEqual(invite);
+    expect(await current(fig)).toEqual(invite);
+    expect(await current(kit)).toBe(403);
+    expect(await current(mo)).toBe(404);
+    // Only sealed: the database never holds the code itself.
+    const row = await env.DB.prepare('SELECT * FROM invites WHERE farm_id = ?').bind(farm).first();
+    expect(JSON.stringify(row)).not.toContain(invite.code);
+
+    const fresh = Invite.parse(
+      (await api(fig, 'POST', `/v1/farms/${farm}/invites`, { expiresAt: null })).body,
+    );
+    expect(await current(pip)).toEqual(fresh);
+    await api(pip, 'POST', `/v1/farms/${farm}/invites`, { expiresAt: Date.now() - 1 });
+    expect(await current(pip)).toBeNull();
+  });
+
+  it('turns away a join through a link that was taken back', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    const { farm, invite } = await plant(pip);
+    await api(pip, 'POST', `/v1/farms/${farm}/invites`, { expiresAt: null });
+    const old = await api(fig, 'POST', `/v1/invites/${invite.code}/join`, profile(fig));
+    expect(old).toEqual({ status: 404, body: { error: { code: 'invite_invalid' } } });
   });
 
   it('keeps people waiting where the keeper lets them in, and lets them in or not, quietly', async () => {
