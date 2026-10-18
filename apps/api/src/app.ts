@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 
+import { cottageRoutes } from './cottage/routes';
 import type { AppEnv } from './env';
 
 /** The API. The Worker owns `<host>/api/*`; the website serves everything else on the host. */
@@ -9,6 +10,8 @@ export function createApp(): Hono<AppEnv> {
   app.get('/health', (c) =>
     c.json({ status: 'ok', environment: c.env.ENVIRONMENT, commit: c.env.COMMIT_SHA }),
   );
+
+  app.route('/', cottageRoutes());
 
   app.notFound((c) => c.json({ error: { code: 'not_found' } }, 404));
 
