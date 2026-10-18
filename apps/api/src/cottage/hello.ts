@@ -1,5 +1,6 @@
 import { PROTOCOL_VERSION } from '@kithfield/contracts';
 
+import { rtTokenSession } from '../auth';
 import { cottageAdapters } from './adapters';
 import { chatList } from './chats';
 import type { Intake } from './intake';
@@ -31,7 +32,10 @@ export async function answerHello(
     sockets.refuse(ws, 'unauthorized');
     return;
   }
-  ws.serializeAttachment({ authed: true } satisfies sockets.SocketState);
+  ws.serializeAttachment({
+    authed: true,
+    session: rtTokenSession(hello.token),
+  } satisfies sockets.SocketState);
   updateProfile(cottage.sql, (profile) => ({ ...profile, nudgesSinceBack: 0 }));
   sockets.send(ws, { type: 'chats', chats: chatList(cottage.sql, cottage.now) });
   if (readProfile(cottage.sql).safetyNote) sockets.send(ws, { type: 'safety_note' });

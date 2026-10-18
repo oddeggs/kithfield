@@ -77,6 +77,7 @@ export function authRoutes(): Hono<SessionEnv> {
       person: c.var.person,
       farm: body.value.farm ?? null,
       now,
+      session: c.var.session,
     });
     return c.json(issued satisfies RtTokenResponse);
   });

@@ -252,6 +252,14 @@ export class CottageDO extends DurableObject<Bindings> {
     for (const ws of this.ctx.getWebSockets()) sockets.refuse(ws, code);
   }
 
+  /** Closes the sockets opened under one sign-in session, with `error {session_ended}`. */
+  closeSession(session: string): void {
+    for (const ws of this.ctx.getWebSockets()) {
+      const state = sockets.stateOf(ws);
+      if (state?.authed === true && state.session === session) sockets.refuse(ws, 'session_ended');
+    }
+  }
+
   /** Late hellos, held pushes and due seeds; after a failure, it rings again in a minute. */
   override async alarm(): Promise<void> {
     sockets.closeLate(this.ctx.getWebSockets(), this.now);

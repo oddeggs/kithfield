@@ -1,5 +1,5 @@
 import type { Bindings } from '../env';
-import { checkRtToken, type RtTokenScope } from './rt-token';
+import { checkRtToken, rtTokenSession, type RtTokenScope } from './rt-token';
 
 export { authRoutes } from './routes';
 export { requireSession, errorResponse, type SessionEnv } from './session';
@@ -17,7 +17,7 @@ export {
 export { registerMergeStep, type MergeStep, type PersonMerge } from './merge-steps';
 export { CURRENT_TERMS_VERSION } from './terms';
 export { registerProfileFanOut, type ProfileFanOut } from './profile';
-export { RT_TOKEN_LIFETIME_MS, type RtTokenScope } from './rt-token';
+export { RT_TOKEN_LIFETIME_MS, rtTokenSession, type RtTokenScope } from './rt-token';
 
 /**
  * The person a socket token speaks for, or null. The farm object passes `{farm}` with its own farm
@@ -35,8 +35,14 @@ export async function verifyRtToken(
   if (secret === undefined || secret.length < 32) return null;
   const person = await checkRtToken(secret, token, scope, now);
   if (person === null) return null;
-  const live = await env.DB.prepare('SELECT 1 FROM people WHERE id = ? AND deleted_at IS NULL')
-    .bind(person)
+  // A token minted under a session that has since ended (signed out from another device) opens
+  // nothing more.
+  const session = rtTokenSession(token);
+  const live = await env.DB.prepare(
+    `SELECT 1 FROM people p WHERE p.id = ?1 AND p.deleted_at IS NULL
+       AND (?2 IS NULL OR EXISTS (SELECT 1 FROM sessions s WHERE s.id = ?2 AND s.person_id = ?1))`,
+  )
+    .bind(person, session)
     .first();
   return live === null ? null : person;
 }

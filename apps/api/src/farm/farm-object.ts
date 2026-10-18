@@ -174,6 +174,11 @@ export class FarmDO extends DurableObject<Bindings> {
     this.host.closeSockets(person, code);
   }
 
+  /** That device was signed out from another one: its sockets here close. */
+  closeSession(session: string): void {
+    this.host.closeSession(session);
+  }
+
   join(person: PersonId, profile: Profile, approved: boolean): Promise<actions.JoinOutcome> {
     return actions.joinFarm(this.host, person, profile, approved);
   }

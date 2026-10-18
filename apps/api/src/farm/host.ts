@@ -78,6 +78,13 @@ export class FarmHost {
     }
   }
 
+  /** Closes the sockets opened under one sign-in session with `error {session_ended}`. */
+  closeSession(session: string): void {
+    for (const ws of this.ctx.getWebSockets()) {
+      if (attachmentOf(ws).session === session) refuse(ws, 'session_ended');
+    }
+  }
+
   /** On wake: move to newer rules if this server has them, and tell everyone. */
   async wake(): Promise<void> {
     if (this.farm.state !== null) this.store.prune(this.now());
