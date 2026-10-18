@@ -2,6 +2,7 @@ import { Critter, DisplayName, MonthDay, type Me, type SignInMethod } from '@kit
 
 import { cottageOf } from '../cottage/stub';
 import type { Bindings } from '../env';
+import { CURRENT_TERMS_VERSION } from './terms';
 
 /** A pending account deletion waits this long; signing in again within it cancels it. */
 export const DELETION_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -72,6 +73,7 @@ export async function readMe(env: Bindings, person: string): Promise<Me | null> 
     signIn,
     ageOk: row.age_ok === 1,
     termsVersion: row.terms_version,
+    currentTermsVersion: CURRENT_TERMS_VERSION,
     hibernating: cottage.hibernating,
     settings: cottage.settings,
     purgeAt: row.deleted_at === null ? null : row.deleted_at + DELETION_GRACE_MS,

@@ -100,6 +100,21 @@ describe('POST /v1/me/terms', () => {
     expect(row?.terms_at).toBeGreaterThanOrEqual(before);
   });
 
+  it('tells the app which Terms are in force, before and after they are accepted', async () => {
+    const { token } = await signInAnonymously();
+    const before = await (await call('/v1/me', { token })).json();
+    expect(before).toMatchObject({
+      termsVersion: null,
+      currentTermsVersion: CURRENT_TERMS_VERSION,
+    });
+    await call('/v1/me/terms', { body: { version: CURRENT_TERMS_VERSION }, token });
+    const after = await (await call('/v1/me', { token })).json();
+    expect(after).toMatchObject({
+      termsVersion: CURRENT_TERMS_VERSION,
+      currentTermsVersion: CURRENT_TERMS_VERSION,
+    });
+  });
+
   it('accepts only the current Terms', async () => {
     const { token } = await signInAnonymously();
     const response = await call('/v1/me/terms', { body: { version: '2020-01-01' }, token });
