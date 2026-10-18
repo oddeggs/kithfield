@@ -1,17 +1,25 @@
 import { CottageServerFrame, PROTOCOL_VERSION } from '@kithfield/contracts';
-import { evictDurableObject } from 'cloudflare:test';
-import { exports } from 'cloudflare:workers';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { evictDurableObject, runDurableObjectAlarm } from 'cloudflare:test';
+import { env, exports } from 'cloudflare:workers';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+
+import { useCottageAdapters } from '../src/cottage/adapters';
+import { cottageOf } from '../src/cottage/stub';
 
 import {
   cottageWithFarm,
   freshPerson,
+  MIDDAY,
+  useTestClock,
   recordPushQueue,
   testRtToken,
   useTestSignInDouble,
 } from './cottage-doubles';
 
 beforeAll(() => useTestSignInDouble());
+beforeEach(() => {
+  useTestClock(MIDDAY);
+});
 
 /** Opens the cottage socket the way the phone does, collecting what it hears. */
 async function openSocket(person: string) {
@@ -154,6 +162,15 @@ describe('the cottage socket', () => {
     }
   });
 
+  it('refuses a token the verifier says is someone else’s, whatever the scope', async () => {
+    const person = freshPerson();
+    useCottageAdapters({ verifyRtToken: () => Promise.resolve('someone-else') });
+    const socket = await openSocket(person);
+    socket.ws.send(hello(testRtToken(person)));
+    expect(await socket.next(1)).toEqual([{ type: 'error', code: 'unauthorized' }]);
+    useTestSignInDouble();
+  });
+
   it('refuses anything before hello, and a protocol it cannot serve', async () => {
     const person = freshPerson();
     const early = await openSocket(person);
@@ -163,6 +180,30 @@ describe('the cottage socket', () => {
     const future = await openSocket(person);
     future.ws.send(hello(testRtToken(person), PROTOCOL_VERSION + 1));
     expect(await future.next(1)).toEqual([{ type: 'error', code: 'protocol_unsupported' }]);
+  });
+
+  it('closes a socket that says no hello within 30 seconds', async () => {
+    const person = freshPerson();
+    const socket = await openSocket(person);
+    useTestClock('2026-10-18T12:00:20Z');
+    await runDurableObjectAlarm(cottageOf(env, person));
+    expect(socket.closed()).toBeNull();
+    useTestClock('2026-10-18T12:00:31Z');
+    await runDurableObjectAlarm(cottageOf(env, person));
+    expect(await socket.next(1)).toEqual([{ type: 'error', code: 'unauthorized' }]);
+    await socket.next(2);
+    expect(socket.closed()).toMatchObject({ code: 1008 });
+  });
+
+  it('closes every socket on sign-out, a ban or deletion', async () => {
+    const person = freshPerson();
+    const socket = await openSocket(person);
+    socket.ws.send(hello(testRtToken(person)));
+    await socket.next(1);
+    await cottageOf(env, person).closeSockets('banned');
+    expect((await socket.next(2))[1]).toEqual({ type: 'error', code: 'banned' });
+    await socket.next(3);
+    expect(socket.closed()).toMatchObject({ code: 1008, reason: 'banned' });
   });
 
   it('keeps unauthenticated sockets out of the broadcast', async () => {

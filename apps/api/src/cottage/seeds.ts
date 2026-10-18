@@ -56,11 +56,12 @@ export function removeSeed(sql: SqlStorage, id: string): boolean {
   return sql.exec('DELETE FROM seeds WHERE id = ?', id).rowsWritten > 0;
 }
 
-/** Takes the seeds whose nudge is due: they leave the list as their nudge goes out. */
-export function takeDueSeeds(sql: SqlStorage, now: number): RememberSeed[] {
-  const due = sql.exec<SeedRow>('SELECT * FROM seeds WHERE nudge_at <= ?', now).toArray();
-  sql.exec('DELETE FROM seeds WHERE nudge_at <= ?', now);
-  return due.map(toSeed);
+/** The seeds whose nudge is due. Each leaves the list once its nudge is handled. */
+export function dueSeeds(sql: SqlStorage, now: number): RememberSeed[] {
+  return sql
+    .exec<SeedRow>('SELECT * FROM seeds WHERE nudge_at <= ? ORDER BY nudge_at', now)
+    .toArray()
+    .map(toSeed);
 }
 
 export function nextSeedAt(sql: SqlStorage): number | null {

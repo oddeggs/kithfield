@@ -1,7 +1,8 @@
-import type { MeSettingsUpdate, PushJob } from '@kithfield/contracts';
+import type { PushJob } from '@kithfield/contracts';
 import { env } from 'cloudflare:workers';
 
 import { useCottageAdapters } from '../src/cottage/adapters';
+import { cottageClock } from '../src/cottage/clock';
 import { cottageOf } from '../src/cottage/stub';
 import { type PushQueueMessage, pushQueue } from '../src/push/queue';
 
@@ -20,9 +21,11 @@ export const testSession = (person: string) => ({ Authorization: `Bearer test-se
 /** Stands in for the auth code until it lands: accepts only the test tokens above. */
 export function useTestSignInDouble(onHibernate?: (person: string, on: boolean) => void): void {
   useCottageAdapters({
-    verifyRtToken: (_env, token) => {
+    verifyRtToken: (_env, token, scope) => {
       const match = /^test-rt-token:([^:]+)(?::(.+))?$/.exec(token);
-      return Promise.resolve(match ? { person: match[1]!, farm: match[2] ?? null } : null);
+      return Promise.resolve(
+        match && match[2] === undefined && match[1] === scope.cottage ? match[1] : null,
+      );
     },
     sessionPerson: (request) => {
       const match = /^Bearer test-session:(.+)$/.exec(request.headers.get('Authorization') ?? '');
@@ -80,24 +83,22 @@ let counter = 0;
 /** A person id no other test uses, so cottages never share state. */
 export const freshPerson = (label = 'p') => `${label}-${Date.now().toString(36)}-${counter++}`;
 
-/** Quiet hours that never start (an empty window). */
-export const NEVER_QUIET: MeSettingsUpdate = {
-  quietHours: { from: '00:00', to: '00:00', timeZone: 'UTC' },
-};
-
-/** Quiet hours around now, in UTC, ending in an hour or so. */
-export function quietNow(): MeSettingsUpdate {
-  const hhmm = (at: number) => new Date(at).toISOString().slice(11, 16);
-  const now = Date.now();
-  return {
-    quietHours: { from: hhmm(now - 3_600_000), to: hhmm(now + 3_600_000), timeZone: 'UTC' },
-  };
+/**
+ * Sets the cottage's clock to a moment (say `2026-10-18T12:00:00Z`), from which it runs on in
+ * real time, so alarms still ring. With no zone sent, the person's quiet floor is 22:00–08:00 UTC.
+ */
+export function useTestClock(iso: string): number {
+  const offset = Date.parse(iso) - Date.now();
+  cottageClock.now = () => Date.now() + offset;
+  return cottageClock.now();
 }
 
-/** A cottage with a farm on its chat list and quiet hours that never start. */
+/** Midday UTC: outside every quiet window the tests use. */
+export const MIDDAY = '2026-10-18T12:00:00Z';
+
+/** A cottage with a farm on its chat list. */
 export async function cottageWithFarm(person: string, farm: string, name = 'The Thursday Lot') {
   const cottage = cottageOf(env, person);
-  await cottage.updateSettings(NEVER_QUIET);
   await cottage.upsertFarm({ farm, farmKind: 'farm', name, with: null });
   return cottage;
 }
@@ -112,4 +113,46 @@ export async function ledgerOf(person: string) {
     .bind(person)
     .all<Record<string, unknown>>();
   return results;
+}
+
+/**
+ * D1's `farms` and `people` rows as the farm and auth code write them, for the cottage's lookup
+ * of a farm it wasn't told about. Creates the tables only where their migrations haven't landed.
+ */
+export async function seedDirectory(rows: {
+  farms?: { id: string; kind: 'farm' | 'visit'; name: string | null; pair: string | null }[];
+  people?: { id: string; displayName: string | null; critter: unknown }[];
+}): Promise<void> {
+  await env.DB.batch([
+    env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS farms (id TEXT PRIMARY KEY, kind TEXT NOT NULL, name TEXT,
+        land TEXT NOT NULL, keeper_id TEXT, created_at INTEGER NOT NULL,
+        size_cap INTEGER NOT NULL DEFAULT 24, pair TEXT UNIQUE)`,
+    ),
+    env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS people (id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE, email_verified INTEGER NOT NULL, created_at DATE NOT NULL,
+        updated_at DATE NOT NULL, display_name TEXT, critter TEXT, deleted_at INTEGER)`,
+    ),
+  ]);
+  for (const farm of rows.farms ?? []) {
+    await env.DB.prepare(
+      'INSERT INTO farms (id, kind, name, land, created_at, pair) VALUES (?, ?, ?, ?, ?, ?)',
+    )
+      .bind(farm.id, farm.kind, farm.name, 'meadow', 0, farm.pair)
+      .run();
+  }
+  for (const person of rows.people ?? []) {
+    await env.DB.prepare(
+      `INSERT INTO people (id, name, email, email_verified, created_at, updated_at, display_name,
+        critter) VALUES (?, '', ?, 0, 0, 0, ?, ?)`,
+    )
+      .bind(
+        person.id,
+        `${person.id}@test.invalid`,
+        person.displayName,
+        JSON.stringify(person.critter),
+      )
+      .run();
+  }
 }

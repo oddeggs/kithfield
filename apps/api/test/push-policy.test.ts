@@ -4,14 +4,14 @@ import { budgetKey, candidateFor, collapseKeyFor, tag } from '../src/push/catalo
 import {
   type DecideInput,
   decide,
-  effectiveQuiet,
+  holdUntil,
   localClock,
   quietEndsAt,
+  quietWindows,
 } from '../src/push/policy';
 
 // 2026-10-18 12:00 UTC.
 const NOON = Date.UTC(2026, 9, 18, 12, 0);
-const neverQuiet = { from: '00:00', to: '00:00', timeZone: 'UTC' };
 
 const base: DecideInput = {
   category: 'farm',
@@ -19,7 +19,7 @@ const base: DecideInput = {
   muted: false,
   hibernating: false,
   connected: false,
-  quiet: neverQuiet,
+  quiet: quietWindows(null, 'UTC'),
   nudges: 'some',
   backOffWhenQuiet: true,
   nudgesSinceBack: 0,
@@ -42,7 +42,7 @@ describe('decide', () => {
   });
 
   it('holds a push in quiet hours until they end, before any budget is spent', () => {
-    const quiet = { from: '11:00', to: '13:30', timeZone: 'UTC' };
+    const quiet = quietWindows({ from: '11:00', to: '13:30', timeZone: 'UTC' }, 'UTC');
     expect(decide({ ...base, quiet, sentToday: 5 })).toEqual({
       action: 'hold',
       until: Date.UTC(2026, 9, 18, 13, 30),
@@ -92,7 +92,41 @@ describe('decide', () => {
   });
 });
 
+describe('knocks', () => {
+  const knock = { ...base, category: 'knock' as const };
+
+  it('never holds a knock: in quiet hours it expires, with no missed-call push later', () => {
+    const late = Date.UTC(2026, 9, 18, 23, 0);
+    expect(decide({ ...knock, at: late })).toEqual({ action: 'skip', reason: 'expired' });
+    expect(decide(knock)).toEqual({ action: 'send', last: false });
+  });
+
+  it('lets one knock an hour through per porch, and never collapses the rest', () => {
+    expect(decide({ ...knock, sentToday: 1 })).toEqual({ action: 'skip', reason: 'budget' });
+  });
+});
+
 describe('quiet hours', () => {
+  it('always keeps the house floor, 10pm to 8am in the person’s zone, with their own hours', () => {
+    const own = { from: '07:00', to: '09:30', timeZone: 'UTC' };
+    // 23:00 UTC: inside the floor, which ends at 08:00, inside their own hours until 09:30.
+    expect(holdUntil(Date.UTC(2026, 9, 18, 23, 0), quietWindows(own, 'UTC'))).toBe(
+      Date.UTC(2026, 9, 19, 9, 30),
+    );
+    // Their own hours never lift the floor.
+    const daytime = { from: '13:00', to: '14:00', timeZone: 'UTC' };
+    expect(holdUntil(Date.UTC(2026, 9, 18, 23, 0), quietWindows(daytime, 'UTC'))).toBe(
+      Date.UTC(2026, 9, 19, 8, 0),
+    );
+    expect(holdUntil(NOON, quietWindows(null, 'UTC'))).toBeNull();
+  });
+
+  it('ends on the local hour across a clock change', () => {
+    // London leaves summer time at 02:00 on 25 October 2026: 8am is 08:00 UTC again.
+    const floor = { from: '22:00', to: '08:00', timeZone: 'Europe/London' };
+    expect(quietEndsAt(Date.UTC(2026, 9, 24, 23, 0), floor)).toBe(Date.UTC(2026, 9, 25, 8, 0));
+  });
+
   it('wraps midnight in the person’s zone and ends at their morning', () => {
     const quiet = { from: '22:00', to: '08:00', timeZone: 'Asia/Ho_Chi_Minh' };
     // 16:00 UTC is 23:00 in Hanoi: quiet until 08:00 there, 01:00 UTC.
@@ -101,12 +135,10 @@ describe('quiet hours', () => {
     expect(quietEndsAt(NOON, quiet)).toBeNull();
   });
 
-  it('falls back to the house floor, 10pm to 8am, when the person has none', () => {
-    expect(effectiveQuiet(null, 'Europe/London')).toEqual({
-      from: '22:00',
-      to: '08:00',
-      timeZone: 'Europe/London',
-    });
+  it('keeps the house floor in the person’s zone when they have no hours of their own', () => {
+    expect(quietWindows(null, 'Europe/London')).toEqual([
+      { from: '22:00', to: '08:00', timeZone: 'Europe/London' },
+    ]);
   });
 
   it('reads an unknown zone as UTC', () => {
@@ -127,6 +159,8 @@ describe('which events push', () => {
   };
 
   it('pushes what is meant for the person, and never their own events', () => {
+    expect(candidateFor({ ...delivery, kind: 'hug' }, 'june')).toBeNull();
+    expect(candidateFor({ ...delivery, kind: 'knock' }, 'june')?.category).toBe('knock');
     expect(candidateFor(delivery, 'june')?.copyKey).toBe('push.doorstep.firefly');
     expect(candidateFor({ ...delivery, actor: 'june' }, 'june')).toBeNull();
     expect(candidateFor({ ...delivery, forYou: false }, 'june')).toBeNull();

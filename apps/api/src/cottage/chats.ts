@@ -70,9 +70,19 @@ export function upsertFarm(sql: SqlStorage, info: CottageFarm): void {
   );
 }
 
+/** The person left the farm: its row, what waited there and any push held for it go. */
 export function removeFarm(sql: SqlStorage, farm: string): void {
   sql.exec('DELETE FROM farms WHERE farm = ?', farm);
   sql.exec('DELETE FROM doorstep WHERE farm = ?', farm);
+  sql.exec("DELETE FROM held WHERE json_extract(job, '$.farm') = ?", farm);
+}
+
+/** Whether the cottage knows this farm: its kind and name, so it can show on the chat list. */
+export function knowsFarm(sql: SqlStorage, farm: string): boolean {
+  return (
+    sql.exec('SELECT 1 FROM farms WHERE farm = ? AND farm_kind IS NOT NULL', farm).toArray()
+      .length > 0
+  );
 }
 
 /** Mutes a farm until a time, or unmutes it with null. Nobody can see that you muted. */
@@ -92,21 +102,36 @@ export function isMuted(sql: SqlStorage, farm: string | null, now: number): bool
   return row?.until != null && row.until > now;
 }
 
+/** Delivered seqs are remembered this long to tell repeats from late arrivals. */
+const DELIVERED_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
+
 /**
- * Takes a newly committed event into the chat list. A seq the cottage already holds is a repeat
- * and changes nothing (returns false). Something meant for the person waits in Quick Tend unless
- * they have the farm open; opening the farm clears what waited there.
+ * Takes a newly committed event into the chat list. A seq delivered before is a repeat and changes
+ * nothing (returns false). A late arrival (a slow post, or events committed together arriving out
+ * of order) still counts, but the chat row keeps showing the newest event. Something meant for the
+ * person waits in Quick Tend unless they have the farm open; opening the farm clears what waited
+ * there before it.
  */
-export function applyDelivery(sql: SqlStorage, delivery: CottageDelivery, person: string): boolean {
-  const known = sql
-    .exec<{ seq: number | null }>('SELECT seq FROM farms WHERE farm = ?', delivery.farm)
-    .toArray()[0];
-  if (known?.seq != null && delivery.seq <= known.seq) return false;
+export function applyDelivery(
+  sql: SqlStorage,
+  delivery: CottageDelivery,
+  person: string,
+  now: number,
+): boolean {
+  sql.exec('DELETE FROM delivered WHERE at < ?', now - DELIVERED_KEEP_MS);
+  const fresh = sql.exec(
+    'INSERT OR IGNORE INTO delivered (farm, seq, at) VALUES (?, ?, ?)',
+    delivery.farm,
+    delivery.seq,
+    now,
+  ).rowsWritten;
+  if (fresh === 0) return false;
   sql.exec(
     `INSERT INTO farms (farm, seq, kind, actor, at, preview, for_you) VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (farm) DO UPDATE SET seq = excluded.seq, kind = excluded.kind,
        actor = excluded.actor, at = excluded.at, preview = excluded.preview,
-       for_you = excluded.for_you`,
+       for_you = excluded.for_you
+     WHERE excluded.seq > coalesce(farms.seq, -1)`,
     delivery.farm,
     delivery.seq,
     delivery.kind,
@@ -116,7 +141,7 @@ export function applyDelivery(sql: SqlStorage, delivery: CottageDelivery, person
     Number(delivery.forYou),
   );
   if (delivery.actor === person && delivery.kind === 'farm_opened') {
-    clearWaiting(sql, delivery.farm);
+    sql.exec('DELETE FROM doorstep WHERE farm = ? AND seq < ?', delivery.farm, delivery.seq);
   } else if (delivery.forYou && delivery.actor !== person && !delivery.connected) {
     sql.exec(
       'INSERT OR IGNORE INTO doorstep (farm, seq, kind, actor, at) VALUES (?, ?, ?, ?, ?)',
@@ -128,6 +153,11 @@ export function applyDelivery(sql: SqlStorage, delivery: CottageDelivery, person
     );
   }
   return true;
+}
+
+/** Forgets a delivery, so the same seq delivered again is taken. */
+export function forgetDelivered(sql: SqlStorage, farm: string, seq: number): void {
+  sql.exec('DELETE FROM delivered WHERE farm = ? AND seq = ?', farm, seq);
 }
 
 export function clearWaiting(sql: SqlStorage, farm: string): void {

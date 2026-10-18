@@ -25,38 +25,66 @@ export async function hashActionKey(key: string): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/** Who else held a device or its push token, and must let go of it. */
+export interface Displaced {
+  /** People whose cottage still lists this device id (the phone signed in as someone else). */
+  readonly deviceOwners: string[];
+  /** Other people's devices that still hold this push token. */
+  readonly tokenHolders: { readonly person: string; readonly device: string }[];
+}
+
 /**
- * Stores a device's new key, replacing its old one. A device id that belonged to someone else
- * (the phone signed in as another person) leaves them: their rows are removed and their ids
- * returned, so the caller can tell their cottages to forget the device.
+ * Stores a device's new key and push token hash, replacing its old ones. A device id or push
+ * token that belonged to someone else leaves them: their rows are removed or cleared, and they are
+ * returned so the caller can tell their cottages.
  */
 export async function storeActionKey(
   db: D1Database,
   person: string,
   device: string,
   key: string,
+  pushToken: string | null,
   now: number,
-): Promise<string[]> {
-  const previous = await db
+): Promise<Displaced> {
+  const tokenHash = pushToken === null ? null : await hashActionKey(pushToken);
+  const owners = await db
     .prepare(
       'SELECT person_id AS person FROM device_action_keys WHERE device_id = ? AND person_id <> ?',
     )
     .bind(device, person)
     .all<{ person: string }>();
+  const holders =
+    tokenHash === null
+      ? { results: [] }
+      : await db
+          .prepare(
+            `SELECT person_id AS person, device_id AS device FROM device_action_keys
+             WHERE push_token_hash = ? AND person_id <> ? AND device_id <> ?`,
+          )
+          .bind(tokenHash, person, device)
+          .all<{ person: string; device: string }>();
   await db.batch([
     db
       .prepare('DELETE FROM device_action_keys WHERE device_id = ? AND person_id <> ?')
       .bind(device, person),
     db
       .prepare(
-        `INSERT INTO device_action_keys (key_hash, person_id, device_id, created_at)
-         VALUES (?, ?, ?, ?)
-         ON CONFLICT (person_id, device_id) DO UPDATE SET key_hash = excluded.key_hash,
-           created_at = excluded.created_at`,
+        'UPDATE device_action_keys SET push_token_hash = NULL WHERE push_token_hash = ? AND person_id <> ?',
       )
-      .bind(await hashActionKey(key), person, device, now),
+      .bind(tokenHash, person),
+    db
+      .prepare(
+        `INSERT INTO device_action_keys (key_hash, person_id, device_id, created_at, push_token_hash)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT (person_id, device_id) DO UPDATE SET key_hash = excluded.key_hash,
+           created_at = excluded.created_at, push_token_hash = excluded.push_token_hash`,
+      )
+      .bind(await hashActionKey(key), person, device, now, tokenHash),
   ]);
-  return previous.results.map((row) => row.person);
+  return {
+    deviceOwners: owners.results.map((row) => row.person),
+    tokenHolders: holders.results,
+  };
 }
 
 /** Revokes a device's key, as when the device is signed out. */

@@ -50,17 +50,21 @@ export function candidateFor(delivery: CottageDelivery, person: string): Candida
   if (!delivery.forYou) return null;
   const doorstep = DOORSTEP_COPY[delivery.kind];
   if (doorstep !== undefined) return { category: 'doorstep', copyKey: doorstep, named: true };
-  if (delivery.kind === 'knock') return { category: 'farm', copyKey: 'push.knock', named: true };
+  if (delivery.kind === 'knock') return { category: 'knock', copyKey: 'push.knock', named: true };
   if (CHAT_KINDS.has(delivery.kind) && delivery.preview !== null) {
     return { category: 'mention', copyKey: 'push.mention', named: true };
   }
-  return { category: 'farm', copyKey: 'push.forYou', named: true };
+  // The rest wait on the doorstep and in Quick Tend; the catalogue has no push for them.
+  return null;
 }
 
 /** A job's category, read from its kind and copy, for jobs other producers hand the cottage. */
 export function categoryOf(job: Pick<PushJob, 'kind' | 'copy' | 'farm'>): PushCategory {
   if (job.copy.key === REMEMBER_COPY) return 'reminder';
   if (job.kind.startsWith('nudge') || job.farm === null) return 'nudge';
+  if (job.kind === 'knock') return 'knock';
+  if (job.copy.key === FEW_COPY.doorstep) return 'doorstep';
+  if (job.copy.key === FEW_COPY.farm) return 'farm';
   if (Object.values(DOORSTEP_COPY).includes(job.copy.key)) return 'doorstep';
   if (job.copy.key === 'push.mention') return 'mention';
   return 'farm';
@@ -78,10 +82,20 @@ export function tag(id: string): string {
 
 const compactDate = (date: string) => date.replaceAll('-', '');
 
-/** The key a push counts against today: per person for the doorstep, per farm otherwise. */
-export function budgetKey(category: PushCategory, farm: string | null, date: string): string {
+/**
+ * The key a push counts against: per person per day for the doorstep, per farm per hour for a
+ * knock, per farm per day otherwise. `hour` is the local hour, 0–23.
+ */
+export function budgetKey(
+  category: PushCategory,
+  farm: string | null,
+  date: string,
+  hour = 0,
+): string {
   const day = compactDate(date);
   if (category === 'doorstep') return `doorstep.${day}`;
+  if (category === 'knock')
+    return `knock.${tag(farm ?? '')}.${day}${String(hour).padStart(2, '0')}`;
   return `${category}.${tag(farm ?? '')}.${day}`;
 }
 
@@ -98,7 +112,9 @@ export function collapseKeyFor(
 ): string {
   const day = compactDate(date);
   if (category === 'doorstep') return `doorstep.${day}`;
-  if (category === 'mention' && seq !== null) return `mention.${tag(farm ?? '')}.${seq}`;
+  if ((category === 'mention' || category === 'knock') && seq !== null) {
+    return `${category}.${tag(farm ?? '')}.${seq}`;
+  }
   if (category === 'nudge' || category === 'reminder') return `${category}.${day}`;
   return fewCollapseKey(farm, date);
 }

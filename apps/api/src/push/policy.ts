@@ -13,15 +13,21 @@ const DAY_MINUTES = 24 * 60;
 
 /**
  * The house floor: nothing between 10pm and 8am local time (`10 On the System`, "Never sent").
- * It applies when the person has no quiet hours of their own.
+ * It always applies in the person's zone, alongside any quiet hours of their own.
  */
 export const FLOOR_QUIET = { from: '22:00', to: '08:00' } as const;
 
 /** What a push is, which decides its budget and back-off. */
-export type PushCategory = 'doorstep' | 'mention' | 'farm' | 'nudge' | 'reminder';
+export type PushCategory = 'doorstep' | 'mention' | 'farm' | 'knock' | 'nudge' | 'reminder';
 
-/** Pushes per local day: one doorstep push a day; per farm, three mentions and one other. */
-export const DAILY_CAPS = { doorstep: 1, mention: 3, farm: 1 } as const;
+/**
+ * Pushes per budget key: per local day, one doorstep push and, per farm, three mentions and one
+ * other; a knock once an hour per porch.
+ */
+export const CAPS = { doorstep: 1, mention: 3, farm: 1, knock: 1 } as const;
+
+/** A knock is live for a minute; after that it is a quiet line, never a missed-call push. */
+export const KNOCK_LIFETIME_MS = 60_000;
 
 /** Gentle nudges a week, by the person's setting. */
 export const WEEKLY_NUDGES: Readonly<Record<MeSettings['nudges'], number>> = {
@@ -34,7 +40,14 @@ export const WEEKLY_NUDGES: Readonly<Record<MeSettings['nudges'], number>> = {
 export const NUDGES_BEFORE_LAST = 2;
 
 export type SkipReason =
-  'muted' | 'hibernating' | 'connected' | 'nudges_off' | 'backed_off' | 'nudge_budget';
+  | 'muted'
+  | 'hibernating'
+  | 'connected'
+  | 'nudges_off'
+  | 'backed_off'
+  | 'nudge_budget'
+  | 'expired'
+  | 'budget';
 
 export type Decision =
   | { readonly action: 'skip'; readonly reason: SkipReason }
@@ -55,27 +68,44 @@ export interface DecideInput {
   readonly hibernating: boolean;
   /** The person has that farm open (only the farm knows; false when unknown). */
   readonly connected: boolean;
-  readonly quiet: EffectiveQuiet;
+  readonly quiet: readonly QuietWindow[];
   readonly nudges: MeSettings['nudges'];
   readonly backOffWhenQuiet: boolean;
   readonly nudgesSinceBack: number;
   readonly nudgesThisWeek: number;
-  /** Pushes of this category already sent under its budget key today. */
+  /** Pushes already sent under this push's budget key. */
   readonly sentToday: number;
   /** The "a few things" push for this push's collapse key already went out today. */
   readonly fewSent: boolean;
 }
 
-/** Quiet hours as the rules read them: always a window and a zone. */
-export interface EffectiveQuiet {
+/** A quiet window in a zone. */
+export interface QuietWindow {
   readonly from: string;
   readonly to: string;
   readonly timeZone: string;
 }
 
-/** The person's own quiet hours, or the house floor in their last known zone. */
-export function effectiveQuiet(quiet: QuietHours | null, lastTimeZone: string): EffectiveQuiet {
-  return quiet ?? { ...FLOOR_QUIET, timeZone: lastTimeZone };
+/**
+ * Every window a push must wait out: the house floor in the person's zone, and their own quiet
+ * hours (in their own zone) when they set some.
+ */
+export function quietWindows(own: QuietHours | null, zone: string): QuietWindow[] {
+  return own === null
+    ? [{ ...FLOOR_QUIET, timeZone: zone }]
+    : [{ ...FLOOR_QUIET, timeZone: zone }, own];
+}
+
+/** When no window applies any more, or null when none applies at `at`. */
+export function holdUntil(at: number, windows: readonly QuietWindow[]): number | null {
+  let t = at;
+  // Windows may chain (one ends inside another); a handful of passes settles any real setting.
+  for (let pass = 0; pass < 8; pass += 1) {
+    const ends = windows.map((w) => quietEndsAt(t, w)).filter((end) => end !== null);
+    if (ends.length === 0) return t === at ? null : t;
+    t = Math.max(...ends);
+  }
+  return t;
 }
 
 export function decide(input: DecideInput): Decision {
@@ -88,8 +118,9 @@ export function decide(input: DecideInput): Decision {
   if (input.category === 'nudge') {
     if (input.nudges === 'off') return { action: 'skip', reason: 'nudges_off' };
     if (input.backOffWhenQuiet) {
-      if (input.nudgesSinceBack > NUDGES_BEFORE_LAST)
+      if (input.nudgesSinceBack > NUDGES_BEFORE_LAST) {
         return { action: 'skip', reason: 'backed_off' };
+      }
       last = input.nudgesSinceBack === NUDGES_BEFORE_LAST;
     }
     if (input.nudgesThisWeek >= WEEKLY_NUDGES[input.nudges]) {
@@ -97,11 +128,17 @@ export function decide(input: DecideInput): Decision {
     }
   }
 
-  const until = quietEndsAt(input.at, input.quiet);
-  if (until !== null) return { action: 'hold', until };
+  const until = holdUntil(input.at, input.quiet);
+  if (until !== null) {
+    // A knock never waits: by morning it would be a missed call.
+    return input.category === 'knock'
+      ? { action: 'skip', reason: 'expired' }
+      : { action: 'hold', until };
+  }
 
   if (input.category === 'nudge' || input.category === 'reminder') return { action: 'send', last };
-  if (input.sentToday < DAILY_CAPS[input.category]) return { action: 'send', last: false };
+  if (input.sentToday < CAPS[input.category]) return { action: 'send', last: false };
+  if (input.category === 'knock') return { action: 'skip', reason: 'budget' };
   return input.fewSent ? { action: 'fold' } : { action: 'collapse' };
 }
 
@@ -157,12 +194,18 @@ function formatter(timeZone: string): Intl.DateTimeFormat {
   return found;
 }
 
-/** When the quiet window `at` falls in ends (to the minute), or null outside quiet hours. */
-export function quietEndsAt(at: number, quiet: EffectiveQuiet): number | null {
+/**
+ * When the quiet window `at` falls in ends (to the minute), or null outside it. A clock change
+ * inside the window moves the end by its shift, so it still lands on the window's local end.
+ */
+export function quietEndsAt(at: number, quiet: QuietWindow): number | null {
   const { minutes } = localClock(at, quiet.timeZone);
   const from = clockMinutes(quiet.from);
   const to = clockMinutes(quiet.to);
   if (!inQuietMinutes(minutes, from, to)) return null;
   const remaining = (to - minutes + DAY_MINUTES) % DAY_MINUTES;
-  return Math.floor(at / MINUTE_MS) * MINUTE_MS + remaining * MINUTE_MS;
+  const end = Math.floor(at / MINUTE_MS) * MINUTE_MS + remaining * MINUTE_MS;
+  const landed = localClock(end, quiet.timeZone).minutes;
+  const shift = ((to - landed + DAY_MINUTES + DAY_MINUTES / 2) % DAY_MINUTES) - DAY_MINUTES / 2;
+  return end + shift * MINUTE_MS;
 }

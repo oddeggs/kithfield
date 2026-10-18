@@ -1,6 +1,5 @@
 import {
   type ChatListItem,
-  CottageClientFrame,
   CottageDelivery,
   type CottageServerFrame,
   type MeSettings,
@@ -13,6 +12,7 @@ import {
   RememberRequest,
   type RememberSeed,
   type SocketErrorCode,
+  TimeZone,
 } from '@kithfield/contracts';
 import { DurableObject } from 'cloudflare:workers';
 
@@ -20,30 +20,23 @@ import type { Bindings } from '../env';
 import type { Decision } from '../push/policy';
 import { cottageAdapters } from './adapters';
 import * as chats from './chats';
+import { type Claim, claimJob, nextHeldAt, releaseHeld } from './claim';
+import { cottageClock } from './clock';
 import * as devices from './devices';
-import {
-  type Claim,
-  claimJob,
-  considerDelivery,
-  considerJob,
-  type Intake,
-  nextHeldAt,
-  releaseHeld,
-  reminderJob,
-} from './intake';
+import { farmFromDirectory } from './directory';
+import { considerDelivery, considerJob, type Intake, reminderJob } from './intake';
 import { applySettings, readProfile, updateProfile } from './profile';
 import { applySchema } from './schema';
 import * as seeds from './seeds';
-
-type SocketState = { readonly authed: boolean };
+import * as sockets from './socket';
 
 /**
- * One per person, named by their person id (`cottageOf` in `./stub`). It keeps the chat list and what waits
- * in Quick Tend, the person's settings and devices, the push budget and quiet hours, and their
- * remember-me seeds. The phone holds one socket to it; farms and the API call its methods.
+ * One per person, named by their person id (`cottageOf` in `./stub`). It keeps the chat list and
+ * what waits in Quick Tend, the person's settings and devices, the push budget and quiet hours,
+ * and their remember-me seeds. The phone holds one socket to it; farms and the API call it.
  *
- * For the farm object, after each committed event, per member: `deliver(CottageDelivery)`.
- * When a membership or a farm's name or a visit's peer changes: `upsertFarm` / `leaveFarm`.
+ * The farm object calls, per member: `deliver(CottageDelivery)` after each committed event;
+ * `upsertFarm` on `joined`, a rename or a visit peer's change; `leaveFarm` on `left`/`removed`.
  */
 export class CottageDO extends DurableObject<Bindings> {
   private readonly sql: SqlStorage;
@@ -62,22 +55,35 @@ export class CottageDO extends DurableObject<Bindings> {
   }
 
   private intake(): Intake {
-    return { sql: this.sql, env: this.env, person: this.person, now: Date.now() };
+    return { sql: this.sql, env: this.env, person: this.person, now: cottageClock.now() };
   }
 
-  /* From the farms. */
+  private get now(): number {
+    return cottageClock.now();
+  }
 
   /**
    * A farm committed an event: update the chat list and Quick Tend, tell the phone, and decide
-   * whether to push. A repeated delivery (a seq already held) does nothing.
+   * whether to push. A repeated delivery does nothing; a late one (a slow post) still counts. A
+   * farm the cottage wasn't told about is looked up, so a missed `upsertFarm` never hides a chat.
    */
   async deliver(delivery: CottageDelivery): Promise<void> {
     const parsed = CottageDelivery.parse(delivery);
     const intake = this.intake();
-    if (!chats.applyDelivery(this.sql, parsed, intake.person)) return;
+    if (!chats.knowsFarm(this.sql, parsed.farm)) {
+      const info = await farmFromDirectory(this.env.DB, parsed.farm, intake.person);
+      if (info !== null) chats.upsertFarm(this.sql, info);
+    }
+    if (!chats.applyDelivery(this.sql, parsed, intake.person, intake.now)) return;
     if (parsed.actor === intake.person && parsed.kind === 'farm_opened') this.cameBack();
     this.sendRow(parsed.farm, intake.now);
-    await considerDelivery(intake, parsed);
+    try {
+      await considerDelivery(intake, parsed);
+    } catch (error) {
+      // The farm retries a failed call: let that retry be taken rather than seen as a repeat.
+      chats.forgetDelivered(this.sql, parsed.farm, parsed.seq);
+      throw error;
+    }
     await this.scheduleAlarm();
   }
 
@@ -85,28 +91,28 @@ export class CottageDO extends DurableObject<Bindings> {
   upsertFarm(info: chats.CottageFarm): void {
     const parsed = chats.CottageFarm.parse(info);
     chats.upsertFarm(this.sql, parsed);
-    this.sendRow(parsed.farm, Date.now());
+    this.sendRow(parsed.farm, this.now);
   }
 
   /** The person left, or was removed: the farm leaves their chat list. */
   leaveFarm(farm: string): void {
     chats.removeFarm(this.sql, farm);
-    this.broadcast({ type: 'chats', chats: chats.chatList(this.sql, Date.now()) });
+    this.broadcast({ type: 'chats', chats: chats.chatList(this.sql, this.now) });
   }
 
   /** Mutes a farm until a time (null unmutes). Muted farms never push. */
   muteFarm(farm: string, until: number | null): void {
     chats.setMuted(this.sql, farm, until);
-    this.sendRow(farm, Date.now());
+    this.sendRow(farm, this.now);
   }
 
   pinFarm(farm: string, pinned: boolean): void {
     chats.setPinned(this.sql, farm, pinned);
-    this.sendRow(farm, Date.now());
+    this.sendRow(farm, this.now);
   }
 
   chatList(): ChatListItem[] {
-    return chats.chatList(this.sql, Date.now());
+    return chats.chatList(this.sql, this.now);
   }
 
   /** Everything waiting in Quick Tend, newest first. */
@@ -116,10 +122,8 @@ export class CottageDO extends DurableObject<Bindings> {
 
   clearWaiting(farm: string): void {
     chats.clearWaiting(this.sql, farm);
-    this.sendRow(farm, Date.now());
+    this.sendRow(farm, this.now);
   }
-
-  /* Pushes. */
 
   /**
    * A push from another producer (a plan reminder, a wake-up nudge): the same rules as an event,
@@ -143,10 +147,8 @@ export class CottageDO extends DurableObject<Bindings> {
     return devices.dropPushToken(this.sql, device, token);
   }
 
-  /* Devices. */
-
   registerDevice(device: string, request: RegisterDeviceRequest): void {
-    devices.registerDevice(this.sql, device, RegisterDeviceRequest.parse(request), Date.now());
+    devices.registerDevice(this.sql, device, RegisterDeviceRequest.parse(request), this.now);
   }
 
   listDevices(): devices.CottageDevice[] {
@@ -164,22 +166,22 @@ export class CottageDO extends DurableObject<Bindings> {
     return { settings, hibernating };
   }
 
-  updateSettings(update: MeSettingsUpdate): MeSettings {
-    const parsed = MeSettingsUpdate.parse(update);
-    return updateProfile(this.sql, (profile) => applySettings(profile, parsed)).settings;
+  /** Changes settings and, when the app sends it, the person's time zone. */
+  updateSettings(update: Partial<MeSettingsUpdate>, timeZone?: string): MeSettings {
+    const parsed = Object.keys(update).length === 0 ? {} : MeSettingsUpdate.parse(update);
+    const zone = timeZone === undefined ? undefined : TimeZone.parse(timeZone);
+    return updateProfile(this.sql, (profile) => applySettings(profile, parsed, zone)).settings;
   }
 
-  /** Hibernating pauses every push and nudge. Returns whether it changed. */
-  setHibernating(on: boolean): boolean {
-    const before = readProfile(this.sql).hibernating;
+  /** Hibernating pauses every push and nudge. */
+  setHibernating(on: boolean): void {
     updateProfile(this.sql, (profile) => ({ ...profile, hibernating: on }));
-    return before !== on;
   }
 
   /* Remember-me seeds: personal, grow nothing, nudge once at `nudgeAt`. */
 
   async plantSeed(request: RememberRequest): Promise<string | null> {
-    const id = seeds.plantSeed(this.sql, RememberRequest.parse(request), Date.now());
+    const id = seeds.plantSeed(this.sql, RememberRequest.parse(request), this.now);
     await this.scheduleAlarm();
     return id;
   }
@@ -205,21 +207,40 @@ export class CottageDO extends DurableObject<Bindings> {
     updateProfile(this.sql, (profile) => ({ ...profile, safetyNote: false }));
   }
 
-  /* Alarms: held pushes when quiet hours end, and remember-me nudges. */
+  /** Closes every socket, as on sign-out, a ban or deletion. */
+  closeSockets(code: SocketErrorCode): void {
+    for (const ws of this.ctx.getWebSockets()) sockets.refuse(ws, code);
+  }
+
+  /* Alarms: held pushes when quiet hours end, remember-me nudges, and late hellos. */
 
   override async alarm(): Promise<void> {
     const intake = this.intake();
-    await releaseHeld(intake);
-    for (const seed of seeds.takeDueSeeds(this.sql, intake.now)) {
-      await considerJob(intake, reminderJob(intake.person, seed, intake.now), false);
+    sockets.closeLate(this.ctx.getWebSockets(), intake.now);
+    try {
+      await releaseHeld(intake);
+      for (const seed of seeds.dueSeeds(this.sql, intake.now)) {
+        await considerJob(intake, reminderJob(intake.person, seed, intake.now), false);
+        seeds.removeSeed(this.sql, seed.id);
+      }
+    } catch (error) {
+      // What wasn't handled stays held or planted; try again in a minute.
+      console.error('cottage alarm failed', { error: String(error) });
+      await this.ctx.storage.setAlarm(Date.now() + 60_000);
+      return;
     }
     await this.scheduleAlarm();
   }
 
+  /** Rings at the earliest thing due, as a delay from the cottage's clock. */
   private async scheduleAlarm(): Promise<void> {
-    const times = [nextHeldAt(this.sql), seeds.nextSeedAt(this.sql)].filter((t) => t !== null);
+    const times = [
+      nextHeldAt(this.sql),
+      seeds.nextSeedAt(this.sql),
+      sockets.nextDeadline(this.ctx.getWebSockets()),
+    ].filter((t) => t !== null);
     if (times.length === 0) await this.ctx.storage.deleteAlarm();
-    else await this.ctx.storage.setAlarm(Math.min(...times));
+    else await this.ctx.storage.setAlarm(Date.now() + Math.max(0, Math.min(...times) - this.now));
   }
 
   /** The person came back on their own: nudges start again from the first. */
@@ -229,52 +250,43 @@ export class CottageDO extends DurableObject<Bindings> {
 
   /* The cottage socket: `hello {protocol, token}` first, then `chats`, then a `chat` per change. */
 
-  override fetch(request: Request): Response {
+  override async fetch(request: Request): Promise<Response> {
     if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
       return Response.json({ error: { code: 'bad_request' } }, { status: 426 });
     }
     const { 0: client, 1: server } = new WebSocketPair();
     this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ authed: false } satisfies SocketState);
+    const deadline = this.now + sockets.HELLO_DEADLINE_MS;
+    server.serializeAttachment({ authed: false, deadline } satisfies sockets.SocketState);
+    await this.scheduleAlarm();
     return new Response(null, { status: 101, webSocket: client });
   }
 
   override async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
-    const authed = (ws.deserializeAttachment() as SocketState | null)?.authed === true;
-    let raw: unknown;
-    try {
-      raw = typeof message === 'string' ? JSON.parse(message) : null;
-    } catch {
-      raw = null;
-    }
-    const frame = CottageClientFrame.safeParse(raw);
-    if (!frame.success || frame.data.type !== 'hello') {
-      if (!authed) this.refuse(ws, 'unauthorized');
+    const hello = sockets.helloIn(message);
+    if (hello === null) {
+      if (sockets.stateOf(ws)?.authed !== true) sockets.refuse(ws, 'unauthorized');
       return;
     }
-    if (frame.data.protocol !== PROTOCOL_VERSION) {
-      this.refuse(ws, 'protocol_unsupported');
+    if (hello.protocol !== PROTOCOL_VERSION) {
+      sockets.refuse(ws, 'protocol_unsupported');
       return;
     }
-    const claims = await cottageAdapters().verifyRtToken(this.env, frame.data.token);
-    if (claims === null || claims.person !== this.person || claims.farm !== null) {
-      this.refuse(ws, 'unauthorized');
+    const scope = { cottage: this.person };
+    const person = await cottageAdapters().verifyRtToken(this.env, hello.token, scope);
+    if (person !== this.person) {
+      sockets.refuse(ws, 'unauthorized');
       return;
     }
-    ws.serializeAttachment({ authed: true } satisfies SocketState);
+    ws.serializeAttachment({ authed: true } satisfies sockets.SocketState);
     this.cameBack();
-    send(ws, { type: 'chats', chats: chats.chatList(this.sql, Date.now()) });
-    if (readProfile(this.sql).safetyNote) send(ws, { type: 'safety_note' });
+    sockets.send(ws, { type: 'chats', chats: chats.chatList(this.sql, this.now) });
+    if (readProfile(this.sql).safetyNote) sockets.send(ws, { type: 'safety_note' });
   }
 
   /** Completes the closing handshake; a socket already closed needs nothing. */
   override webSocketClose(ws: WebSocket, code: number): void {
     if (ws.readyState === WebSocket.OPEN) ws.close(code === 1005 || code === 1006 ? 1000 : code);
-  }
-
-  private refuse(ws: WebSocket, code: SocketErrorCode): void {
-    send(ws, { type: 'error', code });
-    ws.close(1008, code);
   }
 
   private sendRow(farm: string, now: number): void {
@@ -283,13 +295,6 @@ export class CottageDO extends DurableObject<Bindings> {
   }
 
   private broadcast(frame: CottageServerFrame): void {
-    for (const ws of this.ctx.getWebSockets()) {
-      if ((ws.deserializeAttachment() as SocketState | null)?.authed === true) send(ws, frame);
-    }
+    sockets.broadcast(this.ctx.getWebSockets(), frame);
   }
-}
-
-/** Sends a frame; a socket that closed in between catches up with `chats` on its next hello. */
-function send(ws: WebSocket, frame: CottageServerFrame): void {
-  if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(frame));
 }

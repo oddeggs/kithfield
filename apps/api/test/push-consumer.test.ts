@@ -1,8 +1,10 @@
 import type { PushJob } from '@kithfield/contracts';
 import { createExecutionContext, createMessageBatch, getQueueResult } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
-import { describe, expect, it, vi } from 'vitest';
+import { runDurableObjectAlarm } from 'cloudflare:test';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { cottageClock } from '../src/cottage/clock';
 import { cottageOf } from '../src/cottage/stub';
 import { backoffSeconds, consumePush } from '../src/push/consumer';
 import { EXPO_RECEIPTS_URL, EXPO_SEND_URL } from '../src/push/expo';
@@ -14,7 +16,13 @@ import {
   ledgerOf,
   okTickets,
   recordPushQueue,
+  MIDDAY,
+  useTestClock,
 } from './cottage-doubles';
+
+beforeEach(() => {
+  useTestClock(MIDDAY);
+});
 
 const TOKEN = 'ExponentPushToken[june-phone]';
 
@@ -39,7 +47,7 @@ const jobFor = (person: string, over: Partial<PushJob> = {}): PushJob => ({
   collapseKey: 'doorstep.20261018',
   copy: { key: 'push.doorstep.firefly', params: { name: 'Otis' } },
   forYou: true,
-  at: Date.now(),
+  at: cottageClock.now(),
   ...over,
 });
 
@@ -57,7 +65,7 @@ async function consume(bodies: unknown[], fetcher: typeof fetch, attempts = 1) {
   // The queue result says which messages were retried; their delays are read off the calls.
   const delays = batch.messages.map((message) => vi.spyOn(message, 'retry'));
   const ctx = createExecutionContext();
-  await consumePush(batch, env, ctx, { fetch: fetcher, now: () => Date.now() });
+  await consumePush(batch, env, ctx, { fetch: fetcher, now: () => cottageClock.now() });
   const result = (await getQueueResult(batch, ctx)) as unknown as QueueOutcome;
   const retryMessages = result.retryMessages.map(({ msgId }) => ({
     msgId,
@@ -142,8 +150,8 @@ describe('the push consumer', () => {
     });
     expect(sent[0]).not.toHaveProperty('sound');
     expect((await ledgerOf(person)).map((r) => [r['seq'], r['decision'], r['collapsed']])).toEqual([
-      [4, 'collapsed', 0],
       [5, 'sent', 1],
+      [4, 'collapsed', 0],
     ]);
   });
 
@@ -200,6 +208,79 @@ describe('the push consumer', () => {
     const result = await consume([jobFor(person)], refused.fetch);
     expect(result.explicitAcks).toEqual(['m0']);
     expect((await ledgerOf(person))[0]).toMatchObject({ decision: 'failed', reason: 'http_400' });
+  });
+});
+
+describe('the last checks before sending', () => {
+  it('holds a push that meets quiet hours, and later sends it as it was, without new budget', async () => {
+    const queue = recordPushQueue();
+    const { person, cottage } = await personWithPhone();
+    const expo = fakeExpoPushService(okTickets);
+    const job = jobFor(person);
+    useTestClock('2026-10-18T23:00:00Z');
+    await consume([job], expo.fetch);
+    expect(expo.calls).toEqual([]);
+    expect((await ledgerOf(person))[0]).toMatchObject({ decision: 'held', reason: 'quiet_hours' });
+
+    useTestClock('2026-10-19T08:30:00Z');
+    expect(await runDurableObjectAlarm(cottage)).toBe(true);
+    expect(queue.jobs()).toEqual([job]);
+    expect((await ledgerOf(person))[1]).toMatchObject({ decision: 'queued', reason: 'released' });
+  });
+
+  it('drops a knock older than a minute, and gives a fresh one a minute to arrive', async () => {
+    recordPushQueue();
+    const { person } = await personWithPhone();
+    const expo = fakeExpoPushService(okTickets);
+    const knock = {
+      kind: 'knock',
+      collapseKey: 'knock.x.4',
+      copy: { key: 'push.knock', params: { name: 'Otis' } },
+    };
+    await consume([jobFor(person, { ...knock, at: cottageClock.now() - 61_000 })], expo.fetch);
+    expect(expo.calls).toEqual([]);
+    expect((await ledgerOf(person))[0]).toMatchObject({ decision: 'skipped', reason: 'expired' });
+
+    await consume([jobFor(person, knock)], expo.fetch);
+    expect((expo.calls[0]!.body as Record<string, unknown>[])[0]).toMatchObject({
+      body: 'Otis is knocking on your porch.',
+      ttl: 60,
+    });
+  });
+
+  it('skips a push for a farm the person has left', async () => {
+    recordPushQueue();
+    const { person, cottage } = await personWithPhone();
+    await cottage.leaveFarm('farm-a');
+    const expo = fakeExpoPushService(okTickets);
+    await consume([jobFor(person)], expo.fetch);
+    expect(expo.calls).toEqual([]);
+    expect((await ledgerOf(person))[0]).toMatchObject({ decision: 'skipped', reason: 'left' });
+  });
+
+  it('sends each message on its own when Expo refuses the whole request', async () => {
+    recordPushQueue();
+    const june = await personWithPhone();
+    const bea = await personWithPhone();
+    const expo = fakeExpoPushService((_url, body) =>
+      (body as unknown[]).length > 1 ? new Response('bad', { status: 400 }) : okTickets(_url, body),
+    );
+    const result = await consume([jobFor(june.person), jobFor(bea.person)], expo.fetch);
+    expect(expo.calls.map((c) => (c.body as unknown[]).length)).toEqual([2, 1, 1]);
+    expect(result.explicitAcks.sort()).toEqual(['m0', 'm1']);
+    expect((await ledgerOf(june.person)).map((r) => r['decision'])).toEqual(['sent']);
+  });
+
+  it('retries a folded group whole, so it folds into the same push again', async () => {
+    recordPushQueue();
+    const { person } = await personWithPhone();
+    const down = fakeExpoPushService(() => new Response('unavailable', { status: 503 }));
+    const result = await consume(
+      [jobFor(person, { seq: 4 }), jobFor(person, { seq: 5 })],
+      down.fetch,
+    );
+    expect(result.retryMessages.map((m) => m.msgId).sort()).toEqual(['m0', 'm1']);
+    expect(result.explicitAcks).toEqual([]);
   });
 });
 

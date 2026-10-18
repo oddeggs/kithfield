@@ -7,6 +7,8 @@ import {
   errorCodeOf,
   EXPO_MESSAGES_PER_REQUEST,
   type ExpoMessage,
+  type ExpoResult,
+  type ExpoTicket,
   RETRYABLE_ERRORS,
   sendToExpo,
 } from './expo';
@@ -32,10 +34,9 @@ type Queued = { readonly message: Message; readonly job: PushJob };
 
 /** One push about to go out: the job, its messages per device, and how they fared. */
 interface Outgoing {
-  readonly message: Message;
+  readonly group: readonly Queued[];
   readonly job: PushJob;
-  readonly folded: number;
-  readonly sends: { readonly device: string; readonly token: string; readonly expo: ExpoMessage }[];
+  readonly sends: readonly Send[];
   ok: number;
   retry: boolean;
 }
@@ -85,53 +86,55 @@ function lastOf<T>(items: readonly T[]): T {
   return last;
 }
 
+type Send = { readonly device: string; readonly token: string; readonly expo: ExpoMessage };
+type Item = { readonly out: Outgoing; readonly send: Send };
+
+/** Ledger rows for the jobs a group folded into its push, once the push is settled. */
+function foldedRows(group: readonly Queued[], at: number): LedgerRow[] {
+  return group.slice(0, -1).map(({ job }) => ({
+    person: job.person,
+    kind: job.kind,
+    farm: job.farm,
+    seq: job.seq,
+    collapseKey: job.collapseKey,
+    decision: 'collapsed',
+    reason: 'same_key',
+    at,
+  }));
+}
+
 async function sendJobs(groups: readonly Queued[][], env: Bindings, deps: PushDeps) {
   const rows: LedgerRow[] = [];
   const outgoing: Outgoing[] = [];
   for (const group of groups) {
-    const lead = lastOf(group);
     const job = foldGroup(group);
     const at = deps.now();
     const base = { person: job.person, kind: job.kind, farm: job.farm, seq: job.seq, at };
-    for (const { message, job: folded } of group.slice(0, -1)) {
-      rows.push({
-        ...base,
-        kind: folded.kind,
-        seq: folded.seq,
-        collapseKey: folded.collapseKey,
-        decision: 'collapsed',
-        reason: 'same_key',
-      });
-      message.ack();
-    }
-    const claim = await cottageOf(env, job.person).claim(job);
     const ledgerBase = { ...base, collapseKey: job.collapseKey, collapsed: group.length - 1 };
-    if (claim.action !== 'send') {
-      const decision = claim.action === 'hold' ? 'held' : 'skipped';
-      const reason = claim.action === 'hold' ? 'quiet_hours' : claim.reason;
-      rows.push({ ...ledgerBase, decision, reason });
-      lead.message.ack();
-      continue;
-    }
-    const push = renderPush(job, claim.lang, claim.title);
-    if (push === null) {
-      rows.push({ ...ledgerBase, decision: 'failed', reason: 'unknown_copy' });
-      lead.message.ack();
+    const claim = await cottageOf(env, job.person).claim(job);
+    const push = claim.action === 'send' ? renderPush(job, claim.lang, claim.title) : null;
+    if (claim.action !== 'send' || push === null) {
+      const row: LedgerRow =
+        claim.action === 'hold'
+          ? { ...ledgerBase, decision: 'held', reason: 'quiet_hours' }
+          : claim.action === 'skip'
+            ? { ...ledgerBase, decision: 'skipped', reason: claim.reason }
+            : { ...ledgerBase, decision: 'failed', reason: 'unknown_copy' };
+      rows.push(...foldedRows(group, at), row);
+      for (const { message } of group) message.ack();
       continue;
     }
     outgoing.push({
-      message: lead.message,
+      group,
       job,
-      folded: group.length - 1,
       sends: claim.targets.map((t) => ({ ...t, expo: expoMessage(job, push, t.token) })),
       ok: 0,
       retry: false,
     });
   }
 
-  const flat = outgoing.flatMap((out) => out.sends.map((send) => ({ out, send })));
-  const receipts: ReceiptCheck['receipts'] = [];
-  const dropped: { person: string; device: string; token: string }[] = [];
+  const flat: Item[] = outgoing.flatMap((out) => out.sends.map((send) => ({ out, send })));
+  const settled: Settled = { rows, receipts: [], dropped: [] };
   for (let i = 0; i < flat.length; i += EXPO_MESSAGES_PER_REQUEST) {
     const chunk = flat.slice(i, i + EXPO_MESSAGES_PER_REQUEST);
     const result = await sendToExpo(
@@ -139,53 +142,88 @@ async function sendJobs(groups: readonly Queued[][], env: Bindings, deps: PushDe
       chunk.map((c) => c.send.expo),
       env.EXPO_ACCESS_TOKEN,
     );
-    const at = deps.now();
-    chunk.forEach(({ out, send }, index) => {
-      const row = {
-        person: out.job.person,
-        kind: out.job.kind,
-        farm: out.job.farm,
-        seq: out.job.seq,
-        collapseKey: out.job.collapseKey,
-        collapsed: out.folded,
-        device: send.device,
-        at,
-      };
-      if (result.kind !== 'ok') {
-        out.retry ||= result.kind === 'retry';
-        rows.push({ ...row, decision: 'failed', reason: result.why });
-        return;
+    if (result.kind === 'refused' && chunk.length > 1) {
+      // One bad message refuses the whole request: send each on its own so only it fails.
+      for (const item of chunk) {
+        const alone = await sendToExpo(deps.fetch, [item.send.expo], env.EXPO_ACCESS_TOKEN);
+        settle([item], alone, deps.now(), settled);
       }
-      const ticket = result.value[index];
-      const code = ticket === undefined ? 'no_ticket' : errorCodeOf(ticket);
-      if (ticket?.status === 'ok') {
-        out.ok += 1;
-        rows.push({ ...row, decision: 'sent', ticket: ticket.id });
-        receipts.push({
-          ticket: ticket.id,
-          person: out.job.person,
-          device: send.device,
-          token: send.token,
-        });
-      } else {
-        out.retry ||= code !== null && RETRYABLE_ERRORS.has(code);
-        rows.push({ ...row, decision: 'failed', reason: code ?? 'error' });
-        if (code === 'DeviceNotRegistered') dropped.push({ person: out.job.person, ...send });
-      }
-    });
+    } else {
+      settle(chunk, result, deps.now(), settled);
+    }
   }
 
   for (const out of outgoing) {
-    // A push that reached one device is not sent again to the others.
-    if (out.retry && out.ok === 0)
-      out.message.retry({ delaySeconds: backoffSeconds(out.message.attempts) });
-    else out.message.ack();
+    // A push that reached one device is not sent again to the others. A folded group is retried
+    // whole, so it folds into the same push again.
+    if (out.retry && out.ok === 0) {
+      const attempts = Math.max(...out.group.map(({ message }) => message.attempts));
+      for (const { message } of out.group)
+        message.retry({ delaySeconds: backoffSeconds(attempts) });
+    } else {
+      rows.push(...foldedRows(out.group, deps.now()));
+      for (const { message } of out.group) message.ack();
+    }
   }
   await Promise.all(
-    dropped.map(({ person, device, token }) => cottageOf(env, person).dropPushToken(device, token)),
+    settled.dropped.map(({ person, device, token }) =>
+      cottageOf(env, person).dropPushToken(device, token),
+    ),
   );
   await writeLedger(env.DB, rows);
-  for (let i = 0; i < receipts.length; i += 1000) {
-    await enqueuePush(env, { receipts: receipts.slice(i, i + 1000) }, RECEIPT_DELAY_SECONDS);
+  for (let i = 0; i < settled.receipts.length; i += 1000) {
+    await enqueuePush(
+      env,
+      { receipts: settled.receipts.slice(i, i + 1000) },
+      RECEIPT_DELAY_SECONDS,
+    );
   }
+}
+
+interface Settled {
+  readonly rows: LedgerRow[];
+  readonly receipts: ReceiptCheck['receipts'];
+  readonly dropped: { person: string; device: string; token: string }[];
+}
+
+/** Books what Expo said about each message of a request. */
+function settle(
+  items: readonly Item[],
+  result: ExpoResult<ExpoTicket[]>,
+  at: number,
+  settled: Settled,
+): void {
+  items.forEach(({ out, send }, index) => {
+    const row = {
+      person: out.job.person,
+      kind: out.job.kind,
+      farm: out.job.farm,
+      seq: out.job.seq,
+      collapseKey: out.job.collapseKey,
+      collapsed: out.group.length - 1,
+      device: send.device,
+      at,
+    };
+    if (result.kind !== 'ok') {
+      out.retry ||= result.kind === 'retry';
+      settled.rows.push({ ...row, decision: 'failed', reason: result.why });
+      return;
+    }
+    const ticket = result.value[index];
+    const code = ticket === undefined ? 'no_ticket' : errorCodeOf(ticket);
+    if (ticket?.status === 'ok') {
+      out.ok += 1;
+      settled.rows.push({ ...row, decision: 'sent', ticket: ticket.id });
+      settled.receipts.push({
+        ticket: ticket.id,
+        person: out.job.person,
+        device: send.device,
+        token: send.token,
+      });
+    } else {
+      out.retry ||= code !== null && RETRYABLE_ERRORS.has(code);
+      settled.rows.push({ ...row, decision: 'failed', reason: code ?? 'error' });
+      if (code === 'DeviceNotRegistered') settled.dropped.push({ person: out.job.person, ...send });
+    }
+  });
 }

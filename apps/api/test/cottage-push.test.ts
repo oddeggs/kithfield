@@ -1,21 +1,28 @@
 import type { CottageDelivery, PushJob } from '@kithfield/contracts';
 import { runDurableObjectAlarm } from 'cloudflare:test';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
+import { cottageClock } from '../src/cottage/clock';
+import { pushQueue } from '../src/push/queue';
 import {
   cottageWithFarm,
   freshPerson,
   ledgerOf,
-  NEVER_QUIET,
-  quietNow,
+  MIDDAY,
   recordPushQueue,
+  seedDirectory,
+  useTestClock,
 } from './cottage-doubles';
+
+beforeEach(() => {
+  useTestClock(MIDDAY);
+});
 
 const delivery = (over: Partial<CottageDelivery> & { farm: string; seq: number }) =>
   ({
     kind: 'joined',
     actor: 'otis',
-    at: Date.now(),
+    at: cottageClock.now(),
     preview: null,
     forYou: false,
     connected: false,
@@ -48,7 +55,7 @@ describe('the cottage decides on pushes', () => {
     const queue = recordPushQueue();
     const person = freshPerson();
     const cottage = await cottageWithFarm(person, 'farm-a');
-    await cottage.muteFarm('farm-a', Date.now() + 3_600_000);
+    await cottage.muteFarm('farm-a', cottageClock.now() + 3_600_000);
     await cottage.deliver(delivery({ farm: 'farm-a', seq: 2 }));
     expect(queue.jobs()).toEqual([]);
     expect(await ledgerOf(person)).toEqual([
@@ -78,16 +85,23 @@ describe('the cottage decides on pushes', () => {
     expect((await ledgerOf(person))[0]).toMatchObject({ decision: 'skipped', reason: 'connected' });
   });
 
-  it('holds a push through quiet hours and decides again when they end', async () => {
+  it('holds a push through the house floor in the person’s zone, and sends it when it ends', async () => {
     const queue = recordPushQueue();
     const person = freshPerson();
     const cottage = await cottageWithFarm(person, 'farm-a');
-    await cottage.updateSettings(quietNow());
+    // 23:00 UTC is 06:00 in Hanoi: still before 8am there.
+    await cottage.updateSettings({}, 'Asia/Ho_Chi_Minh');
+    useTestClock('2026-10-18T23:00:00Z');
     await cottage.deliver(delivery({ farm: 'farm-a', seq: 2 }));
     expect(queue.jobs()).toEqual([]);
     expect((await ledgerOf(person))[0]).toMatchObject({ decision: 'held', reason: 'quiet_hours' });
 
-    await cottage.updateSettings(NEVER_QUIET);
+    // 00:30 UTC is 07:30 there: the alarm finds it still quiet and waits.
+    useTestClock('2026-10-19T00:30:00Z');
+    expect(await runDurableObjectAlarm(cottage)).toBe(true);
+    expect(queue.jobs()).toEqual([]);
+
+    useTestClock('2026-10-19T01:00:00Z');
     expect(await runDurableObjectAlarm(cottage)).toBe(true);
     expect(queue.jobs().map((j) => j.copy.key)).toEqual(['push.joined']);
     expect((await ledgerOf(person)).map((r) => r['decision'])).toEqual(['held', 'queued']);
@@ -126,13 +140,130 @@ describe('the cottage decides on pushes', () => {
     const cottage = await cottageWithFarm(person, 'farm-a');
     await cottage.deliver(delivery({ farm: 'farm-a', seq: 3 }));
     await cottage.deliver(delivery({ farm: 'farm-a', seq: 3 }));
-    await cottage.deliver(delivery({ farm: 'farm-a', seq: 2 }));
     expect(queue.jobs()).toHaveLength(1);
     expect(await ledgerOf(person)).toHaveLength(1);
   });
 });
 
+describe('quiet hours always hold', () => {
+  it('holds at night in a zone the app sent, even with no quiet hours of their own', async () => {
+    const queue = recordPushQueue();
+    const person = freshPerson();
+    const cottage = await cottageWithFarm(person, 'farm-a');
+    expect((await cottage.settings()).settings.quietHours).toBeNull();
+    // Midday UTC is 1am in Auckland.
+    await cottage.updateSettings({}, 'Pacific/Auckland');
+    await cottage.deliver(delivery({ farm: 'farm-a', seq: 2 }));
+    expect(queue.jobs()).toEqual([]);
+    expect((await ledgerOf(person))[0]).toMatchObject({ decision: 'held' });
+  });
+
+  it('never holds a knock: in quiet hours it expires', async () => {
+    const queue = recordPushQueue();
+    const person = freshPerson();
+    const cottage = await cottageWithFarm(person, 'farm-a');
+    useTestClock('2026-10-18T23:00:00Z');
+    await cottage.deliver(delivery({ farm: 'farm-a', seq: 2, kind: 'knock', forYou: true }));
+    expect((await ledgerOf(person))[0]).toMatchObject({ decision: 'skipped', reason: 'expired' });
+    useTestClock('2026-10-19T09:00:00Z');
+    await runDurableObjectAlarm(cottage);
+    expect(queue.jobs()).toEqual([]);
+  });
+
+  it('drops a held push when the person leaves the farm', async () => {
+    const queue = recordPushQueue();
+    const person = freshPerson();
+    const cottage = await cottageWithFarm(person, 'farm-a');
+    useTestClock('2026-10-18T23:00:00Z');
+    await cottage.deliver(delivery({ farm: 'farm-a', seq: 2 }));
+    await cottage.leaveFarm('farm-a');
+    useTestClock('2026-10-19T09:00:00Z');
+    await runDurableObjectAlarm(cottage);
+    expect(queue.jobs()).toEqual([]);
+  });
+
+  it('keeps a held push when queueing it fails, and sends it on the next ring', async () => {
+    const queue = recordPushQueue();
+    const person = freshPerson();
+    const cottage = await cottageWithFarm(person, 'farm-a');
+    useTestClock('2026-10-18T23:00:00Z');
+    await cottage.deliver(delivery({ farm: 'farm-a', seq: 2 }));
+    useTestClock('2026-10-19T09:00:00Z');
+    const working = pushQueue.send;
+    let failures = 1;
+    pushQueue.send = (...args) =>
+      failures-- > 0 ? Promise.reject(new Error('queue down')) : working(...args);
+    expect(await runDurableObjectAlarm(cottage)).toBe(true);
+    expect(queue.jobs()).toEqual([]);
+    expect(await runDurableObjectAlarm(cottage)).toBe(true);
+    expect(queue.jobs().map((j) => j.copy.key)).toEqual(['push.joined']);
+  });
+
+  it('holds a push the queue refused and tries it again, spending no budget on the failure', async () => {
+    const queue = recordPushQueue();
+    const person = freshPerson();
+    const cottage = await cottageWithFarm(person, 'farm-a');
+    const working = pushQueue.send;
+    pushQueue.send = () => Promise.reject(new Error('queue down'));
+    await cottage.deliver(delivery({ farm: 'farm-a', seq: 2 }));
+    expect((await ledgerOf(person))[0]).toMatchObject({ decision: 'held', reason: 'queue_failed' });
+    pushQueue.send = working;
+    expect(await runDurableObjectAlarm(cottage)).toBe(true);
+    // Sent as itself, not as "a few things": the failed try spent nothing.
+    expect(queue.jobs().map((j) => j.copy.key)).toEqual(['push.joined']);
+  });
+});
+
 describe('the chat list and Quick Tend', () => {
+  it('takes a late delivery (a slow post) even after a newer event', async () => {
+    const queue = recordPushQueue();
+    const person = freshPerson();
+    const cottage = await cottageWithFarm(person, 'farm-a');
+    await cottage.deliver(delivery({ farm: 'farm-a', seq: 5, kind: 'message', preview: 'hi' }));
+    await cottage.deliver(delivery({ farm: 'farm-a', seq: 3, kind: 'slow_post', forYou: true }));
+    expect(queue.jobs().map((j) => [j.seq, j.copy.key])).toEqual([[3, 'push.doorstep.slowPost']]);
+    expect((await cottage.waiting()).map((w) => w.seq)).toEqual([3]);
+    expect((await cottage.chatList())[0]).toMatchObject({ seq: 5, kind: 'message', waiting: 1 });
+  });
+
+  it('finds a farm it was never told about in D1, so its chat still shows', async () => {
+    recordPushQueue();
+    const person = freshPerson();
+    const farm = `dir-${person}`;
+    const visit = `dir-visit-${person}`;
+    const peer = `peer-${person}`;
+    const critter = {
+      species: 'fox',
+      coat: 'red',
+      mark: null,
+      accessory: null,
+      outfit: null,
+      outfitColor: null,
+      companion: null,
+      cottage: null,
+    };
+    await seedDirectory({
+      farms: [
+        { id: farm, kind: 'farm', name: 'Allotment', pair: null },
+        { id: visit, kind: 'visit', name: null, pair: [person, peer].sort().join(':') },
+      ],
+      people: [{ id: peer, displayName: 'Pip', critter }],
+    });
+    const cottage = await cottageWithFarm(person, 'farm-a');
+    await cottage.deliver(delivery({ farm, seq: 2 }));
+    await cottage.deliver(delivery({ farm: visit, seq: 2, actor: peer }));
+    const list = await cottage.chatList();
+    expect(list.find((c) => c.farm === farm)).toMatchObject({
+      farmKind: 'farm',
+      name: 'Allotment',
+    });
+    expect(list.find((c) => c.farm === visit)).toMatchObject({
+      farmKind: 'visit',
+      name: null,
+      with: { person: peer, name: 'Pip', critter },
+    });
+  });
+
   it('names a visit’s peer in its pushes and keeps what waits until the farm is opened', async () => {
     const queue = recordPushQueue();
     const person = freshPerson();
@@ -197,7 +328,7 @@ describe('nudges back off', () => {
     collapseKey: 'nudge.wave',
     copy: { key: 'push.nudge.wave', params: { name: 'Otis' } },
     forYou: true,
-    at: Date.now(),
+    at: cottageClock.now(),
   });
 
   it('after two are ignored, sends the last one, then rests until the person comes back', async () => {

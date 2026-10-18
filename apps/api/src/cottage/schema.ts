@@ -41,8 +41,22 @@ export const COTTAGE_SCHEMA = [
   `CREATE TABLE IF NOT EXISTS budget (key TEXT PRIMARY KEY, count INTEGER NOT NULL, at INTEGER NOT NULL)`,
   // When each nudge went out, for the weekly cap.
   `CREATE TABLE IF NOT EXISTS nudges_sent (at INTEGER NOT NULL)`,
-  // Pushes held through quiet hours, decided again when they end.
-  `CREATE TABLE IF NOT EXISTS held (id TEXT PRIMARY KEY, job TEXT NOT NULL, until INTEGER NOT NULL)`,
+  // Pushes held through quiet hours. Undecided ones go through the rules again when they end;
+  // decided ones (held by the consumer) only through the late checks.
+  `CREATE TABLE IF NOT EXISTS held (
+    id TEXT PRIMARY KEY,
+    job TEXT NOT NULL,
+    until INTEGER NOT NULL,
+    decided INTEGER NOT NULL DEFAULT 0
+  )`,
+  // Every seq delivered lately, so a repeat is told from a late arrival (a slow post, or events
+  // committed together arriving out of order). Kept 7 days.
+  `CREATE TABLE IF NOT EXISTS delivered (
+    farm TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    at INTEGER NOT NULL,
+    PRIMARY KEY (farm, seq)
+  )`,
   // Remember-me seeds: personal, never in a farm log.
   `CREATE TABLE IF NOT EXISTS seeds (
     id TEXT PRIMARY KEY,

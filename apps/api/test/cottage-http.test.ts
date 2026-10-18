@@ -2,19 +2,21 @@ import { RegisterDeviceResponse } from '@kithfield/contracts';
 import { runDurableObjectAlarm } from 'cloudflare:test';
 import { env, exports } from 'cloudflare:workers';
 import { Hono } from 'hono';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   ACTION_KEY_HEADER,
   type ActionKeyVariables,
   requireActionKey,
 } from '../src/cottage/action-key';
+import { cottageClock } from '../src/cottage/clock';
 import { cottageOf } from '../src/cottage/stub';
 import type { Bindings } from '../src/env';
 import {
   freshPerson,
   ledgerOf,
-  NEVER_QUIET,
+  MIDDAY,
+  useTestClock,
   recordPushQueue,
   testSession,
   useTestSignInDouble,
@@ -22,6 +24,9 @@ import {
 
 const hibernations: [string, boolean][] = [];
 beforeAll(() => useTestSignInDouble((person, on) => hibernations.push([person, on])));
+beforeEach(() => {
+  useTestClock(MIDDAY);
+});
 
 const api = (path: string, init: RequestInit = {}) =>
   exports.default.fetch(`https://dev.kithfield.com/api${path}`, init);
@@ -99,6 +104,32 @@ describe('device registration', () => {
     expect(await cottageOf(env, bea).listDevices()).toHaveLength(1);
   });
 
+  it('turns away a push token that is not an Expo one', async () => {
+    const person = freshPerson();
+    const response = await api(
+      '/v1/devices/phone-1',
+      json(person, 'PUT', { ...phone, pushToken: 'apns-raw-hex' }),
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: { code: 'bad_request', fields: ['pushToken'] },
+    });
+  });
+
+  it('gives a push token to one person only: the last to register it', async () => {
+    const june = freshPerson('june');
+    const bea = freshPerson('bea');
+    const token = { ...phone, pushToken: `ExponentPushToken[${june}]` };
+    await api('/v1/devices/june-phone', json(june, 'PUT', token));
+    await api('/v1/devices/bea-phone', json(bea, 'PUT', token));
+    expect(await cottageOf(env, june).listDevices()).toEqual([
+      expect.objectContaining({ device: 'june-phone', pushToken: null }),
+    ]);
+    expect(await cottageOf(env, bea).listDevices()).toEqual([
+      expect.objectContaining({ device: 'bea-phone', pushToken: token.pushToken }),
+    ]);
+  });
+
   it('turns a bad body or device id away with the fields that failed', async () => {
     const person = freshPerson();
     const response = await api(
@@ -128,12 +159,20 @@ describe('settings and hibernating', () => {
     expect((await api('/v1/me/settings', json(person, 'PATCH', {}))).status).toBe(400);
   });
 
-  it('hibernates, and hands the change to the farms once', async () => {
+  it('hibernates, and hands it to the farms every time, so a failed fan-out can be retried', async () => {
     const person = freshPerson();
     expect((await api('/v1/me/hibernate', json(person, 'PUT', { on: true }))).status).toBe(204);
     expect((await api('/v1/me/hibernate', json(person, 'PUT', { on: true }))).status).toBe(204);
     expect((await cottageOf(env, person).settings()).hibernating).toBe(true);
-    expect(hibernations.filter(([p]) => p === person)).toEqual([[person, true]]);
+    expect(hibernations.filter(([p]) => p === person)).toEqual([
+      [person, true],
+      [person, true],
+    ]);
+  });
+
+  it('starts with no quiet hours of its own and friends free to draw it into stickers', async () => {
+    const { settings } = await cottageOf(env, freshPerson()).settings();
+    expect(settings).toMatchObject({ quietHours: null, inTogetherStickers: true });
   });
 });
 
@@ -148,7 +187,7 @@ describe('remember-me seeds', () => {
 
   it('plants, lists and removes seeds', async () => {
     const person = freshPerson();
-    const later = Date.now() + 86_400_000;
+    const later = cottageClock.now() + 86_400_000;
     const planted = await api('/v1/remember', json(person, 'POST', seed(later)));
     expect(planted.status).toBe(201);
     const { id } = await planted.json<{ id: string }>();
@@ -174,8 +213,7 @@ describe('remember-me seeds', () => {
     const queue = recordPushQueue();
     const person = freshPerson();
     const cottage = cottageOf(env, person);
-    await cottage.updateSettings(NEVER_QUIET);
-    await api('/v1/remember', json(person, 'POST', seed(Date.now() + 86_400_000)));
+    await api('/v1/remember', json(person, 'POST', seed(cottageClock.now() + 86_400_000)));
     // Not due yet: the alarm rings early here and nudges nothing.
     expect(await runDurableObjectAlarm(cottage)).toBe(true);
     expect(queue.jobs()).toEqual([]);
@@ -183,7 +221,7 @@ describe('remember-me seeds', () => {
 
     // Due in a moment: the cottage's own alarm rings at its time.
     await cottage.removeSeed((await cottage.listSeeds())[0]!.id);
-    await api('/v1/remember', json(person, 'POST', seed(Date.now() + 200)));
+    await api('/v1/remember', json(person, 'POST', seed(cottageClock.now() + 200)));
     await vi.waitFor(() => expect(queue.jobs()).toHaveLength(1), { timeout: 5_000 });
     expect(queue.jobs()).toEqual([
       expect.objectContaining({
@@ -205,7 +243,7 @@ describe('remember-me seeds', () => {
     const person = freshPerson();
     const cottage = cottageOf(env, person);
     await cottage.setHibernating(true);
-    await cottage.plantSeed(seed(Date.now() + 100));
+    await cottage.plantSeed(seed(cottageClock.now() + 100));
     await vi.waitFor(async () => expect(await ledgerOf(person)).toHaveLength(1), {
       timeout: 5_000,
     });

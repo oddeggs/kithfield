@@ -3,6 +3,7 @@ import { t } from '@kithfield/i18n';
 
 import { PASSIVE_COPY } from './catalogue';
 import type { ExpoMessage } from './expo';
+import { KNOCK_LIFETIME_MS } from './policy';
 
 /** A push lives a day at most: after that it would arrive stale. */
 const TTL_SECONDS = 24 * 60 * 60;
@@ -55,6 +56,7 @@ export function expoMessage(job: PushJob, push: RenderedPush, token: string): Ex
     threadId: job.farm ?? 'kithfield',
     interruptionLevel: push.passive ? 'passive' : 'active',
     priority: push.passive ? 'normal' : 'high',
-    ttl: TTL_SECONDS,
+    // A knock is live for a minute; after that it must not arrive at all.
+    ttl: job.kind === 'knock' ? KNOCK_LIFETIME_MS / 1000 : TTL_SECONDS,
   };
 }

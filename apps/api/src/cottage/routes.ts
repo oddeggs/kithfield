@@ -3,9 +3,10 @@ import {
   type ErrorCode,
   HibernateRequest,
   Id,
-  MeSettingsUpdate,
+  MeSettings,
   RegisterDeviceRequest,
   RememberRequest,
+  TimeZone,
 } from '@kithfield/contracts';
 import { type Context, Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
@@ -17,6 +18,15 @@ import { cottageAdapters } from './adapters';
 import { cottageOf } from './stub';
 
 type RouteEnv = { Bindings: Bindings; Variables: { person: string } };
+
+/** An Expo push token, as `getExpoPushTokenAsync` gives it. */
+const EXPO_PUSH_TOKEN = /^Expo(nent)?PushToken\[[^\]]+\]$/;
+
+const SettingsBody = MeSettings.partial()
+  .extend({ timeZone: TimeZone.optional() })
+  .refine((s) => Object.values(s).some((v) => v !== undefined), {
+    message: 'Change at least one setting',
+  });
 
 const fail = (c: Context, status: 400 | 401 | 404 | 409, code: ErrorCode, fields?: string[]) =>
   c.json<ErrorBody>({ error: fields === undefined ? { code } : { code, fields } }, status);
@@ -66,26 +76,47 @@ export function cottageRoutes(): Hono<RouteEnv> {
     if (!device.success) return fail(c, 400, 'bad_request', ['deviceId']);
     const body = await bodyOf(c, RegisterDeviceRequest);
     if (!body.ok) return body.response;
+    const { pushToken } = body.value;
+    if (pushToken !== null && !EXPO_PUSH_TOKEN.test(pushToken)) {
+      return fail(c, 400, 'bad_request', ['pushToken']);
+    }
     const person = c.get('person');
     await cottageOf(c.env, person).registerDevice(device.data, body.value);
     const actionKey = newActionKey();
-    const previous = await storeActionKey(c.env.DB, person, device.data, actionKey, Date.now());
-    await Promise.all(previous.map((other) => cottageOf(c.env, other).forgetDevice(device.data)));
+    const displaced = await storeActionKey(
+      c.env.DB,
+      person,
+      device.data,
+      actionKey,
+      pushToken,
+      Date.now(),
+    );
+    await Promise.all([
+      ...displaced.deviceOwners.map((other) => cottageOf(c.env, other).forgetDevice(device.data)),
+      ...displaced.tokenHolders.map(({ person: other, device: theirs }) =>
+        cottageOf(c.env, other).dropPushToken(theirs, pushToken ?? ''),
+      ),
+    ]);
     return c.json({ actionKey });
   });
 
+  // Settings, and the person's time zone, which the app sends on first launch and whenever the
+  // phone's zone changes. The zone is not a setting yet in the contracts, so it is read here.
   app.patch('/v1/me/settings', signedIn, async (c) => {
-    const body = await bodyOf(c, MeSettingsUpdate);
+    const body = await bodyOf(c, SettingsBody);
     if (!body.ok) return body.response;
-    return c.json(await cottageOf(c.env, c.get('person')).updateSettings(body.value));
+    const { timeZone, ...update } = body.value;
+    const cottage = cottageOf(c.env, c.get('person'));
+    return c.json(await cottage.updateSettings(update, timeZone));
   });
 
   app.put('/v1/me/hibernate', signedIn, async (c) => {
     const body = await bodyOf(c, HibernateRequest);
     if (!body.ok) return body.response;
     const person = c.get('person');
-    const changed = await cottageOf(c.env, person).setHibernating(body.value.on);
-    if (changed) await cottageAdapters().fanOutHibernate(c.env, person, body.value.on);
+    await cottageOf(c.env, person).setHibernating(body.value.on);
+    // Always, even when the cottage already had it, so a fan-out that failed can be retried.
+    await cottageAdapters().fanOutHibernate(c.env, person, body.value.on);
     return c.body(null, 204);
   });
 
