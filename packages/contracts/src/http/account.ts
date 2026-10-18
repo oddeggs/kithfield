@@ -134,8 +134,17 @@ export type AgeRequest = z.infer<typeof AgeRequest>;
 export const TermsRequest = z.object({ version: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) });
 export type TermsRequest = z.infer<typeof TermsRequest>;
 
-/** AI features that send words or voices out, each asked per person before anything is sent. */
-export const AiFeature = z.enum(['captions', 'recap']);
+/**
+ * AI features that send words or voices out, each asked per person before anything is sent:
+ * - `captions`: the person's voice by the fire, captioned and translated live for friends who
+ *   turned captions on. Friends who said no show as a quiet "…".
+ * - `recap`: the text of the person's messages that week, for the Sunday recap letter. Saying no
+ *   leaves their words out; they are still thanked.
+ * - `voice_notes`: the person's own voice notes, captioned and translated when a friend asks.
+ *   Saying no means their voice notes are never captioned.
+ * The provider is Cloudflare Workers AI (`docs/tech-decisions.md`).
+ */
+export const AiFeature = z.enum(['captions', 'recap', 'voice_notes']);
 export type AiFeature = z.infer<typeof AiFeature>;
 
 /** `PUT /v1/me/consents/:feature`: stored with the time and the consent text version. */

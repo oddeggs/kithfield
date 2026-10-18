@@ -19,6 +19,30 @@ describe('snapshot', () => {
     roundTrip({ seq: 413, state: { ...farmState, members: [paused] } });
   });
 
+  it('carries the restoration project, and reads snapshots without it', () => {
+    const restoration = {
+      project: 'greenhouse',
+      step: 8,
+      steppedOn: '2026-10-18',
+      tendedOn: '2026-10-18',
+      done: [{ project: 'well', finishedOn: '2026-09-02' }],
+    };
+    roundTrip({ seq: 412, state: { ...farmState, restoration } });
+    roundTrip({
+      seq: 412,
+      state: { ...farmState, restoration: { ...restoration, tendedOn: null } },
+    });
+    expect(farmState).not.toHaveProperty('restoration');
+    for (const broken of [
+      { ...restoration, step: -1 },
+      { ...restoration, tendedOn: 'last night' },
+      { ...restoration, project: 'Old Greenhouse' },
+      { ...restoration, done: undefined },
+    ]) {
+      expect(FarmState.safeParse({ ...farmState, restoration: broken }).success).toBe(false);
+    }
+  });
+
   it('rejects states that break the house rules or the limits', () => {
     const tooMany = Array.from({ length: LIMITS.members + 1 }, (_, i) => ({
       ...farmState.members[0],

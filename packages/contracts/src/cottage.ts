@@ -126,3 +126,20 @@ export const PushData = z.object({
   push: Id,
 });
 export type PushData = z.infer<typeof PushData>;
+
+/**
+ * The notification category a push is sent under (the push's `categoryId`, which the app reads
+ * back as the notification's category), setting the actions a long-press offers
+ * (`NOTIFICATION_ACTIONS`): `plan` for a plan that needs an answer, `tend` for a push a dewdrop
+ * can answer (a message, a mention, something on the doorstep). A push with no actions has no
+ * category.
+ */
+export const NotificationCategory = z.enum(['plan', 'tend']);
+export type NotificationCategory = z.infer<typeof NotificationCategory>;
+
+/**
+ * A `plan` push's `data`: `PushData` and the plan's seq (its planting), which "I'm in" and "Can't
+ * this time" answer.
+ */
+export const PlanPushData = PushData.extend({ seed: Seq });
+export type PlanPushData = z.infer<typeof PlanPushData>;

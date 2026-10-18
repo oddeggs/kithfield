@@ -120,7 +120,11 @@ describe('farm events', () => {
       ['settings_changed', { setting: 'role', person: fig, role: 'keeper' }, null, true],
       ['settings_changed', { setting: 'role', person: fig, role: 'keeper' }, bea, true],
       ['settings_changed', { setting: 'role', person: fig, role: 'helper' }, null, false],
+      ['settings_changed', { setting: 'theme', theme: 'snowy_hollow' }, null, true],
+      ['settings_changed', { setting: 'theme', theme: 'snowy_hollow' }, bea, true],
+      ['settings_changed', { setting: 'theme', theme: null }, bea, true],
       ['critter_changed', { name: 'June' }, null, false],
+      ['gift', { ...eventPayloads.gift, chipIn: 'ci_1', with: [fig] }, null, false],
     ];
     for (const [kind, payload, actor, ok] of cases) {
       const event = withActor(kind, payload, actor);
@@ -144,11 +148,18 @@ describe('farm events', () => {
 
   it("names the kinds the farm may write on a person's behalf", () => {
     for (const kind of ON_BEHALF_KINDS) expect(EVENT_KINDS).toContain(kind);
-    for (const kind of ['critter_changed', 'status', 'seed_changed'] as const) {
+    for (const kind of ['critter_changed', 'status', 'seed_changed', 'gift'] as const) {
       expect(ON_BEHALF_KINDS).toContain(kind);
       expect(FARM_WRITTEN_KINDS).not.toContain(kind);
       expect(COMMAND_KINDS).toContain(kind);
     }
+  });
+
+  it('carries a chip-in gift with everyone who chipped in, and never an amount', () => {
+    const given = { ...eventPayloads.gift, note: 'for the lantern x', chipIn: 'ci_1', with: [fig] };
+    roundTrip({ ...eventOf('gift', given), actor: bea });
+    const parsed = FarmEvent.parse(eventOf('gift', { ...given, amount: 300 }));
+    expect(parsed.payload).not.toHaveProperty('amount');
   });
 
   it('lets the farm restore a removed plan edit with the editor as actor', () => {
