@@ -14,6 +14,8 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { z } from 'zod';
 
 import { requireSession, type SessionEnv } from '../auth';
+// The safety desk's steps in an account's purge and merge.
+import './people';
 import { appealPage, decideAppeal, readAppeal, takeAppeal } from './appeals';
 import { auditCsv, auditPage, quarterOf, quarterRange } from './audit';
 import { approve, decide } from './decide';

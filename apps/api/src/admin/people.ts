@@ -1,9 +1,12 @@
 import { FarmEvent, tombstoneOf } from '@kithfield/contracts';
 
+import { registerAccountDeletionStep } from '../auth';
+
 /*
  * What the safety desk holds about a person when their account is deleted or merged into
  * another. Decisions, bans and the audit log keep their (pseudonymous) person ids either way, so
- * the record of what was done stays whole.
+ * the record of what was done stays whole. Both run as steps of the account's own jobs: the purge
+ * once the 30 days are over, and the `person_merged` job after a merge. Each is safe to run again.
  */
 
 const tombstoned = (event: unknown): unknown => {
@@ -115,3 +118,5 @@ export async function mergeModeration(db: D1Database, from: string, into: string
     ]);
   }
 }
+
+registerAccountDeletionStep('moderation', (env, person) => purgeModeration(env.DB, person));
