@@ -29,7 +29,8 @@ export class NoDraft extends Error {
 /**
  * Moving in with the chosen name and critter. Joining a friend's farm joins first and only then
  * writes the profile, so a full farm or a gone invite leaves the person outside. Starting a farm
- * keeps the choice on the phone until the farm is planted (`plantFirstFarm`).
+ * keeps the choice on the phone until the farm is planted (`plantFirstFarm`); until then the person
+ * is not let through.
  */
 export async function moveIn(
   person: string,
@@ -45,7 +46,11 @@ export async function moveIn(
   await writeDraft(deps.store, { person, name: me.name, critter: me.critter });
 }
 
-/** Plants the first farm, then makes the person the critter they chose, then drops the draft. */
+/**
+ * Plants the first farm: the person becomes the critter they chose (the server plants farms only
+ * for someone with a profile), the farm is planted, and only then is the draft dropped, which is
+ * what lets the person through.
+ */
 export async function plantFirstFarm(
   person: string,
   farm: CreateFarmRequest,
@@ -53,8 +58,8 @@ export async function plantFirstFarm(
 ): Promise<CreateFarmResponse> {
   const draft = readDraft(deps.store, person);
   if (!draft) throw new NoDraft();
-  const planted = await deps.createFarm(farm);
   await deps.updateProfile({ name: draft.name, critter: draft.critter });
+  const planted = await deps.createFarm(farm);
   await clearDraft(deps.store).catch(() => undefined);
   return planted;
 }

@@ -3,6 +3,7 @@ import type { Critter } from '@kithfield/contracts';
 
 import { ApiError } from '../../data/api-client';
 import { DEFAULT_COAT } from './critters';
+import { firstFarmPending } from '../../ui/session/onboarded';
 import { readDraft, type DraftStore } from './draft';
 import { moveIn, plantFirstFarm, type MoveInDeps } from './move-in';
 
@@ -68,21 +69,23 @@ describe('moving in', () => {
     expect(readDraft(p.store, 'p1')).toEqual({ person: 'p1', name: 'June', critter });
   });
 
-  it('plants the farm, then becomes the critter, then forgets the draft', async () => {
+  it('becomes the critter as the farm is planted (the server plants for a profile), then forgets the draft', async () => {
     const p = phone();
     await moveIn('p1', { kind: 'start' }, { name: 'June', critter }, p.deps);
     const planted = await plantFirstFarm('p1', farm, p.deps);
     expect(planted.farm).toBe('f1');
-    expect(p.calls).toEqual(['plant The Lot', 'profile June']);
+    expect(p.calls).toEqual(['profile June', 'plant The Lot']);
     expect(readDraft(p.store, 'p1')).toBeNull();
+    expect(firstFarmPending(p.store, 'p1')).toBe(false);
   });
 
-  it('stays out when planting fails', async () => {
+  it('stays out while the farm isn’t planted, even with a profile', async () => {
     const p = phone({ createFarm: () => Promise.reject(new ApiError(503, 'unavailable')) });
     await moveIn('p1', { kind: 'start' }, { name: 'June', critter }, p.deps);
+    expect(firstFarmPending(p.store, 'p1')).toBe(true);
     await expect(plantFirstFarm('p1', farm, p.deps)).rejects.toBeInstanceOf(ApiError);
-    expect(p.calls).toEqual([]);
     expect(readDraft(p.store, 'p1')).not.toBeNull();
+    expect(firstFarmPending(p.store, 'p1')).toBe(true);
   });
 
   it('keeps another person’s draft apart', async () => {

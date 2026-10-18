@@ -46,3 +46,20 @@ export async function writeOnboarded(
 export async function clearOnboarded(store: OnboardedStore): Promise<void> {
   if (store.getItem(KEY)) await store.setItemAsync(KEY, '');
 }
+
+/**
+ * Where the way in keeps the critter chosen for a first farm not planted yet. Its owner counts as
+ * not onboarded even once the server has their profile (the server plants farms only for people
+ * with one), so a way in closed before the farm exists comes back to planting it.
+ */
+export const FIRST_FARM_KEY = 'kithfield.onboarding.draft';
+
+/** True while `person` has started a first farm on this phone that isn't planted yet. */
+export function firstFarmPending(store: OnboardedStore, person: string): boolean {
+  try {
+    const raw = store.getItem(FIRST_FARM_KEY);
+    return raw ? (JSON.parse(raw) as { person?: unknown }).person === person : false;
+  } catch {
+    return false;
+  }
+}

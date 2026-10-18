@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   clearOnboarded,
+  firstFarmPending,
   isOnboarded,
   readOnboarded,
   writeOnboarded,
@@ -34,7 +35,7 @@ export function useOnboardedState(
 
   const settle = useCallback(
     async (who: string, answer: Me) => {
-      const onboarded = isOnboarded(answer);
+      const onboarded = isOnboarded(answer) && !firstFarmPending(store, who);
       setKnown({ person: who, onboarded });
       await writeOnboarded(store, who, onboarded).catch(() => undefined);
     },

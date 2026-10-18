@@ -4,16 +4,16 @@ Expo Router reads this folder. The shell owns the root files (`_layout.tsx`, `in
 `+not-found.tsx`) and the tab group's `_layout.tsx`. Each feature owns its own folder below and adds
 screens there without editing a shared file.
 
-| Folder | Who adds screens | What it is |
-|---|---|---|
-| `(tabs)/farm/` | Farm home | The Farm tab's native stack. Replace `index.tsx`; add pushed screens beside it |
-| `(tabs)/chat/` | Chat | The Chats tab's stack |
-| `(tabs)/seedbed/` | Plans | The Seed bed tab's stack |
-| `(tabs)/you/` | Settings and safety | The You tab's stack |
-| `(onboarding)/` | Onboarding | Shown instead of the tabs to someone not onboarded yet. Starts at `welcome.tsx` (the URL `/welcome`; `index.tsx` would collide with the app's own `/`) |
-| `(modal)/` | Any feature | A sheet over the app: name files `<feature>-<screen>.tsx` (`chat-search.tsx`) |
-| `(cover)/` | Any feature | Full screen over everything (the photo viewer, the fire room): `<feature>-<screen>.tsx` |
-| `(dev)/` | The shell | Development-only screens (the component gallery, the sync lab), removed from release builds |
+| Folder            | Who adds screens    | What it is                                                                                                                                             |
+| ----------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `(tabs)/farm/`    | Farm home           | The Farm tab's native stack. Replace `index.tsx`; add pushed screens beside it                                                                         |
+| `(tabs)/chat/`    | Chat                | The Chats tab's stack                                                                                                                                  |
+| `(tabs)/seedbed/` | Plans               | The Seed bed tab's stack                                                                                                                               |
+| `(tabs)/you/`     | Settings and safety | The You tab's stack                                                                                                                                    |
+| `(onboarding)/`   | Onboarding          | Shown instead of the tabs to someone not onboarded yet. Starts at `welcome.tsx` (the URL `/welcome`; `index.tsx` would collide with the app's own `/`) |
+| `(modal)/`        | Any feature         | A sheet over the app: name files `<feature>-<screen>.tsx` (`chat-search.tsx`)                                                                          |
+| `(cover)/`        | Any feature         | Full screen over everything (the photo viewer, the fire room): `<feature>-<screen>.tsx`                                                                |
+| `(dev)/`          | The shell           | Development-only screens (the component gallery, the sync lab), removed from release builds                                                            |
 
 ## How it fits
 

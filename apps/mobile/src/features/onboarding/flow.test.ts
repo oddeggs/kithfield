@@ -33,6 +33,8 @@ describe('the way in', () => {
     expect(resumeAt(fresh, draft)).toBe(routes.farm);
     expect(afterSignIn(fresh, draft)).toBe(routes.farm);
     expect(resumeAt(fresh, null)).toBe(routes.critter);
+    // The profile went in but planting failed: still back to planting.
+    expect(resumeAt(me(), draft)).toBe(routes.farm);
   });
 
   it('accepts the first Terms by continuing, but shows new Terms instead of accepting them', () => {

@@ -45,7 +45,8 @@ export const termsAccepted = (me: Me): boolean =>
  */
 export function afterSignIn(me: Me, draft: Chosen = null): Route | 'done' {
   if (!me.ageOk) return routes.age;
-  if (me.name === null || me.critter === null) return draft ? routes.farm : routes.critter;
+  if (draft) return routes.farm;
+  if (me.name === null || me.critter === null) return routes.critter;
   return 'done';
 }
 

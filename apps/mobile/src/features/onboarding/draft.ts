@@ -1,6 +1,8 @@
 import { Critter } from '@kithfield/contracts';
 import { z } from 'zod';
 
+import { FIRST_FARM_KEY } from '../../ui/session/onboarded';
+
 /** A small key-value store (the Keychain on the phone). */
 export interface DraftStore {
   getItem(key: string): string | null;
@@ -15,7 +17,8 @@ export interface DraftStore {
 export const Draft = z.object({ person: z.string(), name: z.string(), critter: Critter });
 export type Draft = z.infer<typeof Draft>;
 
-const KEY = 'kithfield.onboarding.draft';
+// The shell reads it too: a pending first farm keeps its person at the way in.
+const KEY = FIRST_FARM_KEY;
 
 /** The draft `person` left, or null. */
 export function readDraft(store: DraftStore, person: string): Draft | null {

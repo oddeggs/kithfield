@@ -132,4 +132,13 @@ describe('whether the person is onboarded', () => {
     await rerender(null);
     expect(readOnboarded(store, 'p1')).toBe(false);
   });
+
+  it('keeps someone out while the first farm they started is not planted yet', async () => {
+    const api = server();
+    const store = memory();
+    store.values.set('kithfield.onboarding.draft', JSON.stringify({ person: 'p1' }));
+    const { seen } = mount('p1', { store, me: api.me });
+    await api.answer(sample());
+    expect(seen.at(-1)).toBe(false);
+  });
 });
