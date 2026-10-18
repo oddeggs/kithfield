@@ -4,8 +4,8 @@ import { notificationTypeOf, tag } from '../push/catalogue';
 import { DAY_MS } from '../push/policy';
 
 /*
- * Kinds of push that rest after going unopened (`10 On the System`: "If 3 in a row go unopened,
- * we pause that type for a week and say so in 11-08"). The cottage remembers each push it hands
+ * Kinds of push that rest after going unopened: when three in a row go unopened, that type pauses
+ * for a week, and the farm's notification settings say so. The cottage remembers each push it hands
  * the consumer by the id in its data; the app reports opens (`POST /v1/push/opened`). When the
  * last three pushes of a kind from a farm all went unopened, the next one starts that kind's rest
  * on the farm instead of going out. Pushes that belong to no farm (nudges) rest everywhere.

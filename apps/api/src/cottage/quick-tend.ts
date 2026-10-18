@@ -1,7 +1,7 @@
 import { FarmKind, type QuickTendList, type QuickTendWhy, VisitPeer } from '@kithfield/contracts';
 
 /*
- * Quick Tend (`05 Gestures`, 05-04): what waits for the person across their farms and visits,
+ * Quick Tend: what waits for the person across their farms and visits,
  * newest first. The app draws the first three as cards (questions, plans, someone back) and folds
  * the rest into the bouquet. Tending a farm (any reply, gesture or sticker there, or opening it)
  * takes what waited there off the list (`chats.applyDelivery`).
