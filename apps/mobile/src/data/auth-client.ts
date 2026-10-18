@@ -12,6 +12,8 @@ export interface AuthClientConfig {
   /** The API base, such as `https://dev.kithfield.com/api`; Better Auth answers under `/auth`. */
   readonly apiBase: string;
   readonly storage: SessionStorage;
+  /** The transport; the platform `fetch` when absent. */
+  readonly fetch?: typeof fetch;
 }
 
 /**
@@ -22,7 +24,10 @@ export interface AuthClientConfig {
 export function createKithfieldAuthClient(config: AuthClientConfig) {
   return createAuthClient({
     baseURL: `${config.apiBase}/auth`,
-    fetchOptions: bearerFetchOptions(config.storage),
+    fetchOptions: {
+      ...bearerFetchOptions(config.storage),
+      ...(config.fetch ? { customFetchImpl: config.fetch } : {}),
+    },
     plugins: [anonymousClient(), emailOTPClient()],
   });
 }
