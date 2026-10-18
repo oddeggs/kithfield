@@ -27,6 +27,8 @@ import { plansEn } from './plans.en';
 import { plansSameInBoth, plansVi } from './plans.vi';
 import { pushEn } from './push.en';
 import { pushSameInBoth, pushVi } from './push.vi';
+import { rhythmEn } from './rhythm.en';
+import { rhythmSameInBoth, rhythmVi } from './rhythm.vi';
 import { safetyEn } from './safety.en';
 import { safetySameInBoth, safetyVi } from './safety.vi';
 import { settingsEn } from './settings.en';
@@ -61,6 +63,7 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'onboardingCritters', file: 'onboarding-critters', en: onboardingCrittersEn, vi: onboardingCrittersVi, sameInBoth: [] },
   { name: 'plans', file: 'plans', en: plansEn, vi: plansVi, sameInBoth: plansSameInBoth },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
+  { name: 'rhythm', file: 'rhythm', en: rhythmEn, vi: rhythmVi, sameInBoth: rhythmSameInBoth },
   { name: 'safety', file: 'safety', en: safetyEn, vi: safetyVi, sameInBoth: safetySameInBoth },
   { name: 'settings', file: 'settings', en: settingsEn, vi: settingsVi, sameInBoth: settingsSameInBoth },
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
@@ -87,6 +90,7 @@ export const en = {
   ...onboardingCrittersEn,
   ...plansEn,
   ...pushEn,
+  ...rhythmEn,
   ...safetyEn,
   ...settingsEn,
   ...shellEn,
@@ -113,6 +117,7 @@ export const vi = {
   ...onboardingCrittersVi,
   ...plansVi,
   ...pushVi,
+  ...rhythmVi,
   ...safetyVi,
   ...settingsVi,
   ...shellVi,
