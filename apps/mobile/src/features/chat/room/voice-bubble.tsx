@@ -7,7 +7,7 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
-import { signedUrl } from '../api/signed-urls';
+import { useMediaUrl } from '../../media';
 import { clock } from '../model/format';
 import type { BubbleItem } from '../model/timeline';
 import { useChatColours } from '../ui/chat-colours';
@@ -51,6 +51,8 @@ export function VoiceBubble({
   const ink = mine ? palette.bubble.yoursFg : colours.wave;
   const rest = mine ? colours.mentionMineBg : colours.waveRest;
   const bars = barsOf(voice.waveform, VOICE_BARS);
+  // Your own note plays from the phone while it is going up; anyone's from a signed read.
+  const url = useMediaUrl(voice.audio.key === '' ? null : voice.audio.key);
 
   // Leaving the chat stops what it was playing.
   useEffect(
@@ -66,8 +68,7 @@ export function VoiceBubble({
       return;
     }
     playing?.stop();
-    const url = await signedUrl(voice.audio.key);
-    if (!url) return;
+    if (url === null) return;
     await setAudioModeAsync({ playsInSilentMode: true }).catch(() => undefined);
     const player = createAudioPlayer({ uri: url });
     const sub = player.addListener('playbackStatusUpdate', (s) => {

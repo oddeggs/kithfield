@@ -1,5 +1,4 @@
 import type { LinkPayload, MediaPayload, MediaRef, StickerPayload } from '@kithfield/contracts';
-import { Image } from 'expo-image';
 import * as WebBrowser from 'expo-web-browser';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
@@ -9,7 +8,7 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
-import { useSignedUrl } from '../api/signed-urls';
+import { MediaImage } from '../../media';
 import { clock } from '../model/format';
 import { siteOf } from '../model/media';
 import { segmentsOf } from '../model/mentions';
@@ -236,7 +235,6 @@ function MediaTile({
   const { t } = useLocale();
   const { farm } = useRoom();
   const video = ref.mime.startsWith('video/');
-  const url = useSignedUrl(video ? null : ref.key);
   return (
     <Press
       onPress={() => {
@@ -246,14 +244,7 @@ function MediaTile({
       accessibilityLabel={video ? t('chat.bubble.openVideo') : t('chat.bubble.openMedia')}
       style={{ width, height, backgroundColor: palette.fillSoft }}
     >
-      {url ? (
-        <Image
-          source={{ uri: url }}
-          style={{ width, height }}
-          contentFit="cover"
-          transition={120}
-        />
-      ) : null}
+      {video || ref.key === '' ? null : <MediaImage mediaKey={ref.key} style={{ width, height }} />}
       {video ? (
         <View
           style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }}
@@ -315,7 +306,7 @@ function LinkBubble({ item, link }: { readonly item: BubbleItem; readonly link: 
   const colours = useChatColours();
   const { t } = useLocale();
   const { farm } = useRoom();
-  const image = useSignedUrl(link.preview?.image?.key);
+  const image = link.preview?.image?.key ?? null;
   const site = link.preview?.site ?? siteOf(link.url);
   const words = link.text && link.text.trim() !== link.url ? link.text : null;
   const inkMine = item.mine && item.delivery !== 'failed';
@@ -344,8 +335,8 @@ function LinkBubble({ item, link }: { readonly item: BubbleItem; readonly link: 
           accessibilityRole="link"
           accessibilityLabel={`${link.preview?.title ?? link.url}, ${site}`}
         >
-          {image ? (
-            <Image source={{ uri: image }} style={{ width: 250, height: 104 }} contentFit="cover" />
+          {image !== null ? (
+            <MediaImage mediaKey={image} style={{ width: 250, height: 104 }} />
           ) : null}
           <View
             style={{

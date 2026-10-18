@@ -13,7 +13,7 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { tabBarClearance } from '../../../ui/tab-bar/tab-bar';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
-import { setMuted, chatApi } from '../api/chat-api';
+import { useChatApi } from '../api/chat-api';
 import { sectionsOf } from '../model/chat-list';
 import { go } from '../routes';
 import { useMe } from '../ui/use-me';
@@ -39,6 +39,7 @@ export function ChatListScreen() {
   const { palette } = useTheme();
   const { t } = useLocale();
   const toast = useToast();
+  const chatApi = useChatApi();
   const { chats } = useCottage();
   const me = useMe();
   const now = useMinute();
@@ -74,7 +75,7 @@ export function ChatListScreen() {
     });
   };
   const mute = (row: ChatListItem) =>
-    change(row, { muted: !row.muted }, () => setMuted(row.farm, !row.muted));
+    change(row, { muted: !row.muted }, () => chatApi.setMuted(row.farm, !row.muted));
   const pin = (row: ChatListItem) =>
     change(row, { pinned: !row.pinned }, () => chatApi.setPinned(row.farm, !row.pinned));
 

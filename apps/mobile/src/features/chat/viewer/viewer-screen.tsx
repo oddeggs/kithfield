@@ -1,7 +1,5 @@
 import type { PersonId } from '@kithfield/contracts';
 import { springs, viewerInks } from '@kithfield/theme';
-import { Image } from 'expo-image';
-import * as FileSystem from 'expo-file-system/legacy';
 import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -23,7 +21,8 @@ import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useSession } from '../../../ui/session/session';
 import { Txt } from '../../../ui/type/text';
-import { signedUrl, useSignedUrl } from '../api/signed-urls';
+import { MediaImage, useMediaUrl } from '../../media';
+import { localCopy } from '../media/local-copy';
 import { weekdayTime } from '../model/format';
 import { sharedItems, viewable, type SharedItem } from '../model/media';
 import { buildTimeline, type LogEvent } from '../model/timeline';
@@ -77,11 +76,12 @@ function Page({
   readonly zoomed: ReturnType<typeof useSharedValue<boolean>>;
   readonly onClose: () => void;
 }) {
-  const url = useSignedUrl(item.ref?.key);
+  const video = item.tab === 'videos';
+  const url = useMediaUrl(video ? (item.ref?.key ?? null) : null);
   const ratio = item.ref?.width && item.ref.height ? item.ref.height / item.ref.width : 1.2;
   return (
     <Zoomable width={width} height={height} drag={drag} zoomed={zoomed} onClose={onClose}>
-      {url && item.tab === 'videos' ? (
+      {url !== null && video ? (
         <VideoItem
           url={url}
           width={width}
@@ -89,12 +89,11 @@ function Page({
           active={active}
           durationMs={item.durationMs}
         />
-      ) : url ? (
-        <Image
-          source={{ uri: url }}
-          style={{ width, height: Math.min(height, width * ratio) }}
+      ) : !video && item.ref ? (
+        <MediaImage
+          mediaKey={item.ref.key}
           contentFit="contain"
-          transition={120}
+          style={{ width, height: Math.min(height, width * ratio) }}
         />
       ) : null}
     </Zoomable>
@@ -162,6 +161,7 @@ export function ViewerScreen({
 
   const close = () => router.back();
   const current = items[at] ?? null;
+  const currentUrl = useMediaUrl(current?.ref?.key ?? null);
   const backdrop = useAnimatedStyle(() => ({
     opacity: Math.max(0, 1 - drag.get() / 400) * shown.get(),
   }));
@@ -193,11 +193,8 @@ export function ViewerScreen({
 
   const share = async () => {
     if (!current?.ref) return;
-    const url = await signedUrl(current.ref.key);
-    if (!url) return;
-    const ext = current.ref.mime.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
-    const local = `${FileSystem.cacheDirectory}kithfield-${current.seq}-${current.index}.${ext}`;
-    await FileSystem.downloadAsync(url, local);
+    if (currentUrl === null) return;
+    const local = await localCopy(currentUrl, current.ref, `${current.seq}-${current.index}`);
     await Sharing.shareAsync(local, { mimeType: current.ref.mime });
   };
 

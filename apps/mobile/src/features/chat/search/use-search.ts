@@ -2,7 +2,7 @@ import { isTombstone, type FarmState, type MediaRef } from '@kithfield/contracts
 import { useEffect, useRef, useState } from 'react';
 
 import { useDataClient } from '../../../data';
-import { chatApi } from '../api/chat-api';
+import { useChatApi } from '../api/chat-api';
 import { goneIn, localHits, mergeHits, type Hit } from '../model/search';
 
 const DEBOUNCE_MS = 250;
@@ -19,6 +19,7 @@ export type SearchState =
  */
 export function useSearch(farms: readonly string[], query: string): SearchState {
   const client = useDataClient();
+  const chatApi = useChatApi();
   const [state, setState] = useState<SearchState>({ status: 'idle' });
   const run = useRef(0);
   const key = farms.join(',');
@@ -69,7 +70,7 @@ export function useSearch(farms: readonly string[], query: string): SearchState 
       })();
     }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [client, key, query]);
+  }, [chatApi, client, key, query]);
   return state;
 }
 

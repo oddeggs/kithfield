@@ -14,12 +14,13 @@ import {
 import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useSession } from '../../../ui/session/session';
-import { uploadFile } from '../api/chat-api';
+import { useUpload, useUploads } from '../../media';
 import { fetchPreview, firstUrl } from '../model/link-preview';
 import { mentionsIn, type Mentionable } from '../model/mentions';
 import { refusalOf, retryRefused } from '../model/refusals';
 import { peopleOf } from '../model/people';
 import { buildTimeline, type BubbleItem, type TimelineItem } from '../model/timeline';
+import { uploadDrafts, uploadOf } from '../model/uploads';
 import type { Recorded } from './voice-recorder';
 
 const PAGE = 50;
@@ -56,18 +57,25 @@ export function useRoomData(farm: string) {
   const link = useFarmLink(farm);
   const now = useNow();
   const state = replica?.state ?? null;
+  const upload = useUpload();
+  const uploads = useUploads(farm);
+  // Photos and voice notes still going up, drawn as writes on their way until the queue sends them.
+  const going = useMemo(
+    () => uploadDrafts(uploads, new Set((replica?.pending ?? []).map((w) => w.opId))),
+    [uploads, replica?.pending],
+  );
 
   const timeline: TimelineItem[] = useMemo(
     () =>
       buildTimeline({
         events,
-        unsent: replica?.pending ?? [],
-        refused,
+        unsent: [...(replica?.pending ?? []), ...going.unsent],
+        refused: [...refused, ...going.refused],
         me,
         state,
         now,
       }),
-    [events, replica?.pending, refused, me, state, now],
+    [events, replica?.pending, going, refused, me, state, now],
   );
   // Who's who changes far less often than the farm: rows re-render only when it does.
   const cast = JSON.stringify([
@@ -152,6 +160,11 @@ export function useRoomData(farm: string) {
       takeDewBack: (dewSeq: number) => write('unsend', { target: dewSeq }),
       wave: (to: PersonId) => write('wave', { to }),
       retry: async (item: BubbleItem) => {
+        const batch = uploadOf(item.opId);
+        if (batch !== null) {
+          upload.retry(batch);
+          return;
+        }
         const rejection = refused.find((r) => r.opId === item.opId);
         if (!rejection) return;
         await retryRefused(rejection, {
@@ -161,21 +174,21 @@ export function useRoomData(farm: string) {
       },
       voice: async (note: Recorded, replyTo: number | null) => {
         try {
-          const mime = 'audio/mp4';
-          const { key, bytes } = await uploadFile(farm, 'voice', note.uri, mime);
-          return await write('voice', {
-            audio: { key, mime, bytes, durationMs: note.durationMs },
+          // The queue uploads it (in the background, across restarts) and then sends the note.
+          await upload.sendVoice(farm, {
+            uri: note.uri,
             durationMs: note.durationMs,
-            waveform: [...note.waveform],
+            waveform: note.waveform,
             ...(replyTo === null ? {} : { replyTo }),
           });
+          return true;
         } catch {
           toast.show(t('chat.voice.failed'));
           return false;
         }
       },
     }),
-    [client, farm, refused, sendText, toast, t, write],
+    [client, farm, refused, sendText, toast, t, upload, write],
   );
 
   return {

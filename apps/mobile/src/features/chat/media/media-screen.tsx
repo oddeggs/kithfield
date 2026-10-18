@@ -1,6 +1,4 @@
 import { parseEvent } from '@kithfield/contracts';
-import { Image } from 'expo-image';
-import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library/legacy';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -17,9 +15,10 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
-import { chatApi } from '../api/chat-api';
-import { signedUrl, useSignedUrl } from '../api/signed-urls';
+import { MediaImage, useMediaUrl } from '../../media';
+import { useChatApi } from '../api/chat-api';
 import { clock, monthHeading } from '../model/format';
+import { localCopy } from './local-copy';
 import { byMonth, sharedItems, type MediaTab, type SharedItem } from '../model/media';
 import type { LogEvent } from '../model/timeline';
 import { go } from '../routes';
@@ -32,6 +31,7 @@ const GAP = 3;
 /** Every shared item on the farm: the phone's cache, then the farm's own pages further back. */
 function useShared(farm: string) {
   const client = useDataClient();
+  const chatApi = useChatApi();
   const lastSeq = useFarm(farm)?.lastSeq ?? 0;
   const [cached, setCached] = useState<readonly LogEvent[]>([]);
   const [older, setOlder] = useState<readonly LogEvent[]>([]);
@@ -68,7 +68,7 @@ function useShared(farm: string) {
     } finally {
       setLoading(false);
     }
-  }, [all, farm, loading, more]);
+  }, [all, chatApi, farm, loading, more]);
   useEffect(() => {
     // The cache may hold only recent days: ask the farm for what came before.
     if (all.length > 0 && (all[0]?.seq ?? 1) > 1) void loadMore();
@@ -86,16 +86,17 @@ function Tile({
   readonly item: SharedItem;
   readonly size: number;
   readonly onPress: () => void;
-  readonly onLong: () => void;
+  /** With where the file can be read from, once known. */
+  readonly onLong: (url: string | null) => void;
 }) {
   const colours = useChatColours();
   const { palette } = useTheme();
   const { t } = useLocale();
-  const url = useSignedUrl(item.tab === 'photos' ? item.ref?.key : null);
+  const url = useMediaUrl(item.ref?.key ?? null);
   return (
     <Press
       onPress={onPress}
-      onLongPress={onLong}
+      onLongPress={() => onLong(url)}
       darken={false}
       accessibilityLabel={
         item.tab === 'videos' ? t('chat.bubble.openVideo') : t('chat.bubble.openMedia')
@@ -108,13 +109,8 @@ function Tile({
         backgroundColor: palette.fillSoft,
       }}
     >
-      {url ? (
-        <Image
-          source={{ uri: url }}
-          style={{ width: size, height: 124 }}
-          contentFit="cover"
-          transition={120}
-        />
+      {item.tab === 'photos' && item.ref ? (
+        <MediaImage mediaKey={item.ref.key} style={{ width: size, height: 124 }} />
       ) : null}
       {item.tab === 'videos' ? (
         <View
@@ -156,25 +152,22 @@ export function MediaScreen({ farm }: { readonly farm: string }) {
   const groups = byMonth(shown);
   const tile = (width - 24 - GAP * 2) / 3;
 
-  const save = async (item: SharedItem) => {
-    if (!item.ref) return;
+  const save = async (item: SharedItem, url: string | null) => {
+    if (!item.ref || url === null) return;
     const permission = await MediaLibrary.requestPermissionsAsync(true);
     if (!permission.granted) {
       toast.show(t('chat.media.saveFailed'));
       return;
     }
-    const url = await signedUrl(item.ref.key);
-    if (!url) return;
-    const ext = item.ref.mime.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
-    const local = `${FileSystem.cacheDirectory}kithfield-${item.seq}-${item.index}.${ext}`;
-    await FileSystem.downloadAsync(url, local);
-    await MediaLibrary.saveToLibraryAsync(local);
+    await MediaLibrary.saveToLibraryAsync(
+      await localCopy(url, item.ref, `${item.seq}-${item.index}`),
+    );
     toast.show(t('chat.media.saved'));
   };
-  const actions = (item: SharedItem) => {
+  const actions = (item: SharedItem, url: string | null) => {
     const options = [t('chat.media.save'), t('chat.media.forward'), t('chat.search.cancel')];
     ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex: 2 }, (i) => {
-      if (i === 0) void save(item);
+      if (i === 0) void save(item, url);
       if (i === 1) go.forward(farm, item.seq);
     });
   };
@@ -268,7 +261,7 @@ export function MediaScreen({ farm }: { readonly farm: string }) {
                       item={item}
                       size={tile}
                       onPress={() => go.viewer(farm, item.seq, item.index)}
-                      onLong={() => actions(item)}
+                      onLong={(url) => actions(item, url)}
                     />
                   ))}
                 </View>

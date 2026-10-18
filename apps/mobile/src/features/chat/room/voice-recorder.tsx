@@ -1,7 +1,6 @@
 import { LIMITS, type Critter } from '@kithfield/contracts';
 import { motion } from '@kithfield/theme';
 import {
-  RecordingPresets,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
   useAudioRecorder,
@@ -20,6 +19,7 @@ import { haptics } from '../../../ui/motion/haptics';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
+import { VOICE_RECORDING_OPTIONS } from '../../media';
 import { clock } from '../model/format';
 import { beginRecording } from '../model/recording';
 import { useChatColours } from '../ui/chat-colours';
@@ -63,7 +63,7 @@ type Phase = 'idle' | 'held' | 'locked';
 export function useVoiceRecorder(onDone: (note: Recorded) => void) {
   const { t } = useLocale();
   const toast = useToast();
-  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
+  const recorder = useAudioRecorder(VOICE_RECORDING_OPTIONS);
   const status = useAudioRecorderState(recorder, motion.twos.frameMs);
   const [phase, setPhaseState] = useState<Phase>('idle');
   const phaseRef = useRef<Phase>('idle');

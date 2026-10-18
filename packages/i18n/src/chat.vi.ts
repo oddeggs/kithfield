@@ -89,6 +89,8 @@ export const chatVi: ViCatalogue<typeof chatEn> = {
   'chat.refused.notAllowed': 'Tin này không phải của bạn để đổi.',
   'chat.refused.paused': 'Lúc này bạn vẫn đọc được, và sẽ sớm viết lại được.',
   'chat.refused.frozen': 'Nông trại này đang nghỉ, nên chưa đăng thêm được gì.',
+  'chat.refused.tooBig': 'Tệp này quá lớn để gửi.',
+  'chat.refused.unreadable': 'Điện thoại này không đọc được tệp đó.',
   'chat.refused.other': 'Chưa gửi được',
   'chat.bubble.unsentBy': '{name} đã thu hồi một tin nhắn',
   'chat.bubble.unsentYou': 'Bạn đã thu hồi một tin nhắn',

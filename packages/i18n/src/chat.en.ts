@@ -99,6 +99,8 @@ export const chatEn = {
   'chat.refused.notAllowed': 'That one isn’t yours to change.',
   'chat.refused.paused': 'You can read along for now, and post again soon.',
   'chat.refused.frozen': 'This farm is resting, so nothing new can go up.',
+  'chat.refused.tooBig': 'That file is too big to send.',
+  'chat.refused.unreadable': 'That file couldn’t be read on this phone.',
   'chat.refused.other': 'Didn’t send',
   'chat.bubble.unsentBy': '{name} unsent a message',
   'chat.bubble.unsentYou': 'You unsent a message',

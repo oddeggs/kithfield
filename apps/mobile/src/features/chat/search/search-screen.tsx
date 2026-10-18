@@ -1,6 +1,5 @@
 import type { FarmState, MediaRef, PersonId } from '@kithfield/contracts';
 import { fontFor } from '@kithfield/theme';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActionSheetIOS, ScrollView, TextInput, View } from 'react-native';
@@ -16,7 +15,7 @@ import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { componentType } from '../../../ui/type/styles';
 import { Txt } from '../../../ui/type/text';
-import { useSignedUrl } from '../api/signed-urls';
+import { MediaImage } from '../../media';
 import { shortDate } from '../model/format';
 import { siteOf } from '../model/media';
 import { lookOf } from '../model/people';
@@ -114,7 +113,6 @@ function Tile({
   readonly onPress: () => void;
 }) {
   const { palette } = useTheme();
-  const url = useSignedUrl(media.mime.startsWith('image/') ? media.key : null);
   return (
     <Press
       onPress={onPress}
@@ -128,13 +126,8 @@ function Tile({
         backgroundColor: palette.fillSoft,
       }}
     >
-      {url ? (
-        <Image
-          source={{ uri: url }}
-          style={{ width: size, height: 112 }}
-          contentFit="cover"
-          transition={120}
-        />
+      {media.mime.startsWith('image/') ? (
+        <MediaImage mediaKey={media.key} style={{ width: size, height: 112 }} />
       ) : null}
     </Press>
   );

@@ -20,6 +20,12 @@ describe('why a write did not send', () => {
     expect(refusalOf('limit_reached').retry).toBe(true);
   });
 
+  it('offers no retry for a file that can never go', () => {
+    expect(refusalOf('too_large')).toEqual({ copy: 'chat.refused.tooBig', retry: false });
+    expect(refusalOf('unreadable')).toEqual({ copy: 'chat.refused.unreadable', retry: false });
+    expect(refusalOf('not_member')).toEqual({ copy: 'chat.refused.notAllowed', retry: false });
+  });
+
   it('names each permanent reason', () => {
     expect(refusalOf('farm_frozen').copy).toBe('chat.refused.frozen');
     expect(refusalOf('something_new').copy).toBe('chat.refused.other');
