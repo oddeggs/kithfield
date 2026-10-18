@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 
+import { adminRoutes, safetyRoutes } from './admin/routes';
 import { authRoutes } from './auth';
 import { cottageRoutes } from './cottage/routes';
 import type { AppEnv } from './env';
@@ -17,6 +18,9 @@ export function createApp(): Hono<AppEnv> {
 
   app.route('/', cottageRoutes());
   app.route('/', waitlistRoutes());
+  app.route('/', safetyRoutes());
+  // The safety desk's API, behind Cloudflare Access; the admin Worker proxies to it.
+  app.route('/admin/v1', adminRoutes());
 
   app.route('/v1', farmApi());
 

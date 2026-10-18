@@ -27,6 +27,12 @@
         "APPLE_BUNDLE_ID": "com.kithfield.app.dev",
         "GOOGLE_IOS_CLIENT_ID": "564934268570-n2lmcq3r3vc060p5hsankdnisfnalk0v.apps.googleusercontent.com",
         "GOOGLE_WEB_CLIENT_ID": "564934268570-hst5dob3msctegnpgskivamd25gh6jbc.apps.googleusercontent.com",
+        // The safety desk sits behind Cloudflare Access: its JWTs are checked against the team's
+        // certs and this environment's application audience. Moderators are the addresses Access
+        // lets in, with their role.
+        "ACCESS_TEAM_DOMAIN": "https://winstonb.cloudflareaccess.com",
+        "ACCESS_AUD": "ab5c609924c99032dd023f45612a3a72153821ee9e74f4d98c4a83c0415dc41a",
+        "MODERATORS": { "bkdev98@gmail.com": "senior", "admin@kithfield.com": "senior" },
       },
       "durable_objects": {
         "bindings": [
@@ -61,6 +67,12 @@
           "name": "WAITLIST_LIMIT",
           "namespace_id": "1201",
           "simple": { "limit": 5, "period": 60 },
+        },
+        // Reports and appeals from the app, per person.
+        {
+          "name": "REPORT_LIMIT",
+          "namespace_id": "1251",
+          "simple": { "limit": 10, "period": 60 },
         },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
@@ -98,6 +110,12 @@
         "APPLE_BUNDLE_ID": "com.kithfield.app",
         "GOOGLE_IOS_CLIENT_ID": "564934268570-jr7d94ci3jtb88sm4uqio1pjoatb3l31.apps.googleusercontent.com",
         "GOOGLE_WEB_CLIENT_ID": "564934268570-hst5dob3msctegnpgskivamd25gh6jbc.apps.googleusercontent.com",
+        // The safety desk sits behind Cloudflare Access: its JWTs are checked against the team's
+        // certs and this environment's application audience. Moderators are the addresses Access
+        // lets in, with their role.
+        "ACCESS_TEAM_DOMAIN": "https://winstonb.cloudflareaccess.com",
+        "ACCESS_AUD": "e450f5c68897b3633d6cb8704171d85e3e17f6e82d4461dc519ab4a970ff81e6",
+        "MODERATORS": { "bkdev98@gmail.com": "senior", "admin@kithfield.com": "senior" },
       },
       "durable_objects": {
         "bindings": [
@@ -132,6 +150,12 @@
           "name": "WAITLIST_LIMIT",
           "namespace_id": "1202",
           "simple": { "limit": 5, "period": 60 },
+        },
+        // Reports and appeals from the app, per person.
+        {
+          "name": "REPORT_LIMIT",
+          "namespace_id": "1252",
+          "simple": { "limit": 10, "period": 60 },
         },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.

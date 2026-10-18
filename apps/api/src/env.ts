@@ -31,6 +31,12 @@ export type Bindings = Secrets & {
   /** Google OAuth client ids an identity token may name: the iOS app's and the web/server one. */
   readonly GOOGLE_IOS_CLIENT_ID: string;
   readonly GOOGLE_WEB_CLIENT_ID: string;
+  /** The Cloudflare Access team the safety desk signs in through (`https://<team>.cloudflareaccess.com`). */
+  readonly ACCESS_TEAM_DOMAIN: string;
+  /** The Access application audience (`aud`) for this environment's safety desk. */
+  readonly ACCESS_AUD: string;
+  /** The addresses Access lets onto the safety desk, with their role. */
+  readonly MODERATORS: Readonly<Record<string, string>>;
   /** One farm object per farm or visit. */
   readonly FARM: DurableObjectNamespace<FarmDO>;
   /** One cottage object per person. */
@@ -44,6 +50,8 @@ export type Bindings = Secrets & {
   readonly GATE_LIMIT: RateLimit;
   /** At most 5 waitlist sign-ups a minute per client address. */
   readonly WAITLIST_LIMIT: RateLimit;
+  /** Reports and appeals from the app, per person. */
+  readonly REPORT_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;
