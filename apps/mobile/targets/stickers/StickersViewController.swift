@@ -1,16 +1,17 @@
 import Messages
+import OSLog
 import UIKit
+
+private let log = Logger(subsystem: "com.kithfield.stickers", category: "drawer")
 
 /// The sticker drawer in Messages: every sticker file the app left in `surfaces/stickers/`
 /// (PNG, APNG or GIF), in file-name order. It reads the folder each time the drawer opens, so a
 /// new outfit shows up without the extension changing.
 final class StickersViewController: MSMessagesAppViewController {
-  private let browser = MSStickerBrowserViewController(stickerSize: .regular)
-  private var stickers: [MSSticker] = []
+  private let browser = StickerBrowser(stickerSize: .regular)
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    browser.stickerBrowserView.dataSource = self
     addChild(browser)
     browser.view.frame = view.bounds
     browser.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -20,7 +21,7 @@ final class StickersViewController: MSMessagesAppViewController {
 
   override func willBecomeActive(with conversation: MSConversation) {
     super.willBecomeActive(with: conversation)
-    stickers = Self.load()
+    browser.stickers = Self.load()
     browser.stickerBrowserView.reloadData()
   }
 
@@ -28,21 +29,39 @@ final class StickersViewController: MSMessagesAppViewController {
     guard let folder = GroupFiles.url(GroupFiles.stickers),
       let files = try? FileManager.default.contentsOfDirectory(
         at: folder, includingPropertiesForKeys: nil)
-    else { return [] }
-    return
+    else {
+      log.notice("No sticker folder in \(GroupFiles.groupId, privacy: .public)")
+      return []
+    }
+    let stickers =
       files
       .filter { ["png", "apng", "gif"].contains($0.pathExtension.lowercased()) }
       .sorted { $0.lastPathComponent < $1.lastPathComponent }
-      .compactMap { try? MSSticker(contentsOfFileURL: $0, localizedDescription: "") }
+      .compactMap { file -> MSSticker? in
+        do {
+          // VoiceOver reads the file's name until the app writes each sticker's caption.
+          return try MSSticker(
+            contentsOfFileURL: file,
+            localizedDescription: file.deletingPathExtension().lastPathComponent)
+        } catch {
+          log.error("Sticker \(file.lastPathComponent, privacy: .public) refused: \(error)")
+          return nil
+        }
+      }
+    log.notice("Offering \(stickers.count) stickers")
+    return stickers
   }
 }
 
-extension StickersViewController: MSStickerBrowserViewDataSource {
-  func numberOfStickers(in stickerBrowserView: MSStickerBrowserView) -> Int {
+/// The system sticker browser, fed from the App Group instead of the extension's bundle.
+final class StickerBrowser: MSStickerBrowserViewController {
+  var stickers: [MSSticker] = []
+
+  override func numberOfStickers(in stickerBrowserView: MSStickerBrowserView) -> Int {
     stickers.count
   }
 
-  func stickerBrowserView(_ stickerBrowserView: MSStickerBrowserView, stickerAt index: Int)
+  override func stickerBrowserView(_ stickerBrowserView: MSStickerBrowserView, stickerAt index: Int)
     -> MSSticker
   {
     stickers[index]
