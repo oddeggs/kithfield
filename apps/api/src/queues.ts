@@ -1,3 +1,4 @@
+import { consumeDeletion } from './deletion';
 import type { Bindings } from './env';
 import { consumePush } from './push/consumer';
 
@@ -20,6 +21,7 @@ export function queueNameOf(queue: string): QueueName | undefined {
 /** Each queue's consumer, registered here as it is built. */
 const handlers: Partial<Record<QueueName, QueueHandler>> = {
   push: (batch, env, ctx) => consumePush(batch, env, ctx),
+  deletion: (batch, env) => consumeDeletion(batch, env),
 };
 
 /** Hands a batch to its queue's consumer. Without one, the batch is retried rather than acked. */
