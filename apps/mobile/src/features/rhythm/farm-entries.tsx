@@ -1,7 +1,7 @@
 import type { FarmId, FarmState, PersonId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
 import { radii } from '@kithfield/theme';
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { View } from 'react-native';
 
@@ -12,6 +12,8 @@ import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { useFarmFlags } from '../farm/valley-store';
+import { fieldGuideRoutes } from '../field-guide/routes';
+import { useHarvestMoment, useRareBloomMoment } from '../field-guide/use-moments';
 import { say } from './copy';
 import { captionKey, projectKeys } from './project-copy';
 import { sharedRainToday, showSharedRain, todayWeather } from './moments';
@@ -102,6 +104,19 @@ export function RhythmSheetRows({
         />
       ) : null}
       <Row
+        art={
+          <ArtStill
+            scene="plant"
+            width={TILE}
+            height={TILE}
+            attrs={{ name: 'clover', stage: 3, color: 'none' }}
+          />
+        }
+        title={t('fieldGuide.title')}
+        line={t('rhythm.row.guideLine')}
+        onPress={() => router.push(fieldGuideRoutes.guide(farm))}
+      />
+      <Row
         art={<ArtStill scene="harvest" width={TILE} height={TILE} />}
         title={t('rhythm.row.recap')}
         line={t('rhythm.row.recapLine')}
@@ -147,17 +162,20 @@ export function RhythmWeatherChip({
 
 /**
  * The farm's rhythm moments as the farm opens: shared rain shows once on the day it fell, to the
- * people it fell on.
+ * people it fell on; a rare bloom once per bloom, and harvest day once a season (each cover marks
+ * itself seen on this phone).
  */
 export function useRhythmMoments(farm: FarmId, view: FarmView | null, me: PersonId | null): void {
   const flags = useFarmFlags(farm);
   const events = useFarmEvents(farm, 100);
+  // Only over the farm itself, never over a screen opened from it.
+  const focused = useIsFocused();
   const people = view ? sharedRainToday(events, view.today) : null;
   const shown = useRef<string | null>(null);
   const today = view?.today ?? null;
   const raining = view?.sharedRain ?? false;
   useEffect(() => {
-    if (!view || !today || !raining || shown.current === today) return;
+    if (!focused || !view || !today || !raining || shown.current === today) return;
     let live = true;
     void flags.read('rain').then(async (seenOn) => {
       if (!live || !showSharedRain(view, people, me, seenOn)) return;
@@ -168,5 +186,16 @@ export function useRhythmMoments(farm: FarmId, view: FarmView | null, me: Person
     return () => {
       live = false;
     };
-  }, [farm, flags, me, people, raining, today, view]);
+  }, [farm, flags, focused, me, people, raining, today, view]);
+
+  const rare = useRareBloomMoment(farm);
+  const harvest = useHarvestMoment(farm);
+  const next = rare ?? harvest;
+  const pushed = useRef<string | null>(null);
+  const key = next === null ? null : JSON.stringify(next);
+  useEffect(() => {
+    if (!focused || next === null || key === null || pushed.current === key) return;
+    pushed.current = key;
+    router.push(next);
+  }, [focused, key, next]);
 }

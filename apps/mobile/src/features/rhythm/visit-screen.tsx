@@ -7,8 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFarm } from '../../data';
 import { ArtStill } from '../../ui/art/art-view';
-import { Avatar } from '../../ui/art/avatar';
-import { lookOf } from '../../ui/art/critter-look';
+import { sceneLook } from '../../ui/art/critter-look';
 import { LayeredScene } from '../../ui/art/layered-scene';
 import { ErrorState } from '../../ui/components/state-shell';
 import { useToast } from '../../ui/components/toast';
@@ -57,9 +56,15 @@ function WalkIn({ farm, k }: { readonly farm: FarmId; readonly k: number }) {
   return (
     <Animated.View
       pointerEvents="none"
-      style={[{ position: 'absolute', left: 150 * k, top: 410 * k }, walk]}
+      style={[{ position: 'absolute', left: 166 * k, top: 420 * k }, walk]}
     >
-      <Avatar kind={mine.species} look={lookOf(mine)} size={48 * k} live />
+      <ArtStill
+        scene="pose"
+        width={64 * k}
+        height={72 * k}
+        attrs={{ ...sceneLook(mine), pose: 'awake', color: 'none' }}
+        t={1.2}
+      />
     </Animated.View>
   );
 }

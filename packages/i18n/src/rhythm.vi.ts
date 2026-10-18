@@ -93,7 +93,7 @@ export const rhythmVi: ViCatalogue<typeof rhythmEn> = {
   'rhythm.gates.title': 'Nông trại của bạn bè',
   'rhythm.gates.body':
     'Những nông trại có bạn bè của bạn. Bạn có thể ghé cổng và để lại chút gì đó; cuộc trò chuyện của họ vẫn là của họ.',
-  'rhythm.gates.friends': '{names} sống ở đây',
+  'rhythm.gates.friends': { other: '{names} sống ở đây' },
   'rhythm.gates.empty.title': 'Chưa có nông trại nào để ghé',
   'rhythm.gates.empty.body':
     'Khi một người bạn cũng sống ở nông trại khác, bạn có thể ghé thăm từ đây.',
@@ -195,6 +195,7 @@ export const rhythmVi: ViCatalogue<typeof rhythmEn> = {
 
   'rhythm.row.recap': 'Mùa gặt tuần này',
   'rhythm.row.recapLine': 'Lá thư chủ nhật, và những người cần cảm ơn',
+  'rhythm.row.guideLine': 'Mọi loài cây nông trại đã làm nở hoa',
   'rhythm.row.gates': 'Ghé nông trại của bạn bè',
   'rhythm.row.gatesLine': 'Vẫy tay ở cổng, đổi nông sản ngày thu hoạch',
 };

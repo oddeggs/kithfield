@@ -13,7 +13,6 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
-import { overArt } from '../farm/over-art';
 import { NightVeil, Panel } from '../farm/panel';
 import { typeAt } from '../farm/type-at';
 import { useNow } from '../farm/use-now';
@@ -55,8 +54,8 @@ export function WeatherChip({
         gap: 6,
       }}
     >
-      <ArtIcon name={WEATHER_ICON[weather.weather]} size={20} color={overArt.ink} />
-      <Txt variant="buttonSmall" color={overArt.ink} style={{ fontSize: 13, lineHeight: 13 }}>
+      <ArtIcon name={WEATHER_ICON[weather.weather]} size={20} color={palette.text} />
+      <Txt variant="buttonSmall" color={palette.text} style={{ fontSize: 13, lineHeight: 13 }}>
         {t('rhythm.weather.chip', { weather: label, city: weather.city })}
       </Txt>
     </Glass>
@@ -116,7 +115,7 @@ export function WeatherScreen({ farm }: { readonly farm: FarmId }) {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 8,
+          gap: 4,
         }}
       >
         <Press
@@ -124,16 +123,21 @@ export function WeatherScreen({ farm }: { readonly farm: FarmId }) {
           radius={22}
           accessibilityRole="button"
           accessibilityLabel={t('rhythm.backToFarm')}
-          style={{ flexShrink: 1 }}
+          style={{ flexShrink: 1, minWidth: 0 }}
         >
           <Glass
             radius={22}
             fill={palette.glassButton.fill}
             border={palette.glassButton.border}
             shadow={farmTheme.shadows.glassPill}
-            style={{ height: 44, paddingHorizontal: 16, justifyContent: 'center' }}
+            style={{ height: 44, paddingHorizontal: 14, justifyContent: 'center' }}
           >
-            <Txt variant="displayS" color={overArt.ink} numberOfLines={1}>
+            <Txt
+              variant="displayS"
+              color={palette.text}
+              numberOfLines={1}
+              style={{ flexShrink: 0 }}
+            >
               {state?.name ?? ''}
             </Txt>
           </Glass>

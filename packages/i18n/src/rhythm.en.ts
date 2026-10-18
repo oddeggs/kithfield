@@ -103,7 +103,7 @@ export const rhythmEn = {
   'rhythm.gates.title': 'Friends’ farms',
   'rhythm.gates.body':
     'Farms where your friends live. You can visit the gate and leave something; their chat stays theirs.',
-  'rhythm.gates.friends': '{names} live here',
+  'rhythm.gates.friends': { one: '{names} lives here', other: '{names} live here' },
   'rhythm.gates.empty.title': 'No farms to visit yet',
   'rhythm.gates.empty.body': 'When a friend lives on another farm too, you can visit it from here.',
   'rhythm.visit.subtitle': 'You’re visiting',
@@ -209,6 +209,7 @@ export const rhythmEn = {
   /* The farm sheet's rows */
   'rhythm.row.recap': 'This week’s harvest',
   'rhythm.row.recapLine': 'The Sunday letter, and who to thank',
+  'rhythm.row.guideLine': 'Every plant the farm has brought to bloom',
   'rhythm.row.gates': 'Visit a friend’s farm',
   'rhythm.row.gatesLine': 'Wave at their gate, swap at harvest',
 } as const satisfies EnCatalogue;

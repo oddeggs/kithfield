@@ -49,7 +49,16 @@ export function pressableHangouts(
   events: readonly StoredEvent[],
   today: LocalDate,
 ): readonly Pressable[] {
-  const pressed = new Set(pages.map((p) => p.seed).filter((s): s is Seq => s !== null));
+  // A hangout pressed once is never offered again, even when its page was hidden since.
+  const fromLog = events.flatMap((e) => {
+    const p =
+      e.kind === 'scrapbook_page' ? (e.payload as { action?: unknown; seed?: unknown }) : null;
+    return p?.action === 'pressed' && typeof p.seed === 'number' ? [p.seed] : [];
+  });
+  const pressed = new Set([
+    ...pages.map((p) => p.seed).filter((s): s is Seq => s !== null),
+    ...fromLog,
+  ]);
   const flower = plantFor('gatherings', state.season.season);
   return state.seeds
     .filter((s) => !s.unsent && s.sproutedAt !== null && !pressed.has(s.seq))

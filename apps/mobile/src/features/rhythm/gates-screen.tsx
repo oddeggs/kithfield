@@ -79,6 +79,7 @@ export function GatesScreen({
                     key={g.farm}
                     title={g.name}
                     subtitle={t('rhythm.gates.friends', {
+                      count: Math.min(g.friends.length, 3),
                       names: listOf(t, g.friends.slice(0, 3).map(nameOf)),
                     })}
                     {...(friend

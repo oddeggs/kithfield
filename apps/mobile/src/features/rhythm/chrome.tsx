@@ -14,10 +14,10 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import type { ViewStyleProp } from '../../ui/style';
 import { palettes } from '../../ui/theme/palette';
-import { overArt, withAlpha } from '../farm/over-art';
+import { withAlpha } from '../farm/over-art';
 import { typeAt } from '../farm/type-at';
 
-/** The pill's glass keeps its day paper over the art by night, as the farm's own chrome does. */
+/** The pill's glass by day; by night it takes the night glass, as the farm header does. */
 const PILL_FILL = withAlpha(palettes.day.panel, 0.8);
 
 /* The chrome the rhythm screens share: the top bar over the art, the title pill and buttons. */
@@ -99,12 +99,12 @@ export function TitlePill({
   readonly icon?: string;
   readonly serif?: boolean;
 }) {
-  const { palette } = useTheme();
+  const { palette, appearance } = useTheme();
   const { fontLocale } = useLocale();
   return (
     <Glass
       radius={22}
-      fill={PILL_FILL}
+      fill={appearance === 'night' ? palette.glassButton.fill : PILL_FILL}
       border={palette.glassButton.border}
       style={{
         paddingHorizontal: icon ? 14 : 16,
@@ -119,24 +119,24 @@ export function TitlePill({
         accessibilityRole="header"
         style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
       >
-        {icon ? <ArtIcon name={icon} size={20} color={overArt.ink} /> : null}
+        {icon ? <ArtIcon name={icon} size={20} color={palette.text} /> : null}
         {serif ? (
           <Txt
             variant="displayS"
-            color={overArt.ink}
+            color={palette.text}
             numberOfLines={1}
             style={typeAt('displayS', 16, 18.4, fontLocale)}
           >
             {title}
           </Txt>
         ) : (
-          <Txt variant="buttonSmall" color={overArt.ink} numberOfLines={1}>
+          <Txt variant="buttonSmall" color={palette.text} numberOfLines={1}>
             {title}
           </Txt>
         )}
       </View>
       {subtitle ? (
-        <Txt variant="note" color={palettes.day.body} style={{ fontSize: 12, lineHeight: 14.4 }}>
+        <Txt variant="note" color={palette.body} style={{ fontSize: 12, lineHeight: 14.4 }}>
           {subtitle}
         </Txt>
       ) : null}

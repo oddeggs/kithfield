@@ -32,12 +32,13 @@ const GAP_Y = 14;
 const CARD_H = 184;
 
 /** "24 Oct": a page's day, short, in the reader's language. */
-function shortDate(at: number | LocalDate, language: string): string {
+function shortDate(at: number | LocalDate, language: string, timeZone: string): string {
   const date = typeof at === 'number' ? new Date(at) : new Date(`${at}T12:00:00Z`);
   return new Intl.DateTimeFormat(language === 'vi' ? 'vi-VN' : 'en-GB', {
     day: 'numeric',
     month: 'short',
-    ...(typeof at === 'number' ? {} : { timeZone: 'UTC' }),
+    // A page's day is the farm's day, wherever the reader is.
+    timeZone: typeof at === 'number' ? timeZone : 'UTC',
   }).format(date);
 }
 
@@ -47,9 +48,11 @@ function PageCard({
   index,
   width,
   season,
+  timeZone,
   onHide,
 }: {
   readonly page: ScrapbookPage;
+  readonly timeZone: string;
   readonly index: number;
   readonly width: number;
   readonly season: string;
@@ -58,14 +61,10 @@ function PageCard({
   const { t, language, fontLocale } = useLocale();
   const { palette, appearance } = useTheme();
   const colours = rhythmColours(appearance);
-  const date = shortDate(page.at, language);
+  const date = shortDate(page.at, language, timeZone);
   const snapTilt = index % 2 === 0 ? -5 : 4;
   return (
-    <Press
-      onLongPress={() => onHide(page)}
-      radius={6}
-      accessibilityLabel={t('rhythm.scrapbook.page', { title: page.title, date })}
-      accessibilityHint={t('rhythm.scrapbook.hide')}
+    <View
       style={{
         width,
         height: CARD_H,
@@ -73,60 +72,72 @@ function PageCard({
         backgroundColor: colours.page,
         boxShadow: colours.pageShadow,
         transform: [{ rotate: `${pageTilt(index)}deg` }],
-        overflow: 'hidden',
       }}
     >
-      <ArtStill
-        scene="pressed"
-        width={78}
-        height={112}
-        attrs={{ name: pressedArt(page.flower, page.seq) }}
-        style={{ position: 'absolute', top: 10, left: 8 }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          right: 12,
-          top: 22,
-          width: 76,
-          height: 62,
-          borderRadius: 3,
-          overflow: 'hidden',
-          transform: [{ rotate: `${snapTilt}deg` }],
-          boxShadow: '0 2px 6px -2px rgba(0,0,0,.25)',
-        }}
+      <Press
+        onLongPress={() => onHide(page)}
+        radius={6}
+        accessibilityLabel={t('rhythm.scrapbook.page', { title: page.title, date })}
+        accessibilityHint={t('rhythm.scrapbook.hide')}
+        style={{ width, height: CARD_H, borderRadius: 6, overflow: 'hidden' }}
       >
-        <ArtStill scene="snap" width={76} height={62} attrs={{ name: snapArt(page.seq), season }} />
-      </View>
-      <View
-        style={{
-          position: 'absolute',
-          right: 30,
-          top: 16,
-          width: 40,
-          height: 12,
-          backgroundColor: colours.tape,
-          transform: [{ rotate: '-8deg' }],
-        }}
-      />
-      <View style={{ position: 'absolute', left: 12, right: 10, bottom: 12 }}>
-        <Txt
-          variant="handS"
-          multiline
-          numberOfLines={2}
-          style={typeAt('handS', 17, 17.85, fontLocale)}
+        <ArtStill
+          scene="pressed"
+          width={78}
+          height={112}
+          attrs={{ name: pressedArt(page.flower, page.seq) }}
+          style={{ position: 'absolute', top: 10, left: 8 }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            right: 12,
+            top: 22,
+            width: 76,
+            height: 62,
+            borderRadius: 3,
+            overflow: 'hidden',
+            transform: [{ rotate: `${snapTilt}deg` }],
+            boxShadow: '0 2px 6px -2px rgba(0,0,0,.25)',
+          }}
         >
-          {page.title}
-        </Txt>
-        <Txt
-          variant="note"
-          color={palette.muted}
-          style={{ fontSize: 12, lineHeight: 12, marginTop: 4 }}
-        >
-          {date}
-        </Txt>
-      </View>
-    </Press>
+          <ArtStill
+            scene="snap"
+            width={76}
+            height={62}
+            attrs={{ name: snapArt(page.seq), season }}
+          />
+        </View>
+        <View
+          style={{
+            position: 'absolute',
+            right: 30,
+            top: 16,
+            width: 40,
+            height: 12,
+            backgroundColor: colours.tape,
+            transform: [{ rotate: '-8deg' }],
+          }}
+        />
+        <View style={{ position: 'absolute', left: 12, right: 10, bottom: 12 }}>
+          <Txt
+            variant="handS"
+            multiline
+            numberOfLines={2}
+            style={typeAt('handS', 17, 17.85, fontLocale)}
+          >
+            {page.title}
+          </Txt>
+          <Txt
+            variant="note"
+            color={palette.muted}
+            style={{ fontSize: 12, lineHeight: 12, marginTop: 4 }}
+          >
+            {date}
+          </Txt>
+        </View>
+      </Press>
+    </View>
   );
 }
 
@@ -144,7 +155,7 @@ function PressCard({
   const { palette } = useTheme();
   const from = t('rhythm.scrapbook.pressFrom', {
     title: item.seed.title ?? '',
-    date: shortDate(item.day, language),
+    date: shortDate(item.day, language, 'UTC'),
   });
   return (
     <Press
@@ -321,6 +332,7 @@ export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
                       index={r * 2 + c}
                       width={cardW}
                       season={season}
+                      timeZone={state?.timeZone ?? 'UTC'}
                       onHide={hide}
                     />
                   ),

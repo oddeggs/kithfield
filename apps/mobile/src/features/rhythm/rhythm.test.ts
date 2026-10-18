@@ -225,6 +225,9 @@ describe('the scrapbook', () => {
     expect(hangout).toMatchObject({ day: '2026-10-18', items: [20], flower: 'pumpkin' });
     expect(pressableHangouts(state, [{ seed: 6 }], events, '2026-10-19')).toEqual([]);
     expect(pressableHangouts(state, [], events, '2026-10-17')).toEqual([]);
+    // Pressed once, a hangout isn't offered again after its page is hidden.
+    const pressedPage = stored(23, 'scrapbook_page', { action: 'pressed', seed: 6 }, '2026-10-18');
+    expect(pressableHangouts(state, [], [...events, pressedPage], '2026-10-19')).toEqual([]);
   });
 });
 
