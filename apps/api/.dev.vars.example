@@ -1,6 +1,9 @@
 # Local secrets for `wrangler dev` (copy to .dev.vars, which git ignores). Names only.
 # Deployed values are Wrangler secrets per environment: `wrangler secret put <NAME> --env <dev|prd>`.
 # Each name added here is also added to `secretNames` in src/env.ts.
+# Needed locally (each at least 32 characters, or its routes answer 503): BETTER_AUTH_SECRET,
+# WAITLIST_EMAIL_KEY, INVITE_CODE_KEY, EXPORT_URL_KEY and MEDIA_SIGNING_KEY.
+# `pnpm --filter @kithfield/api dev:vars` (run by `dev`) fills any missing ones with random values.
 # Signs sessions and socket tokens; at least 32 random characters (`openssl rand -base64 32`).
 BETTER_AUTH_SECRET=
 # Expo's enhanced push security; empty until it is turned on for the project.

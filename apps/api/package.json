@@ -5,7 +5,8 @@
   "type": "module",
   "description": "The Kithfield API: Hono on Cloudflare Workers with the farm and cottage Durable Objects, D1, R2 and Queues, served at <host>/api",
   "scripts": {
-    "dev": "wrangler dev --env dev",
+    "dev": "node scripts/dev-vars.mjs && wrangler dev --env dev",
+    "dev:vars": "node scripts/dev-vars.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:auth": "vitest run src/auth"
