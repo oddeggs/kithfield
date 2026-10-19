@@ -32,7 +32,7 @@
         "APPLE_EXTRA_BUNDLE_IDS": "com.kithfield.app",
         // Its Sign in with Apple key is the store app's, so tokens are exchanged and revoked as it.
         "APPLE_SIGN_IN_CLIENT_ID": "com.kithfield.app",
-        "GOOGLE_EXTRA_CLIENT_IDS": "564934268570-jr7d94ci3jtb88sm4uqio1pjoatb3l31.apps.googleusercontent.com",
+        "GOOGLE_EXTRA_CLIENT_IDS": "564934268570-jr7d94ci3jtb88sm4uqio1pjoatb3l31.apps.googleusercontent.com,564934268570-i7f686chq7p8joaa60rss646rm0rk78u.apps.googleusercontent.com",
         "GOOGLE_IOS_CLIENT_ID": "564934268570-n2lmcq3r3vc060p5hsankdnisfnalk0v.apps.googleusercontent.com",
         "GOOGLE_WEB_CLIENT_ID": "564934268570-hst5dob3msctegnpgskivamd25gh6jbc.apps.googleusercontent.com",
         // The safety desk sits behind Cloudflare Access: its JWTs are checked against the team's

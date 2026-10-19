@@ -112,7 +112,8 @@ export const VARIANTS: Record<AppVariant, VariantConfig> = {
     scheme: 'kithfield-dev',
     host: 'dev.kithfield.com',
     googleIosClientId: '564934268570-n2lmcq3r3vc060p5hsankdnisfnalk0v.apps.googleusercontent.com',
-    googleAndroidClientId: null,
+    googleAndroidClientId:
+      '564934268570-i7f686chq7p8joaa60rss646rm0rk78u.apps.googleusercontent.com',
   },
   prd: {
     name: 'Kithfield',
