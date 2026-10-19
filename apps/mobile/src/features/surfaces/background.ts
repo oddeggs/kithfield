@@ -90,6 +90,13 @@ export function readWoken(payload: unknown): Woken | null {
     }
   } else if (data !== undefined && typeof data['body'] === 'object') {
     body = data['body'];
+  } else if (data !== undefined && typeof data['body'] === 'string') {
+    // Android: FCM's data message carries the push's data as JSON under `body`.
+    try {
+      body = JSON.parse(data['body']) as unknown;
+    } catch {
+      return null;
+    }
   }
   const refresh = SurfaceRefreshData.safeParse(body);
   return refresh.success ? { kind: 'refresh', data: refresh.data } : null;

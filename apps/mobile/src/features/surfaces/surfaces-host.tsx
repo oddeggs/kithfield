@@ -1,4 +1,4 @@
-import type { NotificationAction } from '@kithfield/contracts';
+import type { NotificationAction, SurfaceData } from '@kithfield/contracts';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useMemo, useRef } from 'react';
 import { AppState, Image, Platform } from 'react-native';
@@ -9,6 +9,9 @@ import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useSession } from '../../ui/session/session';
 import { useUpload } from '../media';
+import { setUpChannels } from '../android/notification-channels';
+import { androidSurfaceRoot } from '../android/surface-root';
+import { reloadAndroidWidgets } from '../android/widgets/reload';
 import { useMessagesSync } from '../stickers/export/use-messages-sync';
 import { followActivityTokens } from './activity-tokens';
 import { registerBackgroundTask, takeWoken } from './background';
@@ -83,7 +86,9 @@ function useShareSender(): ShareSender {
 export function SurfacesHost() {
   const session = useSession();
   const me = session.status === 'signedIn' && session.onboarded ? session.person?.id : null;
-  if (Platform.OS !== 'ios' || me === undefined || me === null) return null;
+  // Android has no App Group or Live Activities, but the same widgets, pushes and their actions.
+  const native = Platform.OS === 'ios' || Platform.OS === 'android';
+  if (!native || me === undefined || me === null) return null;
   return <Running me={me} />;
 }
 
@@ -101,7 +106,7 @@ function Running({ me }: { readonly me: string }) {
   useMessagesSync();
 
   useEffect(() => {
-    const root = groupRoot();
+    const root = Platform.OS === 'android' ? androidSurfaceRoot() : groupRoot();
     if (root === null) return;
     const report = (error: unknown) => {
       if (__DEV__) console.warn('surfaces', error);
@@ -117,6 +122,9 @@ function Running({ me }: { readonly me: string }) {
       open: openTarget,
       sharesRefused: () => toast.show(t('surfaces.share.failed')),
       report,
+      ...(Platform.OS === 'android'
+        ? { reloadWidgets: (data: SurfaceData) => reloadAndroidWidgets(art, data) }
+        : {}),
     });
     surfacesRef.current = surfaces;
     const stopTokens = followActivityTokens(client, report);
@@ -178,6 +186,11 @@ function Running({ me }: { readonly me: string }) {
   // The lock-screen actions, titled in the person's language. One at a time: each call reads the
   // categories already set and writes them back with its own, so calls side by side lose one.
   useEffect(() => {
+    if (Platform.OS === 'android') {
+      setUpChannels(t).catch((error: unknown) => {
+        if (__DEV__) console.warn('surfaces: channels', error);
+      });
+    }
     const set = categories((action: NotificationAction) => t(ACTION_TITLES[action]));
     void (async () => {
       for (const category of set) {
