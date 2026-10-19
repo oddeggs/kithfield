@@ -64,23 +64,21 @@ See them all in the motion lab (`kithfield-dev://motion-lab`, development builds
 | Planting a seed (→ Seed bed tab) | `features/plans/plant-sheet.tsx` |
 | A firefly's flight to a door | `features/gestures/firefly.tsx` |
 | A dewdrop's ripples | `features/chat/room/reactions.tsx` (the dew chip; `useRipples`) |
+| The dewdrop's sprout | `features/chat/room/reactions.tsx` (`useDewSprout`) pops the season's dewdrop plant on `travelIds.chatSprout`, a `TravelSpot` in `header-art.tsx` (`FarmHeaderArt`) |
 | Answers fold into the bouquet | `features/gestures/quick-tend.tsx` |
+| Starting a visit | `features/farm/critter-card.tsx` walks both critters (`facing` their seats) to `travelIds.porchSeat`, the `TravelSpot`s of `PorchArt`, whose pair fades in from `useTravelShownAll` |
+| A gift | `features/shop/screens/gift-screen.tsx`: the parcel ties up on the stage and hops to `travelIds.farmDoor`, a `TravelSpot` on each cottage's step in `features/farm/farm-scene.tsx` (not for a gift left at a gate) |
+| The fire | `features/farm/scene-ways.ts` (`useFireWay`): the farm zooms into its fire ring and the flame flies to where the fire room draws its own (`features/fire/fire-travel.ts`); the room fades in (`SHEETS`) |
+| Hangout photos pressing into a flower | `features/rhythm/scrapbook-screen.tsx`: pressing a hangout fans its snaps out of the card and gathers them as the page closes |
+| Harvest | `features/farm/scene-ways.ts` (`useHarvestWay`): the grown crops hop out of the patch into `travelIds.harvestBasket` (`features/rhythm/recap-screen.tsx`), which wobbles once |
+| A sticker | `features/stickers/picker/picker-screen.tsx` (each sticker a `TravelAnchor` in `sticker-grid.tsx`) to `travelIds.chatSticker`, the sticker's bubble in `features/chat/room/bubbles.tsx`, by the write's op id |
+| The farm reacts to a message | `features/farm/reactions.ts` and `farm-home.tsx`: a friend's words pop over their cottage, their lamp lights in two drawings (`farm-canvas.tsx`); not travel |
 
 ## Played in the lab, waiting on their screens
 
-Each of these plays in the motion lab with real art; the call a screen makes is the lab's own.
-
 | Transition | Lab stage | What the feature needs |
 |---|---|---|
-| Picker to farm: the walk home | `lab/move-in-demo.tsx` | The move-in moment (`features/farm`) flies `{ critter, hops }` from the path's foot to the new cottage's door spot, then lights the window |
-| Starting a visit | `lab/visit-demo.tsx` | The porch header (`header-art.tsx`, `PorchArt`) puts a `TravelSpot` on each seat and fades its cast in from `useTravelShownAll`; the critter card flies both critters to them as the porch opens |
-| The dewdrop's sprout | `lab/dewdrop-demo.tsx` | The chat header (`FarmHeaderArt`) puts a `TravelSpot` where the sprout comes up; the dew chip flies `{ scene: 'plant', … }` to it with `fade: 'in'` |
-| A gift | `lab/gift-demo.tsx` | The gift screens (`09 Shop and Plus`) aren't built |
-| The fire | `lab/fire-demo.tsx` | The fire room (`16 Fire Room and Calls`) isn't built; the flame flies `{ fire }` to the island's box |
-| Hangout photos pressing into a flower | `lab/photo-demo.tsx` | The scrapbook's first open after a hangout. The photo viewer's zoom is standard (native), and photos are not art, so they don't fly in the overlay |
-| Harvest | `lab/harvest-demo.tsx` | The Sunday recap (`07 Rhythm`) isn't built |
-| A sticker | `lab/sticker-demo.tsx` | The sticker picker (`08 Stickers`) isn't built |
-| The farm reacts to a message | `lab/reacts-demo.tsx` | The farm home lights the sender's lamp (two drawings) and pops a bubble over them, once per 4 s; not travel, so it belongs in `features/farm` |
+| Picker to farm: the walk home | `lab/move-in-demo.tsx` | The move-in moment (`features/farm`, `MoveIn`) would fly `{ critter, hops }` from the path's foot to the new cottage's door spot, then light the window. The art's `movein` scene always draws the newcomer, so the walk would show them twice: it needs a way to draw the scene without them (as `porch` takes `state: 'empty'`) |
 
 ## Farm home ↔ chat, under the finger (not wired yet)
 
