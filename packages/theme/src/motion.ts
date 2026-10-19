@@ -60,6 +60,8 @@ export const sampleCurves = {
   fireZoom: [0.5, 0, 0.8, 0.4],
   /** The fire room lifting into the Dynamic Island. */
   fireToIsland: [0.5, 0, 0.3, 1],
+  /** The Sunday week page opening out of the harvest. */
+  weekPage: [0.4, 0, 0.2, 1],
 } as const satisfies Record<string, Bezier>;
 
 /**
