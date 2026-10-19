@@ -6,6 +6,7 @@ import { haptics } from '../../../ui/motion/haptics';
 import { useDevicePref } from '../device-prefs';
 import { HOUSE_HOURS, QUIET_PRESETS, clockTime, sameHours, zoneName } from '../format';
 import { Group, NavBar, Note, Page, Row } from '../kit/layout';
+import { shownLanguage } from '../shown-language';
 import { usePhoneZone } from '../time-zone';
 import { useMeSettings } from './use-me-settings';
 
@@ -78,7 +79,7 @@ export function ChooseScreen({ setting }: { readonly setting: ChoiceSetting }) {
       options: (['en', 'vi'] as const satisfies readonly Lang[]).map((l) => ({
         key: l,
         title: t(`settings.language.${l}`),
-        on: (settings?.lang ?? language) === l,
+        on: shownLanguage(settings?.lang, language) === l,
         pick: () => {
           setStoredLanguage(l);
           choose({ lang: l });
