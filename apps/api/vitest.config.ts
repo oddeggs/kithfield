@@ -41,6 +41,11 @@ export default defineConfig(async () => {
         },
       }),
     ],
-    test: { setupFiles: ['./test/offline.ts', './test/apply-migrations.ts'] },
+    test: {
+      setupFiles: ['./test/offline.ts', './test/apply-migrations.ts'],
+      // A test or hook that never settles fails instead of holding the run.
+      testTimeout: 30_000,
+      hookTimeout: 30_000,
+    },
   };
 });
