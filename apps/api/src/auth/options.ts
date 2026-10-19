@@ -103,6 +103,12 @@ const disabledPaths = [
   '/account-info',
   '/verify-password',
   '/delete-user/callback',
+  // Sessions are listed and ended through Kithfield's devices (`/v1/devices`), which also end the
+  // device's pushes, key and sockets; Better Auth's list hands out every session's token.
+  '/list-sessions',
+  '/revoke-session',
+  '/revoke-sessions',
+  '/revoke-other-sessions',
 ];
 
 export interface AuthOptionsInput {
