@@ -18,7 +18,13 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_opener::init())
+        // Without the plugin's own click script, which would hand out any `_blank`, Ctrl- or
+        // Shift-clicked http(s) link, the app's own pages too: the page decides what leaves.
+        .plugin(
+            tauri_plugin_opener::Builder::new()
+                .open_js_links_on_click(false)
+                .build(),
+        )
         .on_window_event(|window, event| {
             // Closing the farm's window hides it: the critter stays in the menu bar or tray,
             // and its popover opens the window again. Quit from the critter's menu.
