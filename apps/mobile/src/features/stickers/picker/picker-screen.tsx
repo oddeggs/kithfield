@@ -2,12 +2,14 @@ import type { FarmState, StickerPayload } from '@kithfield/contracts';
 import { motion } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFarm, useSend } from '../../../data';
+import { ArtStill } from '../../../ui/art/art-view';
 import { Chip } from '../../../ui/components/chip';
+import { EmptyState } from '../../../ui/components/state-shell';
 import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
@@ -90,10 +92,12 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
       .map((m) => m.person);
   }, [state, drawable, me.person]);
 
+  // The Together tab shows once the farm has anyone else on it, empty until one can be drawn in.
+  const others = (state?.members ?? []).some((m) => m.person !== me.person);
   const packs = ownedPacks(collection);
   const tabs: Tab[] = [
     { id: 'mine' },
-    ...(friends.length > 0 ? [{ id: 'together' } as const] : []),
+    ...(others ? [{ id: 'together' } as const] : []),
     ...packs.filter((p) => p.pack.id !== OWN).map((owned) => ({ id: owned.pack.id, owned })),
   ];
   const current = tabs.find((x) => x.id === tab) ?? tabs[0] ?? { id: 'mine' };
@@ -300,6 +304,20 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
             setViewport((v) => ({ scrollY: v?.scrollY ?? 0, height: v?.height ?? 0, top }));
           }}
         >
+          {current.id === 'together' && friends.length === 0 ? (
+            <EmptyState
+              art={<ArtStill scene="spot" width={220} height={160} attrs={{ name: 'done' }} />}
+              title={t('stickers.picker.together.emptyTitle')}
+              body={t('stickers.picker.together.emptyBody', {
+                name: sender?.name ?? t('stickers.picker.together.yourCritter'),
+              })}
+              action={{
+                label: t('stickers.picker.together.emptyAction'),
+                onPress: () => router.push(stickerRoutes.together(farm)),
+                kind: 'primary',
+              }}
+            />
+          ) : null}
           <StickerGrid
             stickers={grid(shown)}
             size={STICKER}
@@ -312,7 +330,7 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
             }}
             onLongPress={(k) => setPreview(byKey.get(k) ?? null)}
           />
-          {current.id === 'together' ? (
+          {current.id === 'together' && friends.length > 0 ? (
             <View style={{ alignItems: 'center', marginTop: 10 }}>
               <Chip
                 label={t('stickers.picker.together.pick')}
@@ -329,10 +347,13 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
           exiting={FadeOut.duration(motion.fade.durationMs)}
           style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
         >
-          <Press
+          {/* The scrim closes the preview by touch; VoiceOver reaches the sticker itself and
+              closes with the escape gesture, so no button sits inside another. */}
+          <Pressable
             onPress={() => setPreview(null)}
-            darken={false}
-            accessibilityLabel={t('stickers.close')}
+            accessible={false}
+            onAccessibilityEscape={() => setPreview(null)}
+            accessibilityViewIsModal
             style={{
               flex: 1,
               alignItems: 'center',
@@ -350,7 +371,7 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
             >
               <StickerArt attrs={draw(preview)} size={PREVIEW} />
             </Press>
-          </Press>
+          </Pressable>
         </Animated.View>
       ) : null}
     </View>

@@ -112,6 +112,11 @@ export const stickersVi: ViCatalogue<typeof stickersEn> = {
   'stickers.picker.together.hint': 'với {farm}',
   'stickers.picker.together.pick': 'Chọn bạn',
   'stickers.picker.together.empty': 'Lúc này chưa vẽ được ai ở đây',
+  'stickers.picker.together.emptyTitle': 'Chưa có nhãn dán chung nào',
+  'stickers.picker.together.emptyBody':
+    'Chọn vài người bạn và {name} sẽ tạo dáng cùng họ. Mỗi người bạn được hỏi một lần trước khi nhãn dán được chia sẻ.',
+  'stickers.picker.together.emptyAction': 'Làm một nhãn dán cùng bạn bè',
+  'stickers.picker.together.yourCritter': 'bạn thú của bạn',
   'stickers.picker.gift.hint': 'quà từ {name}',
   'stickers.picker.bought.hint': 'mua vào {season}',
   'stickers.picker.yours.hint': 'của bạn mãi mãi',
