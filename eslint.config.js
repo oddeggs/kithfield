@@ -44,6 +44,7 @@ export default defineConfig([
     '**/.expo/',
     '**/.astro/',
     '**/.wrangler/',
+    'apps/mobile/dist-web/',
     'apps/desktop/src-tauri/target/',
     'apps/desktop/src-tauri/gen/',
     '**/coverage/',
