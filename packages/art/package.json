@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./node": "./src/node/index.ts",
+    "./stickers": "./src/stickers/index.ts",
     "./kithfield-art.js": "./src/vendor/kithfield-art.generated.js",
     "./package.json": "./package.json"
   },
@@ -21,7 +22,8 @@
   },
   "dependencies": {
     "@kithfield/theme": "workspace:*",
-    "@shopify/react-native-skia": "catalog:"
+    "@shopify/react-native-skia": "catalog:",
+    "fflate": "catalog:"
   },
   "devDependencies": {
     "eslint": "catalog:",

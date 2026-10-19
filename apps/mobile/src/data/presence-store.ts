@@ -1,12 +1,17 @@
 import type { PersonId } from '@kithfield/contracts';
 
-/** Who has the farm open and who is writing. Never stored; a new object on every change. */
+/**
+ * Who has the farm open, who is writing and who is by the fire. Never stored; a new object on
+ * every change.
+ */
 export interface PresenceState {
   readonly here: readonly PersonId[];
   readonly typing: readonly PersonId[];
+  /** Everyone in the fire room, listening or talking; empty while the fire is out. */
+  readonly fire: readonly PersonId[];
 }
 
-const NOBODY: PresenceState = { here: [], typing: [] };
+const NOBODY: PresenceState = { here: [], typing: [], fire: [] };
 
 /**
  * A farm's presence, kept apart from the farm itself so a typing dot never re-renders what reads
@@ -27,6 +32,7 @@ export function createPresenceStore() {
     },
     here: (here: readonly PersonId[]) => set({ here }),
     typing: (typing: readonly PersonId[]) => set({ typing }),
+    fire: (fire: readonly PersonId[]) => set({ fire }),
     /** The socket closed: nobody is known to be here. */
     clear: () => set(NOBODY),
   };

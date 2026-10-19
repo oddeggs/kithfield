@@ -10,6 +10,7 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useAccount } from '../../../ui/session/account';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
 import {
   daysIn,
@@ -25,6 +26,7 @@ import { routes } from '../flow';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
 import {
+  AxFlow,
   Body,
   BottomBar,
   ErrorLine,
@@ -68,14 +70,17 @@ function Select({
 }) {
   const { palette } = useTheme();
   const inks = useInks();
+  // At the accessibility sizes the three stack, each the width of the screen, and a month's name
+  // may take two lines.
+  const ax = useAccessibilitySize();
   return (
     <Press
       onPress={onPress}
       radius={16}
       accessibilityLabel={value ? `${label}, ${value}` : label}
       style={{
-        flex: 1,
-        height: 54,
+        ...(ax ? { paddingVertical: 8, gap: 8 } : { flex: 1 }),
+        minHeight: 54,
         borderRadius: 16,
         backgroundColor: palette.card,
         borderWidth: open ? 2 : 1,
@@ -86,7 +91,12 @@ function Select({
         paddingHorizontal: open ? 13 : 14,
       }}
     >
-      <Txt variant="button" color={value ? palette.text : palette.placeholder} numberOfLines={1}>
+      <Txt
+        variant="button"
+        color={value ? palette.text : palette.placeholder}
+        numberOfLines={ax ? 2 : 1}
+        {...(ax ? { style: { flexShrink: 1 } } : {})}
+      >
         {value ?? label}
       </Txt>
       <Txt variant="button" color={palette.chevron}>
@@ -108,6 +118,7 @@ export function AgeScreen() {
   const { palette } = useTheme();
   const top = useDesignTop();
   const scene = useSceneAttrs();
+  const ax = useAccessibilitySize();
   const data = useDataClient();
   const account = useAccount();
   const { api, update } = useFlow();
@@ -167,73 +178,67 @@ export function AgeScreen() {
     year: t('onboarding.age.year'),
   };
 
-  return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <TopBar onBack={() => router.back()} />
-      <SceneArt
-        scene="plant"
-        width={160}
-        height={170}
-        attrs={roseAttrs(scene, 3)}
-        style={{ position: 'absolute', top: top(96), left: 116 }}
-      />
-      <View style={{ position: 'absolute', top: top(280), left: 20, right: 20, gap: 12 }}>
-        <Title line={1.12}>{t('onboarding.age.title')}</Title>
-        <Body>{t('onboarding.age.body')}</Body>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {(['day', 'month', 'year'] as const).map((part) => (
-            <Select
-              key={part}
-              label={titles[part]}
-              value={shown[part]}
-              open={picking === part}
-              onPress={() => setPicking(part)}
-            />
-          ))}
-        </View>
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 12,
-            paddingVertical: 12,
-            paddingHorizontal: 14,
-            borderRadius: 16,
-            backgroundColor: palette.card,
-          }}
-        >
-          <View style={{ flex: 1 }}>
-            <Txt variant="rowTitle" style={{ fontSize: 15, lineHeight: 18 }}>
-              {t('onboarding.age.bloom')}
-            </Txt>
-            <Txt
-              variant="caption"
-              color={palette.secondary}
-              style={{ fontSize: 13, lineHeight: 16.9 }}
-            >
-              {t('onboarding.age.bloomBody')}
-            </Txt>
-          </View>
-          <Toggle value={bloom} onChange={setBloom} label={t('onboarding.age.bloom')} />
-        </View>
-        <Txt
-          variant="note"
-          multiline
-          color={palette.secondary}
-          style={{ fontSize: 12.5, lineHeight: 18.1 }}
-        >
-          {t('onboarding.age.note')}
-        </Txt>
-        <ErrorLine text={error} />
+  const words = (
+    <>
+      <Title line={1.12}>{t('onboarding.age.title')}</Title>
+      <Body>{t('onboarding.age.body')}</Body>
+      <View style={{ flexDirection: ax ? 'column' : 'row', gap: 8 }}>
+        {(['day', 'month', 'year'] as const).map((part) => (
+          <Select
+            key={part}
+            label={titles[part]}
+            value={shown[part]}
+            open={picking === part}
+            onPress={() => setPicking(part)}
+          />
+        ))}
       </View>
-      <BottomBar>
-        <Button
-          label={t('onboarding.continue')}
-          onPress={() => void go()}
-          disabled={busy || !isComplete(birthday)}
-        />
-      </BottomBar>
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 12,
+          paddingVertical: 12,
+          paddingHorizontal: 14,
+          borderRadius: 16,
+          backgroundColor: palette.card,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Txt variant="rowTitle" style={{ fontSize: 15, lineHeight: 18 }}>
+            {t('onboarding.age.bloom')}
+          </Txt>
+          <Txt
+            variant="caption"
+            color={palette.secondary}
+            style={{ fontSize: 13, lineHeight: 16.9 }}
+          >
+            {t('onboarding.age.bloomBody')}
+          </Txt>
+        </View>
+        <Toggle value={bloom} onChange={setBloom} label={t('onboarding.age.bloom')} />
+      </View>
+      <Txt
+        variant="note"
+        multiline
+        color={palette.secondary}
+        style={{ fontSize: 12.5, lineHeight: 18.1 }}
+      >
+        {t('onboarding.age.note')}
+      </Txt>
+      <ErrorLine text={error} />
+    </>
+  );
+  const button = (
+    <Button
+      label={t('onboarding.continue')}
+      onPress={() => void go()}
+      disabled={busy || !isComplete(birthday)}
+    />
+  );
+  const pickers = (
+    <>
       {(['day', 'month', 'year'] as const).map((part) => (
         <PickerSheet
           key={part}
@@ -248,6 +253,39 @@ export function AgeScreen() {
           onClose={() => setPicking((p) => (p === part ? null : p))}
         />
       ))}
+    </>
+  );
+
+  if (ax) {
+    return (
+      <AxFlow bar={<TopBar onBack={() => router.back()} />} footer={button} overlay={pickers}>
+        <SceneArt
+          scene="plant"
+          width={160}
+          height={170}
+          attrs={roseAttrs(scene, 3)}
+          style={{ alignSelf: 'center' }}
+        />
+        <View style={{ paddingHorizontal: 20, gap: 12 }}>{words}</View>
+      </AxFlow>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
+      <TopBar onBack={() => router.back()} />
+      <SceneArt
+        scene="plant"
+        width={160}
+        height={170}
+        attrs={roseAttrs(scene, 3)}
+        style={{ position: 'absolute', top: top(96), left: 116 }}
+      />
+      <View style={{ position: 'absolute', top: top(280), left: 20, right: 20, gap: 12 }}>
+        {words}
+      </View>
+      <BottomBar>{button}</BottomBar>
+      {pickers}
     </View>
   );
 }

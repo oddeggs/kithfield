@@ -37,10 +37,15 @@ import { RoomNotice, useRoomNotice } from './room-notice';
 import { Noticeboard, PinBar, usePinned } from './noticeboard';
 import { RoomProvider, type RoomValue } from './room-context';
 import { TimelineList, type JumpRequest } from './timeline-list';
+import { travelIds } from '../../../ui/travel';
+// The first-run tip about pressing and holding a message.
+import { HintOverlay } from '../../hints/hint-overlay';
 import { useRoomData } from './use-room-data';
 import { MicButton, RecorderPanel, useVoiceRecorder } from './voice-recorder';
 import { noteSeen } from '../ui/seen-store';
 import { useArtVisible } from '../../../ui/motion/visibility';
+import { fieldGuideRoutes } from '../../field-guide/routes';
+import { useInStickerNote } from '../../stickers/together/in-sticker-note';
 import { useMe } from '../ui/use-me';
 import { TypingLine } from './lines';
 import { sprouted, useMentionRows, useOutLine } from './room-people';
@@ -63,6 +68,8 @@ export interface ChatScreenProps {
 /** A farm's chat under its farm, or a visit on its porch. */
 export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
   const data = useRoomData(farm);
+  // The first time a friend draws you into a together sticker, a note says so once.
+  useInStickerNote(farm);
   const { palette } = useTheme();
   const colours = useChatColours();
   const { t } = useLocale();
@@ -189,6 +196,14 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
   const outLine = useOutLine(state, presence.here, data.me);
   const peer = visitPeer(state, data.me);
   const owner = porchOwner(state);
+  // Who sits on the porch, the owner first: the two the header draws.
+  const porchCast = [
+    owner,
+    owner === peer ? null : peer,
+    ...(state?.members ?? []).filter((m) => m !== owner && m !== peer),
+  ]
+    .filter((m) => m !== null && m !== undefined)
+    .slice(0, 2);
   const typing = presence.typing.filter((p) => p !== data.me);
 
   const sheetTop = useAnimatedStyle(() => ({ top: height.get() - SHEET_OVERLAP }));
@@ -213,19 +228,16 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
         <HeaderArtFrame height={height} size={size}>
           {visit ? (
             <PorchArt
-              cast={[
-                owner,
-                owner === peer ? null : peer,
-                ...state.members.filter((m) => m !== owner && m !== peer),
-              ]
-                .filter((m) => m !== null && m !== undefined)
-                .slice(0, 2)
-                .map((m) => castOf(m.critter))
-                .join(',')}
+              cast={porchCast.map((m) => castOf(m.critter)).join(',')}
+              seats={porchCast.map((m) => travelIds.porchSeat(farm, m.person))}
               pot={state.pot ? { plant: state.pot.plant, stage: state.pot.stage } : null}
               width={screenW}
               height={size.full}
               night={palette.appearance === 'night'}
+              onPot={{
+                label: t('chat.room.porchPot'),
+                open: () => router.push(fieldGuideRoutes.porchPot(farm)),
+              }}
             />
           ) : (
             <FarmHeaderArt
@@ -238,6 +250,8 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
               width={screenW}
               height={size.full}
               collapsed={collapsed}
+              sproutId={travelIds.chatSprout(farm)}
+              night={palette.appearance === 'night'}
             />
           )}
         </HeaderArtFrame>
@@ -379,6 +393,11 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
           bottomInset={insets.bottom}
         />
         <Noticeboard open={board} pinned={pinned} onClose={() => setBoard(false)} />
+        <HintOverlay
+          hint="message"
+          show={showing && bubbles.size > 0 && !board && replyTo === null && editing === null}
+          spot={null}
+        />
       </View>
     </RoomProvider>
   );

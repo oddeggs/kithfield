@@ -290,3 +290,26 @@ describe('a write made again with its op id', () => {
     expect(await pip.client.store.outbox(FARM)).toEqual([]);
   });
 });
+
+describe('trying again', () => {
+  it('opens the held farm again at once, without waiting out its backoff', async () => {
+    // A backoff far longer than the test, so only the retry can bring the farm back.
+    const { server, start } = setup({ ...FAST, backoff: { baseMs: 60_000, maxMs: 60_000 } });
+    server.acceptSockets = false;
+    const pip = await start(PIP);
+    pip.client.hold(FARM);
+    await until(() => pip.client.link(FARM).status === 'offline');
+
+    server.acceptSockets = true;
+    pip.client.reconnect(FARM);
+    await until(live(pip));
+  });
+
+  it('leaves a farm nobody holds alone', async () => {
+    const { start } = setup();
+    const pip = await start(PIP);
+    pip.client.reconnect(FARM);
+    await pause(50);
+    expect(pip.client.link(FARM).status).not.toBe('live');
+  });
+});

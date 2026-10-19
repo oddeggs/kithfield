@@ -166,16 +166,33 @@ export type CheckinPayload = z.infer<typeof CheckinPayload>;
 export const ProductId = z.string().regex(/^[a-z0-9_.-]{1,100}$/);
 export type ProductId = z.infer<typeof ProductId>;
 
+/**
+ * A gift's id comes from the server once it is paid for (`POST /v1/gifts`, then `…/paid`), so
+ * the farm only takes a gift id its giver owns and hasn't given yet. `item` is the shop item's id
+ * (an art id, such as a sticker pack or a cottage style); `wrap` is one of the five free wrappings.
+ */
 const giftFields = {
   gift: Id,
   to: PersonId,
   item: ProductId,
   wrap: ArtId,
+  /** The words on the tag. */
+  note: text(LIMITS.giftNote).optional(),
 };
 
-/** A gift on someone's step; opening it shows "opened" to the giver, never a time. */
+/**
+ * A gift on someone's step; opening it shows "opened" to the giver, never a time. A gift friends
+ * chipped in for together is written by the farm once it is covered, on behalf of whoever started
+ * the chip-in (`ON_BEHALF_KINDS`), naming the chip-in and everyone else who chipped in (`with`).
+ * Amounts are never in the log.
+ */
 export const GiftPayload = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('given'), ...giftFields }),
+  z.object({
+    action: z.literal('given'),
+    ...giftFields,
+    chipIn: Id.optional(),
+    with: z.array(PersonId).min(1).max(LIMITS.members).optional(),
+  }),
   z.object({ action: z.literal('opened'), gift: Id }),
 ]);
 export type GiftPayload = z.infer<typeof GiftPayload>;

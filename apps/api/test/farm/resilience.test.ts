@@ -3,6 +3,7 @@ import { runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { standInLiveKit } from '../../src/calls/livekit-double.test-data';
 import { CottageDO } from '../../src/cottage/cottage-object';
 import { configureFarmPorts } from '../../src/farm/wiring';
 import { messageFrame, op, TestSocket } from './support/client';
@@ -176,7 +177,9 @@ describe('the cottages', () => {
 });
 
 describe('the alarm', () => {
-  it('runs each timer on its own: weather that fails is asked again a minute later', async () => {
+  it('runs each timer on its own: weather that fails is asked again about a minute later', async () => {
+    // The fire's timer asks the room who is there: nobody.
+    standInLiveKit();
     const { pip } = await cast('pip');
     const { stub } = await plantFarm(pip);
     const place = {
@@ -185,14 +188,16 @@ describe('the alarm', () => {
     } as const;
     await stub.command(pip.id, { opId: op(1), kind: 'settings_changed', payload: place });
     await stub.command(pip.id, { opId: op(2), kind: 'fire', payload: { state: 'lit' } });
-    await stub.fireRoom(false);
     vi.spyOn(ports.weather, 'today').mockRejectedValueOnce(new Error('weather down'));
     ports.clock.at = Date.UTC(2054, 9, 19, 4, 0);
     await runDurableObjectAlarm(stub);
     const log = (await pageOf(stub, { after: 2 })).events.map((e) => FarmEvent.parse(e).kind);
     expect(log).toContain('fire');
     const timers = await hostOf(stub, (h) => h.store.dueTimers(Number.MAX_SAFE_INTEGER));
-    expect(timers.find((t) => t.key === 'weather:2054-10-19')?.due).toBe(ports.clock.at + 60_000);
+    const retry = timers.find((t) => t.key === 'weather:2054-10-19:1')?.due ?? 0;
+    // A minute, moved by up to a fifth either way.
+    expect(retry - ports.clock.at).toBeGreaterThanOrEqual(48_000);
+    expect(retry - ports.clock.at).toBeLessThanOrEqual(72_000);
   });
 });
 

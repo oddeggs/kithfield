@@ -158,7 +158,10 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
     [{ invite }, { invite: null }],
     [{}, { invite: { code: 'a b' } }],
   ],
-  NotificationType: [['birthdays', 'nudges'], ['knocks']],
+  NotificationType: [
+    ['birthdays', 'nudges'],
+    ['knocks', 'rare_blooms'],
+  ],
   FarmNotificationsView: [
     [
       {
@@ -189,8 +192,24 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         mutedUntil: null,
         knockFor: { plans: true, doorstep: false, mentions: true, messages: false },
       },
+      {
+        mutedUntil: null,
+        knockFor: {
+          plans: true,
+          doorstep: true,
+          mentions: true,
+          messages: false,
+          rareBlooms: true,
+        },
+      },
     ],
-    [{ mutedUntil: 'forever', knockFor: {} }],
+    [
+      { mutedUntil: 'forever', knockFor: {} },
+      {
+        mutedUntil: null,
+        knockFor: { plans: true, doorstep: true, mentions: true, messages: false, rareBlooms: 1 },
+      },
+    ],
   ],
   FireTokenRequest: [[{ mode: 'listen' }], [{ mode: 'speak' }]],
   FireTokenResponse: [
@@ -200,9 +219,26 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         room: 'f_thursday_lot',
         token: 'x'.repeat(40),
         expiresAt: at,
+        captionsAvailable: false,
+      },
+      {
+        url: 'wss://fire.example.livekit.cloud',
+        room: 'f_thursday_lot',
+        token: 'x'.repeat(40),
+        expiresAt: at,
+        captionsAvailable: true,
       },
     ],
-    [{ url: 'http://x', room: 'r', token: 'x'.repeat(40), expiresAt: at }],
+    [
+      { url: 'http://x', room: 'r', token: 'x'.repeat(40), expiresAt: at },
+      {
+        url: 'wss://fire.example.livekit.cloud',
+        room: 'r',
+        token: 'x'.repeat(40),
+        expiresAt: at,
+        captionsAvailable: 'yes',
+      },
+    ],
   ],
   UploadUrlRequest: [
     [{ farm, kind: 'photo', bytes: 812_000, mime: 'image/jpeg' }],
@@ -231,11 +267,47 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
   ],
   ApprovalRequest: [[{ approve: true }, { approve: false }], [{ approve: 'yes' }]],
   FarmGate: [[gate, { ...gate, signature: null, inSeason: [] }], [{ ...gate, season: 'autumn' }]],
+  GateList: [
+    [
+      {
+        gates: [
+          {
+            farm: 'f_fern_hollow',
+            name: 'Fern Hollow',
+            land: 'orchard',
+            season: { season: 'autumn', year: 2026 },
+            signature: 'plum',
+            friends: ['p_kit'],
+          },
+        ],
+      },
+      { gates: [] },
+    ],
+    [
+      {
+        gates: [
+          {
+            farm: 'f_fern_hollow',
+            name: 'Fern Hollow',
+            land: 'orchard',
+            season: { season: 'autumn', year: 2026 },
+            signature: null,
+            friends: [],
+          },
+        ],
+      },
+      { gates: [{ farm: 'f_fern_hollow', name: null }] },
+    ],
+  ],
   GateRequest: [
     [
       { opId, gesture: { gesture: 'wave' } },
       { opId, gesture: { gesture: 'firefly', to: bea, words: 'hello from Kit' } },
       { opId, gesture: { gesture: 'gift', gift: 'g_2', to: bea, item: 'jam.plum', wrap: 'kraft' } },
+      {
+        opId,
+        gesture: { gesture: 'gift', gift: 'g_3', to: bea, item: 'moth', wrap: 'clay', note: 'x' },
+      },
     ],
     [{ opId, gesture: { gesture: 'read_chat' } }, { gesture: { gesture: 'wave' } }],
   ],
@@ -321,5 +393,14 @@ describe('the events paging query', () => {
     ]) {
       expect(farms.EventsQuery.safeParse(bad).success, JSON.stringify(bad)).toBe(false);
     }
+  });
+});
+
+describe('the fire token', () => {
+  it('reads an answer that doesn’t say whether captions can be had as unavailable', () => {
+    const answer = { url: 'wss://fire.example.livekit.cloud', room: 'r', token: 'x'.repeat(40) };
+    expect(farms.FireTokenResponse.parse({ ...answer, expiresAt: 1 }).captionsAvailable).toBe(
+      false,
+    );
   });
 });

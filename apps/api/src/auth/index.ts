@@ -2,7 +2,7 @@ import type { Bindings } from '../env';
 import { checkRtToken, rtTokenSession, type RtTokenScope } from './rt-token';
 
 export { authRoutes } from './routes';
-export { requireSession, errorResponse, type SessionEnv } from './session';
+export { requireAgeCheck, requireSession, errorResponse, type SessionEnv } from './session';
 export { ACCOUNT_BAN_SCOPE, banPerson, isBanned, type Ban } from './bans';
 export { blockerCount, blockPerson, eitherBlocked } from './blocks';
 export { registerAiForgetStep, type AiForgetStep, type ConsentForgetJob } from './consents';
@@ -16,7 +16,12 @@ export {
 } from './purge';
 export { registerMergeStep, type MergeStep, type PersonMerge } from './merge-steps';
 export { CURRENT_TERMS_VERSION } from './terms';
-export { registerProfileFanOut, type ProfileFanOut } from './profile';
+export {
+  registerProfileFanOut,
+  registerWardrobeCheck,
+  type ProfileFanOut,
+  type WardrobeCheck,
+} from './profile';
 export { RT_TOKEN_LIFETIME_MS, rtTokenSession, type RtTokenScope } from './rt-token';
 
 /**

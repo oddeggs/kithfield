@@ -13,6 +13,7 @@ import {
   type RejectReason,
   type SocketErrorCode,
   type FarmEvent,
+  type GiftPayload,
   PING,
   PONG,
   type RuleRef,
@@ -22,11 +23,15 @@ import {
 import type { FarmView } from '@kithfield/farm';
 import { DurableObject } from 'cloudflare:workers';
 
+import type { RoomEvent } from '../calls/circle';
+import { onRoomEvent } from '../calls/farm-fire';
 import type { Bindings } from '../env';
+import { type RecapFacts, recapOf } from '../rhythm/recap-facts';
+import { scrapbookOf, type WireScrapbook } from '../rhythm/scrapbook';
 import * as actions from './actions';
+import { chipInGift, chipInTheme } from './chip-in-writes';
 import { runAlarm } from './alarms';
 import { exportOf, type FarmExport } from './export';
-import { fireOutAfterMs } from './farm';
 import { pageEvents, searchEvents, type WirePage } from './history';
 import { FarmHost } from './host';
 import type { Profile } from './ports';
@@ -119,6 +124,20 @@ export class FarmDO extends DurableObject<Bindings> {
     return actions.profileChanged(this.host, person, opId, changed);
   }
 
+  /** Friends' chip-in covered a gift: written on behalf of whoever started it, once per op id. */
+  chipInGift(
+    opId: OpId,
+    starter: PersonId,
+    payload: Extract<GiftPayload, { action: 'given' }>,
+  ): Promise<CommandResult> {
+    return chipInGift(this.host, opId, starter, payload);
+  }
+
+  /** Friends' chip-in covered a farm theme: it switches on, with no actor, once per op id. */
+  chipInTheme(opId: OpId, theme: string): Promise<CommandResult> {
+    return chipInTheme(this.host, opId, theme);
+  }
+
   /** An anonymous person was merged into a returning one: see `actions.mergePerson`. */
   mergePerson(from: PersonId, into: PersonId): Promise<void> {
     return actions.mergePerson(this.host, from, into);
@@ -162,6 +181,19 @@ export class FarmDO extends DurableObject<Bindings> {
   /** Search, for members only; null for anyone else. */
   search(person: PersonId, q: string): SearchResults | null {
     return this.livesHere(person) ? searchEvents(this.host.store, q) : null;
+  }
+
+  /** The scrapbook's pressed pages, for members only; null for anyone else. */
+  scrapbook(person: PersonId, before: number | null): WireScrapbook | null {
+    return this.livesHere(person) ? scrapbookOf(this.host.store, before) : null;
+  }
+
+  /** A week's recap facts, for members only; `bad_week` for a week that isn't a Sunday come. */
+  recapFacts(person: PersonId, week: string | null): RecapFacts | 'bad_week' | null {
+    const state = this.host.farm.state;
+    if (state === null || !this.livesHere(person)) return null;
+    const today = this.host.ports().rules.farmDay(state, this.host.now());
+    return recapOf(this.host.store, state, today, week);
   }
 
   /** What the person wrote and shared here, for their keepsakes export. */
@@ -224,12 +256,9 @@ export class FarmDO extends DurableObject<Bindings> {
     return actions.setHibernating(this.host, person, on);
   }
 
-  /** The fire room's occupancy: the fire goes out 3 minutes after the last person leaves. */
-  async fireRoom(occupied: boolean): Promise<void> {
-    if (occupied) this.host.store.deleteTimer('fire_out');
-    else if (this.host.farm.state?.fireLitAt != null)
-      this.host.store.setTimer('fire_out', this.host.now() + fireOutAfterMs);
-    await this.host.schedule();
+  /** The fire room's webhook: who is by the fire, and the fire going out after the last leaves. */
+  fireRoomEvent(event: RoomEvent): Promise<void> {
+    return onRoomEvent(this.host, event);
   }
 
   /* Called by the safety team's tools and account deletion. */

@@ -1,0 +1,26 @@
+{
+  "name": "@kithfield/art-tools",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bakes sticker packs (Messages, WhatsApp, Telegram) and the Messages app icons from the art, and checks them against each app's rules",
+  "scripts": {
+    "bake-stickers": "tsx src/bake-stickers.ts",
+    "check-stickers": "tsx src/check-stickers.ts",
+    "bake-icons": "tsx src/bake-icons.ts",
+    "loops": "tsx src/loops.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@kithfield/art": "workspace:*",
+    "@kithfield/i18n": "workspace:*",
+    "sharp": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

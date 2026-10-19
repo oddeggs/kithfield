@@ -3,17 +3,17 @@ import * as WebBrowser from 'expo-web-browser';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
-import { ArtIcon, ArtStill } from '../../../ui/art/art-view';
-import { sceneLook } from '../../../ui/art/critter-look';
+import { ArtIcon } from '../../../ui/art/art-view';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { TravelAnchor, travelIds } from '../../../ui/travel';
 import { Txt } from '../../../ui/type/text';
 import { MediaImage } from '../../media';
+import { sceneOfSticker, StickerArt, type StickerPerson } from '../../stickers';
 import { clock } from '../model/format';
 import { siteOf } from '../model/media';
 import { segmentsOf } from '../model/mentions';
-import { castOf } from '../model/people';
 import type { BubbleItem } from '../model/timeline';
 import { go } from '../routes';
 import { useChatColours } from '../ui/chat-colours';
@@ -426,26 +426,26 @@ function StickerBubble({
   readonly item: BubbleItem;
   readonly sticker: StickerPayload;
 }) {
-  const { people } = useRoom();
-  const me = item.actor ? people.get(item.actor) : undefined;
-  const critter = me?.critter;
-  const cast = (sticker.with ?? [])
-    .map((p) => people.get(p)?.critter)
-    .filter((c) => c !== null && c !== undefined)
-    .map((c) => castOf(c))
-    .join(',');
+  const { t } = useLocale();
+  const { farm, people, bubbleAt, nameOf } = useRoom();
+  // Everyone drawn as they look now; anyone the phone can't find is left out.
+  const personOf = (id: string | null): StickerPerson | null => {
+    const p = id === null ? undefined : people.get(id);
+    return p?.critter ? { name: p.name, critter: p.critter } : null;
+  };
+  const replied = item.replyTo === null ? null : bubbleAt(item.replyTo);
+  const attrs = sceneOfSticker(
+    t,
+    sticker,
+    personOf(item.actor),
+    personOf,
+    replied ? nameOf(replied.actor) : null,
+  );
+  // Where a sticker sent from the picker lands, hidden until it does (signature motion).
   return (
-    <ArtStill
-      scene="sticker"
-      width={100}
-      height={100}
-      t={1.2}
-      attrs={{
-        ...(critter ? sceneLook(critter) : { kind: 'rabbit' }),
-        pose: sticker.sticker,
-        ...(cast ? { cast } : {}),
-      }}
-    />
+    <TravelAnchor id={travelIds.chatSticker(farm, item.opId)} style={{ width: 100, height: 100 }}>
+      <StickerArt attrs={attrs} size={100} />
+    </TravelAnchor>
   );
 }
 

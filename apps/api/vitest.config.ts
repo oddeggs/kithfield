@@ -12,6 +12,8 @@ export default defineConfig(async () => {
     plugins: [
       cloudflareTest({
         wrangler: { configPath: './wrangler.jsonc', environment: 'dev' },
+        // Workers AI is always remote; tests never reach Cloudflare and stand in for the binding.
+        remoteBindings: false,
         // Fresh secrets per run: tests never share one with `.dev.vars` or a deployment.
         miniflare: {
           bindings: {
@@ -26,10 +28,24 @@ export default defineConfig(async () => {
               'sam@example.com': 'moderator',
             }),
             MEDIA_SIGNING_KEY: `${randomUUID()}${randomUUID()}`,
+            // The purchases webhooks' secrets, fixed so the tests can sign as the senders do.
+            REVENUECAT_WEBHOOK_AUTH: 'Bearer rc-test-webhook-auth',
+            STRIPE_WEBHOOK_SECRET: 'whsec_test_secret',
+            // Hosts the tests stand in for, never the real ones: `test/offline.ts` answers the fire
+            // room's LiveKit project as an empty room and refuses any other host.
+            LIVEKIT_URL: 'wss://livekit.test',
+            APNS_HOST: 'apns.test',
+            LIVEKIT_API_KEY: 'APItest',
+            LIVEKIT_API_SECRET: `${randomUUID()}${randomUUID()}`,
           },
         },
       }),
     ],
-    test: { setupFiles: ['./test/apply-migrations.ts'] },
+    test: {
+      setupFiles: ['./test/offline.ts', './test/apply-migrations.ts'],
+      // A test or hook that never settles fails instead of holding the run.
+      testTimeout: 30_000,
+      hookTimeout: 30_000,
+    },
   };
 });

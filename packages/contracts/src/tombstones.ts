@@ -22,7 +22,8 @@ export const TOMBSTONE_KEEPS = {
   slow_post: ['to'],
   card_signed: ['to'],
   gate: ['action', 'to', 'gift'],
-  seed_changed: ['seed', 'hat'],
+  seed_planted: ['days', 'yeses', 'someday', 'placed'],
+  seed_changed: ['seed', 'hat', 'days', 'yeses', 'someday', 'placed', 'settleOn'],
   vote: ['seed', 'option', 'on'],
   rsvp: ['seed', 'answer'],
   checkin: ['seed'],
@@ -41,7 +42,22 @@ export const TOMBSTONE_KEEPS = {
 /** The fields a kind's payload offers as facts; a gate's gesture is read from inside it. */
 const factSource = (event: FarmEvent): Record<string, unknown> => {
   const payload = event.payload as unknown as Record<string, unknown>;
-  if (event.kind !== 'gate' || isTombstone(event.payload)) return payload;
+  if (isTombstone(event.payload)) return payload;
+  if (event.kind === 'seed_planted') {
+    const p = event.payload;
+    // Dates only, and whether there was a place: never times, a title or where.
+    return { ...p, days: p.days.map((d) => d.date), placed: p.place !== null };
+  }
+  if (event.kind === 'seed_changed') {
+    const p = event.payload;
+    // Only what the edit changed: dates without times, and whether it set a place, never where.
+    return {
+      ...p,
+      days: p.days?.map((d) => d.date),
+      placed: p.place === undefined ? undefined : p.place !== null,
+    };
+  }
+  if (event.kind !== 'gate') return payload;
   const { gesture, ...rest } = event.payload.gesture;
   return { action: gesture, ...rest };
 };

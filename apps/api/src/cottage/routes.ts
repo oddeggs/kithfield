@@ -1,4 +1,6 @@
 import {
+  ActivityStartTokenRequest,
+  ActivityTokenRequest,
   ChatRowUpdate,
   type DeviceList,
   type ErrorBody,
@@ -11,10 +13,11 @@ import {
   RememberRequest,
   FarmId,
   type QuickTendList,
+  Seq,
 } from '@kithfield/contracts';
 import { type Context, Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import { newActionKey, storeActionKey } from './action-key';
 import { cottageAdapters, type SessionRouteEnv } from './adapters';
@@ -40,6 +43,12 @@ async function bodyOf<S extends z.ZodType>(
   const fields = parsed.error.issues.map((issue) => issue.path.join('.') || '(body)');
   return { ok: false, response: fail(c, 400, 'bad_request', fields.slice(0, 50)) };
 }
+
+/** `DELETE …/activities`: the activity, as `ActivityTokenRequest` names it, without its token. */
+const ActivityKeyRequest = z.discriminatedUnion('activity', [
+  z.object({ activity: z.literal('plan_day'), farm: FarmId, seed: Seq }),
+  z.object({ activity: z.literal('fire'), farm: FarmId }),
+]);
 
 /** Lets a request through only with a signed-in session, and names its person. */
 const signedIn = createMiddleware<RouteEnv>((c, next) => cottageAdapters().requireSession(c, next));
@@ -100,6 +109,39 @@ export function cottageRoutes(): Hono<RouteEnv> {
       ),
     ]);
     return c.json({ actionKey });
+  });
+
+  // The device's push-to-start token, so the server can start a plan's day on it.
+  app.put('/v1/devices/:deviceId/activity-start', signedIn, async (c) => {
+    const device = Id.safeParse(c.req.param('deviceId'));
+    if (!device.success) return fail(c, 404, 'not_found');
+    const body = await bodyOf(c, ActivityStartTokenRequest);
+    if (!body.ok) return body.response;
+    const cottage = cottageOf(c.env, c.get('person'));
+    const kept = await cottage.setActivityStartToken(device.data, body.value.token);
+    return kept ? c.body(null, 204) : fail(c, 404, 'not_found');
+  });
+
+  // A running activity's update token, so the server can move it along; DELETE when it ends.
+  app.put('/v1/devices/:deviceId/activities', signedIn, async (c) => {
+    const device = Id.safeParse(c.req.param('deviceId'));
+    if (!device.success) return fail(c, 404, 'not_found');
+    const body = await bodyOf(c, ActivityTokenRequest);
+    if (!body.ok) return body.response;
+    const kept = await cottageOf(c.env, c.get('person')).setActivityToken(device.data, body.value);
+    return kept ? c.body(null, 204) : fail(c, 404, 'not_found');
+  });
+
+  app.delete('/v1/devices/:deviceId/activities', signedIn, async (c) => {
+    const device = Id.safeParse(c.req.param('deviceId'));
+    if (!device.success) return fail(c, 404, 'not_found');
+    const body = await bodyOf(c, ActivityKeyRequest);
+    if (!body.ok) return body.response;
+    const known = await cottageOf(c.env, c.get('person')).dropActivityToken(
+      device.data,
+      body.value,
+    );
+    return known ? c.body(null, 204) : fail(c, 404, 'not_found');
   });
 
   // Where the person is signed in: one row per device, the one asking marked `current`.

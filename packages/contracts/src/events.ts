@@ -62,6 +62,13 @@ export type RulesVersion = z.infer<typeof RulesVersion>;
 export const DAY_FROM_RULES_VERSION = 2;
 
 /**
+ * The rules version that brings the restoration project (`RestorationState`) into the farm's
+ * state. A reducer below it neither keeps nor grows one, so a farm moves to it with a
+ * `rules_changed` once every app has the reducer.
+ */
+export const RESTORATION_RULES_VERSION = 4;
+
+/**
  * Every event: its place in the log, the writer's op id (the farm mints one for its own events),
  * server time, the farm-time local day, and the rules version it was applied under.
  */
@@ -173,12 +180,13 @@ export const FarmEvent = z
     /**
      * Farm settings are the farm's, not a person's content: never tombstoned. `frozen` and `paused`
      * come from the safety team; a keeper handover when the last keeper leaves or is removed comes
-     * from the farm. Both with a null actor.
+     * from the farm, and so does a farm theme switching on once friends' chip-in covers it. All
+     * with a null actor.
      */
     sharedEvent('settings_changed', SettingsChangedPayload, (p) =>
       p['setting'] === 'frozen' || p['setting'] === 'paused'
         ? 'farm'
-        : p['setting'] === 'role' && p['role'] === 'keeper'
+        : (p['setting'] === 'role' && p['role'] === 'keeper') || p['setting'] === 'theme'
           ? 'either'
           : 'person',
     ),
@@ -228,6 +236,8 @@ export const AnyEventKind = z.string().regex(/^[a-z][a-z0-9_]{0,39}$/);
  * the previous values: a person's critter, name or birthday, their status, or a plan's title, days
  * and place. The follow-up `seed_changed` is for the planter's plan, with the editor of the removed
  * edit as actor (any member may be the actor of a `seed_changed`, so the actor rules allow it).
+ * `gift` is also a phone command; the farm writes a `gift {given}` itself when friends' chip-in
+ * for it is covered, with whoever started the chip-in as actor.
  */
 export const ON_BEHALF_KINDS = [
   'joined',
@@ -238,6 +248,7 @@ export const ON_BEHALF_KINDS = [
   'critter_changed',
   'status',
   'seed_changed',
+  'gift',
 ] as const satisfies readonly EventKind[];
 
 /**

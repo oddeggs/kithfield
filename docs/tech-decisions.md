@@ -15,6 +15,7 @@ Decided 18 Oct 2026. Change one only with new evidence, and record the change he
 | Auth | Better Auth on Workers + D1: anonymous-first accounts, Sign in with Apple, Google, email code (phone code deferred, 18 Oct 2026) | CritterPass's decision (`docs/decisions/20260927-better-auth-anonymous-upgrade.md`), reused without its infrastructure |
 | Calls | LiveKit Cloud for the fire room and lanterns; a Worker mints room tokens. Move to Cloudflare Realtime or self-hosted LiveKit when usage justifies it | Best React Native SDK and Expo plugin; no ringing, so no CallKit or VoIP push at first |
 | Purchases | RevenueCat (StoreKit 2, Play Billing): patron subscriptions, Farm Plus, Founding Farmer, cosmetics and gifts as in-app purchases. The printed scrapbook and merch through Stripe | Apple requires IAP for digital goods; physical goods must not use it |
+| AI | Cloudflare Workers AI through the api's `AI` binding, decided 19 Oct 2026: Whisper (`@cf/openai/whisper-large-v3-turbo`) for fire captions and voice-note captions, a Workers AI translation model for en ↔ vi (`@cf/meta/m2m100-1.2b`), and Google's Gemma 4 (`@cf/google/gemma-4-26b-a4b-it`, multilingual, chosen 19 Oct 2026) for the Sunday recap letter. AI catch-up stays on the phone (Apple Foundation Models). Every outside use is opt-in per feature and person (11-18 to 11-20) | No new account, contract or key: it runs on the Cloudflare account already holding the data, so words and voices never leave the platform that already processes them; the consent sheets and the Privacy Policy name Cloudflare as the provider |
 | Moderation | Reports land in D1; an admin console on Workers behind Cloudflare Access (CritterPass's `cp-admin` pattern); Cloudflare CSAM scanning on the media domain | Required for user-generated content (App Review 1.2) |
 | Website | `apps/web`: the landing pages from `design/17 *.dc.html`, privacy, terms, support, the invite page and the waitlist (D1), on Cloudflare | The designs already run the same art module |
 | i18n | Typed TS catalogues in `@kithfield/i18n` (en, vi) with a completeness test | 6pm pattern |
@@ -75,9 +76,11 @@ Workspace packages are `@kithfield/<dir>`, ESM, and export TypeScript source.
 
 ## 6. To verify before relying on it
 
-- APNs needs HTTP/2. Check that Workers can call it directly. If not, ordinary pushes go through Expo's push service and Live Activity pushes through a small relay.
+- APNs needs HTTP/2. Verified 19 Oct 2026: direct HTTP/2 from Workers works (a remote preview got `BadDeviceToken` for a made-up token from both `api.push.apple.com` and the sandbox), so Live Activity pushes go straight to APNs, with no relay; ordinary pushes still go through Expo's push service.
 - Skia's text rendering for Gaegu, Patrick Hand and Lora against the browser, and the adapter's colour matrices against CSS `filter`.
 - Memory and frame time of the busiest farm (24 critters, night, fire lit) on the oldest supported iPhone.
 - Live Activity push updates for the fire room and the day of a plan.
 - Licensing: an app licence that can ship on the App Store (MPL, MIT or Apache, or a contributor licence agreement), the server under AGPL, the art under a separate non-free licence.
+- Workers AI for captions: Whisper's latency on 5 to 15 second pieces for live fire captions (if too slow, a streaming speech model on Workers AI), the quality of en ↔ vi translation, Cloudflare's Workers AI data terms (checked 19 Oct 2026) keep inputs and outputs only while a request runs and never train on them; the consent copy says so (`ai.*` in `@kithfield/i18n`) in place of the design's "never keep it past 30 days".
+- Apple In-App Purchase has no refund the app can make: chip-in pledges paid before a chip-in is covered can't be returned automatically, so pledges stay promises until covered unless App Review accepts another way.
 - Vietnam's Decree 147 phone verification, the UK Online Safety Act and age-assurance laws, with counsel.

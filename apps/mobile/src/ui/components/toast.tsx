@@ -8,9 +8,10 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FullWindowOverlay } from 'react-native-screens';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { announcePolitely } from '../announce';
@@ -36,7 +37,8 @@ const RISE = 8;
 /**
  * Toasts: the notice card (`01 Foundations`, Cards) arriving at the top of the screen, rising the
  * 8 points the design's hint cards rise (`12 States`, first-run hints); under Reduce Motion it only fades.
- * One at a time, the newest replacing the last.
+ * One at a time, the newest replacing the last. On iOS they show in a layer over the whole window,
+ * so a toast sent from a cover or a sheet shows over it, never under it.
  */
 export function ToastHost({ children }: { readonly children: ReactNode }) {
   const [toast, setToast] = useState<Toast | null>(null);
@@ -78,7 +80,7 @@ function ToastView({ toast, onGone }: { readonly toast: Toast; readonly onGone: 
     opacity: shown.get(),
     transform: [{ translateY: lift.get() }],
   }));
-  return (
+  const card = (
     <View
       pointerEvents="none"
       style={{ position: 'absolute', top: insets.top + 8, left: 16, right: 16 }}
@@ -87,6 +89,15 @@ function ToastView({ toast, onGone }: { readonly toast: Toast; readonly onGone: 
         <NoticeCard text={toast.text} {...(toast.icon ? { icon: toast.icon } : {})} />
       </Animated.View>
     </View>
+  );
+  if (Platform.OS !== 'ios') return card;
+  // Not a modal container: VoiceOver keeps reaching the screen under it, and touches pass through.
+  return (
+    <FullWindowOverlay unstable_accessibilityContainerViewIsModal={false}>
+      <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+        {card}
+      </View>
+    </FullWindowOverlay>
   );
 }
 

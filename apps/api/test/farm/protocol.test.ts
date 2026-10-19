@@ -46,7 +46,7 @@ describe('hello', () => {
     expect(caught.snapshot?.state.members.map((m) => m.person)).toEqual([pip.id, fig.id]);
     expect(caught.snapshot?.state.rulesVersion).toBe(RULES_VERSION);
     expect(caught.batches).toEqual([{ type: 'events', events: [], more: false }]);
-    expect(await socket.next('presence')).toEqual({ type: 'presence', here: [] });
+    expect(await socket.next('presence')).toEqual({ type: 'presence', here: [], fire: [] });
     socket.close();
   });
 

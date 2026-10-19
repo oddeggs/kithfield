@@ -73,6 +73,10 @@ describeSchemas('cottage contracts', cottage, {
     ['push.knock', 'nudge.backOff'],
     ['Push Knock', ''],
   ],
+  NotificationCategory: [
+    ['plan', 'tend'],
+    ['call', ''],
+  ],
   PushData: [
     [
       { farm, seq: 12, kind: 'knock', push: 'pu_8f2c' },
@@ -81,6 +85,13 @@ describeSchemas('cottage contracts', cottage, {
     [
       { farm, seq: 12, kind: 'knock' },
       { farm, seq: 12, kind: 'knock', push: 'a b' },
+    ],
+  ],
+  PlanPushData: [
+    [{ farm, seq: 31, kind: 'seed_changed', push: 'pu_8f2e', seed: 20 }],
+    [
+      { farm, seq: 31, kind: 'seed_changed', push: 'pu_8f2e' },
+      { farm, seq: 31, kind: 'seed_changed', push: 'pu_8f2e', seed: 0 },
     ],
   ],
   PushJob: [

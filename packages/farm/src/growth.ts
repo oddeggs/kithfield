@@ -18,6 +18,7 @@ import {
 
 import { PLANT_BY_ID, RARE_VARIANTS, plantFor, type CatalogPlantId } from './catalog';
 import { rareRoll } from './hash';
+import { withRestorationTend } from './restoration';
 import {
   DAILY_CAP,
   K_DIVISOR,
@@ -225,11 +226,10 @@ export const applyTend = (state: FarmState, tend: Tend): FarmState => {
   const members = state.members.map((m) =>
     m.person === person ? { ...m, lastTendedAt: at, activeThisSeason: true } : m,
   );
-  let next: FarmState = {
-    ...state,
-    members,
-    familyTendedAt: { ...state.familyTendedAt, [family]: at },
-  };
+  let next: FarmState = withRestorationTend(
+    { ...state, members, familyTendedAt: { ...state.familyTendedAt, [family]: at } },
+    day,
+  );
   const targets = targetsOf(state, family);
   // Credits first: a new person raises `k` before their own dew counts.
   next = {

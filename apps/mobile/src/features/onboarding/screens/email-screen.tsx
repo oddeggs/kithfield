@@ -7,11 +7,12 @@ import { TextField } from '../../../ui/components/text-field';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useAccount } from '../../../ui/session/account';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { routes } from '../flow';
 import { sendFailure } from '../sign-in-errors';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
-import { Body, ErrorLine, Title, TopBar, useDesignTop, useSceneAttrs } from '../kit';
+import { AxFlow, Body, ErrorLine, Title, TopBar, useDesignTop, useSceneAttrs } from '../kit';
 
 /** Enough to be worth sending a code to; the server has the last word. */
 export const looksLikeEmail = (text: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text.trim());
@@ -26,6 +27,7 @@ export function EmailScreen() {
   const { palette } = useTheme();
   const top = useDesignTop();
   const scene = useSceneAttrs();
+  const ax = useAccessibilitySize();
   const { signIn } = useAccount();
   const { state, update } = useFlow();
   const [email, setEmail] = useState(state.email);
@@ -54,6 +56,51 @@ export function EmailScreen() {
     }
   };
 
+  const words = (
+    <>
+      <Title>{t('onboarding.email.title')}</Title>
+      <Body>{t('onboarding.email.body')}</Body>
+      <View style={{ marginTop: 16, gap: 12 }}>
+        <TextField
+          value={email}
+          onChangeText={setEmail}
+          placeholder={t('onboarding.email.placeholder')}
+          accessibilityLabel={t('onboarding.email.field')}
+          keyboardType="email-address"
+          textContentType="emailAddress"
+          autoComplete="email"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoFocus
+          returnKeyType="send"
+          onSubmitEditing={() => void send()}
+        />
+        <Button
+          label={t('onboarding.email.send')}
+          onPress={() => void send()}
+          disabled={busy}
+          haptic="tap"
+        />
+        <ErrorLine text={error} />
+      </View>
+    </>
+  );
+
+  if (ax) {
+    return (
+      <AxFlow bar={<TopBar onBack={() => router.back()} />}>
+        <SceneArt
+          scene="spot"
+          width={280}
+          height={170}
+          attrs={{ ...scene, name: 'code' }}
+          style={{ alignSelf: 'center' }}
+        />
+        <View style={{ paddingHorizontal: 28, gap: 8 }}>{words}</View>
+      </AxFlow>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <TopBar onBack={() => router.back()} />
@@ -65,31 +112,7 @@ export function EmailScreen() {
         style={{ position: 'absolute', top: top(96), left: 56 }}
       />
       <View style={{ position: 'absolute', top: top(286), left: 28, right: 28, gap: 8 }}>
-        <Title>{t('onboarding.email.title')}</Title>
-        <Body>{t('onboarding.email.body')}</Body>
-        <View style={{ marginTop: 16, gap: 12 }}>
-          <TextField
-            value={email}
-            onChangeText={setEmail}
-            placeholder={t('onboarding.email.placeholder')}
-            accessibilityLabel={t('onboarding.email.field')}
-            keyboardType="email-address"
-            textContentType="emailAddress"
-            autoComplete="email"
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoFocus
-            returnKeyType="send"
-            onSubmitEditing={() => void send()}
-          />
-          <Button
-            label={t('onboarding.email.send')}
-            onPress={() => void send()}
-            disabled={busy}
-            haptic="tap"
-          />
-          <ErrorLine text={error} />
-        </View>
+        {words}
       </View>
     </View>
   );

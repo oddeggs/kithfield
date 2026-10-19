@@ -194,6 +194,11 @@ export const FarmNotifications = z.object({
     doorstep: z.boolean(),
     mentions: z.boolean(),
     messages: z.boolean(),
+    /**
+     * A rare variant opening on the farm, at most one a week. Off unless turned on; absent reads
+     * as off. It never rests, so it isn't a `NotificationType`.
+     */
+    rareBlooms: z.boolean().optional(),
   }),
 });
 export type FarmNotifications = z.infer<typeof FarmNotifications>;
@@ -228,6 +233,11 @@ export const FireTokenResponse = z.object({
   room: text(128),
   token: z.string().min(16).max(4096),
   expiresAt: EpochMs,
+  /**
+   * Whether live captions can be had here at all (speech to text and the patron perks are both
+   * wired up). An answer without it reads as unavailable.
+   */
+  captionsAvailable: z.boolean().default(false),
 });
 export type FireTokenResponse = z.infer<typeof FireTokenResponse>;
 
@@ -251,6 +261,28 @@ export const FarmGate = z.object({
     .max(LIMITS.members),
 });
 export type FarmGate = z.infer<typeof FarmGate>;
+
+/**
+ * `GET /v1/gates`: the farms this person may visit, friends of friends: farms (never visits) where
+ * someone they share a farm with lives, and which they don't live on. `friends` are the people
+ * they know there. Blocks and removals apply as at the gate. `?person=` narrows it to the farms of
+ * one friend, for their critter card.
+ */
+export const GateList = z.object({
+  gates: z
+    .array(
+      z.object({
+        farm: FarmId,
+        name: FarmName,
+        land: ArtId,
+        season: SeasonRef,
+        signature: PlantId.nullable(),
+        friends: z.array(PersonId).min(1).max(LIMITS.members),
+      }),
+    )
+    .max(200),
+});
+export type GateList = z.infer<typeof GateList>;
 
 /**
  * `POST /v1/farms/:id/gate`: wave, leave a firefly or a gift at another farm's gate. That farm

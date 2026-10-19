@@ -30,18 +30,26 @@ screens there without editing a shared file.
   `(cover)` as a full-screen modal. Don't give these groups a `_layout.tsx`: their files must stay
   direct routes of the root stack. They are for signed-in screens; onboarding's own sheets live in
   `(onboarding)`.
+- **A cover with its own stack.** A feature with several full-screen screens that push and swipe
+  back among themselves (the shop) puts them in `(cover)/<feature>/` with a `_layout.tsx` holding a
+  native `Stack`. The root stack presents the folder full screen because its route name starts with
+  `(cover)/`, so it needs no `SHEETS` entry; inside, screens push as cards. The layout sets
+  `unstable_settings = { anchor: 'index' }`, so a link straight to a deeper screen still has the
+  feature's first screen under it. It may also hold the feature's data provider, so its screens
+  load once. The app's toasts show over covers and sheets (a full-window layer), so a feature never
+  mounts a `ToastHost` of its own.
 - **Sheets with their own heights.** Native sheets take their presentation and detents when they
   are created, so a route never sets `presentation` or `sheet…` options on itself
   (`<Stack.Screen options>` in its file arrives after mount: detents are ignored, and a
   `fitToContents` sheet can't find its screen and drops taps). Instead it adds one line to `SHEETS` in
   `ui/navigation/presentation.ts`, which the root stack reads through
-  `screenOptionsFor(route.name, { screenH, palette })` before the screen mounts:
+  `screenOptionsFor(route.name, { screenH, insets, palette })` before the screen mounts:
 
   | `SHEETS` entry | What it gives | Used by |
   |---|---|---|
-  | `{ kind: 'detents', tops: [286, 150], grabber: true, undimmedUpTo: 0 }` | A `formSheet` resting with its top at each distance from the screen's top, as the design measures it (`(screenH - top) / screenH`, smallest first); the screen behind stays lit and touchable up to detent `undimmedUpTo` | `(modal)/farm-critter`, `(modal)/plans-remember` (`tops: [214]`) |
+  | `{ kind: 'detents', tops: [286, 150], grabber: true, undimmedUpTo: 0 }` | A `formSheet` resting with its top at each distance from the screen's top, as the design measures it (`(screenH - top) / screenH`, smallest first); the screen behind stays lit and touchable up to detent `undimmedUpTo` | `(modal)/farm-critter`, `(modal)/stickers-picker` (`tops: [494, 110]`), `(modal)/plans-remember` (`tops: [214]`), `(modal)/surfaces-mic` and `(modal)/surfaces-camera` (`tops: [190]`) |
   | `{ kind: 'fractions', detents: [0.82, 1], grabber: true }` | A `formSheet` at fractions of the screen | `(modal)/farm-new` |
-  | `{ kind: 'fit' }` | A `formSheet` as tall as what it holds (`fitToContents`), with the grabber | The safety and settings sheets, `(dev)/sheet-lab` |
+  | `{ kind: 'fit' }` | A `formSheet` as tall as what it holds (`fitToContents`), with the grabber | The safety and settings sheets, `(modal)/surfaces-sound`, `(dev)/sheet-lab` |
   | `{ kind: 'overlay' }` | `transparentModal`, no transition and no dimming: the screen draws its own scrim and sheet on the UI thread | The gesture tray, message menu, reactions, attach |
   | `{ kind: 'cover' }` | `fullScreenModal`, rising from the bottom | The gesture scenes (firefly, knock, weather, slow post, forward, Quick Tend) |
 

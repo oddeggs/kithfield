@@ -57,9 +57,14 @@ export function EmptyState({
   );
 }
 
+/** Where the design sets an error's art from the top of the screen, under the status bar. */
+const ART_BELOW_STATUS = 71;
+
 /**
  * A full-screen error (`12 States`, the farm couldn't load), only when nothing is cached: the
  * art, a gentle title, what is still safe, a small support code, and the way on at the bottom.
+ * A whole screen sets its art near the top as the design does (`place="top"`); an error inside a
+ * screen that has its own header sits centred in the room left.
  */
 export function ErrorState({
   art,
@@ -68,6 +73,7 @@ export function ErrorState({
   code,
   action,
   secondary,
+  place = 'centre',
 }: {
   readonly art: ReactNode;
   readonly title: string;
@@ -76,13 +82,15 @@ export function ErrorState({
   readonly code?: string;
   readonly action: ShellAction;
   readonly secondary?: ShellAction;
+  readonly place?: 'top' | 'centre';
 }) {
   const { palette } = useTheme();
   const { t } = useLocale();
   const insets = useSafeAreaInsets();
+  const top = place === 'top';
   return (
-    <View style={{ flex: 1, paddingTop: insets.top }}>
-      <View style={{ flex: 1, justifyContent: 'center' }}>
+    <View style={{ flex: 1, paddingTop: insets.top + (top ? ART_BELOW_STATUS : 0) }}>
+      <View style={{ flex: 1, justifyContent: top ? 'flex-start' : 'center' }}>
         <View style={{ alignItems: 'center' }} importantForAccessibility="no-hide-descendants">
           {art}
         </View>

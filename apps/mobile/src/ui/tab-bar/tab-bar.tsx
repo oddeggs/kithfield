@@ -16,6 +16,13 @@ const LIFT_UNDER_INDICATOR = 8;
 const BOTTOM_WITHOUT_INDICATOR = 16;
 const SIDE = 16;
 
+/** Where the floating bar sits on the window, for anything that lands on a tab. */
+export const tabBarFrame = {
+  side: SIDE,
+  liftUnderIndicator: LIFT_UNDER_INDICATOR,
+  bottomWithoutIndicator: BOTTOM_WITHOUT_INDICATOR,
+} as const;
+
 /** The tab bar for expo-router's tabs: floats over each tab's screen, which runs under it. */
 export function TabBar({ state, emitter, navigateToTab, insets }: BottomTabBarProps) {
   const dots = useTabDots();

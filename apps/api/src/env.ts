@@ -25,6 +25,24 @@ export const secretNames = [
   'R2_ACCOUNT_ID',
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
+  // WeatherKit's `.p8` key (PKCS#8 PEM; newlines may be written as `\n`), for the farm's weather.
+  'WEATHERKIT_KEY',
+  // RevenueCat's secret REST key, so `POST /v1/purchases/sync` can ask what a person bought.
+  'REVENUECAT_SECRET_KEY',
+  // The exact `Authorization` header value RevenueCat sends with each webhook.
+  'REVENUECAT_WEBHOOK_AUTH',
+  // Signs Stripe's webhooks (`Stripe-Signature`), for the printed scrapbook's payments.
+  'STRIPE_WEBHOOK_SECRET',
+  // The team's APNs key (the `.p8` file's contents), for Live Activity pushes sent straight to
+  // Apple. Unset, Live Activities only move while the app runs.
+  'APNS_KEY_P8',
+  // LiveKit, for the fire room: the project's API key and secret. They mint room tokens and check
+  // LiveKit's webhook signatures (`livekit-server --dev` uses devkey / secret locally).
+  'LIVEKIT_API_KEY',
+  'LIVEKIT_API_SECRET',
+  // Kithfield's Telegram bot (from @BotFather): makes a person's sticker set with the Bot API
+  // once they confirm in Telegram. Not used until the Telegram export routes exist.
+  'TELEGRAM_BOT_TOKEN',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -48,6 +66,18 @@ export type Bindings = Secrets & {
   readonly ACCESS_TEAM_DOMAIN: string;
   /** The Access application audience (`aud`) for this environment's safety desk. */
   readonly ACCESS_AUD: string;
+  /**
+   * WeatherKit's REST API: the Apple team, the WeatherKit key's id and the Services ID tokens are
+   * issued for (`sub`). Public ids; the key itself is the `WEATHERKIT_KEY` secret.
+   */
+  readonly WEATHERKIT_TEAM_ID: string;
+  readonly WEATHERKIT_KEY_ID: string;
+  readonly WEATHERKIT_SERVICE_ID: string;
+  /**
+   * The newest farm rules version this environment moves farms to (a whole number; prd holds farms
+   * at the rules every phone in the store can read). Unset, the server's own `RULES_VERSION`.
+   */
+  readonly RULES_TARGET?: string;
   /** One farm object per farm or visit. */
   readonly FARM: DurableObjectNamespace<FarmDO>;
   /** One cottage object per person. */
@@ -65,10 +95,26 @@ export type Bindings = Secrets & {
    * MEDIA_UPLOAD_PROXY_ORIGIN:http://localhost:8787`). Unset, the request's own origin.
    */
   readonly MEDIA_UPLOAD_PROXY_ORIGIN?: string;
+  /** The APNs key's id (the `.p8`'s `AuthKey_<id>`); with `APNS_KEY_P8`, Live Activity pushes. */
+  readonly APNS_KEY_ID?: string;
+  /** The Apple team the key belongs to; `YFND2EEW8S` when unset. */
+  readonly APNS_TEAM_ID?: string;
+  /**
+   * The APNs hosts to send to, in order, comma-separated; the next is tried only for a token the
+   * last called a bad device token. prd: `api.push.apple.com`; dev: the sandbox, then production.
+   */
+  readonly APNS_HOST?: string;
+  /**
+   * The LiveKit project the fire room runs on (`wss://<project>.livekit.cloud`); a local
+   * `livekit-server --dev` is `ws://localhost:7880`.
+   */
+  readonly LIVEKIT_URL: string;
   /** At most 20 sign-in nonces a minute per client address. */
   readonly SIGN_IN_NONCE_LIMIT: RateLimit;
   /** Gestures at another farm's gate, per visitor. */
   readonly GATE_LIMIT: RateLimit;
+  /** At most 30 lists of the gates a person may visit, a minute per person. */
+  readonly GATES_LIMIT: RateLimit;
   /** At most 60 upload URLs (and forwarding copies) a minute per person. */
   readonly MEDIA_LIMIT: RateLimit;
   /** At most 5 waitlist sign-ups a minute per client address. */
@@ -79,11 +125,21 @@ export type Bindings = Secrets & {
   readonly DESKTOP_LINK_LIMIT: RateLimit;
   /** Reports and appeals from the app, per person. */
   readonly REPORT_LIMIT: RateLimit;
+  /** Asking for AI captions: at most 30 a minute per person. */
+  readonly AI_LIMIT: RateLimit;
+  /** Asking for AI captions: at most 120 a minute per farm. */
+  readonly AI_FARM_LIMIT: RateLimit;
+  /** The shop's writes, per person: purchase syncs, gifts, chip-ins and wall names. */
+  readonly SHOP_LIMIT: RateLimit;
+  /** Pieces of a speaker's voice for live captions, per person: about twelve a minute. */
+  readonly FIRE_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;
   readonly MEDIA_QUEUE: Queue;
   readonly AI_QUEUE: Queue;
+  /** Workers AI: voice-note captions, their translation and the Sunday recap letter. */
+  readonly AI: Ai;
   readonly DELETION_QUEUE: Queue;
 };
 

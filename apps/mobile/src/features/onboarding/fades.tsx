@@ -32,16 +32,14 @@ export function FadeUp({
   return <Animated.View style={[style, animated]}>{children}</Animated.View>;
 }
 
-const RINGS = {
-  day: { on: '0 0 0 2.5px #F5EEE2, 0 0 0 4.5px #2a221d', off: '0 0 0 1px rgba(42,34,29,.12)' },
-  night: { on: '0 0 0 2.5px #1B1F3D, 0 0 0 4.5px #F4ECDA', off: '0 0 0 1px rgba(255,255,255,.14)' },
-} as const;
-
-/** The selection ring of the critter picker: a paper gap, then ink. It snaps; it never tweens. */
+/**
+ * The selection ring of the critter picker: a paper gap, then ink; unchosen, a faint line. It
+ * snaps; it never tweens.
+ */
 export function useRing(): (on: boolean, off?: string) => string {
-  const { appearance } = useTheme();
-  const rings = RINGS[appearance];
-  return (on, off) => (on ? rings.on : (off ?? rings.off));
+  const { palette } = useTheme();
+  const ring = `0 0 0 2.5px ${palette.background}, 0 0 0 4.5px ${palette.text}`;
+  return (on, off) => (on ? ring : (off ?? `0 0 0 1px ${palette.chip.border}`));
 }
 
 /**

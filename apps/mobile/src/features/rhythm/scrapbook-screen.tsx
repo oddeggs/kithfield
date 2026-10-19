@@ -1,0 +1,454 @@
+import type { FarmId, LocalDate, ScrapbookPage } from '@kithfield/contracts';
+import type { FarmView } from '@kithfield/farm';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Alert, ScrollView, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { rhythmColours } from '@kithfield/theme';
+
+import { useFarmEvents, useFarm, useFarmView, useOpenFarm, useSend } from '../../data';
+import { ArtStill } from '../../ui/art/art-view';
+import { EmptyState, ErrorState } from '../../ui/components/state-shell';
+import { useToast } from '../../ui/components/toast';
+import { useLocale } from '../../ui/locale/locale-provider';
+import { haptics } from '../../ui/motion/haptics';
+import { useReduceMotion } from '../../ui/motion/reduce-motion';
+import { Press } from '../../ui/motion/press';
+import { useTheme } from '../../ui/theme/theme-provider';
+import { Glass } from '../../ui/components/glass';
+import { TravelSpot, timing, useTravel } from '../../ui/travel';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
+import { Txt } from '../../ui/type/text';
+import { typeAt } from '../farm/type-at';
+import { useNow } from '../farm/use-now';
+import { LoadingRows } from '../farm/farm-states';
+import { BackButton } from './chrome';
+import { handText, refusalCopy } from './copy';
+import { useRhythmApi } from './rhythm-api';
+import {
+  pageTilt,
+  pressableHangouts,
+  pressedArt,
+  snapArt,
+  type Pressable,
+} from './scrapbook-model';
+
+const GAP_X = 12;
+const GAP_Y = 14;
+const CARD_H = 184;
+
+/** A page's height: taller at the accessibility sizes, so its title and date clear the art. */
+function useCardHeight(): number {
+  return useAccessibilitySize() ? Math.round(CARD_H * 1.6) : CARD_H;
+}
+
+/** "24 Oct": a page's day, short, in the reader's language. */
+function shortDate(at: number | LocalDate, language: string, timeZone: string): string {
+  const date = typeof at === 'number' ? new Date(at) : new Date(`${at}T12:00:00Z`);
+  return new Intl.DateTimeFormat(language === 'vi' ? 'vi-VN' : 'en-GB', {
+    day: 'numeric',
+    month: 'short',
+    // A page's day is the farm's day, wherever the reader is.
+    timeZone: typeof at === 'number' ? timeZone : 'UTC',
+  }).format(date);
+}
+
+/** A pressed page: its flower, a snapshot taped on, its title and day. */
+function PageCard({
+  page,
+  index,
+  width,
+  season,
+  timeZone,
+  onHide,
+}: {
+  readonly page: ScrapbookPage;
+  readonly timeZone: string;
+  readonly index: number;
+  readonly width: number;
+  readonly season: string;
+  readonly onHide: (page: ScrapbookPage) => void;
+}) {
+  const cardH = useCardHeight();
+  const { t, language, fontLocale } = useLocale();
+  const { palette, appearance } = useTheme();
+  const colours = rhythmColours[appearance];
+  const date = shortDate(page.at, language, timeZone);
+  const snapTilt = index % 2 === 0 ? -5 : 4;
+  return (
+    <View
+      style={{
+        width,
+        height: cardH,
+        borderRadius: 6,
+        backgroundColor: colours.page,
+        boxShadow: colours.pageShadow,
+        transform: [{ rotate: `${pageTilt(index)}deg` }],
+      }}
+    >
+      <Press
+        onLongPress={() => onHide(page)}
+        radius={6}
+        accessibilityLabel={t('rhythm.scrapbook.page', { title: page.title, date })}
+        accessibilityHint={t('rhythm.scrapbook.hide')}
+        style={{ width, height: cardH, borderRadius: 6, overflow: 'hidden' }}
+      >
+        <ArtStill
+          scene="pressed"
+          width={78}
+          height={112}
+          attrs={{ name: pressedArt(page.flower, page.seq) }}
+          style={{ position: 'absolute', top: 10, left: 8 }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            right: 12,
+            top: 22,
+            width: 76,
+            height: 62,
+            borderRadius: 3,
+            overflow: 'hidden',
+            transform: [{ rotate: `${snapTilt}deg` }],
+            boxShadow: colours.snapShadow,
+          }}
+        >
+          <ArtStill
+            scene="snap"
+            width={76}
+            height={62}
+            attrs={{ name: snapArt(page.seq), season }}
+          />
+        </View>
+        <View
+          style={{
+            position: 'absolute',
+            right: 30,
+            top: 16,
+            width: 40,
+            height: 12,
+            backgroundColor: colours.tape,
+            transform: [{ rotate: '-8deg' }],
+          }}
+        />
+        <View style={{ position: 'absolute', left: 12, right: 10, bottom: 12 }}>
+          <Txt
+            variant="handS"
+            multiline
+            numberOfLines={2}
+            style={typeAt('handS', 17, 17.85, fontLocale)}
+          >
+            {handText(page.title)}
+          </Txt>
+          <Txt
+            variant="note"
+            color={palette.muted}
+            style={[typeAt('caption', 12, 12, fontLocale), { marginTop: 4 }]}
+          >
+            {date}
+          </Txt>
+        </View>
+      </Press>
+    </View>
+  );
+}
+
+/** A hangout ready to press, dashed, waiting to become a page. */
+function PressCard({
+  item,
+  width,
+  onPress,
+}: {
+  readonly item: Pressable;
+  readonly width: number;
+  readonly onPress: () => void;
+}) {
+  const cardH = useCardHeight();
+  const { t, language, fontLocale } = useLocale();
+  const { palette } = useTheme();
+  const from = t('rhythm.scrapbook.pressFrom', {
+    title: item.seed.title ?? '',
+    date: shortDate(item.day, language, 'UTC'),
+  });
+  return (
+    <Press
+      onPress={onPress}
+      radius={6}
+      accessibilityRole="button"
+      accessibilityLabel={`${t('rhythm.scrapbook.press')}. ${from}`}
+      style={{
+        width,
+        height: cardH,
+        borderRadius: 6,
+        borderWidth: 1.5,
+        borderStyle: 'dashed',
+        borderColor: palette.chevron,
+        padding: 12,
+        justifyContent: 'flex-end',
+        gap: 4,
+      }}
+    >
+      <ArtStill
+        scene="pressed"
+        width={78}
+        height={112}
+        attrs={{ name: pressedArt(item.flower, item.seed.seq) }}
+        style={{ position: 'absolute', top: 10, left: 8, opacity: 0.55 }}
+      />
+      <Txt variant="handS" style={typeAt('handS', 17, 17.85, fontLocale)}>
+        {handText(t('rhythm.scrapbook.press'))}
+      </Txt>
+      <Txt variant="note" multiline color={palette.muted}>
+        {from}
+      </Txt>
+      {/* Where the hangout's photos fan out as it is pressed, and gather again (signature motion). */}
+      <TravelSpot id={pressSpot(item.seed.seq, 'page')} box={pageBox(width)} />
+      {FAN.map((f, i) => (
+        <TravelSpot key={i} id={pressSpot(item.seed.seq, i)} box={fanBox(width, i)} />
+      ))}
+    </Press>
+  );
+}
+
+/** The photos of a hangout being pressed: where each fans out on its card, and the page between. */
+const SNAP = { width: 76, height: 62 };
+const FAN = [
+  { x: 0.08, y: -0.12 },
+  { x: 0.3, y: 0.02 },
+  { x: 0.52, y: -0.06 },
+] as const;
+const pressSpot = (seq: number, at: number | 'page') => `rhythm:press:${seq}:${at}`;
+const fanBox = (width: number, i: number) => ({
+  x: width * (FAN[i]?.x ?? 0),
+  y: CARD_H * (FAN[i]?.y ?? 0),
+  ...SNAP,
+});
+const pageBox = (width: number) => ({
+  x: width / 2 - SNAP.width / 2,
+  y: CARD_H * 0.25,
+  ...SNAP,
+});
+
+/**
+ * The scrapbook: every hangout pressed into a page with its flower and photos. Any member can
+ * hide a page; hidden and unsent pages never come back from the server.
+ */
+export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
+  const { t } = useLocale();
+  const { palette } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const api = useRhythmApi();
+  const toast = useToast();
+  const travel = useTravel();
+  const reduce = useReduceMotion();
+  const now = useNow();
+  useOpenFarm(farm);
+  const state = useFarm(farm)?.state ?? null;
+  const view = useFarmView<FarmView>(farm, now);
+  const events = useFarmEvents(farm, 200);
+  const send = useSend(farm);
+  const [pages, setPages] = useState<readonly ScrapbookPage[] | null>(null);
+  const [more, setMore] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [round, setRound] = useState(0);
+  // Two pages to a row, or one at the accessibility sizes.
+  const oneColumn = useAccessibilitySize();
+  const perRow = oneColumn ? 1 : 2;
+  const cardW = oneColumn ? width - 32 : (width - 32 - GAP_X) / 2;
+  const season = state?.season.season ?? 'spring';
+
+  useEffect(() => {
+    let live = true;
+    setFailed(false);
+    api.scrapbook(farm).then(
+      (list) => {
+        if (!live) return;
+        setPages(list.pages);
+        setMore(list.more);
+      },
+      () => live && setFailed(true),
+    );
+    return () => {
+      live = false;
+    };
+  }, [api, farm, round]);
+
+  const older = async () => {
+    const last = pages?.at(-1);
+    if (!last || !more) return;
+    const list = await api.scrapbook(farm, last.seq).catch(() => null);
+    if (!list) return;
+    setPages((p) => [...(p ?? []), ...list.pages]);
+    setMore(list.more);
+  };
+
+  const hide = (page: ScrapbookPage) =>
+    Alert.alert(t('rhythm.scrapbook.hideTitle'), t('rhythm.scrapbook.hideBody'), [
+      { text: t('rhythm.scrapbook.hideCancel'), style: 'cancel' },
+      {
+        text: t('rhythm.scrapbook.hide'),
+        style: 'destructive',
+        onPress: () =>
+          void send('scrapbook_page', { action: 'hidden', target: page.seq }).then((sent) => {
+            if (sent.status !== 'queued') {
+              toast.show(refusalCopy(t, sent.reason));
+              return;
+            }
+            setPages((p) => (p ?? []).filter((x) => x.seq !== page.seq));
+            toast.show(t('rhythm.scrapbook.hidden'));
+          }),
+      },
+    ]);
+
+  const press = async (item: Pressable) => {
+    haptics.soft();
+    const sent = await send('scrapbook_page', {
+      action: 'pressed',
+      title: item.seed.title ?? '',
+      seed: item.seed.seq,
+      items: [...item.items],
+      flower: item.flower,
+    });
+    if (sent.status !== 'queued') {
+      toast.show(refusalCopy(t, sent.reason));
+      return;
+    }
+    const done = () => {
+      toast.show(t('rhythm.scrapbook.pressed'));
+      setRound((r) => r + 1);
+    };
+    if (reduce) return done();
+    // Its photos fan out on the page, then gather as the page closes on its flower.
+    const pressing = timing('photo', 'pressing');
+    const seq = item.seed.seq;
+    FAN.forEach((_, i) => {
+      const sprite = { scene: 'snap', attrs: { name: snapArt(seq + i), season }, ...SNAP } as const;
+      travel.fly({
+        from: pressSpot(seq, 'page'),
+        to: pressSpot(seq, i),
+        sprite,
+        arc: 30,
+        delayMs: i * 90,
+        durationMs: pressing * 0.3,
+        holdMs: pressing * 0.2,
+        onLanded: () =>
+          travel.fly({
+            from: pressSpot(seq, i),
+            to: pressSpot(seq, 'page'),
+            sprite,
+            toWidth: SNAP.width * 0.3,
+            arc: 0,
+            fade: 'out',
+            durationMs: pressing * 0.25,
+            ...(i === FAN.length - 1 ? { onTouchdown: done } : {}),
+          }),
+      });
+    });
+  };
+
+  const pressable =
+    state && view && pages ? pressableHangouts(state, pages, events, view.today).slice(0, 1) : [];
+  const cards = [
+    ...pressable.map((item) => ({ key: `press:${item.seed.seq}`, item })),
+    ...(pages ?? []).map((page) => ({ key: `page:${page.seq}`, page })),
+  ];
+  const rows: (typeof cards)[] = [];
+  for (let i = 0; i < cards.length; i += perRow) rows.push(cards.slice(i, i + perRow));
+
+  return (
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
+      <ScrollView
+        contentContainerStyle={{ paddingTop: insets.top + 3, paddingBottom: insets.bottom + 120 }}
+        onScroll={(e) => {
+          const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+          if (layoutMeasurement.height + contentOffset.y > contentSize.height - 400) void older();
+        }}
+        scrollEventThrottle={200}
+      >
+        <View
+          style={{
+            paddingHorizontal: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <BackButton onPress={() => router.back()} />
+          {/* The year's pages, printed and bound (09-08). */}
+          <Press
+            onPress={() => router.push({ pathname: '/shop/book', params: { farm } })}
+            radius={22}
+            accessibilityRole="button"
+            accessibilityLabel={t('rhythm.scrapbook.print')}
+          >
+            <Glass
+              radius={22}
+              fill={palette.glassButton.fill}
+              border={palette.glassButton.border}
+              style={{ height: 44, paddingHorizontal: 16, justifyContent: 'center' }}
+            >
+              <Txt variant="buttonSmall">{t('rhythm.scrapbook.print')}</Txt>
+            </Glass>
+          </Press>
+        </View>
+        <View style={{ paddingHorizontal: 22, marginTop: 8 }}>
+          <Txt variant="displayL" multiline accessibilityRole="header">
+            {t('rhythm.scrapbook.title')}
+          </Txt>
+          <Txt variant="sheetBody" multiline color={palette.body} style={{ marginTop: 4 }}>
+            {t('rhythm.scrapbook.body')}
+          </Txt>
+        </View>
+        {failed ? (
+          <ErrorState
+            art={<ArtStill scene="spot" width={240} height={172} attrs={{ name: 'offline' }} />}
+            title={t('rhythm.scrapbook.title')}
+            body={t('rhythm.loadFailed')}
+            action={{ label: t('rhythm.tryAgain'), onPress: () => setRound((r) => r + 1) }}
+          />
+        ) : pages === null ? (
+          <LoadingRows />
+        ) : cards.length === 0 ? (
+          <EmptyState
+            art={<ArtStill scene="spot" width={240} height={172} attrs={{ name: 'media' }} />}
+            title={t('rhythm.scrapbook.empty.title')}
+            body={t('rhythm.scrapbook.empty.body')}
+            action={{
+              label: t('rhythm.scrapbook.empty.action'),
+              onPress: () => router.navigate('/(tabs)/seedbed'),
+              kind: 'secondary',
+            }}
+          />
+        ) : (
+          <View style={{ paddingHorizontal: 16, marginTop: 22, gap: GAP_Y }}>
+            {rows.map((row, r) => (
+              <View key={r} style={{ flexDirection: 'row', gap: GAP_X }}>
+                {row.map((card, c) =>
+                  'item' in card ? (
+                    <PressCard
+                      key={card.key}
+                      item={card.item}
+                      width={cardW}
+                      onPress={() => void press(card.item)}
+                    />
+                  ) : (
+                    <PageCard
+                      key={card.key}
+                      page={card.page}
+                      index={r * 2 + c}
+                      width={cardW}
+                      season={season}
+                      timeZone={state?.timeZone ?? 'UTC'}
+                      onHide={hide}
+                    />
+                  ),
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+}

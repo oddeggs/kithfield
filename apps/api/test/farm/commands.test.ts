@@ -242,7 +242,11 @@ describe('presence and typing', () => {
   it('shares who is here and writing, never stores it, and writes farm_opened at most hourly', async () => {
     const { pip, fig, pipSocket, figSocket, stub } = await twoConnected();
     pipSocket.send({ type: 'presence', here: true });
-    expect(await figSocket.next('presence')).toEqual({ type: 'presence', here: [pip.id] });
+    expect(await figSocket.next('presence')).toEqual({
+      type: 'presence',
+      here: [pip.id],
+      fire: [],
+    });
     expect(parseEvent((await figSocket.next('event')).event)).toMatchObject({
       event: { kind: 'farm_opened', actor: pip.id },
     });

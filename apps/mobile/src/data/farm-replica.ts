@@ -109,6 +109,8 @@ export class FarmReplica<View = unknown> {
           return {};
         case 'presence':
           this.presence.here(frame.here);
+          // A server from before the fire room leaves `fire` out: nobody is by it.
+          this.presence.fire(frame.fire ?? []);
           return {};
         case 'typing':
           this.presence.typing(frame.people);

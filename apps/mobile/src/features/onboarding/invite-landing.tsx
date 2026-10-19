@@ -7,8 +7,18 @@ import { Button } from '../../ui/components/button';
 import { ErrorState } from '../../ui/components/state-shell';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
-import { Body, BottomBar, ErrorLine, Title, TopBar, useDesignTop, useSceneAttrs } from './kit';
+import {
+  AxFlow,
+  Body,
+  BottomBar,
+  ErrorLine,
+  Title,
+  TopBar,
+  useDesignTop,
+  useSceneAttrs,
+} from './kit';
 import type { OnboardingApi } from './onboarding-api';
 import { SceneArt } from './scene-art';
 
@@ -45,6 +55,7 @@ export function InviteLanding({
   const { width } = useWindowDimensions();
   const top = useDesignTop();
   const scene = useSceneAttrs();
+  const ax = useAccessibilitySize();
   const [preview, setPreview] = useState<Preview>({ kind: 'loading' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,25 +110,59 @@ export function InviteLanding({
     else if (result === 'failed') setError(t('onboarding.failed'));
   };
 
+  const bar = (
+    <TopBar
+      onBack={back}
+      inset={20}
+      center={
+        <Txt
+          variant="displayS"
+          {...(ax ? { align: 'center' as const } : {})}
+          style={{ fontSize: 20, lineHeight: 26 }}
+        >
+          {t('shell.appName')}
+        </Txt>
+      }
+    />
+  );
+  const words = invite ? (
+    <>
+      <Title size={28}>
+        {invite.from
+          ? t('onboarding.join.title', { name: invite.from.name })
+          : t('onboarding.join.titleNoName')}
+      </Title>
+      <Body>{t('onboarding.join.body', { farm: invite.name })}</Body>
+    </>
+  ) : null;
+  const footer = (
+    <>
+      <ErrorLine text={error} />
+      <Button
+        label={t('onboarding.join.accept')}
+        kind="go"
+        onPress={() => void accepted()}
+        disabled={!invite || busy}
+        haptic="tap"
+      />
+    </>
+  );
+
+  if (ax) {
+    return (
+      <AxFlow bar={bar} footer={footer}>
+        {words ? <View style={{ paddingHorizontal: 24, gap: 6 }}>{words}</View> : null}
+        <SceneArt scene="claim" width={width} height={258} attrs={scene} />
+      </AxFlow>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <TopBar
-        onBack={back}
-        inset={20}
-        center={
-          <Txt variant="displayS" style={{ fontSize: 20, lineHeight: 26 }}>
-            {t('shell.appName')}
-          </Txt>
-        }
-      />
-      {invite ? (
+      {bar}
+      {words ? (
         <View style={{ position: 'absolute', top: top(110), left: 24, right: 24, gap: 6 }}>
-          <Title size={28}>
-            {invite.from
-              ? t('onboarding.join.title', { name: invite.from.name })
-              : t('onboarding.join.titleNoName')}
-          </Title>
-          <Body>{t('onboarding.join.body', { farm: invite.name })}</Body>
+          {words}
         </View>
       ) : null}
       <SceneArt
@@ -127,16 +172,7 @@ export function InviteLanding({
         attrs={scene}
         style={{ position: 'absolute', top: top(218), left: 0 }}
       />
-      <BottomBar>
-        <ErrorLine text={error} />
-        <Button
-          label={t('onboarding.join.accept')}
-          kind="go"
-          onPress={() => void accepted()}
-          disabled={!invite || busy}
-          haptic="tap"
-        />
-      </BottomBar>
+      <BottomBar>{footer}</BottomBar>
     </View>
   );
 }

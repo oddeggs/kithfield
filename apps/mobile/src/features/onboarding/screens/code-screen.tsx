@@ -1,4 +1,3 @@
-import { day } from '@kithfield/theme';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -14,11 +13,21 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useAccount } from '../../../ui/session/account';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
 import { CODE_LENGTH, CodeBoxes, type CodeBoxesHandle } from '../code-boxes';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
-import { Body, ErrorLine, Title, TopBar, useDesignTop, useInks, useSceneAttrs } from '../kit';
+import {
+  AxFlow,
+  Body,
+  ErrorLine,
+  Title,
+  TopBar,
+  useDesignTop,
+  useInks,
+  useSceneAttrs,
+} from '../kit';
 import { useProgress } from '../progress';
 import { codeFailure, sendFailure } from '../sign-in-errors';
 
@@ -31,10 +40,11 @@ const EMAIL = '\u0001';
 export function CodeScreen() {
   const router = useRouter();
   const { t } = useLocale();
-  const { palette, appearance } = useTheme();
+  const { palette } = useTheme();
   const inks = useInks();
   const top = useDesignTop();
   const scene = useSceneAttrs();
+  const ax = useAccessibilitySize();
   const toast = useToast();
   const { signIn } = useAccount();
   const { state } = useFlow();
@@ -97,7 +107,80 @@ export function CodeScreen() {
   });
 
   const [before = '', after = ''] = t('onboarding.code.body', { email: EMAIL }).split(EMAIL);
-  const night = appearance === 'night';
+
+  const words = (
+    <>
+      <Title>{t('onboarding.code.title')}</Title>
+      <Body>
+        {before}
+        <Text style={{ color: palette.text, fontWeight: '600' }}>{state.email}</Text>
+        {after}
+      </Body>
+    </>
+  );
+  const boxesField = (
+    <CodeBoxes ref={boxes} value={code} onChange={change} label={t('onboarding.code.field')} />
+  );
+  const resendLine = (
+    <>
+      <Txt variant="caption" color={palette.secondary} style={{ fontSize: 14, lineHeight: 18.2 }}>
+        {t('onboarding.code.resendLead')}
+      </Txt>
+      <Press onPress={() => void resend()} darken={false} hitSlop={12}>
+        <Txt
+          variant="caption"
+          color={inks.moss}
+          style={{ fontSize: 14, lineHeight: 18.2, fontWeight: '600' }}
+        >
+          {t('onboarding.code.resend')}
+        </Txt>
+      </Press>
+    </>
+  );
+  const otherEmail = (
+    <Press onPress={() => router.back()} darken={false} hitSlop={12}>
+      <Txt variant="caption" color={palette.secondary} style={{ fontSize: 14, lineHeight: 18.2 }}>
+        {t('onboarding.code.otherEmail')}
+      </Txt>
+    </Press>
+  );
+  const noteBox = {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: inks.note.bg,
+  } as const;
+  const noteText = (
+    <Txt variant="caption" multiline color={inks.note.fg} style={{ lineHeight: 18.9 }}>
+      {t('onboarding.code.note')}
+    </Txt>
+  );
+
+  if (ax) {
+    // The column scrolls clear of the keyboard, so nothing needs lifting here.
+    return (
+      <AxFlow bar={<TopBar onBack={() => router.back()} />}>
+        <SceneArt
+          scene="spot"
+          width={280}
+          height={170}
+          attrs={{ ...scene, name: 'code' }}
+          style={{ alignSelf: 'center' }}
+        />
+        <View style={{ paddingHorizontal: 28, gap: 20 }}>
+          <View style={{ gap: 8 }}>{words}</View>
+          {boxesField}
+          <View style={{ gap: 12 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 4 }}>
+              {resendLine}
+            </View>
+            <View style={{ alignItems: 'flex-start' }}>{otherEmail}</View>
+          </View>
+          {error ? <ErrorLine text={error} /> : <View style={noteBox}>{noteText}</View>}
+        </View>
+      </AxFlow>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
@@ -112,20 +195,10 @@ export function CodeScreen() {
           style={{ position: 'absolute', top: top(96), left: 56 }}
         />
         <View style={{ position: 'absolute', top: top(286), left: 28, right: 28, gap: 8 }}>
-          <Title>{t('onboarding.code.title')}</Title>
-          <Body>
-            {before}
-            <Text style={{ color: palette.text, fontWeight: '600' }}>{state.email}</Text>
-            {after}
-          </Body>
+          {words}
         </View>
         <View style={{ position: 'absolute', top: top(400), left: 28, right: 28 }}>
-          <CodeBoxes
-            ref={boxes}
-            value={code}
-            onChange={change}
-            label={t('onboarding.code.field')}
-          />
+          {boxesField}
         </View>
         <View
           style={{
@@ -137,33 +210,8 @@ export function CodeScreen() {
             justifyContent: 'space-between',
           }}
         >
-          <View style={{ flexDirection: 'row', gap: 4 }}>
-            <Txt
-              variant="caption"
-              color={palette.secondary}
-              style={{ fontSize: 14, lineHeight: 18.2 }}
-            >
-              {t('onboarding.code.resendLead')}
-            </Txt>
-            <Press onPress={() => void resend()} darken={false} hitSlop={12}>
-              <Txt
-                variant="caption"
-                color={inks.moss}
-                style={{ fontSize: 14, lineHeight: 18.2, fontWeight: '600' }}
-              >
-                {t('onboarding.code.resend')}
-              </Txt>
-            </Press>
-          </View>
-          <Press onPress={() => router.back()} darken={false} hitSlop={12}>
-            <Txt
-              variant="caption"
-              color={palette.secondary}
-              style={{ fontSize: 14, lineHeight: 18.2 }}
-            >
-              {t('onboarding.code.otherEmail')}
-            </Txt>
-          </Press>
+          <View style={{ flexDirection: 'row', gap: 4 }}>{resendLine}</View>
+          {otherEmail}
         </View>
         {error ? (
           <View style={{ position: 'absolute', top: top(526), left: 28, right: 28 }}>
@@ -172,25 +220,9 @@ export function CodeScreen() {
         ) : (
           <View
             onLayout={(e) => noteBottom.set(e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
-            style={{
-              position: 'absolute',
-              top: top(526),
-              left: 28,
-              right: 28,
-              paddingVertical: 10,
-              paddingHorizontal: 12,
-              borderRadius: 14,
-              backgroundColor: night ? 'rgba(169,196,142,.16)' : day.mossTint,
-            }}
+            style={[{ position: 'absolute', top: top(526), left: 28, right: 28 }, noteBox]}
           >
-            <Txt
-              variant="caption"
-              multiline
-              color={night ? '#a9c48e' : '#3f4d33'}
-              style={{ lineHeight: 18.9 }}
-            >
-              {t('onboarding.code.note')}
-            </Txt>
+            {noteText}
           </View>
         )}
       </Animated.View>

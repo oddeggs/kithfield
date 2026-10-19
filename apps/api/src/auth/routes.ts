@@ -10,7 +10,7 @@ import { blockRoutes } from './blocks';
 import { consentRoutes } from './consents';
 import { desktopLinkRoutes } from './desktop-link';
 import { readMe } from './me';
-import { updateProfile } from './profile';
+import { mayWear, updateProfile } from './profile';
 import { AuthNotConfigured, authSecret, handleAuthRequest } from './instance';
 import { deletePerson, findPerson, recordAgeOk, recordTerms } from './people';
 import { issueSignInNonce } from './nonce';
@@ -94,6 +94,9 @@ export function authRoutes(): Hono<SessionEnv> {
   routes.patch('/v1/me/profile', requireSession, async (c) => {
     const body = await parseBody(c, MeProfileUpdate);
     if (!body.ok) return body.response;
+    if (!(await mayWear(c.env, c.var.person, body.value))) {
+      return errorResponse(c, 403, 'forbidden', ['critter']);
+    }
     const changed = await updateProfile(c.env, c.var.person, body.value);
     const me = changed === null ? null : await readMe(c.env, c.var.person);
     if (me === null) return errorResponse(c, 401, 'unauthorized');

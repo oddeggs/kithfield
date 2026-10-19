@@ -4,6 +4,7 @@ import { Avatar } from '../../ui/art/avatar';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { ACCESSORIES, critterOf, kindOf, lookOf, MARKS, type CritterChoice } from './critters';
 import { useRing } from './fades';
@@ -19,8 +20,17 @@ export function CoatOptions({
   const { t } = useLocale();
   const { palette } = useTheme();
   const ring = useRing();
+  // At the accessibility sizes the names outgrow one row, so the swatches wrap.
+  const wrap = useAccessibilitySize();
   return (
-    <View style={{ flexDirection: 'row', gap: 16, paddingTop: 6 }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        gap: 16,
+        paddingTop: 6,
+        ...(wrap ? { flexWrap: 'wrap' } : {}),
+      }}
+    >
       {kindOf(choice.species).coats.map((coat) => {
         const on = coat.id === choice.coat;
         const label = t(`onboardingCritters.coat.${coat.label}`);
@@ -77,7 +87,7 @@ export function MarkOptions({
             accessibilityLabel={label}
             accessibilityState={{ selected: on }}
             style={{
-              height: 36,
+              minHeight: 36,
               paddingHorizontal: 14,
               borderRadius: 18,
               justifyContent: 'center',

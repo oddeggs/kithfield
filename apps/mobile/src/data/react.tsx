@@ -105,7 +105,7 @@ export function useFarmSelector<T>(
   );
 }
 
-const NOBODY: PresenceState = { here: [], typing: [] };
+const NOBODY: PresenceState = { here: [], typing: [], fire: [] };
 
 /** Who has the farm open and who is writing. Kept apart from the farm, so it re-renders alone. */
 export function usePresence(farm: FarmId): PresenceState {

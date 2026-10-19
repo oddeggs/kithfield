@@ -1,11 +1,13 @@
 import type { FarmCommand, PersonId, RejectReason } from '@kithfield/contracts';
 
 import { eitherBlocked } from '../auth';
+import { cottageOf } from '../cottage/stub';
 import type { Bindings } from '../env';
+import { claimGift, claimOf, farmOwnsTheme } from '../purchases/gift-claims';
 
 /*
  * Checks on a phone's write that need more than the farm's own log: whom a gesture is addressed
- * to (blocks), and whose media it names (another farm's media). Asked once, before the write's
+ * to (blocks), who a together sticker draws (blocks and their own say), and whose media it names (another farm's media). Asked once, before the write's
  * first answer is stored; a retried op id keeps that answer.
  */
 
@@ -40,6 +42,28 @@ const prefixOf = (farm: string) => `farm/${farm}/`;
 const mediaRefusal = (farm: string, cmd: FarmCommand): RejectReason | null =>
   keysOf(cmd).every((key) => key.startsWith(prefixOf(farm))) ? null : 'not_allowed';
 
+/**
+ * Friends drawn into a together sticker: refused when any of them and the sender blocked each
+ * other, or when any of them turned together stickers off (`MeSettings.inTogetherStickers`).
+ */
+const stickerRefusal = async (
+  env: Bindings,
+  cmd: FarmCommand,
+  actor: PersonId,
+  personOf: (id: PersonId) => PersonId,
+): Promise<RejectReason | null> => {
+  if (cmd.kind !== 'sticker' || !cmd.payload.with) return null;
+  const people = cmd.payload.with.map(personOf).filter((p) => p !== actor);
+  const refused = await Promise.all(
+    people.map(
+      async (person) =>
+        (await eitherBlocked(env.DB, actor, person)) ||
+        (await cottageOf(env, person).settings()).settings?.inTogetherStickers !== true,
+    ),
+  );
+  return refused.some(Boolean) ? 'not_allowed' : null;
+};
+
 /** Why the write is refused before the farm's rules see it, or null. */
 export const refusalOf = async (
   env: Bindings,
@@ -50,9 +74,32 @@ export const refusalOf = async (
 ): Promise<RejectReason | null> => {
   const media = mediaRefusal(farm, cmd);
   if (media !== null) return media;
+  // A farm theme is shown only once the farm owns it (friends' chip-in covered it).
+  if (
+    cmd.kind === 'settings_changed' &&
+    cmd.payload.setting === 'theme' &&
+    cmd.payload.theme !== null &&
+    !(await farmOwnsTheme(env.DB, farm, cmd.payload.theme))
+  ) {
+    return 'not_allowed';
+  }
+  // A gift friends chipped in for is written by the farm alone; a phone can't send one.
+  if (
+    cmd.kind === 'gift' &&
+    cmd.payload.action === 'given' &&
+    (cmd.payload.chipIn !== undefined || cmd.payload.with !== undefined)
+  ) {
+    return 'not_allowed';
+  }
+  const sticker = await stickerRefusal(env, cmd, actor, personOf);
+  if (sticker !== null) return sticker;
   const to = (cmd.payload as { to?: unknown }).to;
   if (!ADDRESSED.has(cmd.kind) || typeof to !== 'string') return null;
   const recipient = personOf(to);
-  if (recipient === actor) return null;
-  return (await eitherBlocked(env.DB, actor, recipient)) ? 'unavailable' : null;
+  if (recipient !== actor && (await eitherBlocked(env.DB, actor, recipient))) return 'unavailable';
+  // A gift id is taken only from its giver, paid and not given yet: claimed now, released by the
+  // caller if the farm refuses the write after all.
+  const claim = claimOf(cmd, actor);
+  if (claim !== null && !(await claimGift(env.DB, claim, Date.now()))) return 'not_found';
+  return null;
 };

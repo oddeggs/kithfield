@@ -4,18 +4,21 @@ import { radii } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { getCalendars, getLocales } from 'expo-localization';
 import { useState } from 'react';
-import { ActionSheetIOS, View } from 'react-native';
+import { ActionSheetIOS, View, useWindowDimensions } from 'react-native';
 
 import { useCottage, useDataClient, useFarm, useFarmView } from '../../data';
 import { ArtIcon, ArtLoop } from '../../ui/art/art-view';
-import { sceneLook } from '../../ui/art/critter-look';
+import { lookOf, sceneLook } from '../../ui/art/critter-look';
 import { Button } from '../../ui/components/button';
 import { ListGroup, ListRow } from '../../ui/components/list-row';
 import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
+import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { TravelAnchor, timing, travelIds, useTravel } from '../../ui/travel';
 import { Txt } from '../../ui/type/text';
+import { WishlistShelf } from '../shop/wishlist-shelf';
 import { deviceTimeZone, hemisphereOf } from './calendar';
 import { say } from './farm-copy';
 import { farmRoutes } from './routes';
@@ -51,7 +54,7 @@ function ActionTile({
       accessibilityLabel={label}
       style={{
         flex: 1,
-        height: 76,
+        minHeight: 76,
         borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
@@ -72,6 +75,15 @@ function ActionTile({
   );
 }
 
+/** The card's own drawing of the critter, which walks off it onto a porch. */
+const CARD_STAGE = 'farm:card-stage';
+/** How big the critters walking onto the porch are drawn. */
+const WALKER = 140;
+
+/** The way the porch draws a critter on a seat (`S.porch`): the hedgehog and sheep face in. */
+export const seatFacing = (species: string, seat: number): 'left' | 'right' =>
+  (species === 'hedgehog' || species === 'sheep') && seat === 1 ? 'left' : 'right';
+
 /**
  * A critter's card: who they are, how they are, a visit to their porch, the gestures you
  * can leave them, and mute, report or block.
@@ -86,12 +98,18 @@ export function CritterCard({
   const { t, language, fontLocale } = useLocale();
   const { palette } = useTheme();
   const toast = useToast();
+  const { width } = useWindowDimensions();
   const now = useNow();
   const state = useFarm(farm)?.state ?? null;
   const view = useFarmView<FarmView>(farm, now);
   const { chats } = useCottage();
   const client = useDataClient();
   const [opening, setOpening] = useState(false);
+  const travel = useTravel();
+  const me = useSession().person?.id ?? null;
+  // The card's top on the window, from its own height: views in a native sheet measure from it.
+  const { height: windowH } = useWindowDimensions();
+  const [cardH, setCardH] = useState<number | null>(null);
   const member = state?.members.find((m) => m.person === person) ?? null;
   const critter = view?.critters.find((c) => c.person === person) ?? null;
   if (!state || !member) return null;
@@ -110,10 +128,67 @@ export function CritterCard({
   const visit = chats.find((c) => c.farmKind === 'visit' && c.with?.person === person);
   const c = member.critter;
 
+  // The card closes as you go, so coming back finds the farm with its tab bar, not the card.
+  const toPorch = (porch: FarmId) => {
+    if (router.canGoBack()) router.back();
+    router.navigate(farmRoutes.chat(porch));
+  };
+  /**
+   * Both critters walk onto the porch as it opens (signature motion): they come off the card, you
+   * from the left, and sit on their seats in its header.
+   */
+  const walkToPorch = async (porch: FarmId) => {
+    // The porch seats its owner (whoever opened it first) on the left: each walks to their seat
+    // and lands facing the way the porch draws them sitting. They sit down together, as the porch
+    // draws the pair once both are seated.
+    const held = (await client.replica(porch).catch(() => null))?.getState().state ?? null;
+    const first = held?.members[0]?.person ?? me;
+    const seatOf = (who: PersonId) => (who === first ? 0 : 1);
+    const walk = {
+      durationMs: timing('visitStart', 'total'),
+      hops: { count: 4, height: 8 },
+      arc: -10,
+      hideSource: false,
+    } as const;
+    let gone = false;
+    const go = () => {
+      if (gone) return;
+      gone = true;
+      toPorch(porch);
+    };
+    travel.fly({
+      ...walk,
+      from: CARD_STAGE,
+      to: travelIds.porchSeat(porch, person),
+      sprite: {
+        critter: c.species,
+        look: lookOf(c),
+        size: WALKER,
+        facing: seatFacing(c.species, seatOf(person)),
+      },
+      onStart: go,
+      onReturned: go,
+    });
+    const mine = me ? state.members.find((m) => m.person === me) : undefined;
+    if (me && mine) {
+      travel.fly({
+        ...walk,
+        from: { x: -WALKER - 20, y: windowH * 0.25, width: WALKER, height: WALKER },
+        to: travelIds.porchSeat(porch, me),
+        sprite: {
+          critter: mine.critter.species,
+          look: lookOf(mine.critter),
+          size: WALKER,
+          facing: seatFacing(mine.critter.species, seatOf(me)),
+        },
+      });
+    }
+    setTimeout(go, 250);
+  };
   // Their porch: the visit you already share, or one opened (or reopened) for the two of you.
   const openPorch = async () => {
     if (visit) {
-      router.navigate(farmRoutes.chat(visit.farm));
+      await walkToPorch(visit.farm);
       return;
     }
     if (opening) return;
@@ -124,7 +199,7 @@ export function CritterCard({
         timeZone: deviceTimeZone(getCalendars()[0]?.timeZone),
         hemisphere: hemisphereOf(getLocales()[0]?.regionCode),
       });
-      router.navigate(farmRoutes.chat(opened.farm));
+      await walkToPorch(opened.farm);
     } catch {
       toast.show(t('farm.card.visitFailed'));
     } finally {
@@ -152,9 +227,14 @@ export function CritterCard({
     );
 
   return (
-    <View style={{ paddingHorizontal: 18, paddingTop: 22, gap: 12 }}>
+    <View
+      style={{ flex: 1, paddingHorizontal: 18, paddingTop: 22, gap: 12 }}
+      onLayout={(e) => setCardH(e.nativeEvent.layout.height)}
+    >
       <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
-        <View
+        <TravelAnchor
+          id={CARD_STAGE}
+          {...(cardH === null ? {} : { sheetTop: windowH - cardH })}
           style={{
             width: 104,
             height: 110,
@@ -173,7 +253,7 @@ export function CritterCard({
               ...(critter?.sleepy ? { state: 'sleep' } : {}),
             }}
           />
-        </View>
+        </TravelAnchor>
         <View style={{ flex: 1, gap: 4 }}>
           <Txt variant="errorTitle" multiline accessibilityRole="header">
             {name}
@@ -212,7 +292,7 @@ export function CritterCard({
         <ActionTile
           icon="rosette"
           label={t('farm.card.gift')}
-          onPress={() => toast.show(t('farm.card.giftSoon'), 'rosette')}
+          onPress={() => router.push({ pathname: '/shop/gift', params: { farm, to: person } })}
         />
         <ActionTile
           icon="photo"
@@ -220,6 +300,8 @@ export function CritterCard({
           onPress={() => router.navigate(farmRoutes.media(farm))}
         />
       </View>
+      {/* What they'd love: each wish leads to leaving it on their step. */}
+      <WishlistShelf farm={farm} person={person} own={false} width={width - 36} />
       <ListGroup>
         <ListRow
           icon="bell"

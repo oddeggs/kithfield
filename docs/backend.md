@@ -47,7 +47,7 @@ JSON frames over the farm socket (`GET /v1/farms/:id/socket`, upgraded and forwa
 | phone | `cmd {opId, kind, payload}` | A write. Applied once per `opId` |
 | farm | `event {event}` | A new event from anyone, the writer's own included |
 | farm | `ack {opId, seq}` / `rejected {opId, reason}` | The outcome. A rejection is final; the outbox drops it and the UI explains |
-| both | `presence`, `typing` | Never stored. The phone sends `{here}` or `{on}`; the farm sends who is here or writing. Presence drives `farm_opened` at most hourly |
+| both | `presence`, `typing` | Never stored. The phone sends `{here}` or `{on}`; the farm sends who is here or writing, and with `presence` who is by the fire (`fire`, from LiveKit's webhook, §10; never how long anyone stayed). Presence drives `farm_opened` at most hourly |
 | farm | `error {code}` | The socket closes: `unauthorized` (get a new token and say hello again), `not_member`, `banned`, `protocol_unsupported`, `rules_outdated`, `farm_gone` |
 
 - **Order**: after committing a write the farm broadcasts the new `event` to every socket, the writer's included, then sends the writer its `ack`. A rejected write gets only `rejected`.
@@ -82,6 +82,7 @@ JSON frames over the farm socket (`GET /v1/farms/:id/socket`, upgraded and forwa
 - **Trades.** Two farms trade at most once in a rolling 90 days, and only a visitor the gate would let in can trade. `traded` is written on both farms; the visited farm writes first and owes the other half until it lands.
 - **Blocks** apply to visits, the gate and trades: between two people where either blocked the other no visit opens, no gate gesture or trade from one reaches the other, and the gate doesn't show one to the other.
 - **Blocks inside a shared farm**: a gesture addressed to one person (firefly, gift, slow post, knock, hug, wave) between two people where either blocked the other is rejected `unavailable` (design 11-12); the rest of the chat is unchanged.
+- **Blocks and the fire room**: blocks cover gestures addressed to one person only. Who sits by the fire is room presence, shared with everyone on the farm, blocked or not; leaving the farm, removal, a ban or deleting the account takes a person out of the room at once.
 
 **Wire conventions.** JSON with camelCase keys. Ids are named by their noun: `farm`, `person`, `device`, `report`, never `farmId`. Ids are made by the server, except device ids, which the app makes. Times are epoch milliseconds (integers, UTC), never ISO strings. Calendar days are `YYYY-MM-DD` in the farm's time zone, birthdays `MM-DD`, wall-clock times `HH:MM`.
 
@@ -95,6 +96,9 @@ farms(id, kind, name, keeper_id, created_at, size_cap)   -- kind: farm | visit; 
 invites(code_hash, farm_id, created_by, expires_at, uses_left)
 entitlements(person_id, product, source, expires_at)       -- from RevenueCat
 gifts(id, from_id, to_id, product, farm_id, created_at, opened_at)
+chip_ins, pledges, wishlists, farm_themes, book_orders     -- the shop (§10)
+consents(person_id, feature, allowed, text_version, at)    -- AI consent (11-18 to 11-20)
+together_consents(subject_id, asker_id, ok, at)             -- together stickers leaving the app
 reports(id, reporter_id, farm_id, seq, reason, context_json, status, created_at)
 moderation_actions(id, report_id, admin_id, action, note, created_at)
 bans(person_id, scope, until, reason)
@@ -127,6 +131,7 @@ Farm content never lives in D1. A report copies its context (the reported event 
 - A push's `data` is `PushData {farm, seq, kind, push}` (contracts): `push` is the cottage's id for it, which the app sends back with `POST /v1/push/opened` (`PushOpenedRequest {id}`) when the push is opened. When three of a kind from a farm go unopened in a row, that kind rests on the farm.
 - Nudges: `few` is two a week, `some` four. They back off after two go ignored: one last "I'll stop knocking", then nothing until the person comes back (`design/10`).
 - A knock to call (an invite to sit together) is pushed at most once an hour per porch and is never collapsed. It expires after 60 seconds and never becomes a missed-call push.
+- A friend asking to take a together sticker with you in it out of Kithfield pushes you once, the first time that friend asks (`TOGETHER_ASK_PUSH`, `push.togetherAsk`), as one of the farm's pushes for the day; over the budget it folds into "A few things on the farm". Opened, it shows the asks (Settings › Stickers with you in them).
 
 ## 7. Deletion and moderation
 
@@ -150,7 +155,44 @@ TLS in transit; Cloudflare encrypts Durable Object storage, D1 and R2 at rest. T
 
 The API is the route `<host>/api/*`; the site serves the rest and `/.well-known/apple-app-site-association`. Invite links are `kithfield.com/i/<code>`, or `kith.fm/<code>` if that domain is bought. Bundle ids are placeholders until the Apple account is set up.
 
-## 10. To verify
+Set per environment in `apps/api/wrangler.jsonc`:
+
+| | dev | prd | What it does |
+|---|---|---|---|
+| `RULES_TARGET` (var) | `4` | `3` | The farm rules version new events are written under, held at or below the server's own `RULES_VERSION` (`farm/wiring.ts`). It stays at the version every phone in the store can read: rules 4 (restoration projects, farm-written themes) goes to prd once a store build reads it. Unset, the server's own version |
+| `GATE_LIMIT` | 10 a minute | 10 a minute | Gestures at another farm's gate, per visitor |
+| `GATES_LIMIT` | 30 a minute | 30 a minute | `GET /v1/gates`, the farms a person may visit, per person |
+| `AI_LIMIT` | 30 a minute | 30 a minute | Asking for a voice note's caption, per person |
+| `AI_FARM_LIMIT` | 120 a minute | 120 a minute | Asking for voice-note captions, per farm |
+| `AI` (Workers AI) | remote | remote | Voice-note captions, their translation and the Sunday letter. Always runs on Cloudflare, also from `wrangler dev`; the tests stand in for it |
+| `SHOP_LIMIT` | 10 a minute | 10 a minute | The shop's writes, per person: purchase syncs, gifts, chip-ins and wall names (namespaces 1261 dev, 1262 prd) |
+| `FIRE_LIMIT` | 12 a minute | 12 a minute | Pieces of a speaker's voice sent for live captions, per person, about one every five seconds (namespaces 1263 dev, 1264 prd) |
+| `APNS_KEY_ID`, `APNS_TEAM_ID` (vars), `APNS_KEY_P8` (secret) | key `4QN5TUP479`, team `YFND2EEW8S` | the same | The team's APNs key, for Live Activity pushes sent straight to Apple (start, move and end the plan's day). Without the secret, Live Activities move only while the app runs |
+| `APNS_HOST` (var) | `api.sandbox.push.apple.com,api.push.apple.com` | `api.push.apple.com` | The APNs hosts, in order; the next is tried only for a token the last called a bad device token (a TestFlight build of Kithfield Dev runs on production) |
+| `LIVEKIT_URL` (var), `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` (secrets) | `wss://kithfield-cvm2v8ac.livekit.cloud` | the same project | The fire room's LiveKit project: the key pair mints room tokens and checks LiveKit's webhook. Locally, `livekit-server --dev` (devkey / secret) and `--var LIVEKIT_URL:ws://localhost:7880` |
+
+Two crons (`triggers.crons`, UTC), told apart in `src/index.ts` by `controller.cron`:
+
+- **Daily, `17 3 * * *`**: the waitlist's retention, expired keepsakes exports, the safety desk's retention, the media sweep, chip-ins past their close (promises released, anything paid becomes the payer's credit), and accounts whose 30 days are over go on the `deletion` queue.
+- **Hourly, `7 * * * *`**: each farm whose Sunday letter is due goes on the `ai` queue (a `recap` job once Sunday 09:00 has passed in the farm's time zone, late runs included), and the AI's words owed a delete are swept from R2.
+
+The api consumes every queue (`src/queues.ts`), each with a dead-letter queue after 3 retries; `push`, `deletion` and `ai` have handlers, and a batch with none (`media`, so far) is retried rather than acked. The `ai` queue carries `AiJob`s (`recap`, `voice_caption`); its consumer reads consent again before sending anything to Workers AI.
+
+## 10. Purchases, the fire, AI, weather and the native surfaces
+
+The schemas are in `packages/contracts` (`http/shop.ts`, `http/gifts.ts`, `http/webhooks.ts`, `http/fire.ts`, `http/rhythm.ts`, `http/stickers.ts`, `http/ai.ts`, `queues.ts`, `surfaces.ts`).
+
+- **Purchases** go through RevenueCat (StoreKit 2, Play Billing). The app logs in to RevenueCat with the person id, anonymous people too; a person merge moves purchases with a RevenueCat `TRANSFER`. RevenueCat posts `RevenueCatWebhook` to `POST /v1/webhooks/revenuecat` with a shared secret in `Authorization`; the server records entitlements in D1 and acknowledges event types it doesn't act on. After a purchase or a restore the app calls `POST /v1/purchases/sync`, which asks RevenueCat at once and answers `Entitlements`. Product ids are `kf.item.<item>` (non-consumable), `kf.gift.<tier>` and `kf.chipin.<tier>` (consumables) and `PATRON_PRODUCTS`; entitlements are `patron` and `farm_plus`. The server never sends an App Store or Play price: the app shows the store's own. Owned items stay when patronage lapses; patron perks rest. Wearing an item is checked against the person's collection when the profile changes.
+- **Gifts**: `POST /v1/gifts` reserves a gift id (refused when the friend owns the item, or `unavailable` between blocked people), the app buys the gift consumable, `POST /v1/gifts/:gift/paid` ties the store transaction to it, and the phone sends `gift {given}` (or the gate gesture) with that id. The farm takes a gift id only from its giver, paid and not given yet. A gift paid for but not given yet (the app closed between the store and the farm) is kept on the giver's phone and given the next time the shop opens; the server can later list a person's paid, ungiven gifts (`GiftView` with `state: 'paid'`) so another phone of theirs can finish them, which no endpoint serves yet.
+- **Chip-ins** (a wished-for gift on a member's birthday, a farm theme): members see who chipped in and how full it is, never amounts; the friend a gift is for never sees it. Once covered, the farm writes the gift on behalf of whoever started it (`gift {given, chipIn, with}`), or switches the theme on with `settings_changed {theme}` and a null actor; a theme is the farm's forever. Not covered in time, every pledge is released or refunded.
+- **The printed book** is a physical good, so it is paid through Stripe Checkout, never in-app purchase. A split order authorises each share and captures them once covered; uncovered by the deadline, the holds are released. Stripe posts to `POST /v1/webhooks/stripe`, checked against `Stripe-Signature`.
+- **The fire room** runs on LiveKit: `POST /v1/farms/:id/fire-token` mints a token for the room `fire-<farm>` with the person id as identity and `FireAttributes` (`mode`, `captionsOk` from the person's consent, `lantern`, `captionsIn`). Its answer says whether live captions can be had at all (`captionsAvailable`: Workers AI and the shop's perks are both wired up). LiveKit posts room and participant events to `POST /v1/webhooks/livekit`, checked against its signed token; the api tells the `FarmDO`, which sends who is by the fire in the `presence` frame, writes `fire {out}` 3 minutes after the last person leaves, and sends no alert push, ever.
+- **Live captions** are a patron perk behind the speaker's `captions` consent. While someone has captions on, each consenting speaker's phone sends its own audio in pieces to `POST /v1/farms/:id/fire/captions`; the api transcribes them with Whisper and translates them with the translation model, once per piece, and publishes `FireCaptionLine`s on the room's `captions` data topic to the listeners with captions on whose patron perks are on (their own patronage, or a friend's Farm Plus). Nothing is stored; a speaker who said no shows as "…".
+- **AI** runs on Cloudflare Workers AI (`tech-decisions.md` §1). The `ai` queue carries `AiJob`s: the Sunday `recap` (from the messages of members who said yes to `recap`) and `voice_caption` (a voice note whose author said yes to `voice_notes`). Consent is read again when a job runs. Saying no stops sending at once; `…/forget` queues the deletion of what was made for that feature. The recap is served as `WeeklyRecap` (`GET /v1/farms/:id/recap`): its best pollinator rotates week to week and is chosen for a kind of care, never a count; with nobody saying yes the app writes the letter itself, with no AI. A yes counts only when given to the consent words in force (the app's `CONSENT_TEXT_VERSION`, the api's `AI_CONSENT_TEXT_VERSION`). A voice note is captioned when a friend asks (`POST /v1/farms/:id/voice/:seq/caption {lang}`, then `GET …?lang=`; at most 30 asks a minute per person and 120 per farm): Whisper hears it once, claimed so languages asked together share the run, and other languages are translated from that; nothing heard is final. A forwarded voice note is never captioned (its voice said yes nowhere here), nor is anything between two people where either blocked the other. The letter is written from the yes-sayers' messages as last edited, never what they forwarded, with people and the farm as placeholders: names reach it only through them, and a letter naming anyone otherwise is refused, as is one with numerals, counting, ranking or streak words, or a run of words lifted from a message (a quote translated into the other language isn't caught; the prompt asks for none). The hourly cron sends each due farm to the `ai` queue, which queues the latest week once Sunday 09:00 has passed in the farm's time zone, late runs included. What the AI made is kept as JSON in R2 under `ai/`, indexed in D1 without its words, and served only after a last look at consent; a caption goes with its voice note's media (unsend, removal with media, quarantine, account deletion), a safety removal drops it at once (the audio stays for an appeal), `…/forget` or account deletion deletes the person's captions and every letter their words went into, and a farm that is gone takes all of it.
+- **Weather** comes from WeatherKit's REST API, fetched at 05:00 farm time for the keeper's town (`farm-model.md` §6). `GET /v1/weather/attribution` answers `WeatherAttribution`, Apple's mark and legal link, cached by the server, shown wherever the weather changes the farm.
+- **Native surfaces** read the App Group: the app writes `SurfaceData` and the PNGs it renders, and widgets work out lit windows (opened in the last 3 hours) and sleepiness against "now". Notification actions (`NOTIFICATION_ACTIONS`: I'm in, Can't this time, Leave a dewdrop) send the command `actionCommand` builds to `POST /v1/farms/:id/cmd` with the device's action key. Live Activity tokens are registered with `PUT /v1/devices/:deviceId/activity-start` and `…/activities`; a silent push carrying `SurfaceRefreshData` asks the app to rewrite the surfaces, which is how a widget learns the fire is lit. The share extension sends what it can and leaves the rest as `ShareDraft`s for the app.
+
+## 11. To verify
 
 - Durable Object limits for the busiest farm: 24 members, a lit fire, a burst of reactions. Measure requests and CPU per event.
 - Expo push from Workers, and receipts handling.

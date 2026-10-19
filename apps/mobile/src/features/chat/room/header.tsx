@@ -11,7 +11,10 @@ import { ArtIcon } from '../../../ui/art/art-view';
 import { Glass } from '../../../ui/components/glass';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
+// The farm's short name, as the farm's own header shortens it.
+import { shortName } from '../../farm/farm-copy';
 import { useChatColours } from '../ui/chat-colours';
 
 /** How a chat's header sizes: the farm 236 points tall shrinking to 150, the porch 300 to 170. */
@@ -117,19 +120,24 @@ export function HeaderBar({
   const insets = useSafeAreaInsets();
   const { palette } = useTheme();
   const colours = useChatColours();
+  // At the accessibility sizes the title shortens to the farm's short name and stands alone
+  // (`12 States`, AX5); VoiceOver still hears both in full.
+  const ax = useAccessibilitySize();
   const pill = (
     <View style={{ paddingTop: 7, paddingBottom: 8, paddingHorizontal: 16, alignItems: 'center' }}>
-      <Txt variant="displayS" numberOfLines={1}>
-        {title}
+      <Txt variant="displayS" numberOfLines={1} maxFontSizeMultiplier={2}>
+        {ax ? shortName(title) : title}
       </Txt>
-      <Txt
-        variant="caption"
-        color={palette.body}
-        numberOfLines={1}
-        style={{ fontSize: 12, marginTop: 2 }}
-      >
-        {subtitle}
-      </Txt>
+      {ax ? null : (
+        <Txt
+          variant="caption"
+          color={palette.body}
+          numberOfLines={1}
+          style={{ fontSize: 12, marginTop: 2 }}
+        >
+          {subtitle}
+        </Txt>
+      )}
     </View>
   );
   return (
@@ -156,7 +164,11 @@ export function HeaderBar({
         style={{ flexShrink: 1, minWidth: 0 }}
       >
         {onTitle ? (
-          <Press onPress={onTitle} radius={22} accessibilityLabel={titleLabel ?? title}>
+          <Press
+            onPress={onTitle}
+            radius={22}
+            accessibilityLabel={titleLabel ?? `${title}, ${subtitle}`}
+          >
             {pill}
           </Press>
         ) : (

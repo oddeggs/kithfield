@@ -15,6 +15,7 @@ import { Hono } from 'hono';
 import { eitherBlocked, type SessionEnv } from '../auth';
 import { ACTION_KEY_HEADER } from '../cottage/action-key';
 import type { Bindings } from '../env';
+import { claimGift, claimOf, releaseGift } from '../purchases/gift-claims';
 import { profileOf } from './adapters/identity';
 import { knowsSomeoneOn, noteVisitor, roleOf } from './d1';
 import {
@@ -138,7 +139,27 @@ export const farmRoutes = (): Hono<SessionEnv> => {
     if (!(await withinGateLimit(c, person))) return fail(c, 429, 'rate_limited');
     const profile = await profileOf(c.env, person);
     if (profile === null) return fail(c, 403, 'forbidden');
-    const result = await farmStub(c.env, farm).atGate(person, profile, req.opId, req.gesture);
+    // A gift at the gate is claimed first, as a member's is (`purchases/gift-claims`).
+    const stub = farmStub(c.env, farm);
+    const claim =
+      (await stub.answered(req.opId)) === null
+        ? claimOf({ kind: 'gate', opId: req.opId, payload: req.gesture }, person)
+        : null;
+    if (claim !== null && !(await claimGift(c.env.DB, claim, Date.now()))) {
+      return c.json({
+        result: 'rejected',
+        opId: req.opId,
+        reason: 'not_found',
+      } satisfies CommandResult);
+    }
+    let result: CommandResult;
+    try {
+      result = await stub.atGate(person, profile, req.opId, req.gesture);
+    } catch (error) {
+      if (claim !== null) await releaseGift(c.env.DB, claim).catch(() => undefined);
+      throw error;
+    }
+    if (claim !== null && result.result === 'rejected') await releaseGift(c.env.DB, claim);
     if (result.result === 'ack') await noteVisitor(c.env.DB, person, farm, Date.now());
     return c.json(result);
   });

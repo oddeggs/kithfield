@@ -23,3 +23,22 @@ MEDIA_SIGNING_KEY=
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
+# WeatherKit's `.p8` key for the farm's weather (PKCS#8 PEM, one line with newlines written as \n).
+# Empty: no weather is fetched and farms write none.
+WEATHERKIT_KEY=
+# RevenueCat's secret REST key (project settings › API keys), for `POST /v1/purchases/sync`. Empty
+# locally: sync then answers from D1 alone.
+REVENUECAT_SECRET_KEY=
+# The Authorization header value RevenueCat sends with its webhook (set the same in RevenueCat).
+REVENUECAT_WEBHOOK_AUTH=
+# Stripe's webhook signing secret (whsec_…), for the printed scrapbook. Empty until it is set up.
+STRIPE_WEBHOOK_SECRET=
+# The team's APNs key for Live Activity pushes: the whole `.p8` file's contents (PEM). Empty
+# locally unless testing remote Live Activities on a device. Its id goes in the APNS_KEY_ID var.
+APNS_KEY_P8=
+# LiveKit, for the fire room. Locally, `livekit-server --dev` takes devkey / secret, and
+# `wrangler dev --var LIVEKIT_URL:ws://localhost:7880` points the API at it.
+LIVEKIT_API_KEY=
+LIVEKIT_API_SECRET=
+# Kithfield's Telegram bot token (from @BotFather), for sticker sets made through the Bot API.
+TELEGRAM_BOT_TOKEN=

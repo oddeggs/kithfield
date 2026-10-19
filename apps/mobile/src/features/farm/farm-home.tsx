@@ -1,15 +1,23 @@
-import type { FarmId } from '@kithfield/contracts';
+import type { DoorstepItem, FarmId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useDataClient, useFarm, useFarmLink, useFarmView, useOpenFarm, useSend } from '../../data';
-import { ArtStill } from '../../ui/art/art-view';
+import {
+  useDataClient,
+  useFarm,
+  useFarmEvents,
+  useFarmLink,
+  useFarmView,
+  useOpenFarm,
+  useSend,
+} from '../../data';
+import { ArtLoop, ArtStill } from '../../ui/art/art-view';
 import { EmptyState } from '../../ui/components/state-shell';
 import { Sheet, SheetScrollView } from '../../ui/components/sheet';
-import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useArtVisible } from '../../ui/motion/visibility';
@@ -17,20 +25,72 @@ import { useSession } from '../../ui/session/session';
 import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
 import { useYouCritter } from '../../ui/tab-bar/tab-activity';
 import { useSunPlace, useTheme } from '../../ui/theme/theme-provider';
+// The fire on the farm: its glow, who is by it, and the way into the fire room.
+import { FireGlowCard, useFireOnFarm } from '../fire/fire-glow';
+// A sticker pack given as a gift opens as the stickers' own parcel.
+import { stickerRoutes } from '../stickers';
+import { packOf } from '../stickers/model/catalogue';
+// The farm's rhythm (birthdays, shared rain, weather, the project, the harvest letter).
+import { RhythmSheetRows, RhythmWeatherChip, useRhythmMoments } from '../rhythm/farm-entries';
+import { rhythmRoutes } from '../rhythm/routes';
 import { lookOf } from './farm-bake';
 import { seasonLabel } from './farm-copy';
 import { FarmHeader } from './farm-header';
 import { FarmScene } from './farm-scene';
+import {
+  DrawingLabel,
+  FarmFog,
+  FarmLoadFailed,
+  FarmReveal,
+  PencilRows,
+  useFarmLoading,
+  useOffline,
+} from './farm-states';
+import { JustYou } from './just-you';
+import { Panel } from './panel';
+import { OfflineBanner, PostBag } from './post-bag';
 import { FarmSheetContent } from './farm-sheet';
 import { momentFor, visitBefore } from './moments';
 import { removalNote } from './removal-note';
 import { farmRoutes } from './routes';
 import { sceneHeight } from './scene-layout';
+import { useFireWay, useHarvestWay } from './scene-ways';
+import { reactionTo, SAID_MS, type FarmReaction } from './reactions';
 import { useNow } from './use-now';
 import { useFarmFlags, useValley } from './valley-store';
 
 /** The sheet overlaps the bottom of the farm by this much (the farm is drawn 540 tall, the sheet rests at 500). */
 const OVERLAP = 40;
+
+/**
+ * The farm reacting to a friend's message while it is open (signature motion): their words pop
+ * over their cottage for a moment, one burst every four seconds at most.
+ */
+function useFarmReaction(farm: FarmId, me: string | null): FarmReaction | null {
+  const events = useFarmEvents(farm, 10);
+  const focused = useIsFocused();
+  const so = useRef<{ afterSeq: number; lastAt: number | null } | null>(null);
+  const [said, setSaid] = useState<FarmReaction | null>(null);
+  useEffect(() => {
+    if (events.length === 0) return;
+    const newest = events.reduce((top, e) => Math.max(top, e.seq), 0);
+    // What was there as the farm opened, or while it was out of sight, never pops up.
+    if (so.current === null || !focused) {
+      so.current = { afterSeq: newest, lastAt: so.current?.lastAt ?? null };
+      return;
+    }
+    const now = Date.now();
+    const next = reactionTo(events, me, so.current, now);
+    so.current = { afterSeq: next.afterSeq, lastAt: next.reaction ? now : so.current.lastAt };
+    if (next.reaction) setSaid(next.reaction);
+  }, [events, focused, me]);
+  useEffect(() => {
+    if (!said) return;
+    const timer = setTimeout(() => setSaid(null), SAID_MS);
+    return () => clearTimeout(timer);
+  }, [said]);
+  return said;
+}
 
 /**
  * The welcome-back and move-in moments, decided as the farm opens and again when someone new
@@ -91,7 +151,19 @@ function useMoments(farm: FarmId, me: string | null) {
   }, [client, farm, me, latestJoin, flags]);
 }
 
-function FarmFor({ farm }: { readonly farm: FarmId }) {
+/** Where the scene is drawn for a farm with only you on it, at the design's 393 points wide. */
+const ALONE = { scene: 470, sheet: 440 } as const;
+/** Where "drawing the farm…" sits over the scene, at the design's 393 points wide. */
+const DRAWING_TOP = 250;
+
+function FarmFor({
+  farm,
+  name,
+}: {
+  readonly farm: FarmId;
+  /** The farm's name from the farm list, for the header while the farm itself loads. */
+  readonly name: string | null;
+}) {
   const { t } = useLocale();
   const insets = useSafeAreaInsets();
   const { width, height: screen } = useWindowDimensions();
@@ -99,21 +171,44 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
   const me = useSession().person?.id ?? null;
   const now = useNow();
   useOpenFarm(farm);
-  const state = useFarm(farm)?.state ?? null;
+  const held = useFarm(farm);
+  const state = held?.state ?? null;
   const view = useFarmView<FarmView>(farm, now);
+  const link = useFarmLink(farm);
+  const offline = useOffline(link);
+  const loading = useFarmLoading(state !== null);
+  const k = width / 393;
   const send = useSend(farm);
-  const toast = useToast();
-  const { appearance } = useTheme();
+  const { appearance, palette } = useTheme();
   const visible = useArtVisible();
   const reduce = useReduceMotion();
   const [sheet, setSheet] = useState(0);
+  const fire = useFireOnFarm(farm);
+  const fireWay = useFireWay(farm, { width, height, screen }, fire.lit);
+  const harvestWay = useHarvestWay(farm, view, { width, height });
+  const said = useFarmReaction(farm, me);
+  const client = useDataClient();
+  // A gift opens on the step (the shop's 09-05), or, for a sticker pack, as its parcel (08-06).
+  const openGift = async (d: DoorstepItem, gift: string) => {
+    const given = (await client.events(farm, { before: d.seq + 1, limit: 1 })).find(
+      (e) => e.seq === d.seq,
+    );
+    // A member's `gift {given}`, or a visitor's gift left at the gate.
+    const payload = given?.payload as { item?: unknown; gesture?: { item?: unknown } } | undefined;
+    const item = payload?.item ?? payload?.gesture?.item;
+    if (typeof item === 'string' && packOf(item) !== null) {
+      router.push(stickerRoutes.opened(farm, d.seq));
+    } else {
+      router.push({ pathname: '/shop/step', params: { farm, gift } });
+    }
+  };
   const self = state?.members.find((m) => m.person === me) ?? null;
 
   useSunPlace(state?.place ? { lat: state.place.lat, lng: state.place.lng } : null);
   useYouCritter(self ? { kind: self.critter.species, look: lookOf(self.critter) } : null);
   useMoments(farm, me);
+  useRhythmMoments(farm, view, me);
   // Turned away by the farm (a removal the phone never saw, or a farm that is gone).
-  const link = useFarmLink(farm);
   const { lost } = useValley();
   const turnedAway =
     link.status === 'blocked' && (link.code === 'not_member' || link.code === 'farm_gone');
@@ -124,38 +219,96 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
   const openCritter = (person: string) =>
     router.push(person === me ? farmRoutes.bubble(farm) : farmRoutes.critter(farm, person));
 
+  // Nothing of the farm on the phone and no way to reach it: the full-screen error. A farm with
+  // anything cached shows that instead, in a fog.
+  const unreachable =
+    held !== null && state === null && (offline || (link.status === 'blocked' && !turnedAway));
+  if (unreachable) {
+    return (
+      <View style={{ flex: 1, backgroundColor: palette.background }}>
+        <FarmLoadFailed
+          {...(link.status === 'blocked' ? { code: `KF-${link.code}` } : {})}
+          onRetry={() => client.reconnect(farm)}
+        />
+      </View>
+    );
+  }
+
+  // Only you on the farm so far: the sketched cottages wait for friends.
+  const alone = state !== null && state.members.length === 1 && state.former.length === 0;
+  const sceneH = alone ? ALONE.scene * k : height;
+  const restingTop = alone ? ALONE.sheet * k : height - OVERLAP;
+  const farmName = state?.name ?? name ?? '';
+
   return (
-    <View style={{ flex: 1 }}>
-      <FarmScene
-        state={state}
-        view={view}
-        me={me}
-        width={width}
-        height={height}
-        night={appearance === 'night'}
-        // The farm rests while the sheet covers it at full height.
-        running={visible && !reduce && sheet === 0}
-        now={now}
-        targets={{
-          onCritter: openCritter,
-          onHouse: (h) =>
-            h.former ? router.push(farmRoutes.cottage(farm, h.person)) : openCritter(h.person),
-          onFire: () => toast.show(t('farm.fire.soon'), 'lantern'),
-          onPatch: () => router.navigate(farmRoutes.seedbed()),
-          onPlan: (p) => router.push(farmRoutes.plan(farm, p.seed.seq)),
-        }}
-      />
-      {state && view ? (
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
+      {alone ? (
+        <ArtLoop
+          scene="invite"
+          width={width}
+          height={sceneH}
+          attrs={{
+            ...(view ? { season: view.season.season } : {}),
+            ...(appearance === 'night' ? { night: true } : {}),
+          }}
+          paused={!visible || sheet !== 0}
+        />
+      ) : (
+        <Animated.View
+          style={[{ position: 'absolute', left: 0, top: 0, width, height }, fireWay.style]}
+        >
+          <FarmScene
+            state={state}
+            view={view}
+            me={me}
+            width={width}
+            height={height}
+            night={appearance === 'night'}
+            // The farm rests while the sheet covers it at full height.
+            running={visible && !reduce && sheet === 0}
+            hints={visible && sheet === 0 && !offline && !loading.revealing && state !== null}
+            now={now}
+            fire={fire}
+            coverTop={height - OVERLAP}
+            said={said}
+            targets={{
+              onCritter: openCritter,
+              onHouse: (h) =>
+                h.former ? router.push(farmRoutes.cottage(farm, h.person)) : openCritter(h.person),
+              onFire: fireWay.open,
+              onPatch: () => router.navigate(farmRoutes.seedbed()),
+              onPlan: (p) => router.push(farmRoutes.plan(farm, p.seed.seq)),
+            }}
+          />
+        </Animated.View>
+      )}
+      {loading.revealing ? (
+        <FarmReveal width={width} height={sceneH} ready={state !== null} onDone={loading.done} />
+      ) : null}
+      <FarmFog width={width} height={sceneH} on={offline && state !== null} />
+      {loading.loading ? <DrawingLabel top={DRAWING_TOP * k} /> : null}
+      {farmName && (state === null || view) ? (
         <FarmHeader
-          name={state.name ?? ''}
-          season={seasonLabel(t, view.season.season, view.today, state.hemisphere)}
+          name={farmName}
+          season={
+            state && view ? seasonLabel(t, view.season.season, view.today, state.hemisphere) : ''
+          }
           top={insets.top + 1}
           onSwitch={() => router.push(farmRoutes.valley())}
         />
       ) : null}
+      {offline && state ? <OfflineBanner top={insets.top + 57} /> : null}
+      {state && view && !offline ? (
+        <RhythmWeatherChip farm={farm} state={state} view={view} top={insets.top + 53} />
+      ) : null}
+      {loading.loading ? (
+        <Panel top={restingTop}>
+          <PencilRows />
+        </Panel>
+      ) : null}
       {state && view ? (
         <Sheet
-          detents={[screen - (height - OVERLAP), screen - insets.top - 60]}
+          detents={[screen - restingTop, screen - insets.top - 60]}
           index={sheet}
           onIndexChange={(i) => setSheet(Math.max(0, i))}
         >
@@ -163,6 +316,17 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
             contentContainerStyle={{ paddingTop: 4, paddingBottom: tabBarClearance(insets.bottom) }}
             showsVerticalScrollIndicator={false}
           >
+            {offline ? <PostBag pending={held?.pending ?? []} farmName={farmName} /> : null}
+            {alone ? (
+              <View style={{ marginBottom: 24 }}>
+                <JustYou onInvite={() => router.push(farmRoutes.invite(farm))} />
+              </View>
+            ) : null}
+            {fire.line !== null ? (
+              <View style={{ marginBottom: 12 }}>
+                <FireGlowCard farm={farm} onOpen={fireWay.open} />
+              </View>
+            ) : null}
             <FarmSheetContent
               state={state}
               view={view}
@@ -171,14 +335,18 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
                 onCredits: () => router.push(farmRoutes.critters(farm)),
                 onPlan: (p) => router.push(farmRoutes.plan(farm, p.seed.seq)),
                 onFirefly: (to) => router.push(farmRoutes.tray(farm, to)),
-                // Opening what waits on the step: a firefly wakes your critter.
-                onDoorstep: (d) =>
-                  void (d.kind === 'gift' && d.gift
-                    ? send('gift', { action: 'opened', gift: d.gift })
-                    : send('firefly', { action: 'opened', target: d.seq })),
-                onRose: () => router.navigate(farmRoutes.chat(farm)),
+                // Opening what waits on the step: a gift opens; a firefly wakes your critter.
+                onDoorstep: (d) => {
+                  if (d.kind === 'gift' && d.gift) {
+                    void openGift(d, d.gift);
+                    return;
+                  }
+                  void send('firefly', { action: 'opened', target: d.seq });
+                },
+                onRose: (person) => router.push(rhythmRoutes.birthday(farm, person)),
               }}
             />
+            <RhythmSheetRows farm={farm} state={state} view={view} onRecap={harvestWay.open} />
           </SheetScrollView>
         </Sheet>
       ) : null}
@@ -233,7 +401,10 @@ export function FarmHome() {
   const valley = useValley();
   useGoneNote(valley.gone, valley.forget);
 
-  if (valley.current) return <FarmFor key={valley.current} farm={valley.current} />;
+  if (valley.current) {
+    const row = valley.farms.find((f) => f.farm === valley.current);
+    return <FarmFor key={valley.current} farm={valley.current} name={row?.name ?? null} />;
+  }
   if (valley.status === 'loading') {
     return <View style={{ flex: 1, backgroundColor: palette.background }} />;
   }

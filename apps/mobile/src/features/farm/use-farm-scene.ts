@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useArt } from '../../ui/art/art-provider';
 import { bakeBackdrop, bakeCritter, type Backdrop } from './farm-bake';
 import type { CanvasCritter } from './farm-canvas';
+import { bakeFarmFire, type FarmFire } from './farm-fire';
 import { placeFarm, type FarmPlacement, type HouseKey } from './scene-layout';
 import { whenIdle } from './use-now';
 
@@ -13,6 +14,8 @@ export interface FarmScene {
   /** Null until the still is drawn (on an idle moment after the screen's first frame). */
   readonly backdrop: Backdrop | null;
   readonly critters: readonly CanvasCritter[];
+  /** The fire while it is lit (null until it is drawn, on an idle moment). */
+  readonly fire: FarmFire | null;
   /** Who is asleep now, by person. */
   readonly asleep: ReadonlySet<string>;
 }
@@ -39,6 +42,7 @@ export function useFarmScene(
   view: FarmView | null,
   size: { width: number; height: number },
   night: boolean,
+  fireLit = false,
 ): FarmScene {
   const store = useArt();
   const { width, height } = size;
@@ -76,6 +80,17 @@ export function useFarmScene(
     const req = JSON.parse(backdropKey) as Parameters<typeof bakeBackdrop>[1];
     return whenIdle(() => setBackdrop(bakeBackdrop(store, req)));
   }, [store, backdropKey]);
+
+  const fireKey = fireLit ? JSON.stringify({ width, height, night }) : null;
+  const [fire, setFire] = useState<FarmFire | null>(null);
+  useEffect(() => {
+    if (!fireKey) {
+      setFire(null);
+      return;
+    }
+    const req = JSON.parse(fireKey) as { width: number; height: number; night: boolean };
+    return whenIdle(() => setFire(bakeFarmFire(store, req.width, req.height, req.night)));
+  }, [store, fireKey]);
 
   const crittersKey = JSON.stringify(
     placement.critters.map((p) => {
@@ -136,5 +151,5 @@ export function useFarmScene(
     // `crittersKey` stands for the placement, the members' critters and who sleeps.
   }, [store, crittersKey, width, height]);
 
-  return { placement, backdrop, critters, asleep };
+  return { placement, backdrop, critters, fire, asleep };
 }

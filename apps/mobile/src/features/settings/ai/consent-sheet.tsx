@@ -1,6 +1,6 @@
 import type { AiFeature, FarmId } from '@kithfield/contracts';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { View } from 'react-native';
 
 import { useFarmSelector } from '../../../data';
@@ -18,7 +18,7 @@ import { useKitColors } from '../kit/colors';
 import { SheetPage } from '../kit/sheet-page';
 import { KText } from '../kit/text';
 import { openPage, siteUrl } from '../links';
-import { AI_PROVIDER, CONSENT_TEXT_VERSION } from './consent';
+import { answerConsent } from './consent';
 
 const farmName = (s: { state: { name: string | null } | null } | null) => s?.state?.name ?? null;
 
@@ -32,15 +32,15 @@ function Lead({ text }: { readonly text: string }) {
 }
 
 /** The recap's lead names the farm whose letter it is. */
-function RecapLead({ farm, provider }: { readonly farm: FarmId; readonly provider: string }) {
+function RecapLead({ farm, processor }: { readonly farm: FarmId; readonly processor: string }) {
   const { t } = useLocale();
   const name = useFarmSelector(farm, farmName);
   return (
     <Lead
       text={
         name
-          ? t('settings.consent.recap.lead', { farm: name, provider })
-          : t('settings.consent.recap.leadAll', { provider })
+          ? t('ai.consent.recap.lead', { farm: name, processor })
+          : t('ai.consent.recap.leadAll', { processor })
       }
     />
   );
@@ -83,9 +83,10 @@ function Point({
 }
 
 /**
- * Asking first: before anything is sent to an outside AI, the person reads what
- * is sent, what may be done with it and what stays, and says yes or no. The answer is stored with
- * the time and the wording's version; saying no never breaks the feature for anyone else.
+ * Asking first: before anything is sent to the outside AI (Workers AI, run by Cloudflare), the
+ * person reads what is sent, what may be done with it and what stays, and says yes or no. The
+ * answer is stored with the time and the wording's version; saying no never breaks the feature for
+ * anyone else. Voice-note captions have no design of their own and follow the captions sheet.
  */
 export function ConsentSheet({
   feature,
@@ -93,23 +94,6 @@ export function ConsentSheet({
 }: {
   readonly feature: AiFeature;
   readonly farm?: FarmId;
-}) {
-  // Without a provider there is nothing to agree to: the route closes without asking.
-  useEffect(() => {
-    if (AI_PROVIDER === null) router.back();
-  }, []);
-  if (AI_PROVIDER === null) return null;
-  return <Asking feature={feature} provider={AI_PROVIDER} {...(farm ? { farm } : {})} />;
-}
-
-function Asking({
-  feature,
-  farm,
-  provider,
-}: {
-  readonly feature: AiFeature;
-  readonly farm?: FarmId;
-  readonly provider: string;
 }) {
   const { t, language } = useLocale();
   const { palette } = useTheme();
@@ -119,7 +103,7 @@ function Asking({
   const [busy, setBusy] = useState(false);
   const answer = (allowed: boolean) => {
     setBusy(true);
-    api.setConsent(feature, { allowed, textVersion: CONSENT_TEXT_VERSION }).then(
+    answerConsent(api, feature, allowed).then(
       () => {
         if (allowed) haptics.success();
         router.back();
@@ -130,21 +114,70 @@ function Asking({
       },
     );
   };
-  const captions = feature === 'captions';
+  const provider = t('ai.provider');
+  const processor = t('ai.consent.processor', { provider });
+  const terms = t('ai.consent.terms', { provider });
+  const copy =
+    feature === 'captions'
+      ? {
+          eyebrow: t('settings.consent.captions.eyebrow'),
+          title: t('settings.consent.captions.title'),
+          lead: <Lead text={t('ai.consent.captions.lead', { processor })} />,
+          sentIcon: 'mic',
+          sent: t('settings.consent.captions.sent'),
+          use: `${t('settings.consent.captions.use')} ${terms}`,
+          last: {
+            icon: 'note',
+            title: t('settings.consent.captions.stays'),
+            text: t('ai.consent.captions.staysText'),
+          },
+          others: t('settings.consent.captions.others'),
+          yes: t('settings.consent.captions.yes'),
+          no: t('settings.consent.captions.no'),
+        }
+      : feature === 'voice_notes'
+        ? {
+            eyebrow: t('ai.consent.voiceNotes.eyebrow'),
+            title: t('ai.consent.voiceNotes.title'),
+            lead: <Lead text={t('ai.consent.voiceNotes.lead', { processor })} />,
+            sentIcon: 'mic',
+            sent: t('ai.consent.voiceNotes.sent'),
+            use: `${t('ai.consent.voiceNotes.use')} ${terms}`,
+            last: {
+              icon: 'note',
+              title: t('ai.consent.voiceNotes.stays'),
+              text: t('ai.consent.voiceNotes.staysText'),
+            },
+            others: t('ai.consent.voiceNotes.others'),
+            yes: t('ai.consent.voiceNotes.yes'),
+            no: t('ai.consent.voiceNotes.no'),
+          }
+        : {
+            eyebrow: t('settings.consent.recap.eyebrow'),
+            title: t('settings.consent.recap.title'),
+            lead: farm ? (
+              <RecapLead farm={farm} processor={processor} />
+            ) : (
+              <Lead text={t('ai.consent.recap.leadAll', { processor })} />
+            ),
+            sentIcon: 'chat',
+            sent: t('ai.consent.recap.sent'),
+            use: `${t('settings.consent.recap.use')} ${terms} ${t('ai.consent.recap.kept')}`,
+            last: {
+              icon: 'bee',
+              title: t('settings.consent.recap.ifNo'),
+              text: t('settings.consent.recap.ifNoText'),
+            },
+            others: null,
+            yes: t('settings.consent.recap.yes'),
+            no: t('settings.consent.recap.no'),
+          };
   return (
     <SheetPage
       footer={
         <>
-          <Button
-            label={captions ? t('settings.consent.captions.yes') : t('settings.consent.recap.yes')}
-            onPress={() => answer(true)}
-            disabled={busy}
-          />
-          <Button
-            label={captions ? t('settings.consent.captions.no') : t('settings.consent.recap.no')}
-            kind="text"
-            onPress={() => answer(false)}
-          />
+          <Button label={copy.yes} onPress={() => answer(true)} disabled={busy} />
+          <Button label={copy.no} kind="text" onPress={() => answer(false)} />
           <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 14 }}>
             {(
               [
@@ -175,9 +208,9 @@ function Asking({
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Txt variant="handS" color={kit.honeyNote.icon} style={{ fontSize: 17, lineHeight: 17 }}>
-          {captions ? t('settings.consent.captions.eyebrow') : t('settings.consent.recap.eyebrow')}
+          {copy.eyebrow}
         </Txt>
-        {captions ? (
+        {feature === 'captions' ? (
           <View
             style={{
               paddingHorizontal: 8,
@@ -193,45 +226,19 @@ function Asking({
         ) : null}
       </View>
       <Txt variant="displayM" multiline accessibilityRole="header" style={{ lineHeight: 29.1 }}>
-        {captions ? t('settings.consent.captions.title') : t('settings.consent.recap.title')}
+        {copy.title}
       </Txt>
-      {captions ? (
-        <Lead text={t('settings.consent.captions.lead', { provider })} />
-      ) : farm ? (
-        <RecapLead farm={farm} provider={provider} />
-      ) : (
-        <Lead text={t('settings.consent.recap.leadAll', { provider })} />
-      )}
+      {copy.lead}
       <View style={{ gap: 12 }}>
-        <Point
-          icon={captions ? 'mic' : 'chat'}
-          title={t('settings.consent.sent')}
-          text={captions ? t('settings.consent.captions.sent') : t('settings.consent.recap.sent')}
-        />
-        <Point
-          icon="lock"
-          title={t('settings.consent.use')}
-          text={`${captions ? t('settings.consent.captions.use') : t('settings.consent.recap.use')} ${t('settings.consent.never')}`}
-        />
-        {captions ? (
-          <Point
-            icon="note"
-            title={t('settings.consent.captions.stays')}
-            text={t('settings.consent.captions.staysText')}
-          />
-        ) : (
-          <Point
-            icon="bee"
-            title={t('settings.consent.recap.ifNo')}
-            text={t('settings.consent.recap.ifNoText')}
-          />
-        )}
+        <Point icon={copy.sentIcon} title={t('settings.consent.sent')} text={copy.sent} />
+        <Point icon="lock" title={t('settings.consent.use')} text={copy.use} />
+        <Point icon={copy.last.icon} title={copy.last.title} text={copy.last.text} />
       </View>
-      {captions ? (
+      {copy.others === null ? null : (
         <KText kind="note" multiline color={palette.secondary}>
-          {t('settings.consent.captions.others')}
+          {copy.others}
         </KText>
-      ) : null}
+      )}
     </SheetPage>
   );
 }

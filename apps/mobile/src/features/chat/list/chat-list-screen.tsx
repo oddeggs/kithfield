@@ -1,6 +1,7 @@
 import type { ChatListItem } from '@kithfield/contracts';
 import { layout } from '@kithfield/theme';
-import { useEffect, useMemo, useState } from 'react';
+import { router } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -41,7 +42,12 @@ export function ChatListScreen() {
   const { t } = useLocale();
   const toast = useToast();
   const chatApi = useChatApi();
-  const { chats } = useCottage();
+  const { chats, link } = useCottage();
+  // The list is truly empty only once the cottage has answered: a fresh install shows nothing
+  // rather than "plant a farm" while its farms are on their way (`12 States`, empty states).
+  const answered = useRef(false);
+  if (link.status === 'live') answered.current = true;
+  const emptyForSure = answered.current || link.status === 'live';
   const me = useMe();
   const now = useMinute();
   const [changes, setChanges] = useState<Readonly<Record<string, Change>>>({});
@@ -110,7 +116,7 @@ export function ChatListScreen() {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          height: Math.max(insets.top, 20) + 3 + 44,
+          minHeight: Math.max(insets.top, 20) + 3 + 44,
         }}
       >
         <Txt variant="displayL" accessibilityRole="header">
@@ -132,13 +138,19 @@ export function ChatListScreen() {
           />
         </View>
       </View>
-      {rows.length === 0 ? (
+      {rows.length === 0 && !emptyForSure ? (
+        <View style={{ flex: 1 }} />
+      ) : rows.length === 0 ? (
         <View style={{ flex: 1, paddingBottom: tabBarClearance(insets.bottom) }}>
           <EmptyState
-            art={<ArtStill scene="spot" width={300} height={200} attrs={{ name: 'empty' }} />}
+            art={<ArtStill scene="spot" width={300} height={200} attrs={{ name: 'letter' }} />}
             title={t('chat.list.empty.title')}
             body={t('chat.list.empty.body')}
-            action={{ label: t('chat.list.newFarm'), onPress: go.newFarm }}
+            action={{
+              label: t('chat.list.empty.action'),
+              onPress: () => router.navigate('/(tabs)/farm'),
+              kind: 'secondary',
+            }}
           />
         </View>
       ) : (

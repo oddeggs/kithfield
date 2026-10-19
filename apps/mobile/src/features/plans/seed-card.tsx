@@ -94,7 +94,7 @@ function SproutedCard({
             hitSlop={6}
             accessibilityLabel={t('plans.bed.addToCalendar')}
             style={{
-              height: 32,
+              minHeight: 32,
               paddingHorizontal: 12,
               borderRadius: 16,
               justifyContent: 'center',

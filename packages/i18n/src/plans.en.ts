@@ -102,7 +102,8 @@ export const plansEn = {
   'plans.bed.onFarm': 'On {farm}',
   'plans.bed.empty.title': 'Nothing planted yet',
   'plans.bed.empty.body':
-    'Plant a seed from any message, or start one here. It sprouts once it has a day, a place and enough yeses.',
+    'When someone says “we should…”, long-press it and plant it as a seed. It grows here, away from the chat.',
+  'plans.bed.empty.action': 'Plant the first seed',
   'plans.bed.loading': 'Looking over the seed bed…',
 
   /* A plan: voting buds and the sun patch */

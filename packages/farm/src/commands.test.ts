@@ -55,6 +55,17 @@ describe('checkCommand', () => {
     expect(check(log.state(), 'left', {}, bea)).toBe(true);
   });
 
+  it('draws only current members other than the sender into a together sticker', () => {
+    const { log, state } = setup();
+    const sticker = (people: string[]) => ({ pack: 'mine', sticker: 'us', with: people });
+    expect(check(state, 'sticker', sticker([pip, fig]))).toBe(true);
+    expect(check(state, 'sticker', sticker([bea]))).toBe('invalid');
+    expect(check(state, 'sticker', sticker([pip, kit]))).toBe('unavailable');
+    log.add('left', pip, { how: 'left' });
+    expect(check(log.state(), 'sticker', sticker([pip]))).toBe('unavailable');
+    expect(check(log.state(), 'sticker', { pack: 'mine', sticker: 'wave' })).toBe(true);
+  });
+
   it('allows edits by the author for 15 minutes, and only of messages', () => {
     const { state, message, seed, context } = setup();
     const edit = (actor: string, now: number, target = message.seq) =>

@@ -11,12 +11,22 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useAccount } from '../../../ui/session/account';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
 import { routes } from '../flow';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
 import { FadeUp, PaperFade } from '../fades';
-import { Body, ErrorLine, Title, TopBar, useBottom, useDesignTop, useSceneAttrs } from '../kit';
+import {
+  AxFlow,
+  Body,
+  ErrorLine,
+  Title,
+  TopBar,
+  useBottom,
+  useDesignTop,
+  useSceneAttrs,
+} from '../kit';
 import { useProgress } from '../progress';
 import { pageUrl } from './house-rules-screen';
 import { appleSheet, googleSheet, SheetCancelled, type SheetAnswer } from '../social';
@@ -37,6 +47,7 @@ export function SignInScreen() {
   const top = useDesignTop();
   const bottom = useBottom();
   const scene = useSceneAttrs();
+  const ax = useAccessibilitySize();
   const { signIn } = useAccount();
   const { update } = useFlow();
   const progress = useProgress();
@@ -82,87 +93,112 @@ export function SignInScreen() {
     </Text>
   );
 
+  const words = (
+    <>
+      <Title size={32}>{t('onboarding.signIn.title')}</Title>
+      <Body>{t('onboarding.signIn.body')}</Body>
+    </>
+  );
+  const buttons = (
+    <>
+      {unsent ? (
+        <NoticeCard
+          icon="raincloud"
+          text={t(
+            unsent.reason === 'sign_out'
+              ? 'onboarding.signIn.unsent.signOut'
+              : 'onboarding.signIn.unsent.sessionEnd',
+          )}
+          style={{ marginBottom: 8 }}
+        />
+      ) : null}
+      <FadeUp delay={0}>
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+          buttonStyle={
+            appearance === 'night'
+              ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+              : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+          }
+          cornerRadius={28}
+          style={{ height: 56 }}
+          onPress={() => void withSheet('apple', appleSheet)}
+        />
+      </FadeUp>
+      <FadeUp delay={60}>
+        <Press
+          onPress={() => void withSheet('google', googleSheet)}
+          radius={28}
+          accessibilityLabel={t('onboarding.signIn.google')}
+          style={{
+            // At the accessibility sizes the label may wrap, so the button grows with it.
+            ...(ax
+              ? { minHeight: 56, paddingVertical: 10, paddingHorizontal: 18 }
+              : { height: 56 }),
+            borderRadius: 28,
+            backgroundColor: '#ffffff',
+            borderWidth: 1,
+            borderColor: 'rgba(42,34,29,.18)',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Txt variant="button" color="#2a221d">
+            {t('onboarding.signIn.google')}
+          </Txt>
+        </Press>
+      </FadeUp>
+      <FadeUp delay={120}>
+        <Button
+          label={t('onboarding.signIn.email')}
+          kind="secondary"
+          onPress={() => router.push(routes.email)}
+        />
+      </FadeUp>
+      <ErrorLine text={error} />
+      <Txt
+        variant="note"
+        multiline
+        align="center"
+        color={palette.secondary}
+        style={{ fontSize: 12.5, lineHeight: 18.1, marginTop: 6 }}
+      >
+        {before}
+        {link(t('onboarding.signIn.rules'), () => router.push(routes.houseRules))}
+        {middle}
+        {link(t('onboarding.signIn.privacy'), () => {
+          void WebBrowser.openBrowserAsync(pageUrl('privacy', language), {
+            presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+          });
+        })}
+        {after}
+      </Txt>
+    </>
+  );
+  // Held at the moment the rabbit is up and about, as the design shows it.
+  const art = <SceneArt scene="welcome" width={width} height={top(420)} attrs={scene} t={4} />;
+
+  if (ax) {
+    return (
+      <AxFlow bar={<TopBar onBack={() => router.back()} />} footer={buttons} footerGap={8}>
+        <View>
+          {art}
+          <PaperFade width={width} top={top(300)} height={140} />
+        </View>
+        <View style={{ paddingHorizontal: 28, gap: 8 }}>{words}</View>
+      </AxFlow>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
-      {/* Held at the moment the rabbit is up and about, as the design shows it. */}
-      <SceneArt scene="welcome" width={width} height={top(420)} attrs={scene} t={4} />
+      {art}
       <PaperFade width={width} top={top(300)} height={140} />
       <TopBar onBack={() => router.back()} overArt />
       <View style={{ position: 'absolute', top: top(418), left: 28, right: 28, gap: 8 }}>
-        <Title size={32}>{t('onboarding.signIn.title')}</Title>
-        <Body>{t('onboarding.signIn.body')}</Body>
+        {words}
       </View>
-      <View style={{ position: 'absolute', left: 24, right: 24, bottom, gap: 8 }}>
-        {unsent ? (
-          <NoticeCard
-            icon="raincloud"
-            text={t(
-              unsent.reason === 'sign_out'
-                ? 'onboarding.signIn.unsent.signOut'
-                : 'onboarding.signIn.unsent.sessionEnd',
-            )}
-            style={{ marginBottom: 8 }}
-          />
-        ) : null}
-        <FadeUp delay={0}>
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-            buttonStyle={
-              appearance === 'night'
-                ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-                : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-            }
-            cornerRadius={28}
-            style={{ height: 56 }}
-            onPress={() => void withSheet('apple', appleSheet)}
-          />
-        </FadeUp>
-        <FadeUp delay={60}>
-          <Press
-            onPress={() => void withSheet('google', googleSheet)}
-            radius={28}
-            accessibilityLabel={t('onboarding.signIn.google')}
-            style={{
-              height: 56,
-              borderRadius: 28,
-              backgroundColor: '#ffffff',
-              borderWidth: 1,
-              borderColor: 'rgba(42,34,29,.18)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Txt variant="button" color="#2a221d">
-              {t('onboarding.signIn.google')}
-            </Txt>
-          </Press>
-        </FadeUp>
-        <FadeUp delay={120}>
-          <Button
-            label={t('onboarding.signIn.email')}
-            kind="secondary"
-            onPress={() => router.push(routes.email)}
-          />
-        </FadeUp>
-        <ErrorLine text={error} />
-        <Txt
-          variant="note"
-          multiline
-          align="center"
-          color={palette.secondary}
-          style={{ fontSize: 12.5, lineHeight: 18.1, marginTop: 6 }}
-        >
-          {before}
-          {link(t('onboarding.signIn.rules'), () => router.push(routes.houseRules))}
-          {middle}
-          {link(t('onboarding.signIn.privacy'), () => {
-            void WebBrowser.openBrowserAsync(pageUrl('privacy', language), {
-              presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
-            });
-          })}
-          {after}
-        </Txt>
-      </View>
+      <View style={{ position: 'absolute', left: 24, right: 24, bottom, gap: 8 }}>{buttons}</View>
     </View>
   );
 }

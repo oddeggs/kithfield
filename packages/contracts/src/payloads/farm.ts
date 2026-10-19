@@ -138,6 +138,11 @@ const keeperSettings = [
   z.object({ setting: z.literal('place'), place: FarmPlace.nullable() }),
   z.object({ setting: z.literal('birthdays'), on: z.boolean() }),
   z.object({ setting: z.literal('approval'), on: z.boolean() }),
+  /**
+   * The farm theme on show, or none. A keeper switches among the themes the farm owns
+   * (`FarmThemes`); the farm writes it itself, with a null actor, when friends' chip-in for a new
+   * theme is covered. A theme, once covered, is the farm's forever.
+   */
   z.object({ setting: z.literal('theme'), theme: ArtId.nullable() }),
   z.object({ setting: z.literal('role'), person: PersonId, role: Role }),
 ] as const;

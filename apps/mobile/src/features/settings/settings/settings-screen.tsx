@@ -6,7 +6,8 @@ import { Toggle } from '../../../ui/components/toggle';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
-import { AI_PROVIDER, aiDataCount } from '../ai/consent';
+import { stickerRoutes } from '../../stickers/routes';
+import { aiDataCount } from '../ai/consent';
 import { useSettingsApi } from '../api/use-api';
 import { useDevicePref } from '../device-prefs';
 import { HOUSE_HOURS, clockTime, zoneName } from '../format';
@@ -14,6 +15,7 @@ import { go } from '../go';
 import { BackButton, Group, Label, useDesignTop } from '../kit/layout';
 import { SettingRow } from '../kit/setting-row';
 import { useRemote } from '../use-remote';
+import { LoadFailed } from '../kit/remote-state';
 import { useMeSettings } from './use-me-settings';
 
 function Section({ label, children }: { readonly label: string; readonly children: ReactNode }) {
@@ -35,13 +37,12 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const top = useDesignTop();
   const api = useSettingsApi();
-  const { settings, change } = useMeSettings();
+  const { me, settings, change } = useMeSettings();
   const [catchUp, setCatchUp] = useDevicePref('aiCatchUp');
-  const consents = useRemote(() =>
-    AI_PROVIDER === null ? Promise.resolve({ consents: [] }) : api.consents(),
-  );
+  const consents = useRemote(() => api.consents());
   const catchUpOn = catchUp === 'on';
-  const aiCount = aiDataCount(AI_PROVIDER, catchUpOn, consents.data?.consents ?? []);
+  // Counted once the answers are in, so the row never shows everything off while they load.
+  const aiCount = consents.data === null ? null : aiDataCount(catchUpOn, consents.data.consents);
 
   const quiet = settings?.quietHours ?? null;
   const quietValue = quiet
@@ -76,6 +77,8 @@ export function SettingsScreen() {
         >
           {t('settings.title')}
         </Txt>
+        {/* Your settings couldn't be read: say so over the rows, which wait switched off. */}
+        {me.data === null && me.failed ? <LoadFailed onRetry={me.reload} /> : null}
         <Section label={t('settings.privacy')}>
           <SettingRow
             icon="lock"
@@ -166,6 +169,18 @@ export function SettingsScreen() {
               (v) => change({ inTogetherStickers: v }),
               t('settings.stickers'),
             )}
+          />
+          <SettingRow
+            icon="people"
+            title={t('settings.stickers.asks')}
+            subtitle={t('settings.stickers.asksSub')}
+            onPress={() => go(stickerRoutes.asks())}
+          />
+          <SettingRow
+            icon="sparkle"
+            title={t('settings.stickers.export')}
+            subtitle={t('settings.stickers.exportSub')}
+            onPress={() => go(stickerRoutes.export())}
           />
           <SettingRow
             icon="chat"

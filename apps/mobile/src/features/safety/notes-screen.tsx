@@ -9,6 +9,7 @@ import { useSafetyApi } from '../settings/api/use-api';
 import { go } from '../settings/go';
 import { Group, NavBar, Note, Page, Row } from '../settings/kit/layout';
 import { useRemote } from '../settings/use-remote';
+import { useRemoteGate } from '../settings/kit/remote-state';
 
 /** Opens one note from the safety team as its sheet. */
 export const openNote = (note: SafetyNote) =>
@@ -47,6 +48,7 @@ export function NotesScreen() {
   const { t, language } = useLocale();
   const api = useSafetyApi();
   const notes = useRemote(() => api.notes());
+  const gate = useRemoteGate([notes]);
   useFocusEffect(
     useCallback(() => {
       notes.reload();
@@ -68,20 +70,24 @@ export function NotesScreen() {
         : t('safety.appealed.title');
   return (
     <Page header={<NavBar title={t('safety.notes.title')} />}>
-      {list.length > 0 ? (
-        <Group>
-          {list.map((n) => (
-            <Row
-              key={n.id}
-              icon="lantern"
-              title={title(n)}
-              subtitle={day(n.at)}
-              onPress={() => openNote(n)}
-            />
-          ))}
-        </Group>
-      ) : null}
-      {notes.data && list.length === 0 ? <Note text={t('safety.notes.none')} /> : null}
+      {gate ?? (
+        <>
+          {list.length > 0 ? (
+            <Group>
+              {list.map((n) => (
+                <Row
+                  key={n.id}
+                  icon="lantern"
+                  title={title(n)}
+                  subtitle={day(n.at)}
+                  onPress={() => openNote(n)}
+                />
+              ))}
+            </Group>
+          ) : null}
+          {notes.data && list.length === 0 ? <Note text={t('safety.notes.none')} /> : null}
+        </>
+      )}
     </Page>
   );
 }

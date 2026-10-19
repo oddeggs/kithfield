@@ -127,6 +127,12 @@ export const SeedState = z
       .max(LIMITS.members),
     checkins: people,
     sproutedAt: EpochMs.nullable(),
+    /**
+     * Whether the plan has a place it can't show: one rebuilt from its tombstoned planting
+     * (unsent, no title or place) that may still sprout, or a live one a tombstoned edit gave a
+     * place. Gone once the plan is unsent on this farm or an edit names a place; never drawn.
+     */
+    placed: z.boolean().optional(),
   })
   .refine((s) => s.unsent === (s.title === null) && (!s.unsent || s.place === null), {
     message: 'An unsent seed has no title or place; a live one has a title',
@@ -163,6 +169,30 @@ export const DoorstepItem = z
     path: ['gift'],
   });
 export type DoorstepItem = z.infer<typeof DoorstepItem>;
+
+/**
+ * The farm's long restoration project (the old greenhouse, then the next one the catalogue in
+ * `@kithfield/farm` lists). Any tend from anyone on a farm day marks the day tended; the next step
+ * is revealed overnight, at the farm's first event on a later day, one step a night however much
+ * care there was. Views reveal it from "now" before that event lands, as sleepiness is computed.
+ * Steps only rise; nothing is ever undone. Not on visits.
+ */
+export const RestorationState = z.object({
+  /** The project under way, by its art name. */
+  project: ArtId,
+  /** Steps revealed so far; the catalogue says how many finish the project. */
+  step: z.int().min(0).max(100),
+  /** The farm day the latest step was revealed on, or the project started. */
+  steppedOn: LocalDate,
+  /**
+   * The latest farm day anyone tended. A step is revealed on the first later day when this is on
+   * or after `steppedOn`.
+   */
+  tendedOn: LocalDate.nullable(),
+  /** Projects finished, oldest first. */
+  done: z.array(z.object({ project: ArtId, finishedOn: LocalDate })).max(100),
+});
+export type RestorationState = z.infer<typeof RestorationState>;
 
 /** A visit's porch pot: one plant a season from both people's care, and its own scrapbook. */
 export const PorchPot = PlantState.extend({
@@ -229,6 +259,11 @@ export const FarmState = z.object({
     }),
   doorstep: z.array(DoorstepItem).max(500),
   fireLitAt: EpochMs.nullable(),
+  /**
+   * The restoration project, from the rules version that brought it (`RESTORATION_RULES_VERSION`).
+   * Absent on a visit, and in a snapshot written before then.
+   */
+  restoration: RestorationState.optional(),
 });
 export type FarmState = z.infer<typeof FarmState>;
 

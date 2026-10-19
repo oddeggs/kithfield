@@ -16,6 +16,7 @@ jobs:
   checks:
     name: typecheck, lint, format, build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -33,6 +34,7 @@ jobs:
   test:
     name: package tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -45,6 +47,7 @@ jobs:
   api:
     name: api tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -56,6 +59,7 @@ jobs:
   mobile:
     name: mobile tests and bundle
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -69,6 +73,7 @@ jobs:
   art-goldens:
     name: art goldens
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -93,6 +98,7 @@ jobs:
     if: always()
     needs: [checks, test, api, mobile, art-goldens]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - run: |
           if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "true" ]; then

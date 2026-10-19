@@ -11,6 +11,7 @@ import { useKitColors } from '../kit/colors';
 import { Group, Label, NavBar, Note, Page, Row } from '../kit/layout';
 import { KText } from '../kit/text';
 import { useRemote } from '../use-remote';
+import { useRemoteGate } from '../kit/remote-state';
 import { useFarmSettings } from './use-farm-settings';
 
 const KNOCKS = ['plans', 'doorstep', 'mentions', 'messages'] as const;
@@ -27,6 +28,7 @@ export function NotificationsScreen({ farm }: { readonly farm: FarmId }) {
   const { state } = useFarmSettings(farm);
   const view = useRemote(() => api.notifications(farm), farm);
   const n = view.data;
+  const gate = useRemoteGate([view]);
   const now = Date.now();
   const chosen = n ? muteChoiceOf(n.mutedUntil, now) : null;
 
@@ -70,67 +72,71 @@ export function NotificationsScreen({ farm }: { readonly farm: FarmId }) {
         />
       }
     >
-      <Label text={t('settings.notify.mute')} />
-      <Group>
-        {MUTE_CHOICES.map((c) => (
-          <Row
-            key={c}
-            title={t(`settings.notify.${c}`)}
-            selected={chosen === c}
-            onPress={() => mute(c)}
-          />
-        ))}
-      </Group>
-      <Note text={t('settings.notify.note')} />
-      <Label text={t('settings.notify.knockFor')} />
-      <Group>
-        {KNOCKS.map((k) => (
-          <Row
-            key={k}
-            title={t(`settings.notify.${k}`)}
-            {...(k === 'messages' ? { subtitle: t('settings.notify.messagesSub') } : {})}
-            trailing={
-              <Toggle
-                value={n?.knockFor[k] ?? false}
-                onChange={(on) => knock(k, on)}
-                label={t(`settings.notify.${k}`)}
-                disabled={!n}
+      {gate ?? (
+        <>
+          <Label text={t('settings.notify.mute')} />
+          <Group>
+            {MUTE_CHOICES.map((c) => (
+              <Row
+                key={c}
+                title={t(`settings.notify.${c}`)}
+                selected={chosen === c}
+                onPress={() => mute(c)}
               />
-            }
-          />
-        ))}
-      </Group>
-      {(n?.resting ?? []).map((r) => (
-        <Press
-          key={r.type}
-          onPress={() => wake(r)}
-          radius={18}
-          accessibilityRole="button"
-          accessibilityLabel={`${t('settings.notify.resting', {
-            kind: t(`settings.notify.kind.${r.type}`),
-            day: day(r.until),
-          })} ${t('settings.notify.wake')}`}
-          style={{
-            borderRadius: 18,
-            backgroundColor: kit.honeyNote.bg,
-            paddingVertical: 12,
-            paddingHorizontal: 14,
-            flexDirection: 'row',
-            gap: 10,
-          }}
-        >
-          <ArtIcon name="moon" size={22} color={kit.honeyNote.icon} />
-          <KText kind="card" multiline color={kit.honeyNote.fg} style={{ flex: 1 }}>
-            {t('settings.notify.resting', {
-              kind: t(`settings.notify.kind.${r.type}`),
-              day: day(r.until),
-            })}{' '}
-            <KText kind="card" color={kit.honeyNote.fg} style={{ fontWeight: '600' }}>
-              {t('settings.notify.wake')}
-            </KText>
-          </KText>
-        </Press>
-      ))}
+            ))}
+          </Group>
+          <Note text={t('settings.notify.note')} />
+          <Label text={t('settings.notify.knockFor')} />
+          <Group>
+            {KNOCKS.map((k) => (
+              <Row
+                key={k}
+                title={t(`settings.notify.${k}`)}
+                {...(k === 'messages' ? { subtitle: t('settings.notify.messagesSub') } : {})}
+                trailing={
+                  <Toggle
+                    value={n?.knockFor[k] ?? false}
+                    onChange={(on) => knock(k, on)}
+                    label={t(`settings.notify.${k}`)}
+                    disabled={!n}
+                  />
+                }
+              />
+            ))}
+          </Group>
+          {(n?.resting ?? []).map((r) => (
+            <Press
+              key={r.type}
+              onPress={() => wake(r)}
+              radius={18}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('settings.notify.resting', {
+                kind: t(`settings.notify.kind.${r.type}`),
+                day: day(r.until),
+              })} ${t('settings.notify.wake')}`}
+              style={{
+                borderRadius: 18,
+                backgroundColor: kit.honeyNote.bg,
+                paddingVertical: 12,
+                paddingHorizontal: 14,
+                flexDirection: 'row',
+                gap: 10,
+              }}
+            >
+              <ArtIcon name="moon" size={22} color={kit.honeyNote.icon} />
+              <KText kind="card" multiline color={kit.honeyNote.fg} style={{ flex: 1 }}>
+                {t('settings.notify.resting', {
+                  kind: t(`settings.notify.kind.${r.type}`),
+                  day: day(r.until),
+                })}{' '}
+                <KText kind="card" color={kit.honeyNote.fg} style={{ fontWeight: '600' }}>
+                  {t('settings.notify.wake')}
+                </KText>
+              </KText>
+            </Press>
+          ))}
+        </>
+      )}
     </Page>
   );
 }

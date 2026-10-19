@@ -1,9 +1,12 @@
 import { keepModerationTidy } from './admin/retention';
+import { queueDueRecaps, sweepAiWords } from './ai';
 import { createApp } from './app';
+import { fillCaptionSeams } from './calls/caption-seams';
 import { queueDuePurges } from './auth';
 import { expireExports } from './auth/export';
 import type { Bindings } from './env';
 import { sweepMedia } from './media';
+import { closeDueChipIns } from './purchases';
 import { consumeQueue } from './queues';
 import { keepWaitlistTidy } from './web/waitlist-store';
 
@@ -12,19 +15,31 @@ export { CottageDO } from './cottage/cottage-object';
 export { FarmDO } from './farm/farm-object';
 
 const app = createApp();
+// The fire's live captions: Workers AI hears and translates, the shop's perks say who reads them.
+fillCaptionSeams();
+
+/** The hourly cron in `wrangler.jsonc`; every other cron is the daily one. */
+const HOURLY_CRON = '7 * * * *';
 
 export default {
   fetch: app.fetch,
   queue: consumeQueue,
-  // The daily cron (`wrangler.jsonc` triggers): the waitlist's retention, expired keepsakes
-  // exports, the safety desk's retention, and accounts whose 30 days are over go on the deletion
-  // queue.
   scheduled: (controller, env, ctx) => {
+    if (controller.cron === HOURLY_CRON) {
+      // The Sunday recap letters due in each farm's time zone, and the AI's words owed a delete.
+      ctx.waitUntil(queueDueRecaps(env, controller.scheduledTime));
+      ctx.waitUntil(sweepAiWords(env));
+      return;
+    }
+    // The daily cron: the waitlist's retention, expired keepsakes exports, the safety desk's
+    // retention, and accounts whose 30 days are over go on the deletion queue.
     ctx.waitUntil(keepWaitlistTidy(env.DB, controller.scheduledTime));
     ctx.waitUntil(queueDuePurges(env, controller.scheduledTime));
     ctx.waitUntil(expireExports(env, controller.scheduledTime));
     ctx.waitUntil(keepModerationTidy(env.DB, controller.scheduledTime));
     // Uploads left unfinished, or finished but sent in no event, for a week.
     ctx.waitUntil(sweepMedia(env, controller.scheduledTime, { unreferenced: true }));
+    // Chip-ins past their close: promises released, anything paid owed back.
+    ctx.waitUntil(closeDueChipIns(env, controller.scheduledTime));
   },
 } satisfies ExportedHandler<Bindings>;

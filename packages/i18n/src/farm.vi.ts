@@ -25,6 +25,7 @@ export const farmVi: ViCatalogue<typeof farmEn> = {
   'farm.switch.hint': 'Mở thung lũng các nông trại của bạn',
   'farm.dozing': '{name} đang ngủ gà ngủ gật',
   'farm.critter.label': '{name}, {state}',
+  'farm.critter.labelStatus': '{name}, {state}: “{status}”',
   'farm.state.out': 'đang dạo quanh',
   'farm.state.dozing': 'đang ngủ gật',
   'farm.state.hibernating': 'đang ngủ đông',
@@ -32,7 +33,6 @@ export const farmVi: ViCatalogue<typeof farmEn> = {
   'farm.house.label': 'Căn nhà của {name}',
   'farm.house.formerLabel': 'Căn nhà của {name}, đang ngủ',
   'farm.fire.label': 'Vòng lửa trại',
-  'farm.fire.soon': 'Vòng lửa trại vẫn đang được xếp đá. Sắp được ngồi bên bếp lửa rồi.',
   'farm.patch.label': 'Luống hạt giống',
   'farm.credits.none.lead': 'Cánh đồng đang nghỉ ngơi.',
   'farm.credits.none.rest':
@@ -207,7 +207,6 @@ export const farmVi: ViCatalogue<typeof farmEn> = {
   'farm.card.firefly': 'Đom đóm',
   'farm.card.knock': 'Gõ cửa',
   'farm.card.gift': 'Quà',
-  'farm.card.giftSoon': 'Quà tặng sẽ mở cùng cửa hàng nhỏ, sắp rồi.',
   'farm.card.photos': 'Ảnh',
   'farm.card.since': 'Ở nông trại từ {month}',
   'farm.card.lampOn': 'Đèn đang sáng, vui khi được chào',
@@ -315,6 +314,7 @@ export const farmVi: ViCatalogue<typeof farmEn> = {
 export const farmSameInBoth = [
   'farm.list.comma',
   'farm.critter.label',
+  'farm.critter.labelStatus',
   'farm.plan.flag',
   'farm.card.kind',
 ];

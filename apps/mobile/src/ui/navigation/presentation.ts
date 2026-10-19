@@ -29,8 +29,8 @@ export type SheetSpec =
   | { readonly kind: 'fit' }
   /** Transparent over the screen below, which stays drawn: the screen draws its own scrim. */
   | { readonly kind: 'overlay' }
-  /** Full screen, rising from the bottom. */
-  | { readonly kind: 'cover' };
+  /** Full screen, rising from the bottom, or fading in over a screen that leads into it. */
+  | { readonly kind: 'cover'; readonly fade?: boolean };
 
 /** The design's standard sheet: 30 radius and a grabber (`01 Foundations`, Sheets). */
 const fit: SheetSpec = { kind: 'fit' };
@@ -62,6 +62,14 @@ export const SHEETS: Readonly<Record<string, SheetSpec>> = {
   '(modal)/gestures-slow-post': cover,
   '(modal)/gestures-forward': cover,
   '(modal)/gestures-quick-tend': cover,
+  // Asking for the mic and camera by the fire, and where the fire sounds.
+  '(modal)/surfaces-mic': { kind: 'detents', tops: [190], grabber: true },
+  '(modal)/surfaces-camera': { kind: 'detents', tops: [190], grabber: true },
+  '(modal)/surfaces-sound': fit,
+  // The fire room fades in as the farm zooms into its fire ring.
+  '(cover)/fire-room': { kind: 'cover', fade: true },
+  // The sticker picker over a chat, the chat still lit and touchable above it at its first height.
+  '(modal)/stickers-picker': { kind: 'detents', tops: [494, 110], grabber: true, undimmedUpTo: 0 },
   ...(__DEV__ ? { '(dev)/sheet-lab': fit } : {}),
 };
 
@@ -70,7 +78,7 @@ export interface RootScreenOptions {
   readonly headerShown: false;
   readonly presentation: Presentation;
   readonly contentStyle: { readonly backgroundColor: string };
-  readonly animation?: 'none' | 'slide_from_bottom';
+  readonly animation?: 'none' | 'slide_from_bottom' | 'fade';
   readonly gestureEnabled?: boolean;
   readonly sheetAllowedDetents?: number[] | 'fitToContents';
   readonly sheetGrabberVisible?: boolean;
@@ -81,12 +89,29 @@ export interface RootScreenOptions {
 export interface ScreenContext {
   /** The window's height in points (`useWindowDimensions`). */
   readonly screenH: number;
+  /** The safe area's insets in points: the status bar or Dynamic Island, the home indicator. */
+  readonly insets: { readonly top: number; readonly bottom: number };
   readonly palette: Pick<Palette, 'background' | 'sheet'>;
 }
 
-/** A sheet top's distance from the screen's top as a native detent: the share of the screen below. */
-export const detentFor = (top: number, screenH: number): number =>
-  Math.min(1, Math.max(0, (screenH - top) / screenH));
+/**
+ * How iOS sizes a sheet (iOS 26, measured on the simulator): a detent is the height of the sheet
+ * above the bottom safe area and the floating sheet's own margin, as a share of the tallest a
+ * detent can be (`maximumDetentValue`), which leaves the safe areas and a gap below the status bar.
+ */
+export const SHEET_FLOAT = 8.5;
+export const LARGE_SHEET_GAP = 34;
+
+/** A sheet top's distance from the screen's top as a native detent, for these safe areas. */
+export const detentFor = (
+  top: number,
+  screenH: number,
+  insets: { readonly top: number; readonly bottom: number },
+): number => {
+  const tallest = screenH - insets.top - insets.bottom - LARGE_SHEET_GAP;
+  const height = screenH - top - insets.bottom - SHEET_FLOAT;
+  return Math.min(1, Math.max(0, height / tallest));
+};
 
 /** How a group presents a route outside `SHEETS`. */
 export function presentationFor(routeName: string): Presentation {
@@ -114,7 +139,7 @@ export function screenOptionsFor(routeName: string, ctx: ScreenContext): RootScr
       return {
         ...sheet,
         sheetAllowedDetents: spec.tops
-          .map((top) => detentFor(top, ctx.screenH))
+          .map((top) => detentFor(top, ctx.screenH, ctx.insets))
           .sort((a, b) => a - b),
         sheetGrabberVisible: spec.grabber,
         ...(spec.undimmedUpTo !== undefined
@@ -138,6 +163,10 @@ export function screenOptionsFor(routeName: string, ctx: ScreenContext): RootScr
         contentStyle: { backgroundColor: 'transparent' },
       };
     case 'cover':
-      return { ...base, presentation: 'fullScreenModal', animation: 'slide_from_bottom' };
+      return {
+        ...base,
+        presentation: 'fullScreenModal',
+        animation: spec.fade ? 'fade' : 'slide_from_bottom',
+      };
   }
 }

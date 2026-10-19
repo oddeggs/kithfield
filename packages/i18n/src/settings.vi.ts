@@ -4,6 +4,8 @@ import type { settingsEn } from './settings.en';
 export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.back': 'Quay lại',
   'settings.failed': 'Chưa gửi được. Thử lại sau một chút nhé.',
+  'settings.loadFailed': 'Chưa kết nối được tới nông trại. Ở đây chưa có gì thay đổi.',
+  'settings.tryAgain': 'Thử lại',
   'settings.saved': 'Đã lưu',
 
   'settings.species.mouse': 'Chuột',
@@ -31,6 +33,11 @@ export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.you.lives': { other: '{species} · sống ở {count} nông trại' },
   'settings.you.noFarm': '{species} · chưa có nông trại',
   'settings.you.wardrobe': 'Tủ đồ',
+  'settings.you.shop': 'Xe hàng của Rocco',
+  'settings.you.shopBody': 'Đồ cho thú nhỏ của bạn, quà tặng và giao diện nông trại',
+  'settings.you.patrons': 'Người ủng hộ',
+  'settings.you.patronsBody': 'Mã nguồn mở, không quảng cáo: người ủng hộ giữ cho đèn luôn sáng',
+  'settings.you.patronsYours': 'Sự ủng hộ của bạn, và cảm ơn bạn',
   'settings.battery.title': 'Pin giao tiếp',
   'settings.battery.visible': 'bạn bè thấy được',
   'settings.battery.resting': 'Đang nghỉ',
@@ -82,6 +89,10 @@ export const settingsVi: ViCatalogue<typeof settingsEn> = {
     'Không có gì gõ cửa từ {from} đến {to}. Giờ yên tĩnh của bạn cộng thêm vào đó, theo giờ {zone}, nơi điện thoại này đang ở.',
   'settings.stickers': 'Xuất hiện trong nhãn dán chung',
   'settings.stickers.sub': 'Bạn bè có thể vẽ bạn thú của bạn vào nhãn dán cùng họ',
+  'settings.stickers.asks': 'Nhãn dán có bạn trong đó',
+  'settings.stickers.asksSub': 'Bạn bè xin mang một nhãn dán ra khỏi Kithfield',
+  'settings.stickers.export': 'Nhãn dán của bạn, ở nơi khác',
+  'settings.stickers.exportSub': 'Tin nhắn, WhatsApp, Telegram và Ảnh',
   'settings.language': 'Ngôn ngữ',
   'settings.language.en': 'English',
   'settings.language.vi': 'Tiếng Việt',
@@ -195,30 +206,19 @@ export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.consent.plus': 'PLUS',
   'settings.consent.sent': 'Những gì được gửi',
   'settings.consent.use': 'Họ được làm gì với nó',
-  'settings.consent.never': 'Không bao giờ dùng để huấn luyện, không bao giờ giữ quá 30 ngày.',
   'settings.consent.privacy': 'Chính sách quyền riêng tư',
   'settings.consent.captions.eyebrow': 'trước khi bật',
   'settings.consent.captions.title': 'Phụ đề dùng một AI bên ngoài',
-  'settings.consent.captions.lead':
-    'Để làm phụ đề và dịch bên đống lửa, giọng nói được gửi đến {provider}, một dịch vụ AI chúng mình hợp tác. Đây là chính xác những gì xảy ra.',
   'settings.consent.captions.sent':
     'Âm thanh giọng nói từ đống lửa này, chỉ khi phụ đề đang bật, và chỉ từ những người bạn cũng đã đồng ý.',
   'settings.consent.captions.use': 'Chuyển thành chữ và dịch.',
   'settings.consent.captions.stays': 'Những gì ở lại đây',
-  'settings.consent.captions.staysText':
-    'Trò chuyện, ảnh, danh bạ và vị trí của bạn không bao giờ được gửi. Phụ đề biến mất khi lửa tắt.',
   'settings.consent.captions.others':
     'Bạn bè nói không sẽ không bao giờ có phụ đề. Lời họ hiện thành một dấu “…” lặng lẽ.',
   'settings.consent.captions.yes': 'Cho phép phụ đề',
   'settings.consent.captions.no': 'Để sau',
   'settings.consent.recap.eyebrow': 'một lá thư nhỏ, mỗi chủ nhật',
   'settings.consent.recap.title': 'Để AI giúp viết thư tóm tắt chủ nhật nhé?',
-  'settings.consent.recap.lead':
-    'Để viết một lá thư ngắn về tuần qua ở {farm}, tin nhắn của nông trại được gửi đến {provider}.',
-  'settings.consent.recap.leadAll':
-    'Để viết một lá thư ngắn về tuần qua ở các nông trại của bạn, tin nhắn ở đó được gửi đến {provider}.',
-  'settings.consent.recap.sent':
-    'Chữ trong tin nhắn tuần này, chỉ từ những người bạn đã đồng ý. Không có ảnh, tin nhắn thoại, lần ghé thăm hay tên người ngoài nông trại.',
   'settings.consent.recap.use': 'Viết lá thư.',
   'settings.consent.recap.ifNo': 'Nếu bạn nói không',
   'settings.consent.recap.ifNoText':
@@ -236,10 +236,7 @@ export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.ai.recapOn': 'Cho phép · lời bạn giúp viết lá thư',
   'settings.ai.recapOff': 'Không cho phép · lời bạn không có trong lá thư',
   'settings.ai.takeBack': 'Rút lại',
-  'settings.ai.takeBackText':
-    'Tắt một mục sẽ ngừng gửi ngay lập tức. Bạn cũng có thể yêu cầu {provider} và chúng mình xoá những gì đã gửi.',
   'settings.ai.forget': 'Yêu cầu xoá',
-  'settings.ai.forgotten': 'Chúng mình đã yêu cầu xoá. Việc này có thể mất đến 30 ngày.',
   'settings.ai.which': 'Chúng mình dùng AI nào, và vì sao',
 
   'settings.farm.title': 'Cài đặt nông trại',
@@ -253,6 +250,8 @@ export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.season.winter': 'Đông',
   'settings.farm.weather': 'Thời tiết từ',
   'settings.farm.weatherNone': 'Chưa chọn nơi nào',
+  'settings.farm.theme': 'Giao diện nông trại',
+  'settings.farm.themeSub': 'Cùng góp để nông trại khoác áo mới',
   'settings.farm.birthdays': 'Hoa nở ngày sinh nhật',
   'settings.farm.people': 'Mọi người',
   'settings.farm.critters': 'Bạn thú',

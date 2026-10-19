@@ -4,8 +4,9 @@ import { motion, travel } from '@kithfield/theme';
 import { Canvas, Group, Image } from '@shopify/react-native-skia';
 import { useMemo, type ReactNode } from 'react';
 import { View } from 'react-native';
-import {
+import Animated, {
   useAnimatedReaction,
+  useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
   withDelay,
@@ -15,7 +16,9 @@ import {
 } from 'react-native-reanimated';
 
 import { ArtStill } from '../../../ui/art/art-view';
+import { TravelSpot, useTravelShownAll } from '../../../ui/travel';
 import { useArt, useArtStill } from '../../../ui/art/art-provider';
+import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { lookOf } from '../model/people';
 
@@ -94,25 +97,52 @@ export function placeCritters(critters: readonly HeaderCritter[], w: number, h: 
  * from their own cached layers, so the farm shows who really lives there. When the header has
  * shrunk all the way, the critters settle in two drawings.
  */
+/** The sprout a dewdrop brings up in the header: its size, and where on the strip's ground. */
+export const SPROUT = 90;
+export const sproutBox = (width: number, height: number) => ({
+  x: width * 0.42 - SPROUT / 2,
+  y: height * 0.62 - SPROUT,
+  width: SPROUT,
+  height: SPROUT,
+});
+
 export function FarmHeaderArt({
   season,
   critters,
   width,
   height,
   collapsed,
+  sproutId,
+  night = false,
 }: {
+  /** The travel id where a dewdrop's sprout pops up (signature motion). */
+  readonly sproutId?: string;
   readonly season: string;
   readonly critters: readonly HeaderCritter[];
   readonly width: number;
   readonly height: number;
   /** 1 once the header is as small as it gets. */
   readonly collapsed: SharedValue<number>;
+  /**
+   * After dark the critters are home (`12 States`, the chat at night): the cottages under the
+   * stars, a lamp in the window of each friend still up.
+   */
+  readonly night?: boolean;
 }) {
   const store = useArt();
   const reduce = useReduceMotion();
-  const land = useArtStill({ scene: 'strip', width, height, attrs: { season, state: 'nocast' } });
+  const lit = critters
+    .filter((c) => !c.sleeping)
+    .map((c) => c.critter.species)
+    .join(',');
+  const land = useArtStill(
+    night
+      ? { scene: 'widget', width, height, attrs: { season, lit: lit || 'none' } }
+      : { scene: 'strip', width, height, attrs: { season, state: 'nocast' } },
+  );
   const key = JSON.stringify(critters);
   const layers = useMemo(() => {
+    if (night) return [];
     return placeCritters(critters, width, height).flatMap((p, i) =>
       critterLayers(store.art, p.kind, p.look, {
         size: p.size,
@@ -130,7 +160,7 @@ export function FarmHeaderArt({
       })),
     );
     // The layers are keyed by the critters' looks and places.
-  }, [store, key, width, height]);
+  }, [store, key, width, height, night]);
   const squash = useSharedValue(0);
   useAnimatedReaction(
     () => collapsed.get() >= 1,
@@ -159,6 +189,7 @@ export function FarmHeaderArt({
           </SettlingLayer>
         ))}
       </Canvas>
+      {sproutId ? <TravelSpot id={sproutId} box={sproutBox(width, height)} /> : null}
     </View>
   );
 }
@@ -183,38 +214,80 @@ function SettlingLayer({
   );
 }
 
-/** A visit's porch: the two critters on the bench, the porch owner's first (`S.porch`). */
+/**
+ * A visit's porch: the two critters on the bench, the porch owner's first (`S.porch`). Tapping
+ * the pot opens its page.
+ */
+/** Where the porch seats its two critters (`S.porch`): feet 70% down, a third in from each side. */
+export function porchSeat(i: number, width: number, height: number) {
+  const size = height * 0.42;
+  const x = width * (i === 0 ? 0.34 : 0.66);
+  return { x: x - size / 2, y: height * 0.7 - size * 0.86, width: size, height: size };
+}
+
 export function PorchArt({
   cast,
   pot,
   width,
   height,
   night,
+  onPot,
+  seats = [],
 }: {
   readonly cast: string;
+  /** The travel ids of the two seats, in the cast's order: critters walking in land on them. */
+  readonly seats?: readonly string[];
   /** The visit's porch pot: this season's plant and how far it has grown. */
   readonly pot: { readonly plant: string; readonly stage: number } | null;
   readonly width: number;
   readonly height: number;
   readonly night: boolean;
+  readonly onPot: { readonly label: string; readonly open: () => void };
 }) {
+  // The pair shows once both have sat down (signature motion: they walk onto the porch).
+  const shown = useTravelShownAll(seats);
+  const castStyle = useAnimatedStyle(() => ({
+    opacity: shown.reduce((least, s) => Math.min(least, s.get()), 1),
+  }));
   return (
-    <View style={{ width, height }} pointerEvents="none">
-      <ArtStill
-        scene="porch"
-        width={width}
-        height={height}
-        t={1.2}
-        attrs={{ cast, ...(night ? { night: true } : {}) }}
-      />
-      {pot ? (
+    <View style={{ width, height }} pointerEvents="box-none">
+      <View pointerEvents="none">
         <ArtStill
-          scene="plant"
-          width={62}
-          height={84}
-          attrs={{ name: pot.plant, stage: pot.stage, pot: true, color: 'none' }}
-          style={{ position: 'absolute', left: width / 2 - 30.5, top: height - 94 }}
+          scene="porch"
+          width={width}
+          height={height}
+          t={1.2}
+          attrs={{ cast, state: 'empty', ...(night ? { night: true } : {}) }}
         />
+        <Animated.View style={[{ position: 'absolute', left: 0, top: 0 }, castStyle]}>
+          <ArtStill
+            scene="porch"
+            width={width}
+            height={height}
+            t={1.2}
+            attrs={{ cast, ...(night ? { night: true } : {}) }}
+          />
+        </Animated.View>
+        {seats.map((id, i) => (
+          <TravelSpot key={id} id={id} box={porchSeat(i, width, height)} />
+        ))}
+      </View>
+      {pot ? (
+        <Press
+          onPress={onPot.open}
+          darken={false}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={onPot.label}
+          style={{ position: 'absolute', left: width / 2 - 30.5, top: height - 94 }}
+        >
+          <ArtStill
+            scene="plant"
+            width={62}
+            height={84}
+            attrs={{ name: pot.plant, stage: pot.stage, pot: true, color: 'none' }}
+          />
+        </Press>
       ) : null}
     </View>
   );

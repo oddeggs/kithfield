@@ -155,7 +155,11 @@ export const badEventPayloads: Record<EventKind, unknown[]> = {
   vote: [{ seed: 20, option: 14, on: true }],
   rsvp: [{ seed: 20, answer: 'yes' }],
   checkin: [{}],
-  gift: [{ action: 'given', gift: 'g_1', to: bea, item: 'Pack!', wrap: 'kraft' }],
+  gift: [
+    { action: 'given', gift: 'g_1', to: bea, item: 'Pack!', wrap: 'kraft' },
+    { action: 'given', gift: 'g_1', to: bea, item: 'moth', wrap: 'clay', note: 'x'.repeat(141) },
+    { action: 'given', gift: 'g_1', to: bea, item: 'moth', wrap: 'clay', with: [] },
+  ],
   scrapbook_page: [{ action: 'pressed', title: 'x', items: Array.from({ length: 51 }, () => 1) }],
   farm_opened: [null, 'opened'],
   hibernate: [{}],

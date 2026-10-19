@@ -135,8 +135,13 @@ const ruleFor = (
   const today = farmDay(state, now);
   switch (cmd.kind) {
     // A reply to a message unsent meanwhile still goes: it shows the original as unsent.
-    case 'message':
+    // Friends drawn into a together sticker are members now, and never the sender.
     case 'sticker':
+      return (cmd.payload.with ?? []).reduce<Reason>(
+        (found, person) => found ?? friend(state, actor, person),
+        null,
+      );
+    case 'message':
     case 'media':
     case 'voice':
     case 'link':

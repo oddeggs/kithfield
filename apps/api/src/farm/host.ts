@@ -7,17 +7,20 @@ import {
   type SocketErrorCode,
 } from '@kithfield/contracts';
 
+import { evictFromFire } from '../calls/farm-fire';
 import type { Bindings } from '../env';
 import { forgetMedia } from '../media/deletion';
 import { markMediaReferenced } from '../media/sweep';
 import { cottage } from './adapters/cottage';
 import { ensureWeather, HELLO_DEADLINE_MS, nextWake, resetWeather, RETRY_MS } from './alarms';
+import { claimOf, markGiftOpened, releaseGift } from '../purchases/gift-claims';
 import { refusalOf } from './command-guards';
 import { mediaKeys, replyTarget } from './content';
 import { Farm, type Written } from './farm';
 import { departed, handOff } from './handoff';
 import { mirrorMembership } from './mirror';
 import type { FarmPorts } from './ports';
+import { targetedPorts } from './wiring';
 import { attachmentOf, connected, envelope, joined, refuse, send } from './sockets';
 import { FarmStore } from './store';
 import { tombstoneEvent, tombstoneMediaOf } from './tombstones';
@@ -48,13 +51,17 @@ export class FarmHost {
   private flushing: Promise<void> | null = null;
   private flushAgain = false;
 
+  /** The ports, with the rules' version held to the environment's `RULES_TARGET`. */
+  readonly ports: () => FarmPorts;
+
   constructor(
     readonly ctx: DurableObjectState,
     readonly env: Bindings,
-    readonly ports: () => FarmPorts,
+    ports: () => FarmPorts,
   ) {
+    this.ports = targetedPorts(ports, env.RULES_TARGET);
     const store = new FarmStore(ctx.storage.sql);
-    this.farm = new Farm(store, ports, (fn) => ctx.storage.transactionSync(fn));
+    this.farm = new Farm(store, this.ports, (fn) => ctx.storage.transactionSync(fn));
   }
 
   get store(): FarmStore {
@@ -69,8 +76,13 @@ export class FarmHost {
     return joined(this.ctx.getWebSockets(), closing);
   }
 
-  /** Closes a person's sockets (or everyone's) with `error {code}`. */
+  /**
+   * Closes a person's sockets (or everyone's) with `error {code}`, and takes them out of the fire
+   * room: whoever may no longer hear the farm may no longer sit by its fire. Closing everyone's
+   * (a person merge, which reconnects every phone) leaves the room as it is.
+   */
   closeSockets(person: PersonId | null, code: SocketErrorCode): void {
+    if (person !== null) evictFromFire(this, person);
     const ids = person === null ? null : new Set(this.store.idsOf(this.farm.actorOf(person)));
     for (const ws of this.ctx.getWebSockets()) {
       const who = attachmentOf(ws).person;
@@ -133,11 +145,32 @@ export class FarmHost {
             .then((s) => s.timeZone ?? undefined)
             .catch(() => undefined)
         : undefined;
-    return this.farm.command(cmd, person, {
-      then: this.effectsOf(media),
-      ...(recipientZone === undefined ? {} : { recipientZone }),
-      ...(refuse === null ? {} : { refuse }),
-    });
+    // A gift claimed for this write goes back to waiting if the farm refuses it.
+    const claim = answered || refuse !== null ? null : claimOf(cmd, actor);
+    let written: Written;
+    try {
+      written = this.farm.command(cmd, person, {
+        then: this.effectsOf(media),
+        ...(recipientZone === undefined ? {} : { recipientZone }),
+        ...(refuse === null ? {} : { refuse }),
+      });
+    } catch (error) {
+      if (claim !== null) await releaseGift(this.env.DB, claim).catch(() => undefined);
+      throw error;
+    }
+    if (claim !== null && written.result.result === 'rejected') {
+      await releaseGift(this.env.DB, claim).catch(() => undefined);
+    }
+    const opened = written.event;
+    if (opened?.kind === 'gift' && !isTombstone(opened.payload) && opened.actor !== null) {
+      const { payload, actor } = opened;
+      if (payload.action === 'opened') {
+        await step('gift opened', () =>
+          markGiftOpened(this.env.DB, payload.gift, actor, this.now()),
+        );
+      }
+    }
+    return written;
   }
 
   /** Broadcasts new events to every socket, then closes the sockets of anyone who left. */

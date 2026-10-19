@@ -1,4 +1,4 @@
-import { farm, nightMatrix } from '@kithfield/theme';
+import { farm, motion, nightMatrix } from '@kithfield/theme';
 import { Canvas, ColorMatrix, Group, Image, Paint } from '@shopify/react-native-skia';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -7,13 +7,18 @@ import {
   useDerivedValue,
   useFrameCallback,
   useSharedValue,
+  withDelay,
+  withSequence,
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 
 import { fadeTo } from '../../ui/motion/motion';
+import { travelIds, useTravelShownAll } from '../../ui/travel';
 import { STILL_T, type Backdrop, type CloudSprite, type CritterPoses } from './farm-bake';
 import { breathOf, isBlinking, tick } from './farm-clock';
+import type { FarmFire } from './farm-fire';
+import { lampsLit } from './reactions';
 
 /** A critter as the canvas draws it: where its feet are, and its cached poses. */
 export interface CanvasCritter {
@@ -26,6 +31,18 @@ export interface CanvasCritter {
   readonly ph: number;
   readonly poses: CritterPoses;
 }
+
+const instant = (to: number) => withTiming(to, { duration: 0, reduceMotion: ReduceMotion.Never });
+
+/** A lamp lights in two drawings on twos: on, a flicker, on (at once under Reduce Motion). */
+const lampOn = (reduce: boolean) =>
+  reduce
+    ? instant(1)
+    : withSequence(
+        instant(1),
+        withDelay(motion.twos.frameMs, instant(0.6)),
+        withDelay(motion.twos.frameMs, instant(1)),
+      );
 
 const fadeOf = (to: number, reduce: boolean) =>
   reduce
@@ -43,9 +60,12 @@ const fadeOf = (to: number, reduce: boolean) =>
 function CritterDrawing({
   c,
   clock,
+  shown,
 }: {
   readonly c: CanvasCritter;
   readonly clock: SharedValue<number>;
+  /** 0 while a copy of this critter travels to or from it. */
+  readonly shown: SharedValue<number> | undefined;
 }) {
   const { x, y, ph, asleep } = c;
   const open = c.poses.open;
@@ -60,7 +80,7 @@ function CritterDrawing({
     return isBlinking(clock.get(), ph) ? blinkImage : openImage;
   });
   return (
-    <Group transform={transform}>
+    <Group transform={transform} {...(shown ? { opacity: shown } : {})}>
       <Image image={image} x={-open.ox} y={-open.oy} width={open.w} height={open.h} />
     </Group>
   );
@@ -88,6 +108,64 @@ function CloudDrawing({
       width={cloud.w}
       height={cloud.h}
     />
+  );
+}
+
+const glowOf = (to: number, reduce: boolean) =>
+  reduce
+    ? fadeTo(to)
+    : withTiming(to, {
+        duration: farm.fireGlow.durationMs,
+        easing: Easing.bezier(...farm.fireGlow.bezier),
+        reduceMotion: ReduceMotion.Never,
+      });
+
+/**
+ * The fire lit by the ring: its glow and its flame on twos, from the farm's clock. It fades in as
+ * the fire is lit and out as it goes out; the last fire stays drawn while it fades.
+ */
+function FireDrawing({
+  fire,
+  clock,
+  reduce,
+}: {
+  readonly fire: FarmFire | null;
+  readonly clock: SharedValue<number>;
+  readonly reduce: boolean;
+}) {
+  const [held, setHeld] = useState<FarmFire | null>(fire);
+  const opacity = useSharedValue(0);
+  useEffect(() => {
+    if (fire) {
+      setHeld(fire);
+      opacity.set(glowOf(1, reduce));
+      return;
+    }
+    opacity.set(glowOf(0, reduce));
+    const timer = setTimeout(() => setHeld(null), farm.fireGlow.durationMs + 50);
+    return () => clearTimeout(timer);
+  }, [fire, opacity, reduce]);
+  const frames = held?.flame.frames ?? [];
+  const fps = held?.flame.fps ?? 12;
+  const flame = useDerivedValue(() => {
+    const n = frames.length;
+    return n === 0 ? null : (frames[Math.floor(clock.get() * fps) % n] ?? null);
+  });
+  if (!held) return null;
+  const { glow, flame: box } = held;
+  return (
+    <Group opacity={opacity}>
+      <Image
+        image={glow.image}
+        x={glow.x}
+        y={glow.y}
+        width={glow.size}
+        height={glow.size}
+        // The art lightens the farm with its firelight at night and lays it over by day.
+        blendMode={held.night ? 'screen' : 'srcOver'}
+      />
+      <Image image={flame} x={box.x} y={box.y} width={box.w} height={box.h} />
+    </Group>
   );
 }
 
@@ -128,6 +206,8 @@ export function FarmCanvas({
   night,
   running,
   reduce,
+  fire = null,
+  travel,
 }: {
   readonly width: number;
   readonly height: number;
@@ -136,7 +216,14 @@ export function FarmCanvas({
   readonly night: boolean;
   readonly running: boolean;
   readonly reduce: boolean;
+  /** The fire, while it is lit; drawn over the farm as the art draws it. */
+  readonly fire?: FarmFire | null;
+  /** The farm, so a critter travelling here from a chat can stand in for its drawing. */
+  readonly travel?: string;
 }) {
+  const travelling = useTravelShownAll(
+    travel === undefined ? [] : critters.map((c) => travelIds.farmCritter(travel, c.person)),
+  );
   const clock = useSharedValue(STILL_T);
   const base = useSharedValue(STILL_T);
   const frame = useFrameCallback((info) => {
@@ -168,7 +255,8 @@ export function FarmCanvas({
     if (before && before.key !== backdrop.key) {
       setUnder(before);
       fade.set(0);
-      fade.set(fadeOf(1, reduce));
+      // A friend's lamp coming on lights in drawings; anything else fades across.
+      fade.set(lampsLit(before.key, backdrop.key) ? lampOn(reduce) : fadeOf(1, reduce));
     }
     return () => clearTimeout(timer);
   }, [backdrop, night, fade, dark, reduce]);
@@ -195,10 +283,11 @@ export function FarmCanvas({
         />
       ) : null}
       <Group {...(tint ? { layer: tint } : {})}>
-        {critters.map((c) => (
-          <CritterDrawing key={c.person} c={c} clock={clock} />
+        {critters.map((c, i) => (
+          <CritterDrawing key={c.person} c={c} clock={clock} shown={travelling[i]} />
         ))}
       </Group>
+      <FireDrawing fire={fire} clock={clock} reduce={reduce} />
     </Canvas>
   );
 }

@@ -18,6 +18,7 @@ import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { haptics } from '../../../ui/motion/haptics';
 import { Press } from '../../../ui/motion/press';
+import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 import { VOICE_RECORDING_OPTIONS } from '../../media';
@@ -215,7 +216,9 @@ export function MicButton({ voice }: { readonly voice: VoiceRecorder }) {
             width: 44,
             height: 44,
             borderRadius: 22,
-            backgroundColor: palette.primary.bg,
+            // Ink by day, moonlight by night (`12 States`, the chat at night): never the honey of
+            // a primary button, which would call louder than sending.
+            backgroundColor: palette.text,
             alignItems: 'center',
             justifyContent: 'center',
           },
@@ -245,11 +248,13 @@ export function RecorderPanel({
   const { palette } = useTheme();
   const colours = useChatColours();
   const { t } = useLocale();
+  const reduce = useReduceMotion();
   if (voice.phase === 'idle') return null;
   const recent = voice.levels.slice(-LIVE_BARS);
   const bars = [...Array.from({ length: LIVE_BARS - recent.length }, () => 0), ...recent];
-  // The critter sings on twos: a held drawing, nudged up with the voice's level.
-  const sing = 1 + Math.round(voice.level * 3) * 0.02;
+  // The critter sings on twos: a held drawing, nudged up with the voice's level. With Reduce
+  // Motion it holds still; the waveform still shows the voice.
+  const sing = reduce ? 1 : 1 + Math.round(voice.level * 3) * 0.02;
   return (
     <View
       style={{

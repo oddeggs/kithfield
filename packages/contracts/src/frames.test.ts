@@ -67,6 +67,8 @@ const farmServerFrames = [
   { type: 'rejected', opId, reason: 'edit_window_closed' },
   { type: 'presence', here: [bea, pip] },
   { type: 'typing', people: [pip] },
+  { type: 'presence', here: [bea, pip], fire: [bea] },
+  { type: 'presence', here: [bea], fire: [] },
   { type: 'error', code: 'rules_outdated' },
 ];
 
@@ -154,6 +156,12 @@ describe('socket frames', () => {
       { type: 'ack', opId },
       { type: 'rejected', opId, reason: 'rules_outdated' },
       { type: 'presence', here: Array.from({ length: LIMITS.members + 1 }, (_, i) => `p_${i}`) },
+      {
+        type: 'presence',
+        here: [],
+        fire: Array.from({ length: LIMITS.fireVoices + 1 }, (_, i) => `p_${i}`),
+      },
+      { type: 'presence', here: [], fire: ['not a person!'] },
       { type: 'error', code: 'teapot' },
     ];
     for (const frame of bad) expect(FarmServerFrame.safeParse(frame).success).toBe(false);

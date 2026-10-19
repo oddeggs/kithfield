@@ -1,6 +1,6 @@
 import type { FarmId } from '@kithfield/contracts';
 import { LIMITS } from '@kithfield/contracts';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
@@ -71,7 +71,7 @@ export function FarmSettingsScreen({ farm }: { readonly farm: FarmId }) {
               position: 'absolute',
               right: 10,
               bottom: 10,
-              height: 32,
+              minHeight: 32,
               paddingHorizontal: 12,
               borderRadius: 16,
               backgroundColor: kit.glass.fill,
@@ -115,6 +115,11 @@ export function FarmSettingsScreen({ farm }: { readonly farm: FarmId }) {
             onPress={() => go({ pathname: '/(tabs)/you/farm-weather', params: params })}
           />
         ) : null}
+        <Row
+          title={t('settings.farm.theme')}
+          subtitle={t('settings.farm.themeSub')}
+          onPress={() => router.push({ pathname: '/shop/theme', params: { farm } })}
+        />
         <Row
           title={t('settings.farm.birthdays')}
           trailing={

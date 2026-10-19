@@ -7,6 +7,9 @@ import type { EnCatalogue } from './catalogue-types';
 export const settingsEn = {
   'settings.back': 'Back',
   'settings.failed': 'That didn’t go through. Try again in a moment.',
+  /** A screen whose details couldn't be fetched, with nothing on the phone to show instead. */
+  'settings.loadFailed': 'We couldn’t reach the farm just now. Nothing here has changed.',
+  'settings.tryAgain': 'Try again',
   'settings.saved': 'Saved',
 
   'settings.species.mouse': 'Mouse',
@@ -39,6 +42,11 @@ export const settingsEn = {
   },
   'settings.you.noFarm': '{species} · no farm yet',
   'settings.you.wardrobe': 'Wardrobe',
+  'settings.you.shop': 'Rocco’s cart',
+  'settings.you.shopBody': 'Things for your critter, gifts and farm themes',
+  'settings.you.patrons': 'Patrons',
+  'settings.you.patronsBody': 'Open source, with no ads: patrons keep the lamps on',
+  'settings.you.patronsYours': 'Your patronage, and thank you',
   'settings.battery.title': 'Social battery',
   'settings.battery.visible': 'friends can see this',
   'settings.battery.resting': 'Resting',
@@ -91,6 +99,10 @@ export const settingsEn = {
     'Nothing ever knocks between {from} and {to}. Quiet hours add to that, in {zone}, where this phone is.',
   'settings.stickers': 'Appear in together stickers',
   'settings.stickers.sub': 'Friends can draw your critter into stickers with theirs',
+  'settings.stickers.asks': 'Stickers with you in them',
+  'settings.stickers.asksSub': 'Friends asking to take one out of Kithfield',
+  'settings.stickers.export': 'Your stickers, elsewhere',
+  'settings.stickers.exportSub': 'Messages, WhatsApp, Telegram and Photos',
   'settings.language': 'Language',
   'settings.language.en': 'English',
   'settings.language.vi': 'Tiếng Việt',
@@ -209,30 +221,19 @@ export const settingsEn = {
   'settings.consent.plus': 'PLUS',
   'settings.consent.sent': 'What is sent',
   'settings.consent.use': 'What they can do with it',
-  'settings.consent.never': 'Never train on it, never keep it past 30 days.',
   'settings.consent.privacy': 'Privacy Policy',
   'settings.consent.captions.eyebrow': 'before we turn this on',
   'settings.consent.captions.title': 'Captions use an outside AI',
-  'settings.consent.captions.lead':
-    'To caption and translate the fire, voices are sent to {provider}, an AI service we work with. Here is exactly what happens.',
   'settings.consent.captions.sent':
     'Voice audio from this fire, only while captions are on, and only from friends who have said yes too.',
   'settings.consent.captions.use': 'Turn it into text and translate it.',
   'settings.consent.captions.stays': 'What stays here',
-  'settings.consent.captions.staysText':
-    'Your chats, photos, contacts and location are never sent. Captions vanish when the fire goes out.',
   'settings.consent.captions.others':
     'Friends who say no are never captioned. Their lines show as a quiet “…”.',
   'settings.consent.captions.yes': 'Allow captions',
   'settings.consent.captions.no': 'Not now',
   'settings.consent.recap.eyebrow': 'a little letter, every sunday',
   'settings.consent.recap.title': 'Can an AI help write the Sunday recap?',
-  'settings.consent.recap.lead':
-    'To write a short letter about the week on {farm}, the farm’s messages are sent to {provider}.',
-  'settings.consent.recap.leadAll':
-    'To write a short letter about the week on your farms, their messages are sent to {provider}.',
-  'settings.consent.recap.sent':
-    'The text of this week’s messages, only from friends who said yes. No photos, voice notes, visits or names of people outside the farm.',
   'settings.consent.recap.use': 'Write the letter.',
   'settings.consent.recap.ifNo': 'If you say no',
   'settings.consent.recap.ifNoText':
@@ -250,10 +251,7 @@ export const settingsEn = {
   'settings.ai.recapOn': 'Allowed · your words help write the letter',
   'settings.ai.recapOff': 'Not allowed · your words stay out of the letter',
   'settings.ai.takeBack': 'Take it back',
-  'settings.ai.takeBackText':
-    'Switching something off stops sending right away. You can also ask {provider} and us to delete anything already sent.',
   'settings.ai.forget': 'Request deletion',
-  'settings.ai.forgotten': 'We’ve asked for it to be deleted. It can take up to 30 days.',
   'settings.ai.which': 'Which AI we use, and why',
 
   /* Farm settings */
@@ -268,6 +266,8 @@ export const settingsEn = {
   'settings.season.winter': 'Winter',
   'settings.farm.weather': 'Weather from',
   'settings.farm.weatherNone': 'Nowhere yet',
+  'settings.farm.theme': 'Farm theme',
+  'settings.farm.themeSub': 'Chip in together for a new look',
   'settings.farm.birthdays': 'Birthdays bloom',
   'settings.farm.people': 'People',
   'settings.farm.critters': 'Critters',

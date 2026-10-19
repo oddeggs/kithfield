@@ -15,8 +15,10 @@ export const chatEn = {
   'chat.list.visitsNote': 'Just the two of you, on a porch. The farm never sees these.',
   /** A farm nobody has opened for a while, in plain words. Never "inactive". */
   'chat.list.dozing': 'Everyone’s dozing. Say hi whenever.',
-  'chat.list.empty.title': 'No chats yet',
-  'chat.list.empty.body': 'Plant a farm and invite your people. The chat grows under it.',
+  'chat.list.empty.title': 'No porch visits yet',
+  'chat.list.empty.body':
+    'A visit is just the two of you. Tap any critter on a farm to sit on their porch.',
+  'chat.list.empty.action': 'Go to the farm',
   'chat.list.mute': 'Mute',
   'chat.list.unmute': 'Unmute',
   'chat.list.pin': 'Pin to top',
@@ -60,6 +62,8 @@ export const chatEn = {
   'chat.room.back': 'Back',
   'chat.room.seedBed': 'Seed bed',
   'chat.room.more': 'More',
+  /** The visit's porch pot in the porch art: opens its page. */
+  'chat.room.porchPot': 'Our porch pot',
   'chat.room.media': 'Shared on the farm',
   'chat.room.search': 'Search this farm',
   'chat.room.out.one': '{a} is out',
@@ -92,6 +96,7 @@ export const chatEn = {
   'chat.bubble.sent': 'Sent',
   'chat.bubble.edited': 'edited',
   'chat.bubble.didntSend': 'Didn’t send',
+  'chat.bubble.meet': 'See {name} on the farm',
   'chat.bubble.tryAgain': 'Try again',
   /** Why the farm refused a write; the ones that won't change offer no retry. */
   'chat.refused.editClosed': 'Edits close 15 minutes after sending.',
@@ -155,6 +160,8 @@ export const chatEn = {
 
   /* The composer */
   'chat.composer.placeholder': 'Say something, or just wave',
+  /** The field's hint at the largest text sizes, where the full one doesn't fit. */
+  'chat.composer.placeholderShort': 'Say something',
   'chat.composer.tray': 'More ways to tend',
   'chat.composer.dewdrop': 'Leave a dewdrop',
   'chat.composer.dewdropLeft': 'Dewdrop left',
@@ -201,6 +208,8 @@ export const chatEn = {
   'chat.search.hint': 'Search messages, photos, links and voice notes on {farm}.',
   'chat.search.looking': 'Looking…',
   'chat.search.empty.title': '{name} looked everywhere',
+  /** The same, when no critter on the farm can be named. */
+  'chat.search.empty.titleNoName': 'We looked everywhere',
   'chat.search.empty.body':
     'Nothing on {farm} matches that. Try fewer words, or look on all your farms.',
   'chat.search.empty.bodyAll': 'Nothing on your farms matches that. Try fewer words.',

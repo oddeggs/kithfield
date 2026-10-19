@@ -29,6 +29,18 @@ export const HOUSES: Readonly<Record<HouseKey, { x: number; y: number; size: num
   sheep: { x: 0.6, y: 0.387, size: 0.12 },
 };
 
+/** The step in front of a cottage's door, where a gift waits, in the scene's points. */
+export function doorStep(key: HouseKey, width: number, height: number) {
+  const house = HOUSES[key];
+  const s = width * house.size;
+  return {
+    x: width * house.x - s * 0.25,
+    y: height * house.y - s * 0.3,
+    width: s * 0.5,
+    height: s * 0.4,
+  };
+}
+
 /** Where the scene stands its own five critters, each by its cottage's name. */
 export const HOME_SPOTS: Readonly<Record<HouseKey, Spot>> = {
   sheep: { x: 0.13, y: 0.63, size: 0.15, dir: 1 },
@@ -73,6 +85,30 @@ export const LANDMARKS = {
   /** The little flag of a plan, by the path. */
   stake: { x: 0.36, y: 0.675, rx: 0.04, ry: 0.05 },
 } as const;
+
+/** How far above the fire ring its flame reaches, as a fraction of the width. */
+export const FIRE_TOP = 0.12;
+
+/** A tap target's centre and size, in the scene's points. */
+export interface TargetBox {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+/**
+ * The fire ring's tap target: the ring and its flame, cut off where something covers the farm
+ * (`coverTop`, the farm sheet's top edge) and grown upward to at least 44 points, so the fire
+ * opens wherever it is drawn.
+ */
+export function fireTarget(width: number, height: number, coverTop?: number): TargetBox {
+  const { x, y, rx, ry } = LANDMARKS.fire;
+  const top = height * (y - ry) - width * FIRE_TOP;
+  const bottom = Math.min(height * (y + ry), coverTop ?? Infinity);
+  const h = Math.max(44, bottom - top);
+  return { x: width * x, y: bottom - h / 2, w: Math.max(44, width * rx * 2), h };
+}
 
 export interface Resident {
   readonly person: PersonId;

@@ -5,11 +5,14 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { HeldElsewhere } from '../data';
 import { clearMediaForSignOut, MediaUploads, pendingUploadCount } from '../features/media';
 import { useStoredLanguage } from '../features/settings/device-prefs';
+import { StickerPurchases } from '../features/shop/store/sticker-purchases';
+import { clearStickersForSignOut } from '../features/stickers/local-files';
+import { clearSurfacesForSignOut, SurfacesHost } from '../features/surfaces';
 import { ArtProvider, createArtStore } from '../ui/art/art-provider';
 import { ToastHost } from '../ui/components/toast';
 import { LocaleProvider } from '../ui/locale/locale-provider';
@@ -19,6 +22,7 @@ import { DataSlot } from '../ui/session/data-slot';
 import { useSession } from '../ui/session/session';
 import { TabActivityProvider } from '../ui/tab-bar/tab-activity';
 import { ThemeProvider, useTheme } from '../ui/theme/theme-provider';
+import { TravelHost } from '../ui/travel';
 
 // The splash stays up until the first frame can be drawn whole: the theme fonts are embedded
 // natively (expo-font's config plugin), so what is waited for is the session, the art and the
@@ -26,16 +30,26 @@ import { ThemeProvider, useTheme } from '../ui/theme/theme-provider';
 void SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ duration: 200, fade: true });
 
-/** The media queue: counted before signing out and cleared with the data layer's tables. */
-const mediaQueue: HeldElsewhere = {
+/**
+ * The media queue, counted before signing out; it, the native surfaces (widgets, Live
+ * Activities, unsent shares) and the person's sticker files are cleared with the data layer's
+ * tables.
+ */
+const heldElsewhere: HeldElsewhere = {
   pendingCount: pendingUploadCount,
-  clear: clearMediaForSignOut,
+  clear: () =>
+    Promise.all([
+      clearMediaForSignOut(),
+      clearSurfacesForSignOut(),
+      Promise.resolve().then(clearStickersForSignOut),
+    ]).then(() => undefined),
 };
 
 function Screens() {
   const { appearance, palette } = useTheme();
   const { status, onboarded } = useSession();
   const { height: screenH } = useWindowDimensions();
+  const { top, bottom } = useSafeAreaInsets();
   // The tabs for someone signed in and through the way in; onboarding for everyone else.
   const inside = status === 'signedIn' && onboarded;
   return (
@@ -45,7 +59,9 @@ function Screens() {
         // A feature adds a sheet with `app/(modal)/…` or a full-screen cover with `app/(cover)/…`,
         // and a sheet with its own heights to `SHEETS` in `ui/navigation/presentation`; see
         // `app/README.md`. Decided here, before the screen mounts, as native sheets need.
-        screenOptions={({ route }) => screenOptionsFor(route.name, { screenH, palette })}
+        screenOptions={({ route }) =>
+          screenOptionsFor(route.name, { screenH, insets: { top, bottom }, palette })
+        }
       >
         <Stack.Protected guard={inside}>
           <Stack.Screen name="(tabs)" />
@@ -60,6 +76,8 @@ function Screens() {
           <Stack.Screen name="(dev)/sheet-lab" />
           <Stack.Screen name="(dev)/art-lab" />
           <Stack.Screen name="(dev)/gestures-lab" />
+          <Stack.Screen name="(dev)/native-lab" />
+          <Stack.Screen name="(dev)/motion-lab" />
         </Stack.Protected>
         <Stack.Screen name="+not-found" />
       </Stack>
@@ -96,18 +114,25 @@ export default function RootLayout() {
             <LocaleProvider storedChoice={language}>
               <ThemeProvider>
                 <ArtProvider store={art}>
-                  <TabActivityProvider>
-                    <ToastHost>
-                      {/* The data layer and its session; the splash stays up while it starts. */}
-                      <DataSlot heldElsewhere={mediaQueue}>
-                        {/* Resumes the media uploads at launch, not only when a chat opens. */}
-                        <MediaUploads />
-                        <SplashGate>
-                          <Screens />
-                        </SplashGate>
-                      </DataSlot>
-                    </ToastHost>
-                  </TabActivityProvider>
+                  {/* Art travelling between screens flies in one layer over all of them. */}
+                  <TravelHost>
+                    <TabActivityProvider>
+                      <ToastHost>
+                        {/* The data layer and its session; the splash stays up while it starts. */}
+                        <DataSlot heldElsewhere={heldElsewhere}>
+                          {/* Resumes the media uploads at launch, not only when a chat opens. */}
+                          <MediaUploads />
+                          {/* Widgets, Live Activities, lock-screen answers and shares. */}
+                          <SurfacesHost />
+                          {/* The shop's store, for buying sticker packs and gifts. */}
+                          <StickerPurchases />
+                          <SplashGate>
+                            <Screens />
+                          </SplashGate>
+                        </DataSlot>
+                      </ToastHost>
+                    </TabActivityProvider>
+                  </TravelHost>
                 </ArtProvider>
               </ThemeProvider>
             </LocaleProvider>

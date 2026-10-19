@@ -16,6 +16,7 @@ import { useKitColors } from '../kit/colors';
 import { Group, Label, NavBar, Page, Pill, Row } from '../kit/layout';
 import { KText } from '../kit/text';
 import { useRemote } from '../use-remote';
+import { useRemoteGate } from '../kit/remote-state';
 import { useFarmSettings } from './use-farm-settings';
 
 const STILL_T = 1.2;
@@ -32,6 +33,10 @@ export function InviteScreen({ farm }: { readonly farm: FarmId }) {
   const { state, isKeeper, write } = useFarmSettings(farm);
   const current = useRemote(() => api.currentInvite(farm), farm);
   const [made, setMade] = useState<Invite | null>(null);
+  // A link made here counts as the answer; otherwise wait for the current one before saying none.
+  const gate = useRemoteGate([
+    made ? { data: made, failed: false, reload: current.reload } : current,
+  ]);
   const [busy, setBusy] = useState(false);
   const [choosing, setChoosing] = useState(false);
   useEffect(() => setMade(null), [farm]);
@@ -76,113 +81,130 @@ export function InviteScreen({ farm }: { readonly farm: FarmId }) {
 
   return (
     <Page header={<NavBar title={t('settings.farm.invite')} />}>
-      <View
-        style={{
-          borderRadius: 24,
-          backgroundColor: palette.card,
-          borderWidth: 1,
-          borderColor: palette.cardBorder,
-          padding: 16,
-          gap: 12,
-          alignItems: 'center',
-        }}
-      >
-        <View style={{ borderRadius: 16, overflow: 'hidden' }}>
-          <ArtStill
-            scene="invite"
-            width={cardWidth}
-            height={150}
-            attrs={{ season: state?.season.season ?? 'spring' }}
-            t={STILL_T}
-          />
-        </View>
-        {full ? (
-          <KText kind="rowTitle">{t('settings.invite.full')}</KText>
-        ) : invite ? (
-          <>
-            <Txt mono variant="body" style={{ fontSize: 15, lineHeight: 18, fontWeight: '500' }}>
-              {shortLink(invite.url)}
-            </Txt>
-            <View style={{ flexDirection: 'row', gap: 8, alignSelf: 'stretch' }}>
-              <Pill label={t('settings.invite.copy')} onPress={copy} style={{ flex: 1 }} />
-              <Pill
-                label={t('settings.invite.share')}
-                kind="ink"
-                onPress={share}
-                style={{ flex: 1 }}
+      {gate ?? (
+        <>
+          <View
+            style={{
+              borderRadius: 24,
+              backgroundColor: palette.card,
+              borderWidth: 1,
+              borderColor: palette.cardBorder,
+              padding: 16,
+              gap: 12,
+              alignItems: 'center',
+            }}
+          >
+            <View style={{ borderRadius: 16, overflow: 'hidden' }}>
+              <ArtStill
+                scene="invite"
+                width={cardWidth}
+                height={150}
+                attrs={{ season: state?.season.season ?? 'spring' }}
+                t={STILL_T}
               />
             </View>
-          </>
-        ) : (
-          <>
-            <KText kind="rowSub" color={palette.secondary}>
-              {t('settings.invite.none')}
-            </KText>
-            <Pill
-              label={t('settings.invite.make')}
-              kind="ink"
-              disabled={busy}
-              onPress={() => makeLink('always')}
-              style={{ alignSelf: 'stretch' }}
-            />
-          </>
-        )}
-      </View>
-      <Label text={t('settings.invite.roomTitle')} />
-      <View style={{ borderRadius: 22, backgroundColor: palette.card, padding: 14, gap: 10 }}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }} accessible={false}>
-          {Array.from({ length: LIMITS.members }, (_, i) => (
-            <View
-              key={i}
-              style={{ width: cell, height: 22, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <ArtIcon name="farm" size={20} color={i < taken ? palette.text : kit.cottageEmpty} />
-            </View>
-          ))}
-        </View>
-        <KText kind="card" multiline color={kit.body2}>
-          {t('settings.invite.room', { count: taken, max: LIMITS.members })}
-        </KText>
-      </View>
-      {isKeeper ? (
-        <Group>
-          <Row
-            title={t('settings.invite.approval')}
-            trailing={
-              <Toggle
-                value={state?.approval ?? false}
-                onChange={(on) => void write('settings_changed', { setting: 'approval', on })}
-                label={t('settings.invite.approval')}
-              />
-            }
-          />
-          <Row
-            title={t('settings.invite.lasts')}
-            value={lasts}
-            onPress={() => setChoosing((c) => !c)}
-          />
-          {choosing
-            ? LINK_LIVES.map((life) => (
-                <Row
-                  key={life}
-                  title={t(`settings.invite.${life}`)}
-                  selected={false}
-                  onPress={() => {
-                    setChoosing(false);
-                    makeLink(life);
-                  }}
+            {full ? (
+              <KText kind="rowTitle">{t('settings.invite.full')}</KText>
+            ) : invite ? (
+              <>
+                <Txt
+                  mono
+                  variant="body"
+                  style={{ fontSize: 15, lineHeight: 18, fontWeight: '500' }}
+                >
+                  {shortLink(invite.url)}
+                </Txt>
+                <View style={{ flexDirection: 'row', gap: 8, alignSelf: 'stretch' }}>
+                  <Pill label={t('settings.invite.copy')} onPress={copy} style={{ flex: 1 }} />
+                  <Pill
+                    label={t('settings.invite.share')}
+                    kind="ink"
+                    onPress={share}
+                    style={{ flex: 1 }}
+                  />
+                </View>
+              </>
+            ) : (
+              <>
+                <KText kind="rowSub" color={palette.secondary}>
+                  {t('settings.invite.none')}
+                </KText>
+                <Pill
+                  label={t('settings.invite.make')}
+                  kind="ink"
+                  disabled={busy}
+                  onPress={() => makeLink('always')}
+                  style={{ alignSelf: 'stretch' }}
                 />
-              ))
-            : null}
-          <Row
-            title={t('settings.invite.new')}
-            subtitle={t('settings.invite.newSub')}
-            danger
-            chevron={false}
-            onPress={() => makeLink('always')}
-          />
-        </Group>
-      ) : null}
+              </>
+            )}
+          </View>
+          <Label text={t('settings.invite.roomTitle')} />
+          <View style={{ borderRadius: 22, backgroundColor: palette.card, padding: 14, gap: 10 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }} accessible={false}>
+              {Array.from({ length: LIMITS.members }, (_, i) => (
+                <View
+                  key={i}
+                  style={{
+                    width: cell,
+                    height: 22,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <ArtIcon
+                    name="farm"
+                    size={20}
+                    color={i < taken ? palette.text : kit.cottageEmpty}
+                  />
+                </View>
+              ))}
+            </View>
+            <KText kind="card" multiline color={kit.body2}>
+              {t('settings.invite.room', { count: taken, max: LIMITS.members })}
+            </KText>
+          </View>
+          {isKeeper ? (
+            <Group>
+              <Row
+                title={t('settings.invite.approval')}
+                trailing={
+                  <Toggle
+                    value={state?.approval ?? false}
+                    onChange={(on) => void write('settings_changed', { setting: 'approval', on })}
+                    label={t('settings.invite.approval')}
+                  />
+                }
+              />
+              <Row
+                title={t('settings.invite.lasts')}
+                value={lasts}
+                onPress={() => setChoosing((c) => !c)}
+              />
+              {choosing
+                ? LINK_LIVES.map((life) => (
+                    <Row
+                      key={life}
+                      title={t(`settings.invite.${life}`)}
+                      selected={false}
+                      onPress={() => {
+                        setChoosing(false);
+                        makeLink(life);
+                      }}
+                    />
+                  ))
+                : null}
+              <Row
+                title={t('settings.invite.new')}
+                subtitle={t('settings.invite.newSub')}
+                danger
+                chevron={false}
+                onPress={() => makeLink('always')}
+              />
+            </Group>
+          ) : null}
+        </>
+      )}
     </Page>
   );
 }

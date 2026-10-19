@@ -1,16 +1,18 @@
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../../../ui/components/button';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { AX_FONT_SCALE } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
 import { hasSignIn, routes } from '../flow';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
 import { PaperFade } from '../fades';
-import { useInks, useSceneAttrs } from '../kit';
+import { AxFlow, useInks, useSceneAttrs } from '../kit';
 import { useProgress } from '../progress';
 
 /**
@@ -22,7 +24,9 @@ export function WelcomeScreen() {
   const { t } = useLocale();
   const { palette } = useTheme();
   const inks = useInks();
-  const { width } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
+  const ax = fontScale >= AX_FONT_SCALE;
+  const insets = useSafeAreaInsets();
   const scene = useSceneAttrs();
   const { update } = useFlow();
   const progress = useProgress();
@@ -49,6 +53,48 @@ export function WelcomeScreen() {
     router.push(routes.signIn);
   };
 
+  const title = (
+    <Txt
+      variant="displayXL"
+      accessibilityRole="header"
+      // The app's name is one word, never broken: it grows up to twice its size and then fits the line.
+      maxFontSizeMultiplier={2}
+      numberOfLines={1}
+      adjustsFontSizeToFit
+      style={{ fontSize: 46, lineHeight: 46, letterSpacing: -0.46 }}
+    >
+      {t('shell.appName')}
+    </Txt>
+  );
+  const body = (
+    <Txt variant="body" multiline color={inks.list} style={{ fontSize: 17, lineHeight: 24.65 }}>
+      {t('onboarding.welcome.body')}
+    </Txt>
+  );
+  const buttons = (
+    <>
+      <Button label={t('onboarding.welcome.start')} onPress={start} haptic="tap" />
+      <Button
+        label={t('onboarding.welcome.invite')}
+        kind="text"
+        onPress={() => router.push(routes.invite)}
+      />
+    </>
+  );
+
+  // At the accessibility sizes the gate sits above the words, and everything scrolls.
+  if (ax) {
+    return (
+      <AxFlow bar={<View style={{ height: insets.top }} />} footer={buttons}>
+        <SceneArt scene="gate" width={width} height={360} attrs={scene} />
+        <View style={{ paddingHorizontal: 28, gap: 12 }}>
+          {title}
+          {body}
+        </View>
+      </AxFlow>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SceneArt scene="gate" width={width} height={610} attrs={scene} />
@@ -57,30 +103,10 @@ export function WelcomeScreen() {
       {/* The words sit just above the buttons, so a longer language grows upward. */}
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 44 }}>
         <View style={{ paddingHorizontal: 28, gap: 12, marginBottom: 7 }}>
-          <Txt
-            variant="displayXL"
-            accessibilityRole="header"
-            style={{ fontSize: 46, lineHeight: 46, letterSpacing: -0.46 }}
-          >
-            {t('shell.appName')}
-          </Txt>
-          <Txt
-            variant="body"
-            multiline
-            color={inks.list}
-            style={{ fontSize: 17, lineHeight: 24.65 }}
-          >
-            {t('onboarding.welcome.body')}
-          </Txt>
+          {title}
+          {body}
         </View>
-        <View style={{ paddingHorizontal: 24, gap: 6 }}>
-          <Button label={t('onboarding.welcome.start')} onPress={start} haptic="tap" />
-          <Button
-            label={t('onboarding.welcome.invite')}
-            kind="text"
-            onPress={() => router.push(routes.invite)}
-          />
-        </View>
+        <View style={{ paddingHorizontal: 24, gap: 6 }}>{buttons}</View>
       </View>
     </View>
   );

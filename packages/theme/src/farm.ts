@@ -8,6 +8,8 @@ import type { Bezier } from './motion';
 export const farm = {
   /** Season changes cross-fade the whole scene over 1.2 s (developer notes). */
   seasonFade: { durationMs: 1200, bezier: [0.45, 0, 0.55, 1] as Bezier },
+  /** The fire's glow fades in over 1.2 s when it is lit, and out as it goes out (16 notes). */
+  fireGlow: { durationMs: 1200, bezier: [0.45, 0, 0.55, 1] as Bezier },
   /** Bubbles bob 2 points on a 3-second loop (developer notes). */
   bob: { distance: 2, periodMs: 3000 },
   /** The art's night pass: a multiply of the night sky at this strength over the farm. */
