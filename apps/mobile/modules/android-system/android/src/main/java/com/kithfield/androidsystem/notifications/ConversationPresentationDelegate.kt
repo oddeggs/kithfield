@@ -13,7 +13,7 @@ import org.json.JSONObject
 import android.app.Notification as AndroidNotification
 
 /**
- * Draws Kithfield's pushes (`14 Platforms`, 14-07). expo-notifications builds the notification
+ * Draws Kithfield's pushes (`14 Platforms`). expo-notifications builds the notification
  * (its channel, actions, tap and tag); a push from a friend then becomes their message in
  * MessagingStyle, with their critter as the picture and the farm's name beside the app's, and the
  * quiet "a few things" roundup is drawn without a sound in whichever channel it arrives.

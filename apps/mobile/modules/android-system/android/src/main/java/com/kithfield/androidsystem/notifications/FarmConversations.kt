@@ -11,7 +11,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 
 /**
- * Each farm as an Android conversation (`14 Platforms`, 14-07): a long-lived shortcut that a
+ * Each farm as an Android conversation (`14 Platforms`): a long-lived shortcut that a
  * friend's push points at, so the shade draws it in its conversation layout with their critter.
  * The shortcut opens the farm; it goes when the person signs out (`forgetAll`).
  */
