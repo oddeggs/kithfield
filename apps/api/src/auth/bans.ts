@@ -28,7 +28,8 @@ export interface Ban {
 
 /**
  * Writes a ban, replacing any earlier one of the same scope. An account ban also ends every
- * session the person holds, in the same batch, so they are signed out everywhere at once.
+ * session the person holds and every device's action key, in the same batch, so they are signed
+ * out everywhere at once and nothing (a lock-screen reply, a share) writes as them.
  */
 export async function banPerson(db: D1Database, ban: Ban): Promise<void> {
   const statements = [
@@ -41,6 +42,9 @@ export async function banPerson(db: D1Database, ban: Ban): Promise<void> {
   ];
   if (ban.scope === ACCOUNT_BAN_SCOPE) {
     statements.push(db.prepare('DELETE FROM sessions WHERE person_id = ?').bind(ban.person));
+    statements.push(
+      db.prepare('DELETE FROM device_action_keys WHERE person_id = ?').bind(ban.person),
+    );
   }
   await db.batch(statements);
 }
