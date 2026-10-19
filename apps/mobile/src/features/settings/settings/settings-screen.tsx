@@ -14,6 +14,7 @@ import { HOUSE_HOURS, clockTime, zoneName } from '../format';
 import { go } from '../go';
 import { BackButton, Group, Label, useDesignTop } from '../kit/layout';
 import { SettingRow } from '../kit/setting-row';
+import { shownLanguage } from '../shown-language';
 import { useRemote } from '../use-remote';
 import { LoadFailed } from '../kit/remote-state';
 import { useMeSettings } from './use-me-settings';
@@ -185,7 +186,7 @@ export function SettingsScreen() {
           <SettingRow
             icon="chat"
             title={t('settings.language')}
-            value={t(`settings.language.${settings?.lang ?? language}`)}
+            value={t(`settings.language.${shownLanguage(settings?.lang, language)}`)}
             onPress={() => go({ pathname: '/(tabs)/you/choose', params: { setting: 'language' } })}
           />
         </Section>

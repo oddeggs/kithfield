@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "links",
+  "description": "Links out of the app (the house rules, a link in the chat, a place's directions) open in the system's browser from the farm's window, for http and https addresses only: no files, no other schemes, no chosen app.",
+  "windows": ["main"],
+  "permissions": [
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://*" }, { "url": "http://*" }]
+    }
+  ]
+}

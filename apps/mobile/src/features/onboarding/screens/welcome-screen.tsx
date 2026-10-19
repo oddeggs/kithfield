@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../../../ui/components/button';
@@ -15,6 +15,7 @@ import { SceneArt } from '../scene-art';
 import { PaperFade } from '../fades';
 import { AxFlow, useInks, useSceneAttrs } from '../kit';
 import { useProgress } from '../progress';
+import { useWayInWindow } from '../way-in-frame';
 
 /**
  * The gate: start a farm, or come in with an invite. Returning people sign in from "Start a
@@ -25,7 +26,7 @@ export function WelcomeScreen() {
   const { t } = useLocale();
   const { palette } = useTheme();
   const inks = useInks();
-  const { width, fontScale } = useWindowDimensions();
+  const { width, fontScale } = useWayInWindow();
   const ax = fontScale >= AX_FONT_SCALE;
   const insets = useSafeAreaInsets();
   const scene = useSceneAttrs();

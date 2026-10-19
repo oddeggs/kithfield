@@ -3,7 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import { getCalendars, getLocales } from 'expo-localization';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Share, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Share, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedKeyboard,
   useAnimatedStyle,
@@ -36,6 +36,7 @@ import {
   useDesignTop,
   useSceneAttrs,
 } from '../kit';
+import { useWayInWindow } from '../way-in-frame';
 
 /** The land a first farm is planted on. */
 const FIRST_LAND = 'meadow';
@@ -60,7 +61,7 @@ export function PlantScreen() {
   const router = useRouter();
   const { t } = useLocale();
   const { palette } = useTheme();
-  const { width, height: screenHeight } = useWindowDimensions();
+  const { width, height: screenHeight } = useWayInWindow();
   const top = useDesignTop();
   const sceneAttrs = useSceneAttrs();
   const ax = useAccessibilitySize();

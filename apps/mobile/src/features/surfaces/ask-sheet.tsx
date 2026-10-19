@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { Platform, ScrollView, useWindowDimensions, View } from 'react-native';
+import { ScrollView, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../../ui/components/button';
@@ -8,6 +8,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
+import { askNextKey } from '../onboarding/ask-next';
 import { Body, Eyebrow, PromiseRow, Title, useSceneAttrs } from '../onboarding/kit';
 import { SceneArt } from '../onboarding/scene-art';
 import { answerAskSheet, type Device } from './asks';
@@ -90,7 +91,7 @@ export function AskSheet({ device }: { readonly device: Device }) {
           color={palette.secondary}
           style={{ fontSize: 12.5, lineHeight: 17.5 }}
         >
-          {t(Platform.OS === 'android' ? 'android.ask.next' : 'surfaces.ask.next')}
+          {t(askNextKey('surfaces.ask.next'))}
         </Txt>
         <Button
           label={mic ? t('surfaces.ask.mic.yes') : t('surfaces.ask.camera.yes')}

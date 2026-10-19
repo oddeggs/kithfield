@@ -1,16 +1,22 @@
 // Builds the web app for hosting at `<host>/app`: Expo's web export into `dist-web/app/`, with
 // the API on the same host, then the page every route falls back to at `dist-web/index.html`.
 //
+// The page's icons are baked from the art (`web/copy-assets.mjs`) and named in its head.
+//
 //   node web/build.mjs dev    (dev.kithfield.com)
 //   node web/build.mjs prd    (kithfield.com)
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, rmSync, writeFileSync } from 'node:fs';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+
+import { WEB_ICONS } from './icons.mjs';
 
 const variant = process.argv[2] === 'prd' ? 'prd' : 'dev';
 const host = variant === 'prd' ? 'kithfield.com' : 'dev.kithfield.com';
 const root = path.resolve(import.meta.dirname, '..');
 const out = path.join(root, 'dist-web');
+/** Where the page is served on its host. */
+const base = '/app';
 
 rmSync(out, { recursive: true, force: true });
 execFileSync('node', ['web/copy-assets.mjs'], { cwd: root, stdio: 'inherit' });
@@ -24,11 +30,21 @@ execFileSync(
       ...process.env,
       APP_VARIANT: variant,
       API_BASE: `https://${host}/api`,
-      WEB_BASE_URL: '/app',
+      WEB_BASE_URL: base,
     },
   },
 );
-copyFileSync(path.join(out, 'app', 'index.html'), path.join(out, 'index.html'));
+// Expo's page names no icon, so a browser would ask for `/favicon.ico`, which is the site's.
+const icons = WEB_ICONS.map(
+  ({ file, size, rel }) =>
+    `<link rel="${rel}" type="image/png" sizes="${size}x${size}" href="${base}/${file}" />`,
+).join('');
+const page = readFileSync(path.join(out, 'app', 'index.html'), 'utf8').replace(
+  '</head>',
+  `${icons}</head>`,
+);
+writeFileSync(path.join(out, 'app', 'index.html'), page);
+writeFileSync(path.join(out, 'index.html'), page);
 
 /**
  * The page shares its origin with the API and keeps the session in the browser's storage, so

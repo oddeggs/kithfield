@@ -1,5 +1,7 @@
 // Copies what the web build loads at runtime into `public/`, from the installed packages, so the
-// versions always match: CanvasKit (Skia), sql.js (the browser's store) and the theme's fonts.
+// versions always match: CanvasKit (Skia), sql.js (the browser's store) and the theme's fonts. Then
+// bakes the page's icons from the art beside them (`web/bake-icons.mjs`).
+import { execFileSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -22,3 +24,9 @@ mkdirSync(path.join(out, 'fonts'), { recursive: true });
 for (const file of readdirSync(fonts).filter((name) => name.endsWith('.ttf'))) {
   copyFileSync(path.join(fonts, file), path.join(out, 'fonts', file));
 }
+
+// The art package is TypeScript: the baker runs through tsx.
+execFileSync(process.execPath, ['--import', 'tsx', path.join(root, 'web', 'bake-icons.mjs')], {
+  cwd: root,
+  stdio: 'inherit',
+});

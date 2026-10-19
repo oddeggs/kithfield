@@ -1,7 +1,8 @@
 //! Kithfield on the desktop: a window onto the web app, which draws everything (the three panes,
 //! the menu-bar or tray critter, the popover, notifications) through Tauri's JavaScript API.
 //! This side only starts the plugins, keeps one copy of the app running, and keeps the app alive
-//! in the menu bar or tray when its window is closed.
+//! in the menu bar or tray when its window is closed. Links out of the app open in the system's
+//! browser through the opener plugin, for http(s) addresses only (`capabilities/links.json`).
 
 use tauri::{Manager, RunEvent, WindowEvent};
 
@@ -17,6 +18,13 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_notification::init())
+        // Without the plugin's own click script, which would hand out any `_blank`, Ctrl- or
+        // Shift-clicked http(s) link, the app's own pages too: the page decides what leaves.
+        .plugin(
+            tauri_plugin_opener::Builder::new()
+                .open_js_links_on_click(false)
+                .build(),
+        )
         .on_window_event(|window, event| {
             // Closing the farm's window hides it: the critter stays in the menu bar or tray,
             // and its popover opens the window again. Quit from the critter's menu.

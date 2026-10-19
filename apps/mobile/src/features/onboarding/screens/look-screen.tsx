@@ -1,7 +1,7 @@
 import { LIMITS } from '@kithfield/contracts';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Text, useWindowDimensions, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { promptText } from '../../../../modules/android-system';
 
@@ -32,6 +32,7 @@ import {
 import { AccessoryOptions, CoatOptions, MarkOptions } from '../look-options';
 import { moveIn as moveInWith } from '../move-in';
 import { useProgress } from '../progress';
+import { useWayInWindow } from '../way-in-frame';
 
 type Tab = 'coat' | 'mark' | 'accessory';
 
@@ -44,7 +45,7 @@ export function LookScreen() {
   const { t, language } = useLocale();
   const { palette, appearance } = useTheme();
   const inks = useInks();
-  const { width } = useWindowDimensions();
+  const { width } = useWayInWindow();
   const top = useDesignTop();
   const scene = useSceneAttrs();
   const ax = useAccessibilitySize();

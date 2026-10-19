@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedKeyboard,
   useAnimatedStyle,
@@ -30,6 +30,7 @@ import {
 } from '../kit';
 import { useProgress } from '../progress';
 import { codeFailure, sendFailure } from '../sign-in-errors';
+import { useWayInWindow } from '../way-in-frame';
 
 const EMAIL = '\u0001';
 
@@ -100,7 +101,7 @@ export function CodeScreen() {
 
   const keyboard = useAnimatedKeyboard();
   const noteBottom = useSharedValue(0);
-  const { height: screenHeight } = useWindowDimensions();
+  const { height: screenHeight } = useWayInWindow();
   const lifted = useAnimatedStyle(() => {
     const covered = noteBottom.get() + 12 - (screenHeight - keyboard.height.get());
     return { transform: [{ translateY: -Math.max(0, covered) }] };
