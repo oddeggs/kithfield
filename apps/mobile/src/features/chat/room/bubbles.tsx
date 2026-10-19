@@ -7,6 +7,7 @@ import { ArtIcon } from '../../../ui/art/art-view';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { TravelAnchor, travelIds } from '../../../ui/travel';
 import { Txt } from '../../../ui/type/text';
 import { MediaImage } from '../../media';
 import { sceneOfSticker, StickerArt, type StickerPerson } from '../../stickers';
@@ -426,7 +427,7 @@ function StickerBubble({
   readonly sticker: StickerPayload;
 }) {
   const { t } = useLocale();
-  const { people, bubbleAt, nameOf } = useRoom();
+  const { farm, people, bubbleAt, nameOf } = useRoom();
   // Everyone drawn as they look now; anyone the phone can't find is left out.
   const personOf = (id: string | null): StickerPerson | null => {
     const p = id === null ? undefined : people.get(id);
@@ -440,7 +441,12 @@ function StickerBubble({
     personOf,
     replied ? nameOf(replied.actor) : null,
   );
-  return <StickerArt attrs={attrs} size={100} />;
+  // Where a sticker sent from the picker lands, hidden until it does (signature motion).
+  return (
+    <TravelAnchor id={travelIds.chatSticker(farm, item.opId)} style={{ width: 100, height: 100 }}>
+      <StickerArt attrs={attrs} size={100} />
+    </TravelAnchor>
+  );
 }
 
 /** The body of a bubble, by kind. */

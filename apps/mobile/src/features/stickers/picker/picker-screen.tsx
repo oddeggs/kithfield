@@ -1,17 +1,20 @@
 import type { FarmState, StickerPayload } from '@kithfield/contracts';
 import { motion } from '@kithfield/theme';
+import { getRandomBytes } from 'expo-crypto';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useFarm, useSend } from '../../../data';
+import { useDataClient, useFarm } from '../../../data';
+import { createOpIdMaker } from '../../../data/op-id';
 import { Chip } from '../../../ui/components/chip';
 import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { timing, travelIds, useTravel } from '../../../ui/travel';
 import { Txt } from '../../../ui/type/text';
 import { useCollection, useRecents, useTogetherPeople, type RecentSticker } from '../data';
 import { offered, OWN, type PackId } from '../model/catalogue';
@@ -37,6 +40,15 @@ type Tab =
   | { readonly id: 'together' }
   | { readonly id: PackId; readonly owned: OwnedPack };
 
+/** Op ids for stickers sent from the picker, made before the write so the flight knows its end. */
+const newOpId = createOpIdMaker(getRandomBytes);
+
+/** Each sticker in the picker, as the place it flies from. */
+const recentAnchor = (key: string) => `stickers:picker:recent:${key}`;
+const gridAnchor = (key: string) => `stickers:picker:${key}`;
+/** The picker closes by then even if the sticker never took off. */
+const CLOSE_AT_LATEST_MS = 250;
+
 const keyOf = (s: RecentSticker) => `${s.pack}/${s.sticker}/${(s.with ?? []).join(',')}`;
 
 /** The farm's people as stickers draw them. */
@@ -60,7 +72,12 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
   const toast = useToast();
   const insets = useSafeAreaInsets();
   const state = useFarm(farm)?.state ?? null;
-  const send = useSend(farm);
+  const client = useDataClient();
+  const travel = useTravel();
+  // The sheet's top on the window, from its own height: views in a native sheet measure from it.
+  const { height: windowH } = useWindowDimensions();
+  const [sheetH, setSheetH] = useState<number | null>(null);
+  const sheetTop = sheetH === null ? undefined : windowH - sheetH;
   const me = useMe();
   const { collection } = useCollection();
   const drawable = useTogetherPeople(farm);
@@ -150,18 +167,42 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
     return { pack: x.id, sticker: offered(x.owned.pack)[0]?.id ?? '' };
   };
 
-  const doSend = (s: RecentSticker) => {
+  const doSend = (s: RecentSticker, from?: string) => {
     setPreview(null);
     const payload: StickerPayload = {
       pack: s.pack,
       sticker: s.sticker,
       ...(s.with && s.with.length > 0 ? { with: [...s.with] } : {}),
     };
-    void send('sticker', payload).then((result) => {
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      add(s);
+      if (router.canGoBack()) router.back();
+    };
+    // The write's op id is known before it is queued, so the sticker sets off at the tap: it lifts,
+    // tilts and grows along an arc into its message, which shows it once it lands, while the
+    // picker drops away (signature motion).
+    const opId = newOpId();
+    const flight = from
+      ? travel.fly({
+          from,
+          to: travelIds.chatSticker(farm, opId),
+          sprite: { scene: 'sticker', attrs: draw(s), width: 100, height: 100, drawings: 2 },
+          grow: 0.15,
+          arc: 70,
+          hideSource: false,
+          durationMs: timing('sticker', 'total'),
+          onStart: close,
+        })
+      : null;
+    void client.send(farm, 'sticker', payload, opId).then((result) => {
       if (result.status === 'queued') {
-        add(s);
-        if (router.canGoBack()) router.back();
+        if (flight) setTimeout(close, CLOSE_AT_LATEST_MS);
+        else close();
       } else {
+        flight?.cancel();
         toast.show(t('stickers.picker.refused'));
       }
     });
@@ -184,7 +225,10 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
   const showRecents = current.id === 'mine' && recents.length > 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.sheet }}>
+    <View
+      style={{ flex: 1, backgroundColor: palette.sheet }}
+      onLayout={(e) => setSheetH(e.nativeEvent.layout.height)}
+    >
       {/* Keeps the scroll view off the native sheet's first-view path, where the sheet would
           stretch it to its own frame. */}
       <View collapsable={false} />
@@ -281,9 +325,11 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
               size={STICKER}
               rowGap={4}
               hint={t('stickers.picker.sendHint')}
+              anchorOf={recentAnchor}
+              {...(sheetTop === undefined ? {} : { sheetTop })}
               onPress={(k) => {
                 const s = byKey.get(k);
-                if (s) doSend(s);
+                if (s) doSend(s, recentAnchor(k));
               }}
               onLongPress={(k) => setPreview(byKey.get(k) ?? null)}
             />
@@ -302,9 +348,11 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
             rowGap={4}
             viewport={viewport}
             hint={t('stickers.picker.sendHint')}
+            anchorOf={gridAnchor}
+            {...(sheetTop === undefined ? {} : { sheetTop })}
             onPress={(k) => {
               const s = byKey.get(k);
-              if (s) doSend(s);
+              if (s) doSend(s, gridAnchor(k));
             }}
             onLongPress={(k) => setPreview(byKey.get(k) ?? null)}
           />

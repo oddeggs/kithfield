@@ -9,6 +9,8 @@ export const travelIds = {
   farmDoor: (farm: string, person: string) => `farm:door:${farm}:${person}`,
   /** A critter's face beside a message in a chat. */
   chatFace: (farm: string, seq: number) => `chat:face:${farm}:${seq}`,
+  /** A sticker sent in a chat, by its write's op id (the same while sending and once landed). */
+  chatSticker: (farm: string, opId: string) => `chat:sticker:${farm}:${opId}`,
   /** The dewdrop on a message's chip, where its ripples spread. */
   dewdrop: (farm: string, seq: number) => `chat:dewdrop:${farm}:${seq}`,
   /** A Quick Tend card, and the bouquet its answer folds into. */
