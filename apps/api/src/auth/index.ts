@@ -2,7 +2,7 @@ import type { Bindings } from '../env';
 import { checkRtToken, rtTokenSession, type RtTokenScope } from './rt-token';
 
 export { authRoutes } from './routes';
-export { requireSession, errorResponse, type SessionEnv } from './session';
+export { requireAgeCheck, requireSession, errorResponse, type SessionEnv } from './session';
 export { ACCOUNT_BAN_SCOPE, banPerson, isBanned, type Ban } from './bans';
 export { blockerCount, blockPerson, eitherBlocked } from './blocks';
 export { registerAiForgetStep, type AiForgetStep, type ConsentForgetJob } from './consents';

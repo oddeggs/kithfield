@@ -200,6 +200,40 @@ describe('planting and joining', () => {
     expect(old).toEqual({ status: 404, body: { error: { code: 'invite_invalid' } } });
   });
 
+  it('lets nobody join before they have passed the age check', async () => {
+    const { pip } = await cast('pip');
+    const { farm, invite } = await plant(pip);
+    const { token, user } = await signInAnonymously();
+    const newcomer: Person = { id: user.id, token, name: 'Fig', critter: critter('frog') };
+    const early = await api(newcomer, 'POST', `/v1/invites/${invite.code}/join`, profile(newcomer));
+    expect(early).toEqual({ status: 403, body: { error: { code: 'forbidden' } } });
+    expect(await membership(farm, newcomer.id)).toBeNull();
+    const aged = await api(newcomer, 'POST', '/v1/me/age', { birthYear: 1990, country: 'GB' });
+    expect(aged.status).toBe(204);
+    const joined = await api(
+      newcomer,
+      'POST',
+      `/v1/invites/${invite.code}/join`,
+      profile(newcomer),
+    );
+    expect(joined).toEqual({ status: 200, body: { farm, status: 'joined' } });
+  });
+
+  it('plants no farm for someone who has not passed the age check', async () => {
+    const { token, user } = await signInAnonymously();
+    const early: Person = { id: user.id, token, name: 'Fig', critter: critter('frog') };
+    expect((await api(early, 'PATCH', '/v1/me/profile', profile(early))).status).toBe(200);
+    const body = { name: 'Fig’s', land: 'meadow', timeZone: 'UTC', hemisphere: 'north' };
+    const refused = await api(early, 'POST', '/v1/farms', body);
+    expect(refused).toEqual({ status: 403, body: { error: { code: 'forbidden' } } });
+    const held = await env.DB.prepare('SELECT count(*) AS n FROM memberships WHERE person_id = ?')
+      .bind(early.id)
+      .first<{ n: number }>();
+    expect(held?.n).toBe(0);
+    await api(early, 'POST', '/v1/me/age', { birthYear: 1990, country: 'GB' });
+    expect((await api(early, 'POST', '/v1/farms', body)).status).toBe(201);
+  });
+
   it('keeps people waiting where the keeper lets them in, and lets them in or not, quietly', async () => {
     const { pip, kit, bea } = await cast('pip', 'kit', 'bea');
     const { farm, invite } = await plant(pip);

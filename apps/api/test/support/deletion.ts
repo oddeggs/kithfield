@@ -14,7 +14,7 @@ import { api, critter, type Person } from '../farm/support/doubles';
 
 export type Letters = ReturnType<typeof watchLetters>;
 
-/** Someone who signs in with an email code, with a name and critter. */
+/** Someone who signs in with an email code, past the age check, with a name and critter. */
 export async function emailPerson(letters: Letters) {
   const email = `leaving.${crypto.randomUUID().slice(0, 8)}@example.com`;
   await sendCode(email);
@@ -25,6 +25,8 @@ export async function emailPerson(letters: Letters) {
     name: 'Wren',
     critter: critter('owl'),
   };
+  const aged = await api(person, 'POST', '/v1/me/age', { birthYear: 1990, country: 'GB' });
+  expect(aged.status).toBe(204);
   const set = await api(person, 'PATCH', '/v1/me/profile', {
     name: person.name,
     critter: person.critter,
