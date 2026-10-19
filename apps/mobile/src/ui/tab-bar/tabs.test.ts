@@ -35,4 +35,22 @@ describe('the tab bar over a pushed screen', () => {
     expect(tabBarHidden({ routes: [{ state: { routes: [{}, {}] } }] })).toBe(true);
     expect(tabBarHidden({ routes: [{ state: { routes: [{}] } }] })).toBe(false);
   });
+
+  it('hides over a chat pushed from another tab, whose stack starts at the chat', () => {
+    const farm = { name: 'farm', state: { index: 0, routes: [{ name: 'index' }] } };
+    const chat = { name: 'chat', state: { index: 0, routes: [{ name: '[farm]' }] } };
+    expect(tabBarHidden({ index: 1, routes: [farm, chat] })).toBe(true);
+    expect(tabBarHidden({ index: 0, routes: [farm, chat] })).toBe(false);
+  });
+
+  it('hides over a pushed screen the tab’s stack has not taken in yet', () => {
+    const chat = (screen: string) => ({ name: 'chat', params: { screen, params: { farm: 'f' } } });
+    expect(tabBarHidden({ index: 0, routes: [chat('[farm]')] })).toBe(true);
+    expect(tabBarHidden({ index: 0, routes: [chat('index')] })).toBe(false);
+  });
+
+  it('shows on a tab’s first screen named in its stack', () => {
+    const chat = { name: 'chat', state: { routes: [{ name: 'index' }] } };
+    expect(tabBarHidden({ routes: [chat] })).toBe(false);
+  });
 });
