@@ -14,6 +14,8 @@ export const nativeLabVi: ViCatalogue<typeof nativeLabEn> = {
   'nativeLab.backgroundTasks': 'Tác vụ nền: {state}',
   'nativeLab.reloadWidgets': 'Tải lại tiện ích',
   'nativeLab.reloaded': 'Đã nhờ iOS tải lại các tiện ích',
+  'nativeLab.samplePushes': 'Hiện thông báo mẫu',
+  'nativeLab.samplePushesShown': 'Có hai thông báo trong ngăn thông báo',
   'nativeLab.state.ready': 'sẵn sàng',
   'nativeLab.state.missing': 'thiếu',
   'nativeLab.state.set': 'đã đặt',

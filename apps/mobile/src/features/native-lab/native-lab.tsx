@@ -5,13 +5,15 @@ import { requireOptionalNativeModule } from 'expo';
 import Constants from 'expo-constants';
 import { Paths } from 'expo-file-system';
 import { getNetworkStateAsync } from 'expo-network';
+import * as Notifications from 'expo-notifications';
 import { isAvailableAsync } from 'expo-task-manager';
 import { useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Platform, ScrollView, View } from 'react-native';
 import Purchases from 'react-native-purchases';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { surfaces } from '../../../modules/surfaces';
+import { useDataClient } from '../../data';
 import { Button } from '../../ui/components/button';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useTheme } from '../../ui/theme/theme-provider';
@@ -82,6 +84,7 @@ const checkTasks = async (): Promise<State> => ((await isAvailableAsync()) ? 're
 
 export function NativeLab() {
   const { t } = useLocale();
+  const client = useDataClient();
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
   const extra = Constants.expoConfig?.extra as Extra;
@@ -143,6 +146,17 @@ export function NativeLab() {
           }
         }}
       />
+      {Platform.OS === 'android' ? (
+        <Button
+          label={t('nativeLab.samplePushes')}
+          kind="secondary"
+          onPress={() => {
+            showSamplePushes(client, t)
+              .then(() => setNote(t('nativeLab.samplePushesShown')))
+              .catch((error: unknown) => setNote(t('nativeLab.failed', { error: String(error) })));
+          }}
+        />
+      ) : null}
       {note ? (
         <Txt variant="note" multiline color={palette.muted}>
           {note}
@@ -150,4 +164,36 @@ export function NativeLab() {
       ) : null}
     </ScrollView>
   );
+}
+
+/**
+ * Android: a plan push and a doorstep push on the first farm, in the channels and with the actions
+ * FCM's data messages carry, so the notification shade can be seen without a server push.
+ */
+async function showSamplePushes(
+  client: ReturnType<typeof useDataClient>,
+  t: ReturnType<typeof useLocale>['t'],
+) {
+  const farm = (await client.api.farms()).farms.find((f) => f.kind === 'farm');
+  if (farm === undefined) return;
+  const title = farm.name ?? t('push.app');
+  const at = Date.now();
+  const samples = [
+    {
+      body: t('push.planDay.start', { title: t('gallery.type.sample.rowTitle') }),
+      categoryIdentifier: 'plan',
+      data: { farm: farm.farm, seq: 1, kind: 'seed_planted', push: `sample-plan-${at}`, seed: 1 },
+    },
+    {
+      body: t('push.doorstep.firefly', { name: 'Otis' }),
+      categoryIdentifier: 'tend',
+      data: { farm: farm.farm, seq: 1, kind: 'firefly', push: `sample-step-${at}` },
+    },
+  ];
+  for (const sample of samples) {
+    await Notifications.scheduleNotificationAsync({
+      content: { title, ...sample },
+      trigger: { channelId: 'plans' },
+    });
+  }
 }

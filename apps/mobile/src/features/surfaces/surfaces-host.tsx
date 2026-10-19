@@ -19,7 +19,7 @@ import { registerBackgroundTask, takeWoken } from './background';
 import { clearSurfacesForSignOut, writtenForSomeoneElse } from './clear';
 import { endOrphanFireActivities } from './fire-activity';
 import { groupRoot, nativeGroupStore } from './group-store';
-import { ACTION_TITLES, categories } from './notification-actions';
+import { ACTION_TITLES, categories, DEFAULT_ACTION } from './notification-actions';
 import { openTarget } from './open';
 import { appScheme } from './scheme';
 import type { ShareSender, SharedFile } from './share-outbox';
@@ -81,6 +81,15 @@ function useShareSender(): ShareSender {
 }
 
 /**
+ * Android leaves a push in the shade after one of its actions; iOS puts it away. Once the action
+ * is answered, Android's goes too.
+ */
+function answeredOnAndroid(id: string, action: string) {
+  if (Platform.OS !== 'android' || action === DEFAULT_ACTION) return;
+  void Notifications.dismissNotificationAsync(id).catch(() => undefined);
+}
+
+/**
  * The native surfaces' side in the app, mounted once under the data layer: see `surfaces.ts`.
  * It renders nothing.
  */
@@ -135,6 +144,7 @@ function Running({ me }: { readonly me: string }) {
         await surfaces.refresh({ force: true, catchUp: [event.data.farm] });
       } else {
         await surfaces.respond(event);
+        if (event.kind === 'response') answeredOnAndroid(event.id, event.action);
       }
     });
     registerBackgroundTask().catch(report);
@@ -160,6 +170,7 @@ function Running({ me }: { readonly me: string }) {
           data: request.content.data,
           at: response.notification.date,
         })
+        .then(() => answeredOnAndroid(request.identifier, response.actionIdentifier))
         .catch(report);
     };
     const responses = Notifications.addNotificationResponseReceivedListener(respond);
