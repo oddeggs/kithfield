@@ -15,6 +15,7 @@ import {
   useTestPorts,
 } from '../../test/farm/support/doubles';
 import { setCaptionAudio, setCaptionPerks } from './captions';
+import { answerRoomService, roomServiceCall } from './livekit-double.test-data';
 import { fromBase64Url, sha256Base64, signJwt } from './jwt';
 
 let ports: TestPorts;
@@ -35,19 +36,11 @@ beforeEach(async () => {
   // LiveKit's room service, stood in for: it answers as the real one does and records each call.
   const real = globalThis.fetch;
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-    if (!url.startsWith('https://kithfield-cvm2v8ac.livekit.cloud/twirp/'))
-      return real(input, init);
-    const method = url.split('/').pop() ?? '';
-    const body = JSON.parse(typeof init?.body === 'string' ? init.body : '{}') as Record<
-      string,
-      unknown
-    >;
-    asked.push({ method, body });
-    if (method === 'ListParticipants') return Response.json({ participants: inRoom });
-    if (method === 'UpdateParticipant' && !inRoom.some((p) => p.identity === body['identity']))
-      return Response.json({ code: 'not_found' }, { status: 404 });
-    return Response.json({});
+    const call = roomServiceCall(input, init);
+    if (call === null) return real(input, init);
+    asked.push(call);
+    if (call.method === 'RemoveParticipant') return Response.json({});
+    return answerRoomService(call, inRoom);
   });
 });
 

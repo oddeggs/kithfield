@@ -1,3 +1,4 @@
+import { env, exports } from 'cloudflare:workers';
 import { vi } from 'vitest';
 
 /** A participant as the stand-in room service lists them. */
@@ -8,31 +9,58 @@ export type ListedParticipant = {
   attributes: Record<string, string>;
 };
 
+/** Where the room service answers in the tests: the stand-in host `LIVEKIT_URL` names. */
+export const roomServiceUrl = (): string =>
+  `${(env.LIVEKIT_URL ?? '').replace(/^ws(s?):\/\//, 'http$1://').replace(/\/$/, '')}/twirp/`;
+
+/** A room service call, as the stand-in reads it. */
+export type RoomServiceCall = { method: string; body: Record<string, unknown> };
+
+/** The room service call `input` makes, or null when it goes elsewhere. */
+export function roomServiceCall(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): RoomServiceCall | null {
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+  if (!url.startsWith(roomServiceUrl())) return null;
+  const body = JSON.parse(typeof init?.body === 'string' ? init.body : '{}') as Record<
+    string,
+    unknown
+  >;
+  return { method: url.split('/').pop() ?? '', body };
+}
+
+/**
+ * How the room service answers a call with `inRoom` in the room: an unknown participant is
+ * `not_found`.
+ */
+export function answerRoomService(
+  { method, body }: RoomServiceCall,
+  inRoom: readonly ListedParticipant[],
+): Response {
+  if (method === 'ListParticipants') return Response.json({ participants: inRoom });
+  const known = inRoom.some((p) => p.identity === body['identity']);
+  if ((method === 'UpdateParticipant' || method === 'RemoveParticipant') && !known)
+    return Response.json({ code: 'not_found' }, { status: 404 });
+  return Response.json({});
+}
+
 /**
  * LiveKit's room service, stood in for in the Workers runtime: it answers as the real one does
- * (an unknown participant is `not_found`) and records each call, by method, with its JSON.
+ * and records each call, by method, with its JSON. Without it, the room is empty
+ * (`test/offline.ts`).
  */
 export function standInLiveKit() {
   const room = {
-    asked: [] as { method: string; body: Record<string, unknown> }[],
+    asked: [] as RoomServiceCall[],
     inRoom: [] as ListedParticipant[],
   };
   const real = globalThis.fetch;
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-    if (!url.startsWith('https://kithfield-cvm2v8ac.livekit.cloud/twirp/'))
-      return real(input, init);
-    const method = url.split('/').pop() ?? '';
-    const body = JSON.parse(typeof init?.body === 'string' ? init.body : '{}') as Record<
-      string,
-      unknown
-    >;
-    room.asked.push({ method, body });
-    if (method === 'ListParticipants') return Response.json({ participants: room.inRoom });
-    const known = room.inRoom.some((p) => p.identity === body['identity']);
-    if ((method === 'UpdateParticipant' || method === 'RemoveParticipant') && !known)
-      return Response.json({ code: 'not_found' }, { status: 404 });
-    return Response.json({});
+    const call = roomServiceCall(input, init);
+    if (call === null) return real(input, init);
+    room.asked.push(call);
+    return answerRoomService(call, room.inRoom);
   });
   return room;
 }
@@ -56,7 +84,6 @@ export async function deliverHook(
   body: object,
   options: { secret?: string; exp?: boolean } = {},
 ): Promise<Response> {
-  const { env, exports } = await import('cloudflare:workers');
   const { sha256Base64, signJwt } = await import('./jwt');
   const raw = new TextEncoder().encode(JSON.stringify(body));
   const now = Math.floor(Date.now() / 1000);
