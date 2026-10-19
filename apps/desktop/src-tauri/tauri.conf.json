@@ -17,7 +17,8 @@
         "minWidth": 1100,
         "minHeight": 640,
         "center": true,
-        "backgroundColor": "#F5EEE2"
+        "backgroundColor": "#F5EEE2",
+        "dragDropEnabled": false
       }
     ],
     "macOSPrivateApi": true,
