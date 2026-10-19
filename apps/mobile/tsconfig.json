@@ -8,13 +8,14 @@
     "allowImportingTsExtensions": true
   },
   "include": [
+    "index.ts",
+    "index.web.tsx",
     "src",
     "modules",
     "test",
     "e2e",
     "app.config.ts",
     "android-config.ts",
-    "index.ts",
     "expo-env.d.ts",
     ".expo/types/**/*.ts",
     "vitest.e2e.config.mts"

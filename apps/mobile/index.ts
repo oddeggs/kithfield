@@ -1,3 +1,4 @@
+// The app's entry on the phone (Metro takes `index.web.tsx` for the browser).
 import { Platform } from 'react-native';
 
 import 'expo-router/entry';
