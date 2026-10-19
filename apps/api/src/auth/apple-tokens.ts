@@ -31,7 +31,12 @@ export function appleKeyOf(env: Bindings): AppleKey | null {
   const keyP8 = env.APPLE_SIGN_IN_KEY_P8;
   const keyId = env.APPLE_SIGN_IN_KEY_ID;
   if (!keyP8 || !keyId) return null;
-  return { keyP8, keyId, teamId: env.APNS_TEAM_ID ?? DEFAULT_TEAM, clientId: env.APPLE_BUNDLE_ID };
+  return {
+    keyP8,
+    keyId,
+    teamId: env.APNS_TEAM_ID ?? DEFAULT_TEAM,
+    clientId: env.APPLE_SIGN_IN_CLIENT_ID ?? env.APPLE_BUNDLE_ID,
+  };
 }
 
 const base64url = (bytes: Uint8Array): string =>
