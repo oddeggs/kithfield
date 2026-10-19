@@ -137,7 +137,7 @@ export function SeedBed() {
           />
         )}
       </ScrollView>
-      <HintOverlay hint="seed" show={focused && !loading} spot={plantButton.spot} />
+      <HintOverlay hint="seed" show={focused && !loading} spot={plantButton.spot} tabBar />
     </View>
   );
 }

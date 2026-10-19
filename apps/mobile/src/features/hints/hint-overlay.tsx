@@ -1,6 +1,16 @@
+import { sizes } from '@kithfield/theme';
 import { Canvas, Circle, Group, Rect, Skia } from '@shopify/react-native-skia';
-import { useEffect, useMemo, useRef, useState, type ComponentRef, type RefObject } from 'react';
-import { Modal, View, useWindowDimensions } from 'react-native';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentRef,
+  type ReactNode,
+  type RefObject,
+} from 'react';
+import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { FullWindowOverlay } from 'react-native-screens';
 import Animated, {
   Easing,
   ReduceMotion,
@@ -18,6 +28,7 @@ import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { useHint, type Hint } from './hint-store';
+import { tabBarFrame } from '../../ui/tab-bar/tab-bar';
 
 /** The spotlight's ease in and the card's rise (`12 States`, first-run hints). */
 const IN_MS = 240;
@@ -75,26 +86,31 @@ export function HintOverlay({
   hint,
   show,
   spot,
+  tabBar = false,
 }: {
   readonly hint: Hint;
   /** The screen is in front and settled, so the tip can't cover something else. */
   readonly show: boolean;
   readonly spot: Spot | null;
+  /** The tip shows over a tab, whose floating bar stays lit. */
+  readonly tabBar?: boolean;
 }) {
   const state = useHint(hint);
   const visible = show && state.due;
   // Rendered only once its tip is due, so a screen with no tip pays nothing.
-  return visible ? <HintCard hint={hint} spot={spot} state={state} /> : null;
+  return visible ? <HintCard hint={hint} spot={spot} state={state} tabBar={tabBar} /> : null;
 }
 
 function HintCard({
   hint,
   spot,
   state,
+  tabBar,
 }: {
   readonly hint: Hint;
   readonly spot: Spot | null;
   readonly state: ReturnType<typeof useHint>;
+  readonly tabBar: boolean;
 }) {
   const { t } = useLocale();
   const { palette } = useTheme();
@@ -126,12 +142,31 @@ function HintCard({
     transform: [{ translateY: reduce ? 0 : (1 - shown.get()) * RISE }],
   }));
 
+  // The scrim leaves out the spotlight and, on a tab, the floating tab bar, which stays lit over
+  // it as the design layers it.
+  const barBottom =
+    insets.bottom > 0
+      ? insets.bottom - tabBarFrame.liftUnderIndicator
+      : tabBarFrame.bottomWithoutIndicator;
   const hole = useMemo(() => {
-    if (!spot) return null;
+    if (!spot && !tabBar) return null;
     const b = Skia.PathBuilder.Make();
-    b.addCircle(spot.x, spot.y, spot.r);
+    if (spot) b.addCircle(spot.x, spot.y, spot.r);
+    if (tabBar) {
+      const r = sizes.tabBar / 2;
+      b.addRRect({
+        rect: {
+          x: tabBarFrame.side,
+          y: height - barBottom - sizes.tabBar,
+          width: width - tabBarFrame.side * 2,
+          height: sizes.tabBar,
+        },
+        rx: r,
+        ry: r,
+      });
+    }
     return b.build();
-  }, [spot]);
+  }, [spot, tabBar, width, height, barBottom]);
 
   // Wider when the text is large, so the card keeps a few words a line.
   const cardW = fontScale > 1.3 ? width - 32 : CARD_W;
@@ -167,7 +202,7 @@ function HintCard({
     );
 
   return (
-    <Modal transparent visible animationType="none" statusBarTranslucent onRequestClose={state.ok}>
+    <Layer>
       <Animated.View
         style={[{ position: 'absolute', left: 0, top: 0, width, height }, scrim]}
         importantForAccessibility="no-hide-descendants"
@@ -240,6 +275,20 @@ function HintCard({
         </View>
         {!below && spot ? arrow('down') : null}
       </Animated.View>
-    </Modal>
+    </Layer>
   );
+}
+
+/**
+ * The window-wide layer the toasts use, so a tip shows over everything on the screen without
+ * presenting anything (an RN `Modal` would hide the screen from VoiceOver and the tab bar's place).
+ */
+function Layer({ children }: { readonly children: ReactNode }) {
+  const body = (
+    <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+      {children}
+    </View>
+  );
+  if (Platform.OS !== 'ios') return body;
+  return <FullWindowOverlay>{body}</FullWindowOverlay>;
 }

@@ -310,7 +310,7 @@ export function FarmScene({
           ) : null;
         })}
       </View>
-      <HintOverlay hint="critter" show={hints && spot !== null} spot={spot} />
+      <HintOverlay hint="critter" show={hints && spot !== null} spot={spot} tabBar />
     </View>
   );
 }
