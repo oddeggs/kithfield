@@ -116,6 +116,10 @@ About 110 agent runs in all, including integration and fix runs. With 8 lanes at
 
 Critter mask (16, marked later), visit calls by knocking (16), sticker creator market, Kithfield for teams, end-to-end encryption for visits.
 
+### 20 Together (design synced 19 Oct 2026)
+
+Web plan invites, interactive widgets, the Sunday week page, free tonight, shared projects, seasons and friends far apart (`20-01` to `20-25`, plus the plan link card). Built after wave 4 by the founder's decision.
+
 ## Founder gates
 
 | Needed by | Gate |
