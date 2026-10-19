@@ -44,6 +44,7 @@ export class FarmReplica<View = unknown> {
   private pending: readonly OutboxEntry[] = [];
   private current: FarmReplicaState;
   private readonly listeners = new Set<() => void>();
+  private readonly historyListeners = new Set<() => void>();
   private readonly serial = createSerialQueue();
   private readonly memory = createEventMemory();
   /** Who is here and writing, apart from the farm so it never re-renders what reads the farm. */
@@ -91,6 +92,17 @@ export class FarmReplica<View = unknown> {
     return () => this.listeners.delete(listener);
   };
 
+  /**
+   * Tells `listener` when a page of history lands in the cache. The farm itself is unchanged (the
+   * page is behind `lastSeq`), so `subscribe` stays quiet; what reads the cached log reads again.
+   */
+  onHistory = (listener: () => void): (() => void) => {
+    this.historyListeners.add(listener);
+    return () => {
+      this.historyListeners.delete(listener);
+    };
+  };
+
   /** Applies one frame from the farm socket. */
   handle(frame: ReceivedFrame): Promise<FrameOutcome> {
     return this.serial(async (): Promise<FrameOutcome> => {
@@ -136,6 +148,7 @@ export class FarmReplica<View = unknown> {
       const { store } = this.deps;
       await store.transaction(() => storeHistory(this.context(), this.lastSeq, events));
       for (const seq of restoreTargets) this.memory.tried.add(seq);
+      for (const listener of this.historyListeners) listener();
     });
   }
 
