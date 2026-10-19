@@ -1,0 +1,23 @@
+{
+  "name": "@kithfield/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Kithfield for Mac and Windows: a Tauri shell around the web app (the farms, the chat and the farm in three panes), with the menu-bar or tray critter and soft notifications",
+  "scripts": {
+    "icons": "tsx scripts/bake-icons.ts && tauri icon src-tauri/icons/app-1024.png --output src-tauri/icons",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:local": "tauri build --bundles app --config src-tauri/tauri.local.conf.json",
+    "typecheck": "tsc -p scripts"
+  },
+  "dependencies": {
+    "@kithfield/art": "workspace:*"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "catalog:",
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
+}

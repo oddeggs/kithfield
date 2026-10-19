@@ -1,0 +1,37 @@
+name: desktop
+
+# Builds the desktop app, unsigned, for Mac and Windows when asked. Signing and notarising need
+# the Apple Developer ID certificate and a Windows code-signing certificate, not set up yet.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: desktop app (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            bundles: app,dmg
+          - os: windows-latest
+            bundles: msi,nsis
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, cache: pnpm }
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pnpm install --frozen-lockfile
+      # The icons are baked from the art, never committed.
+      - run: pnpm --filter @kithfield/desktop icons
+      - run: pnpm --filter @kithfield/desktop exec tauri build --bundles ${{ matrix.bundles }}
+      - uses: actions/upload-artifact@v5
+        with:
+          name: kithfield-desktop-${{ matrix.os }}
+          path: apps/desktop/src-tauri/target/release/bundle/

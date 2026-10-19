@@ -1,7 +1,7 @@
 import type { ChatListItem, Critter, PersonId } from '@kithfield/contracts';
 import { ColorMatrix, Canvas, Image as SkImage } from '@shopify/react-native-skia';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -238,6 +238,8 @@ export function ChatRow(props: ChatRowProps) {
             onPress={open ? () => onOpen(null) : onPress}
             darken={false}
             accessible={false}
+            // The row around it is the button; in a browser a button can't hold another one.
+            {...(Platform.OS === 'web' ? { accessibilityRole: 'none' as const } : {})}
             style={{
               flexDirection: 'row',
               alignItems: 'center',

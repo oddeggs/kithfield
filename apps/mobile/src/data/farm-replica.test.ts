@@ -184,6 +184,23 @@ describe('restored events', () => {
   });
 });
 
+describe('history pages', () => {
+  it('tells its readers when a page lands, though the farm has not moved', async () => {
+    const r = await replica();
+    await r.handle({ type: 'events', events: opening, more: false });
+    const heard: number[] = [];
+    const quiet: number[] = [];
+    const stop = r.onHistory(() => heard.push(r.getState().lastSeq));
+    r.subscribe(() => quiet.push(r.getState().lastSeq));
+    await r.cacheHistory([opening[0]]);
+    expect(heard).toEqual([2]);
+    expect(quiet).toEqual([]);
+    stop();
+    await r.cacheHistory([opening[0]]);
+    expect(heard).toEqual([2]);
+  });
+});
+
 describe('the outbox', () => {
   it('refuses a write no farm would take without queueing it', async () => {
     const r = await replica();

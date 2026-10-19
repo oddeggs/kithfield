@@ -145,6 +145,8 @@ export interface BuildEnv {
   googleAndroidClientId?: string | undefined;
   /** The Firebase app's `google-services.json`, for push: a file that exists, or unset. */
   googleServicesJson?: string | undefined;
+  /** The path the web build is served under when hosted (`WEB_BASE_URL`, `/app`); unset in development. */
+  webBaseUrl?: string | undefined;
 }
 
 const isSet = (value: string | undefined): value is string => value !== undefined && value !== '';
@@ -343,7 +345,7 @@ export const PRIVACY_MANIFEST = {
 export function buildConfig(
   config: ConfigContext['config'],
   appVariant: AppVariant,
-  { apiBase, revenueCatIosKey, revenueCatAndroidKey, ...android }: BuildEnv,
+  { apiBase, revenueCatIosKey, revenueCatAndroidKey, webBaseUrl, ...android }: BuildEnv,
 ): ExpoConfig {
   const variant = VARIANTS[appVariant];
   const googleAndroidClientId = isSet(android.googleAndroidClientId)
@@ -408,6 +410,8 @@ export function buildConfig(
       ),
       ...(googleServices !== undefined ? { googleServicesFile: googleServices } : {}),
     },
+    // The browser and the desktop app: one page, the router in the browser.
+    web: { bundler: 'metro', output: 'single', name: variant.name },
     locales: { vi: { ios: usageStrings(systemPermissionsVi) } },
     plugins: [
       'expo-router',
@@ -424,6 +428,7 @@ export function buildConfig(
     ],
     experiments: {
       typedRoutes: true,
+      ...(isSet(webBaseUrl) ? { baseUrl: webBaseUrl } : {}),
     },
     extra: {
       ...config.extra,
@@ -453,4 +458,5 @@ export default ({ config, projectRoot }: ConfigContext): ExpoConfig =>
     revenueCatAndroidKey: env['REVENUECAT_ANDROID_KEY'],
     googleAndroidClientId: env['GOOGLE_ANDROID_CLIENT_ID'],
     googleServicesJson: googleServicesFile(env['GOOGLE_SERVICES_JSON'], projectRoot),
+    webBaseUrl: env['WEB_BASE_URL'],
   });

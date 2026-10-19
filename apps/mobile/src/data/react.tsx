@@ -126,7 +126,14 @@ export function useFarmView<View>(farm: FarmId, now: number): View | null {
 /** The newest cached events of a farm, oldest first, refreshed whenever the farm changes. */
 export function useFarmEvents(farm: FarmId, limit = 50): readonly StoredEvent[] {
   const client = useDataClient();
-  const lastSeq = useFarm(farm)?.lastSeq;
+  const replica = useReplica(farm);
+  const lastSeq = useSyncExternalStore(
+    replica?.subscribe ?? noSubscribe,
+    replica?.getState ?? nothing,
+  )?.lastSeq;
+  // A history page lands without moving `lastSeq` (after a snapshot jump: a farm just joined).
+  const [paged, setPaged] = useState(0);
+  useEffect(() => replica?.onHistory(() => setPaged((n) => n + 1)), [replica]);
   const [events, setEvents] = useState<readonly StoredEvent[]>([]);
   useEffect(() => {
     let live = true;
@@ -137,7 +144,7 @@ export function useFarmEvents(farm: FarmId, limit = 50): readonly StoredEvent[] 
     return () => {
       live = false;
     };
-  }, [client, farm, limit, lastSeq]);
+  }, [client, farm, limit, lastSeq, paged]);
   return events;
 }
 

@@ -1,0 +1,24 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The web app's window and the critter's popover, on the build's own app address only (frontendDist, or devUrl in development, which Tauri treats as the app's own): the tray, menus, windows, events and notifications it drives. No other address gets these.",
+  "windows": ["main", "popover"],
+  "permissions": [
+    "core:default",
+    "core:tray:default",
+    "core:menu:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-position",
+    "core:window:allow-unminimize",
+    "core:window:allow-is-visible",
+    "core:window:allow-outer-position",
+    "core:window:allow-outer-size",
+    "core:window:allow-scale-factor",
+    "core:window:allow-theme",
+    "core:webview:allow-create-webview-window",
+    "core:app:allow-default-window-icon",
+    "notification:default"
+  ]
+}
