@@ -373,6 +373,7 @@ export function FarmLoadFailed({
   return (
     <ErrorState
       art={<ArtStill scene="spot" width={360} height={260} attrs={{ name: 'error' }} />}
+      place="top"
       title={t('states.error.title')}
       body={t('states.error.body')}
       {...(code ? { code } : {})}

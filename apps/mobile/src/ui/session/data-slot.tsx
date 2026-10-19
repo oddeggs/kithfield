@@ -90,6 +90,7 @@ function StartFailed({ onRetry }: { readonly onRetry: () => void }) {
   return (
     <ErrorState
       art={<ArtStill scene="spot" width={300} height={216} attrs={{ name: 'error' }} />}
+      place="top"
       title={t('shell.startFailed.title')}
       body={t('shell.startFailed.body')}
       action={{ label: t('shell.startFailed.action'), onPress: onRetry }}
