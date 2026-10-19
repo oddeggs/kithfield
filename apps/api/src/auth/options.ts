@@ -223,5 +223,14 @@ export function buildAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
     ...(input.databaseHooks ? { databaseHooks: input.databaseHooks } : {}),
     ...(input.hooks ? { hooks: input.hooks } : {}),
     telemetry: { enabled: false },
+    // Better Auth's own words only: what it logs alongside them (a letter's failure, a request's
+    // details) can carry an address.
+    logger: {
+      level: 'warn',
+      log: (level, message) => {
+        if (level === 'error') console.error(`auth: ${message}`);
+        else console.warn(`auth: ${message}`);
+      },
+    },
   };
 }
