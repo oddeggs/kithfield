@@ -79,7 +79,7 @@ Workspace packages are `@kithfield/<dir>`, ESM, and export TypeScript source.
 ## 6. To verify before relying on it
 
 - APNs needs HTTP/2. Verified 19 Oct 2026: direct HTTP/2 from Workers works (a remote preview got `BadDeviceToken` for a made-up token from both `api.push.apple.com` and the sandbox), so Live Activity pushes go straight to APNs, with no relay; ordinary pushes still go through Expo's push service.
-- Skia's text rendering for Gaegu, Patrick Hand and Lora against the browser, and the adapter's colour matrices against CSS `filter`.
+- Skia's text rendering for Gaegu, Patrick Hand and Young Serif against the browser, and the adapter's colour matrices against CSS `filter`.
 - Memory and frame time of the busiest farm (24 critters, night, fire lit) on the oldest supported iPhone.
 - Live Activity push updates for the fire room and the day of a plan.
 - Licensing: an app licence that can ship on the App Store (MPL, MIT or Apache, or a contributor licence agreement), the server under AGPL, the art under a separate non-free licence.
