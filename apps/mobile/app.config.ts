@@ -253,6 +253,17 @@ export const withBackgroundModes: ConfigPlugin<string[]> = (config, modes) =>
   });
 
 /**
+ * Release builds talk to the API over HTTPS only. Expo's template lets any build reach the local
+ * network over plain HTTP (for a development server on the LAN); a store build has no need to.
+ */
+export const withoutLocalNetworking: ConfigPlugin = (config) =>
+  withInfoPlist(config, (plist) => {
+    const ats = plist.modResults['NSAppTransportSecurity'] as Record<string, unknown> | undefined;
+    if (ats !== undefined) delete ats['NSAllowsLocalNetworking'];
+    return plist;
+  });
+
+/**
  * The app's privacy manifest (`PrivacyInfo.xcprivacy`): the required-reason APIs it and its
  * libraries call, and what it collects, matching the App Store privacy labels in
  * `docs/launch/hardening.md`. Everything is linked to the person and used only for the app to
@@ -380,7 +391,8 @@ export function buildConfig(
       eas: { projectId: EAS_PROJECT_ID },
     },
   };
-  return withBackgroundModes(app, BACKGROUND_MODES);
+  const withModes = withBackgroundModes(app, BACKGROUND_MODES);
+  return appVariant === 'prd' ? withoutLocalNetworking(withModes) : withModes;
 }
 
 // React Native's globals type `process` loosely; this file runs in Node, where each value is a string.
