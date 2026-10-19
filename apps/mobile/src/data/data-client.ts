@@ -223,6 +223,17 @@ export async function createDataClient<View>(deps: DataClientDeps<View>) {
       };
     },
 
+    /**
+     * Opens the held farm's socket again now, its backoff started afresh: "Try again" after the
+     * farm couldn't load. A farm no screen holds is left alone.
+     */
+    reconnect(farm: FarmId): void {
+      if ((holds.at(-1)?.farm ?? null) !== farm) return;
+      open?.stop();
+      open = null;
+      guard('focus', focus());
+    },
+
     /** Says whether this person is writing on a farm; only while its socket is open. */
     typing(farm: FarmId, on: boolean): void {
       if (open?.farm === farm) open.typing(on);

@@ -118,13 +118,10 @@ const DRAWING_TOP = 250;
 function FarmFor({
   farm,
   name,
-  onRetry,
 }: {
   readonly farm: FarmId;
   /** The farm's name from the farm list, for the header while the farm itself loads. */
   readonly name: string | null;
-  /** Opens the farm afresh after it couldn't load. */
-  readonly onRetry: () => void;
 }) {
   const { t } = useLocale();
   const insets = useSafeAreaInsets();
@@ -187,7 +184,7 @@ function FarmFor({
       <View style={{ flex: 1, backgroundColor: palette.background }}>
         <FarmLoadFailed
           {...(link.status === 'blocked' ? { code: `KF-${link.code}` } : {})}
-          onRetry={onRetry}
+          onRetry={() => client.reconnect(farm)}
         />
       </View>
     );
@@ -352,19 +349,11 @@ export function FarmHome() {
   const { t } = useLocale();
   const { palette } = useTheme();
   const valley = useValley();
-  const [attempt, setAttempt] = useState(0);
   useGoneNote(valley.gone, valley.forget);
 
   if (valley.current) {
     const row = valley.farms.find((f) => f.farm === valley.current);
-    return (
-      <FarmFor
-        key={`${valley.current}:${attempt}`}
-        farm={valley.current}
-        name={row?.name ?? null}
-        onRetry={() => setAttempt((a) => a + 1)}
-      />
-    );
+    return <FarmFor key={valley.current} farm={valley.current} name={row?.name ?? null} />;
   }
   if (valley.status === 'loading') {
     return <View style={{ flex: 1, backgroundColor: palette.background }} />;
