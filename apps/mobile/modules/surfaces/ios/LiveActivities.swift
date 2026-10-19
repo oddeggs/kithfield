@@ -60,8 +60,10 @@ extension Data {
 }
 
 /// Follows every activity's update token and state, and the device's push-to-start token, for as
-/// long as the module lives.
+/// long as the module lives. `watch` is called from the module's thread and from the
+/// `activityUpdates` task at once, so the tasks it keeps are only touched under `lock`.
 final class ActivityWatcher {
+  private let lock = NSLock()
   private var tasks: [String: Task<Void, Never>] = [:]
   private var root: [Task<Void, Never>] = []
   private let send: (String, [String: Any]) -> Void
@@ -72,6 +74,8 @@ final class ActivityWatcher {
 
   func start() {
     for activity in Activity<SurfaceAttributes>.activities { watch(activity) }
+    lock.lock()
+    defer { lock.unlock() }
     root.append(
       Task { [weak self] in
         // Activities the server started with the push-to-start token appear here too.
@@ -90,6 +94,8 @@ final class ActivityWatcher {
   }
 
   func stop() {
+    lock.lock()
+    defer { lock.unlock() }
     root.forEach { $0.cancel() }
     tasks.values.forEach { $0.cancel() }
     root = []
@@ -97,6 +103,8 @@ final class ActivityWatcher {
   }
 
   func watch(_ activity: Activity<SurfaceAttributes>) {
+    lock.lock()
+    defer { lock.unlock() }
     guard tasks[activity.id] == nil else { return }
     let base = LiveActivities.describe(activity)
     tasks[activity.id] = Task { [weak self] in
