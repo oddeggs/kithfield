@@ -8,6 +8,7 @@ import {
 } from '@kithfield/contracts';
 import { type Context, Hono } from 'hono';
 
+import { clientKey } from '../web/waitlist-store';
 import { authFor } from './instance';
 import { registerMergeStep } from './merge-steps';
 import { errorResponse, requireSession, type SessionEnv } from './session';
@@ -133,7 +134,7 @@ export function desktopLinkRoutes(): Hono<SessionEnv> {
 
   // The computer: no session yet.
   routes.post('/v1/desktop-link', async (c) => {
-    if (await limited(c, `ask:${c.req.header('cf-connecting-ip') ?? 'unknown'}`)) {
+    if (await limited(c, `ask:${clientKey(c.req.header('cf-connecting-ip') ?? 'unknown')}`)) {
       return errorResponse(c, 429, 'rate_limited');
     }
     const parsed = DesktopLinkRequest.safeParse(await c.req.json().catch(() => undefined));

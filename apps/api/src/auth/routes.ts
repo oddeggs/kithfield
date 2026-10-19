@@ -4,6 +4,7 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import type { z } from 'zod';
 
+import { clientKey } from '../web/waitlist-store';
 import { accountDeletionRoutes } from './account-deletion';
 import { checkAge } from './age';
 import { blockRoutes } from './blocks';
@@ -73,7 +74,8 @@ export function authRoutes(): Hono<SessionEnv> {
 
   // Before Apple's or Google's sheet opens; no session needed, as a signed-out phone signs in too.
   routes.post('/v1/sign-in-nonce', async (c) => {
-    const address = c.req.header('cf-connecting-ip') ?? 'unknown';
+    // An IPv6 /64 is one household's, so it is counted as one address.
+    const address = clientKey(c.req.header('cf-connecting-ip') ?? 'unknown');
     const { success } = await c.env.SIGN_IN_NONCE_LIMIT.limit({ key: address });
     if (!success) return errorResponse(c, 429, 'rate_limited');
     const issued = await issueSignInNonce(c.env.DB, Date.now());

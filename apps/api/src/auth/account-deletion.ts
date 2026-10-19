@@ -10,6 +10,7 @@ import type { z } from 'zod';
 
 import { cottageOf } from '../cottage/stub';
 import type { Bindings } from '../env';
+import { clientKey } from '../web/waitlist-store';
 import {
   addressHash,
   clearCodeFailures,
@@ -240,7 +241,8 @@ export function accountDeletionRoutes(): Hono<SessionEnv> {
   });
 
   const withinLimit = async (c: Context<SessionEnv>) => {
-    const address = c.req.header('cf-connecting-ip') ?? 'unknown';
+    // An IPv6 /64 is one household's, so it is counted as one address.
+    const address = clientKey(c.req.header('cf-connecting-ip') ?? 'unknown');
     return (await c.env.DELETION_REQUEST_LIMIT.limit({ key: address })).success;
   };
   /** Codes are keyed under the auth secret; without it, the website's path is unavailable. */
