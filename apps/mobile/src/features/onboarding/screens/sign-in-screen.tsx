@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Text, useWindowDimensions, View } from 'react-native';
 
 import { takeUnsentNotice, useDataClient, type UnsentNotice } from '../../../data';
 import { Button } from '../../../ui/components/button';
@@ -29,6 +29,7 @@ import { useProgress } from '../progress';
 import { pageUrl } from './house-rules-screen';
 import {
   appleSheet,
+  googleClient,
   googleSheet,
   handOverAppleCode,
   SheetCancelled,
@@ -122,12 +123,17 @@ export function SignInScreen() {
           style={{ marginBottom: 8 }}
         />
       ) : null}
-      <FadeUp delay={0}>
-        <AppleSignInButton onPress={() => void withSheet('apple', appleSheet)} />
-      </FadeUp>
-      <FadeUp delay={60}>
-        <GoogleSignInButton onPress={() => void withSheet('google', googleSheet)} />
-      </FadeUp>
+      {/* Sign in with Apple is an iOS sheet; Android signs in with Google or email. */}
+      {Platform.OS === 'ios' ? (
+        <FadeUp delay={0}>
+          <AppleSignInButton onPress={() => void withSheet('apple', appleSheet)} />
+        </FadeUp>
+      ) : null}
+      {googleClient() !== null ? (
+        <FadeUp delay={60}>
+          <GoogleSignInButton onPress={() => void withSheet('google', googleSheet)} />
+        </FadeUp>
+      ) : null}
       <FadeUp delay={120}>
         <Button
           label={t('onboarding.signIn.email')}

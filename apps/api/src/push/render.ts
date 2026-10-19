@@ -7,8 +7,9 @@ import type {
 } from '@kithfield/contracts';
 import { t } from '@kithfield/i18n';
 
-import { categoryOf, PASSIVE_COPY } from './catalogue';
+import { categoryOf, notificationTypeOf, PASSIVE_COPY } from './catalogue';
 import type { ExpoMessage } from './expo';
+import type { AndroidChannel } from './fcm';
 import { KNOCK_LIFETIME_MS } from './policy';
 
 /** A push lives a day at most: after that it would arrive stale. */
@@ -66,6 +67,18 @@ export function notificationCategoryOf(
   if (planSeedOf(job) !== null) return 'plan';
   const category = categoryOf(job);
   return job.seq !== null && (category === 'mention' || category === 'doorstep') ? 'tend' : null;
+}
+
+/**
+ * The Android channel a push arrives in (`14 Platforms`): every message on a farm in
+ * "Every message", the quiet "a few things" in its own soundless channel, and everything else
+ * (plans, the doorstep, mentions, knocks, reminders) in "Plans & doorstep".
+ */
+export function androidChannelOf(
+  job: Pick<PushJob, 'kind' | 'seq' | 'copy' | 'farm' | 'forYou'>,
+): AndroidChannel {
+  if (PASSIVE_COPY.has(job.copy.key)) return 'quiet';
+  return notificationTypeOf(job) === 'messages' ? 'messages' : 'plans';
 }
 
 /**

@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { ScrollView, useWindowDimensions, View } from 'react-native';
+import { Platform, ScrollView, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../../ui/components/button';
@@ -90,7 +90,7 @@ export function AskSheet({ device }: { readonly device: Device }) {
           color={palette.secondary}
           style={{ fontSize: 12.5, lineHeight: 17.5 }}
         >
-          {t('surfaces.ask.next')}
+          {t(Platform.OS === 'android' ? 'android.ask.next' : 'surfaces.ask.next')}
         </Txt>
         <Button
           label={mic ? t('surfaces.ask.mic.yes') : t('surfaces.ask.camera.yes')}

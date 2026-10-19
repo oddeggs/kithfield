@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router/tabs';
-import { useWindowDimensions } from 'react-native';
+import { Platform, useWindowDimensions } from 'react-native';
 
+import { NavigationBar } from '../../features/android/navigation-bar';
 import { useScreenLayout } from '../../ui/layout/pane';
 import { hasSidebar, paneWidths } from '../../ui/layout/size-class';
 import { RailTabBar, useControlsRail } from '../../ui/layout/rail-tab-bar';
@@ -24,7 +25,11 @@ export default function TabsLayout() {
     <Tabs
       tabBar={(props) => {
         if (rail) return <RailTabBar {...props} />;
-        if (kind === 'phone') return <TabBar {...props} />;
+        if (kind === 'phone') {
+          // Android's Material navigation bar (`14 Platforms`).
+          if (Platform.OS === 'android') return <NavigationBar {...props} />;
+          return <TabBar {...props} />;
+        }
         const tab = props.state.routes[props.state.index]?.name;
         if (tab === 'farm' || (tab === 'chat' && hasSidebar(kind))) return null;
         // Beside an opened foldable's farm, the bar serves the chat's half.

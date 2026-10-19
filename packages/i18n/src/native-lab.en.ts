@@ -17,6 +17,9 @@ export const nativeLabEn = {
   'nativeLab.backgroundTasks': 'Background tasks: {state}',
   'nativeLab.reloadWidgets': 'Reload widgets',
   'nativeLab.reloaded': 'Asked iOS to reload the widgets',
+  /** Android: shows a plan push and a doorstep push, as FCM would deliver them. */
+  'nativeLab.samplePushes': 'Show sample pushes',
+  'nativeLab.samplePushesShown': 'Two pushes are in the notification shade',
   'nativeLab.state.ready': 'ready',
   'nativeLab.state.missing': 'missing',
   'nativeLab.state.set': 'set',

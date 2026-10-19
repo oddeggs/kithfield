@@ -3,9 +3,10 @@ import * as MediaLibrary from 'expo-media-library/legacy';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActionSheetIOS, ScrollView, useWindowDimensions, View } from 'react-native';
+import { ScrollView, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { showChoices } from '../../../../modules/android-system';
 import { useDataClient, useFarm } from '../../../data';
 import { ArtIcon, ArtStill } from '../../../ui/art/art-view';
 import { Segmented } from '../../../ui/components/segmented';
@@ -139,7 +140,7 @@ function Tile({
 
 /** Shared on the farm: photos, videos, links and voice notes, grouped by month. */
 export function MediaScreen({ farm }: { readonly farm: string }) {
-  const { palette } = useTheme();
+  const { palette, appearance } = useTheme();
   const { t, language } = useLocale();
   const toast = useToast();
   const insets = useSafeAreaInsets();
@@ -166,7 +167,7 @@ export function MediaScreen({ farm }: { readonly farm: string }) {
   };
   const actions = (item: SharedItem, url: string | null) => {
     const options = [t('chat.media.save'), t('chat.media.forward'), t('chat.search.cancel')];
-    ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex: 2 }, (i) => {
+    showChoices({ options, cancelButtonIndex: 2, dark: appearance === 'night' }, (i) => {
       if (i === 0) void save(item, url);
       if (i === 1) go.forward(farm, item.seq);
     });

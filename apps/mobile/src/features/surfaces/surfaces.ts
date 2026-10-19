@@ -6,6 +6,7 @@ import {
   type FarmState,
   type Lang,
   type PersonId,
+  type SurfaceData,
 } from '@kithfield/contracts';
 import { z } from 'zod';
 
@@ -56,6 +57,11 @@ export interface SurfacesDeps {
   readonly sharesRefused: (count: number) => void;
   readonly report: (error: unknown) => void;
   readonly now?: () => number;
+  /**
+   * Tells the widgets the files changed. iOS reloads its WidgetKit timelines; Android redraws its
+   * home-screen widgets from the same files.
+   */
+  readonly reloadWidgets?: (data: SurfaceData) => Promise<void>;
 }
 
 const statesOf = (list: readonly FarmSource[]): PlanDayInput[] =>
@@ -150,7 +156,8 @@ export function createSurfaces(deps: SurfacesDeps) {
     await deps.group.write(APP_GROUP_PATHS.data, JSON.stringify(data));
     lastWrite = at;
     try {
-      ExtensionStorage.reloadWidget();
+      if (deps.reloadWidgets) await deps.reloadWidgets(data);
+      else ExtensionStorage.reloadWidget();
     } catch (error) {
       deps.report(error);
     }

@@ -2,7 +2,7 @@
   "name": "@kithfield/mobile",
   "version": "0.0.0",
   "private": true,
-  "main": "expo-router/entry",
+  "main": "index.ts",
   "scripts": {
     "dev": "expo start --dev-client",
     "ios": "expo run:ios",
@@ -70,6 +70,7 @@
     "livekit-client": "catalog:",
     "react": "catalog:",
     "react-native": "catalog:",
+    "react-native-android-widget": "catalog:",
     "react-native-gesture-handler": "catalog:",
     "react-native-keyboard-controller": "catalog:",
     "react-native-purchases": "catalog:",

@@ -6,6 +6,7 @@ import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
 import { AppBundleId } from '@kithfield/contracts';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { z } from 'zod';
 
 import type { DataRuntime } from '../../data';
@@ -44,6 +45,8 @@ export async function deviceId(): Promise<string> {
  * Activities on this app's own APNs topic. Absent when the build doesn't say.
  */
 export function appBundleId(): { bundleId: string } | Record<string, never> {
+  // Only iOS apps have Live Activities, which is all the server needs the bundle id for.
+  if (Platform.OS !== 'ios') return {};
   const id = AppBundleId.safeParse(Constants.expoConfig?.ios?.bundleIdentifier);
   return id.success ? { bundleId: id.data } : {};
 }
@@ -60,6 +63,12 @@ export function pushDeps(runtime: DataRuntime<unknown>): PushDeps {
     store: keychain,
     permission: async () => (await Notifications.getPermissionsAsync()).granted,
     token: async () => {
+      // Android pushes straight through FCM: the device's own token, once Firebase is set up
+      // in the build (`GOOGLE_SERVICES_JSON`). Without it the app runs without push.
+      if (Platform.OS === 'android') {
+        const fcm = await Notifications.getDevicePushTokenAsync().catch(() => null);
+        return typeof fcm?.data === 'string' ? fcm.data : null;
+      }
       // Only a real device has a push token.
       if (!Device.isDevice) return null;
       const projectId = extra().eas?.projectId;
@@ -74,8 +83,12 @@ export function pushDeps(runtime: DataRuntime<unknown>): PushDeps {
       return digest.slice(0, 16);
     },
     device: {
-      platform: 'ios',
-      name: (Device.deviceName ?? Device.modelName ?? 'iPhone').slice(0, 64),
+      platform: Platform.OS === 'android' ? 'android' : 'ios',
+      name: (
+        Device.deviceName ??
+        Device.modelName ??
+        (Platform.OS === 'android' ? 'Android' : 'iPhone')
+      ).slice(0, 64),
       appVersion: Constants.expoConfig?.version ?? '0.0.0',
       ...appBundleId(),
     },

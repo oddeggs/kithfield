@@ -4,7 +4,9 @@ import { radii } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { getCalendars, getLocales } from 'expo-localization';
 import { useState } from 'react';
-import { ActionSheetIOS, View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
+
+import { showChoices } from '../../../modules/android-system';
 
 import { useCottage, useDataClient, useFarm, useFarmView } from '../../data';
 import { ArtIcon, ArtLoop } from '../../ui/art/art-view';
@@ -96,7 +98,7 @@ export function CritterCard({
   readonly person: PersonId;
 }) {
   const { t, language, fontLocale } = useLocale();
-  const { palette } = useTheme();
+  const { palette, appearance } = useTheme();
   const toast = useToast();
   const { width } = useWindowDimensions();
   const now = useNow();
@@ -208,7 +210,7 @@ export function CritterCard({
   };
 
   const more = () =>
-    ActionSheetIOS.showActionSheetWithOptions(
+    showChoices(
       {
         options: [
           t('farm.card.mute'),
@@ -218,6 +220,7 @@ export function CritterCard({
         ],
         destructiveButtonIndex: 2,
         cancelButtonIndex: 3,
+        dark: appearance === 'night',
       },
       (i) => {
         if (i === 0) router.push(farmRoutes.farmSettings(farm));

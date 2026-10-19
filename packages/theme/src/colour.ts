@@ -51,6 +51,19 @@ export const night = {
   honey: '#E8B44E',
 } as const;
 
+/**
+ * The Material surfaces `design/14 Platforms.dc.html` draws for Android by day, which Foundations
+ * has no swatch for. By night they take the night palette (`panel`, `bubble`).
+ */
+export const material = {
+  /** The navigation bar. */
+  navBar: '#F1EADD',
+  /** The chosen destination's pill on the navigation bar. */
+  navPill: '#DCE6C9',
+  /** A home-screen widget's paper. */
+  widgetPaper: '#FBF6EE',
+} as const;
+
 export type DayColour = keyof typeof day;
 export type NightColour = keyof typeof night;
 export type Appearance = 'day' | 'night';
