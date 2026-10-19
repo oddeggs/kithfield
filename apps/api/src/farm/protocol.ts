@@ -10,7 +10,7 @@ import { rtTokenSession } from '../auth';
 import { presenceFrame } from '../calls/farm-fire';
 import { socketPerson } from './adapters/identity';
 import type { FarmHost } from './host';
-import { attach, attachmentOf, refuse, send, who } from './sockets';
+import { attach, attachmentOf, refuse, send, sendAll, who } from './sockets';
 
 /*
  * The farm socket: hello and catch-up, commands with their acks, presence and typing. Frames are
@@ -77,7 +77,46 @@ const command = async (host: FarmHost, ws: WebSocket, cmd: FarmCommand): Promise
   if (written.event !== null) await host.settle([written.event], media);
 };
 
-/** Broadcasts presence or typing when the set of people changed. */
+/**
+ * Typing is told at most this often. A phone turns it on and off around each write, so on a busy
+ * farm most changes cancel out within the window and nobody needs to hear them.
+ */
+export const TYPING_EVERY_MS = 250;
+
+interface TypingTold {
+  /** Who the phones last heard is writing, joined; null until this object first told them. */
+  told: string | null;
+  timer: ReturnType<typeof setTimeout> | null;
+}
+
+// Kept in memory only: after hibernation the next change is simply told.
+const typingTold = new WeakMap<FarmHost, TypingTold>();
+
+const typingOf = (host: FarmHost): TypingTold => {
+  let entry = typingTold.get(host);
+  if (entry === undefined) {
+    entry = { told: null, timer: null };
+    typingTold.set(host, entry);
+  }
+  return entry;
+};
+
+/** Tells everyone who is writing after the window, if that differs from what they last heard. */
+const tellTypingSoon = (host: FarmHost, before: readonly string[]): void => {
+  const entry = typingOf(host);
+  entry.told ??= before.join();
+  if (entry.timer !== null) return;
+  entry.timer = setTimeout(() => {
+    entry.timer = null;
+    const sockets = host.sockets();
+    const people = who(sockets, 'typing');
+    if (people.join() === entry.told) return;
+    entry.told = people.join();
+    sendAll(sockets, { type: 'typing', people });
+  }, TYPING_EVERY_MS);
+};
+
+/** Broadcasts presence or typing when the set of people changed (a socket closing, at once). */
 export const refreshPresence = (
   host: FarmHost,
   before: { here: string[]; typing: string[] },
@@ -86,17 +125,12 @@ export const refreshPresence = (
   const sockets = host.sockets(closing);
   const here = who(sockets, 'here');
   const typing = who(sockets, 'typing');
-  if (here.join() !== before.here.join()) {
-    const frame = presenceFrame(host, here);
-    for (const ws of sockets) send(ws, frame);
+  if (here.join() !== before.here.join()) sendAll(sockets, presenceFrame(host, here));
+  const told = typingOf(host).told ?? before.typing.join();
+  if (typing.join() !== told) {
+    typingOf(host).told = typing.join();
+    sendAll(sockets, { type: 'typing', people: typing });
   }
-  if (typing.join() !== before.typing.join())
-    for (const ws of sockets) send(ws, { type: 'typing', people: typing });
-};
-
-const snapshotOf = (host: FarmHost) => {
-  const sockets = host.sockets();
-  return { here: who(sockets, 'here'), typing: who(sockets, 'typing') };
 };
 
 const parseJson = (message: string): unknown => {
@@ -143,13 +177,29 @@ export const onMessage = async (
     const { type: _type, ...cmd } = frame;
     return command(host, ws, cmd);
   }
-  const before = snapshotOf(host);
   if (frame.type === 'presence') {
-    attach(ws, { ...said, here: frame.here });
-    refreshPresence(host, before);
-    if (frame.here && !said.here) await host.opened(said.person);
+    if (!setFlag(host, ws, 'here', frame.here)) return;
+    if (frame.here) await host.opened(said.person);
     return;
   }
-  attach(ws, { ...said, typing: frame.on });
-  refreshPresence(host, before);
+  setFlag(host, ws, 'typing', frame.on);
+};
+
+/**
+ * Sets one socket's `here` or `typing`, and tells every socket when the set of people changed
+ * (typing within `TYPING_EVERY_MS`). A frame that changes nothing costs nothing.
+ */
+const setFlag = (host: FarmHost, ws: WebSocket, flag: 'here' | 'typing', on: boolean): boolean => {
+  const said = attachmentOf(ws);
+  if (said[flag] === on) return false;
+  const sockets = host.sockets();
+  const before = who(sockets, flag);
+  attach(ws, { ...said, [flag]: on });
+  if (flag === 'typing') {
+    tellTypingSoon(host, before);
+    return true;
+  }
+  const after = who(sockets, flag);
+  if (after.join() !== before.join()) sendAll(sockets, presenceFrame(host, after));
+  return true;
 };
