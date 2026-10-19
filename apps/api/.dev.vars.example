@@ -45,6 +45,10 @@ LIVEKIT_API_KEY=
 LIVEKIT_API_SECRET=
 # Kithfield's Telegram bot token (from @BotFather), for sticker sets made through the Bot API.
 TELEGRAM_BOT_TOKEN=
+# Sign in with Apple's key: a key with Sign in with Apple enabled (the whole `.p8`, PEM) and its id.
+# Empty: Apple sign-ins keep no refresh token, and deleting an account has none to revoke.
+APPLE_SIGN_IN_KEY_P8=
+APPLE_SIGN_IN_KEY_ID=
 # App Review's sign-in, as JSON: {"email":"review@example.com","code":"123456","companion":"review.friend@example.com"}.
 # Those addresses sign in with that code and are never mailed; the companion is optional. Empty: off.
 REVIEW_ACCOUNT=

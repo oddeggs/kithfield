@@ -43,6 +43,10 @@ export const secretNames = [
   // Kithfield's Telegram bot (from @BotFather): makes a person's sticker set with the Bot API
   // once they confirm in Telegram. Not used until the Telegram export routes exist.
   'TELEGRAM_BOT_TOKEN',
+  // Sign in with Apple's key (the `.p8`'s contents) and its id: swap the sheet's authorization
+  // code for a refresh token, and revoke it when the account is deleted (`auth/apple-tokens.ts`).
+  'APPLE_SIGN_IN_KEY_P8',
+  'APPLE_SIGN_IN_KEY_ID',
   // App Review's sign-in as JSON: {"email": "...", "code": "123456", "companion": "..."}. Those
   // addresses sign in with that code and are never mailed (`auth/review-account.ts`). Unset: off.
   'REVIEW_ACCOUNT',

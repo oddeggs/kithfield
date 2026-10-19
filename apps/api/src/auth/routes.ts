@@ -6,6 +6,7 @@ import type { z } from 'zod';
 
 import { clientKey } from '../web/waitlist-store';
 import { accountDeletionRoutes } from './account-deletion';
+import { appleTokenRoutes } from './apple-tokens';
 import { checkAge } from './age';
 import { blockRoutes } from './blocks';
 import { consentRoutes } from './consents';
@@ -47,6 +48,7 @@ async function parseBody<T>(c: Context, schema: z.ZodType<T>): Promise<Parsed<T>
  * - `POST /v1/me/delete`, `/v1/deletion-requests`: deleting an account (`account-deletion.ts`).
  * - `/v1/me/consents`: consent for the AI features, and forgetting what was sent (`consents.ts`).
  * - `/v1/desktop-link`: signing in on a computer by scanning its QR code (`desktop-link.ts`).
+ * - `POST /v1/me/apple-authorization`: an Apple sign-in's code, for revoking later (`apple-tokens.ts`).
  */
 export function authRoutes(): Hono<SessionEnv> {
   const routes = new Hono<SessionEnv>();
@@ -55,6 +57,7 @@ export function authRoutes(): Hono<SessionEnv> {
   routes.route('/', accountDeletionRoutes());
   routes.route('/', consentRoutes());
   routes.route('/', desktopLinkRoutes());
+  routes.route('/', appleTokenRoutes());
 
   // A phone signing itself out ends its device too (push, action key, sockets), then Better Auth
   // ends the session.
