@@ -15,6 +15,8 @@ import { Pill } from '../kit/bits';
 import { useInks } from '../kit/inks';
 import { Header, HeroSheet, useDesignTop } from '../kit/layout';
 import { CapsLabel } from '../kit/patron-bits';
+import { ScreenLoading } from '../kit/screen-loading';
+import { ShopFailed } from '../kit/states';
 import { SText } from '../kit/text';
 import { voteName } from '../patron-plan';
 
@@ -107,6 +109,10 @@ export function WallScreen() {
 
   const everPatron = shop.entitlements?.patronage != null;
   const cardHeight = 196;
+
+  // The wall is only ever shown as it is: a quiet line while it comes, Try again if it can't.
+  if (mine.failed) return <ShopFailed onRetry={mine.retry} />;
+  if (mine.wall === null) return <ScreenLoading />;
 
   return (
     <HeroSheet

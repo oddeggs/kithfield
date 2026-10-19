@@ -45,6 +45,9 @@ export interface ShopData {
   readonly entitlements: Entitlements | null;
   readonly collection: Collection | null;
   readonly wishlist: Wishlist | null;
+  /** The collection, or the wishlist, couldn't be read and none is held: say so, offer Try again. */
+  readonly collectionFailed: boolean;
+  readonly wishlistFailed: boolean;
   /** The store's display price for each product it knows. */
   readonly prices: Readonly<Record<string, string>>;
   /** The first load failed (offline, or the server didn't answer). */
@@ -88,6 +91,8 @@ export function ShopProvider({ children }: { readonly children: ReactNode }) {
   const [entitlements, setEntitlements] = useState<Entitlements | null>(null);
   const [collection, setCollection] = useState<Collection | null>(null);
   const [wishlist, setWishlist] = useState<Wishlist | null>(null);
+  const [collectionFailed, setCollectionFailed] = useState(false);
+  const [wishlistFailed, setWishlistFailed] = useState(false);
   const [prices, setPrices] = useState<Readonly<Record<string, string>>>({});
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -115,12 +120,20 @@ export function ShopProvider({ children }: { readonly children: ReactNode }) {
     );
     // The collection and wishlist aren't needed for the first frame.
     api.collection().then(
-      (c) => live && setCollection(c),
-      () => undefined,
+      (c) => {
+        if (!live) return;
+        setCollection(c);
+        setCollectionFailed(false);
+      },
+      () => live && setCollectionFailed(true),
     );
     api.wishlist().then(
-      (w) => live && setWishlist(w),
-      () => undefined,
+      (w) => {
+        if (!live) return;
+        setWishlist(w);
+        setWishlistFailed(false);
+      },
+      () => live && setWishlistFailed(true),
     );
     return () => {
       live = false;
@@ -154,11 +167,25 @@ export function ShopProvider({ children }: { readonly children: ReactNode }) {
   );
 
   const refreshCollection = useCallback(
-    () => api.collection().then(setCollection, () => undefined),
+    () =>
+      api.collection().then(
+        (c) => {
+          setCollection(c);
+          setCollectionFailed(false);
+        },
+        () => setCollectionFailed(true),
+      ),
     [api],
   );
   const refreshWishlist = useCallback(
-    () => api.wishlist().then(setWishlist, () => undefined),
+    () =>
+      api.wishlist().then(
+        (w) => {
+          setWishlist(w);
+          setWishlistFailed(false);
+        },
+        () => setWishlistFailed(true),
+      ),
     [api],
   );
   const byId = useMemo(() => new Map((catalog?.items ?? []).map((i) => [i.item, i])), [catalog]);
@@ -189,6 +216,8 @@ export function ShopProvider({ children }: { readonly children: ReactNode }) {
             entitlements,
             collection,
             wishlist,
+            collectionFailed,
+            wishlistFailed,
             prices,
             failed,
             loading,
@@ -211,6 +240,8 @@ export function ShopProvider({ children }: { readonly children: ReactNode }) {
       entitlements,
       collection,
       wishlist,
+      collectionFailed,
+      wishlistFailed,
       prices,
       failed,
       loading,

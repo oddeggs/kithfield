@@ -13,7 +13,7 @@ import { Header, HeroSheet } from '../kit/layout';
 import { memberOf, useFarmState } from '../kit/members';
 import { currentSeason, useShopParams } from '../kit/season';
 import { ScreenLoading } from '../kit/screen-loading';
-import { ShopFailed } from '../kit/states';
+import { ShopFailed, ShopLoading } from '../kit/states';
 import { SText } from '../kit/text';
 import { BirthdayNote, WishLabel, WishTiles, wishedItems } from '../wishlist-shelf';
 
@@ -82,7 +82,15 @@ function WishlistBody({ member }: { readonly member: MemberState | null }) {
         </View>
       </View>
       <WishLabel own />
-      {shop.wishlist === null ? null : items.length === 0 ? (
+      {shop.wishlist === null ? (
+        shop.wishlistFailed ? (
+          <SText s={13} lh={1.4} color={palette.secondary} multiline>
+            {t('shop.failed')}
+          </SText>
+        ) : (
+          <ShopLoading />
+        )
+      ) : items.length === 0 ? (
         // Said only once the wishlist has come: never "nothing yet" while it loads.
         <SText s={13} lh={1.4} color={palette.secondary} multiline>
           {t('shop.wishlist.empty')}
