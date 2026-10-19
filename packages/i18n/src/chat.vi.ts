@@ -189,6 +189,7 @@ export const chatVi: ViCatalogue<typeof chatEn> = {
   'chat.search.hint': 'Tìm tin nhắn, ảnh, đường dẫn và tin nhắn thoại trên {farm}.',
   'chat.search.looking': 'Đang tìm…',
   'chat.search.empty.title': '{name} đã tìm khắp nơi',
+  'chat.search.empty.titleNoName': 'Đã tìm khắp nơi',
   'chat.search.empty.body':
     'Không có gì trên {farm} khớp với từ đó. Thử bớt vài từ, hoặc tìm trên mọi nông trại của bạn.',
   'chat.search.empty.bodyAll':

@@ -208,6 +208,8 @@ export const chatEn = {
   'chat.search.hint': 'Search messages, photos, links and voice notes on {farm}.',
   'chat.search.looking': 'Looking…',
   'chat.search.empty.title': '{name} looked everywhere',
+  /** The same, when no critter on the farm can be named. */
+  'chat.search.empty.titleNoName': 'We looked everywhere',
   'chat.search.empty.body':
     'Nothing on {farm} matches that. Try fewer words, or look on all your farms.',
   'chat.search.empty.bodyAll': 'Nothing on your farms matches that. Try fewer words.',
