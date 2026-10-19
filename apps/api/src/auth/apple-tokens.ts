@@ -130,7 +130,14 @@ export async function revokeToken(
       token_type_hint: 'refresh_token',
     }),
   });
-  if (!response.ok) throw new Error(`Apple's revoke answered ${response.status}`);
+  if (!response.ok) throw new AppleRevokeError(response.status);
+}
+
+/** Apple refused a revoke; a 4xx means it refused our key or request, which a retry can't mend. */
+export class AppleRevokeError extends Error {
+  constructor(readonly status: number) {
+    super(`Apple's revoke answered ${status}`);
+  }
 }
 
 /** Where the routes and the purge reach Apple; tests stand in for it. */
@@ -182,6 +189,14 @@ export async function revokeAppleTokens(env: Bindings, person: string): Promise<
     .bind(person)
     .all<{ refresh_token: string }>();
   for (const row of results) {
-    await revokeToken(key, row.refresh_token, Date.now(), appleFetch.current);
+    // Apple being down fails the step so the purge tries again. A key or request Apple refuses
+    // would stall every purge on every retry, so the account still goes, and the log says why
+    // its token was left for Apple to expire.
+    await revokeToken(key, row.refresh_token, Date.now(), appleFetch.current).catch(
+      (error: unknown) => {
+        if (!(error instanceof AppleRevokeError) || error.status >= 500) throw error;
+        console.error('apple token not revoked', error.message);
+      },
+    );
   }
 }

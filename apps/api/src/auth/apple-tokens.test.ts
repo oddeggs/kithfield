@@ -170,4 +170,18 @@ describe('Sign in with Apple tokens', () => {
       appleRevocation.current.revoke(keyed, { person: person.user.id, appleAccounts: [sub] }),
     ).rejects.toThrow('503');
   });
+
+  it('lets the purge go on when Apple refuses the key, which no retry would mend', async () => {
+    const { pem } = await appleKey();
+    const keyed = { ...env, APPLE_SIGN_IN_KEY_P8: pem, APPLE_SIGN_IN_KEY_ID: 'KEY1' };
+    const sub = `apple.${crypto.randomUUID()}`;
+    const person = await appleSignedIn(sub);
+    await env.DB.prepare("UPDATE accounts SET refresh_token = 'r-4' WHERE person_id = ?")
+      .bind(person.user.id)
+      .run();
+    apple({ '/auth/revoke': () => Response.json({ error: 'invalid_client' }, { status: 400 }) });
+    await expect(
+      appleRevocation.current.revoke(keyed, { person: person.user.id, appleAccounts: [sub] }),
+    ).resolves.toBeUndefined();
+  });
 });
