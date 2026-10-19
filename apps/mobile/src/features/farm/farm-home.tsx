@@ -44,9 +44,9 @@ import {
   FarmLoadFailed,
   FarmReveal,
   PencilRows,
-  useFarmLoading,
   useOffline,
 } from './farm-states';
+import { useFarmLoading } from './farm-loading';
 import { JustYou } from './just-you';
 import { Panel } from './panel';
 import { OfflineBanner, PostBag } from './post-bag';
@@ -118,7 +118,10 @@ function FarmFor({
   const view = useFarmView<FarmView>(farm, now);
   const link = useFarmLink(farm);
   const offline = useOffline(link);
-  const loading = useFarmLoading(state !== null);
+  const alone = state !== null && state.members.length === 1 && state.former.length === 0;
+  // The farm is revealed once it is on the phone and drawn (a farm with only you on it draws at once).
+  const [drawn, setDrawn] = useState(false);
+  const loading = useFarmLoading(state !== null, alone || drawn);
   const k = width / 393;
   const send = useSend(farm);
   const { appearance, palette } = useTheme();
@@ -177,7 +180,6 @@ function FarmFor({
   }
 
   // Only you on the farm so far: the sketched cottages wait for friends.
-  const alone = state !== null && state.members.length === 1 && state.former.length === 0;
   const sceneH = alone ? ALONE.scene * k : height;
   const restingTop = alone ? ALONE.sheet * k : height - OVERLAP;
   const farmName = state?.name ?? name ?? '';
@@ -210,6 +212,7 @@ function FarmFor({
             // The farm rests while the sheet covers it at full height.
             running={visible && !reduce && sheet === 0}
             hints={visible && sheet === 0 && !offline && !loading.revealing && state !== null}
+            onDrawn={() => setDrawn(true)}
             now={now}
             fire={fire}
             coverTop={height - OVERLAP}
@@ -225,11 +228,16 @@ function FarmFor({
           />
         </Animated.View>
       )}
-      {loading.revealing ? (
-        <FarmReveal width={width} height={sceneH} ready={state !== null} onDone={loading.done} />
+      {loading.covered ? (
+        <FarmReveal
+          width={width}
+          height={sceneH}
+          ready={loading.revealing && loading.ready}
+          onDone={loading.done}
+        />
       ) : null}
       <FarmFog width={width} height={sceneH} on={offline && state !== null} />
-      {loading.loading ? <DrawingLabel top={DRAWING_TOP * k} /> : null}
+      {loading.revealing && !loading.ready ? <DrawingLabel top={DRAWING_TOP * k} /> : null}
       {farmName && (state === null || view) ? (
         <FarmHeader
           name={farmName}
