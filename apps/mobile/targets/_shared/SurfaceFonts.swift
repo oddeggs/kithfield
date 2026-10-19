@@ -6,36 +6,23 @@ import SwiftUI
 /// (`Kithfield.app/PlugIns/<name>.appex`), so it registers the app's copies for itself instead of
 /// carrying its own.
 enum SurfaceFonts {
-  static let handwritten = "Gaegu-Bold"
-  static let serif = "YoungSerif-Regular"
+  /// The hand face, Kithfield Hand, which writes English and Vietnamese alike.
+  static let handName = "KithfieldHand-Bold"
 
   private static let registered: Void = {
     var bundle = Bundle.main.bundleURL
     if bundle.pathExtension == "appex" {
       bundle = bundle.deletingLastPathComponent().deletingLastPathComponent()
     }
-    for name in [handwritten, serif] {
-      let url = bundle.appendingPathComponent("\(name).ttf")
-      CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
-    }
+    let url = bundle.appendingPathComponent("\(handName).ttf")
+    CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
   }()
 
-  /// The handwritten face the design titles widgets in, or the system's rounded one without it.
-  static func gaegu(_ size: CGFloat) -> Font {
+  /// The hand face at the design's size, growing and shrinking with the person's text size as
+  /// `style` does.
+  static func hand(_ size: CGFloat, relativeTo style: Font.TextStyle) -> Font {
     _ = registered
-    return Font.custom(handwritten, fixedSize: size)
-  }
-
-  /// Gaegu at the design's size, growing and shrinking with the person's text size as `style`
-  /// does.
-  static func gaegu(_ size: CGFloat, relativeTo style: Font.TextStyle) -> Font {
-    _ = registered
-    return Font.custom(handwritten, size: size, relativeTo: style)
-  }
-
-  static func youngSerif(_ size: CGFloat) -> Font {
-    _ = registered
-    return Font.custom(serif, fixedSize: size)
+    return Font.custom(handName, size: size, relativeTo: style)
   }
 }
 
