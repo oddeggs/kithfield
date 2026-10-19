@@ -778,7 +778,7 @@ S.invite = { anim: true,
     return { hm, Y };
   },
   fg(c, w, h, t, o) { const m = o.meta; smoke(c, m.hm.chim[0], m.hm.chim[1], w * .05, t, 43);
-    critter(c, 'rabbit', w * .33, h * .93, w * .15, { t, dpr: o.dpr });
+    const K = CR[o.kind] ? o.kind : 'rabbit'; critter(c, K, w * .33, h * .93, w * .15 * SZ(K) / SZ('rabbit'), { t, dpr: o.dpr, v: Object.assign({}, o.v, o.coat ? { coat: o.coat } : {}) });
     [[.13, .13], [.31, .12], [.71, .12], [.88, .13]].forEach(([x, s], i) => { const y = m.Y(w * x) - w * s * 1.2; c.save(); c.globalAlpha = .55 + .45 * Math.sin(t * 1.4 + i); c.fillStyle = '#8b7e72'; c.font = `700 ${Math.round(w * .05)}px Gaegu, cursive`; c.textAlign = 'center'; c.fillText('?', w * x, y); c.restore(); });
   } };
 S.campfire = { anim: true,
@@ -1228,7 +1228,7 @@ S.deco = { anim: false,
 const HT = { rabbit: 140, hedgehog: 62, frog: 56, mole: 82, sheep: 74, owl: 98, fox: 112, duck: 58, tortoise: 42, badger: 48, mouse: 51, capybara: 62, raccoon: 91, otter: 105, cat: 92, bear: 121 };
 function heart(g, x, y, s, col = '#e2626b', lw = 1.2) { const p = new Path2D(); p.moveTo(x, y + s * .35); p.bezierCurveTo(x - s * .9, y - s * .25, x - s * .45, y - s * .95, x, y - s * .45); p.bezierCurveTo(x + s * .45, y - s * .95, x + s * .9, y - s * .25, x, y + s * .35); g.save(); g.fillStyle = col; g.fill(p); g.strokeStyle = INK; g.lineWidth = lw; g.lineJoin = 'round'; g.stroke(p); g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.ellipse(x - s * .32, y - s * .42, s * .12, s * .08, -.6, 0, TAU); g.fill(); g.restore(); }
 function star4(g, x, y, r) { g.beginPath(); for (let i = 0; i < 8; i++) { const a = i / 8 * TAU - Math.PI / 2, rr = i % 2 ? r * .38 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.closePath(); g.fill(); g.stroke(); }
-function cap(g, text, x, y, size, rot = -.05, col = INK, maxW = 0) { g.save(); const f = s => `700 ${Math.round(s)}px Gaegu, 'Comic Sans MS', cursive`; g.font = f(size); const mw = g.measureText(text).width; if (maxW && mw > maxW) { size *= maxW / mw; g.font = f(size); } g.translate(x, y); g.rotate(rot); g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.strokeStyle = '#fffdf8'; g.lineWidth = size * .3; g.strokeText(text, 0, 0); g.fillStyle = col; g.fillText(text, 0, 0); g.restore(); }
+function cap(g, text, x, y, size, rot = -.05, col = INK, maxW = 0, lang) { g.save(); const vi = lang === 'vi'; if (vi) size *= .9; const f = s => vi ? `700 ${Math.round(s)}px 'Patrick Hand', 'Comic Sans MS', cursive` : `700 ${Math.round(s)}px Gaegu, 'Comic Sans MS', cursive`; g.font = f(size); const mw = g.measureText(text).width; if (maxW && mw > maxW) { size *= maxW / mw; g.font = f(size); } g.translate(x, y); g.rotate(rot); g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.strokeStyle = '#fffdf8'; g.lineWidth = size * .3; g.strokeText(text, 0, 0); g.fillStyle = col; g.fillText(text, 0, 0); g.restore(); }
 function fitS(kinds, w, h, wf = .62, hf = .6) { const wd = kinds.reduce((a, k) => a + ((CR[k] || {}).wd || 70), 0), ht = Math.max(...kinds.map(k => HT[k] || 90)); return Math.round(Math.min(w * wf / (wd / 100), h * hf / (ht / 100))); }
 function eyeFx(g, K, s, dir, fx, t) { const A = ANCH[K]; if (!A) return; const k = s / 100, r = Math.max(2.4, A.er * k * 1.9);
   A.eyes.forEach(([ex, ey], i) => { const x = ex * k * dir, y = ey * k;
@@ -1400,7 +1400,7 @@ S.sticker = { anim: true, bg() { return {}; },
     if (small && !grp) { const A = ANCH[K], z = 1.6, hy = ch * .93 + A.head[1] * s / 100, hx = w / 2 + A.head[0] * s / 100; g.save(); g.translate(w / 2, h * .54); g.scale(z, z); g.translate(-hx, -hy); }
     const capt = STK[pose](g, w, ch, t, o, K, s, def), text = o.cap ? o.cap : capt;
     if (small && !grp) g.restore();
-    if (!small && !full && text && text !== '-') cap(g, text, w * .5, h * .875, Math.min(h * .14, w * .17), -.05, INK, w * .88);
+    if (!small && !full && text && text !== '-') cap(g, text, w * .5, h * .875, Math.min(h * .14, w * .17), -.05, INK, w * .88, o.lang);
     const O = o.el.layer('stko'), q = O.getContext('2d'); q.setTransform(1, 0, 0, 1, 0, 0); q.globalCompositeOperation = 'source-over'; q.clearRect(0, 0, O.width, O.height); const r = Math.max(2.2, Math.min(w, h) * .03) * d; for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; q.drawImage(L, Math.cos(a) * r, Math.sin(a) * r); } q.globalCompositeOperation = 'source-in'; q.fillStyle = '#fffdf8'; q.fillRect(0, 0, O.width, O.height);
     c.save(); const pk = .88, pW = O.width, pH = O.height; c.setTransform(pk, 0, 0, pk, pW * (1 - pk) / 2, pH * (1 - pk) * .32); c.shadowColor = 'rgba(60,40,20,.3)'; c.shadowBlur = 5 * d * pk; c.shadowOffsetY = 1.5 * d * pk; c.drawImage(O, 0, 0); c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetY = 0; c.drawImage(L, 0, 0); c.restore(); } };
 S.gift = { anim: true, bg() { return {}; },
@@ -1592,7 +1592,7 @@ S.movein = { anim: true,
     tufts(c, 0, w, h * .72, h, 40, 6607, P.shade); flowers(c, 0, w, h * .74, h, 16, 6608, P.flower); return { hm }; },
   fg(c, w, h, t, o) { const K = CR[o.kind] ? o.kind : 'duck', D = o.dpr; smoke(c, o.meta.hm.chim[0], o.meta.hm.chim[1], w * .04, t, 6630);
     o.cast.forEach((v, i) => { const x = w * [.12, .3, .7, .88, .2, .8][i % 6], y = h * (i < 4 ? .92 : .8), s = w * .17 * SZ(v.kind) / .6, hop = Math.abs(Math.sin(t * 4 + i * 1.3)) * 7; critter(c, v.kind, x, y - hop, s, { t, dpr: D, dir: x < w / 2 ? 1 : -1, v, ph: i * .3 }); });
-    critter(c, K, w * .5, h * .84, w * .26 * SZ(K) / .6, { t, dpr: D, v: o.v, ph: .1 }); confetti(c, w, h, t, 6640, 20); } };
+    if (o.state !== 'empty') { critter(c, K, w * .5, h * .84, w * .26 * SZ(K) / .6, { t, dpr: D, v: o.v, ph: .1 }); confetti(c, w, h, t, 6640, 20); } } };
 S.leftcot = { anim: true,
   bg(c, w, h, o) { const P = SEASONS[o.season]; paper(c, w, h, P.sky, 6701); wash(c, [[-10, -10], [w + 10, -10], [w + 10, h * .3], [-10, h * .36]], P.sky2, { al: .45, seed: 6702, smooth: false, off: 6, gran: .06, edge: .12 });
     const Y = hill(c, w, h, h * .6, h * .02, .01, 6703, P.mid, { washC: P.midW, alpha: .4 }), roof = mix(ROOF[o.kind] || '#9b7454', '#b9b2a8', .45), hm = house(c, w * .5, Y(w * .5) + 6, w * .4, { roof, seed: 6704, chimney: true });
