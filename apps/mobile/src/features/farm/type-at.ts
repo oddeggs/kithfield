@@ -1,16 +1,23 @@
-import type { TypeStyleKey } from '@kithfield/theme';
+import { type, type TypeStyleKey } from '@kithfield/theme';
 import type { TextStyle } from 'react-native';
 
 /**
  * A step of the type ramp at the size the farm's art calls for (a hand-lettered bubble, an island
- * label), for the `Txt` of step `_base`. Sizes stay in the design's units: `Txt` sets them in the
- * app's faces, and gives Vietnamese the taller line its stacked marks need.
+ * label), for a `Txt`. Sizes stay in the design's units: `Txt` sets them in the app's faces, and
+ * gives Vietnamese the taller line its stacked marks need. A system step keeps its own weight, so
+ * a `Txt` that scales with a lighter step (a caption set as a row title, a bold phrase in a line)
+ * is still drawn at the weight the design gives it.
  */
 export function typeAt(
-  _base: TypeStyleKey,
+  base: TypeStyleKey,
   size: number,
   lineHeight: number,
   _fontLocale?: string,
 ): TextStyle {
-  return { fontSize: size, lineHeight };
+  const s = type[base];
+  return {
+    fontSize: size,
+    lineHeight,
+    ...(s.face === 'system' ? { fontWeight: String(s.weight) as TextStyle['fontWeight'] } : {}),
+  };
 }
