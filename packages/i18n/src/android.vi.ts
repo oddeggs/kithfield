@@ -23,6 +23,9 @@ export const androidVi: ViCatalogue<typeof androidEn> = {
 
   'android.back.toFarm': 'về nông trại',
 
+  'android.share.pick': 'Chia sẻ đến nông trại nào?',
+  'android.share.cancel': 'Huỷ',
+
   'android.ask.next': 'Tiếp theo, điện thoại cũng sẽ hỏi bạn.',
   'android.code.note': 'Mã dùng được trong 10 phút.',
   'android.store.unavailable': 'Điện thoại này chưa kết nối được Google Play lúc này.',

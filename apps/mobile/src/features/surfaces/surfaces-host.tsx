@@ -10,6 +10,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { useSession } from '../../ui/session/session';
 import { useUpload } from '../media';
 import { setUpChannels } from '../android/notification-channels';
+import { useAndroidShares } from '../android/use-android-shares';
 import { androidSurfaceRoot } from '../android/surface-root';
 import { reloadAndroidWidgets } from '../android/widgets/reload';
 import { useMessagesSync } from '../stickers/export/use-messages-sync';
@@ -102,6 +103,7 @@ function Running({ me }: { readonly me: string }) {
   const lang = useRef(language);
   lang.current = language;
   const surfacesRef = useRef<Surfaces | null>(null);
+  const androidShares = useAndroidShares();
   // The Messages drawer keeps wearing what the critter wears now.
   useMessagesSync();
 
@@ -167,6 +169,9 @@ function Running({ me }: { readonly me: string }) {
       Notifications.clearLastNotificationResponse();
     }
 
+    // Android: what another app shared waits for a farm, then goes out as the extension's would.
+    const stopAndroidShares = androidShares(nativeGroupStore(root), () => surfaces.shares());
+
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') void surfaces.refresh().then(() => surfaces.shares());
       // Leaving the app is when the widgets matter: write what changed while it was open.
@@ -180,8 +185,9 @@ function Running({ me }: { readonly me: string }) {
       stopWoken();
       responses.remove();
       appState.remove();
+      stopAndroidShares();
     };
-  }, [client, art, me, shares, t, toast]);
+  }, [client, art, me, shares, t, toast, androidShares]);
 
   // The lock-screen actions, titled in the person's language. One at a time: each call reads the
   // categories already set and writes them back with its own, so calls side by side lose one.

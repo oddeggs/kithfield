@@ -28,6 +28,10 @@ export const androidEn = {
   /* Predictive back (14-06) */
   'android.back.toFarm': 'back to the farm',
 
+  /* The system share sheet: something shared into Kithfield picks its farm in a list */
+  'android.share.pick': 'Share to which farm?',
+  'android.share.cancel': 'Cancel',
+
   /* Where iOS's words name Apple's things, Android says its own */
   /** Under a permission ask, before the system's own question. */
   'android.ask.next': 'Next, your phone will ask too.',
