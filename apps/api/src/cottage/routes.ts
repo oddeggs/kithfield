@@ -29,6 +29,12 @@ type RouteEnv = SessionRouteEnv;
 
 /** An Expo push token, as `getExpoPushTokenAsync` gives it. */
 const EXPO_PUSH_TOKEN = /^Expo(nent)?PushToken\[[^\]]+\]$/;
+/** An Android phone's own FCM registration token, which the API pushes to directly. */
+const FCM_TOKEN = /^[A-Za-z0-9_:-]{32,256}$/;
+
+/** An iPhone registers an Expo token; an Android phone its FCM token, or an Expo one. */
+const pushTokenFits = (platform: string, token: string) =>
+  EXPO_PUSH_TOKEN.test(token) || (platform === 'android' && FCM_TOKEN.test(token));
 
 const fail = (
   c: Context,
@@ -84,7 +90,7 @@ export function cottageRoutes(): Hono<RouteEnv> {
     const body = await bodyOf(c, RegisterDeviceRequest);
     if (!body.ok) return body.response;
     const { pushToken } = body.value;
-    if (pushToken !== null && !EXPO_PUSH_TOKEN.test(pushToken)) {
+    if (pushToken !== null && !pushTokenFits(body.value.platform, pushToken)) {
       return fail(c, 400, 'bad_request', ['pushToken']);
     }
     const person = c.get('person');

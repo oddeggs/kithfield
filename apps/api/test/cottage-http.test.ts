@@ -104,6 +104,21 @@ describe('device registration', () => {
     expect(await cottageOf(env, bea).listDevices()).toHaveLength(1);
   });
 
+  it('takes an Android phone’s own FCM token, but not from an iPhone', async () => {
+    const person = freshPerson();
+    const fcm = `dKq3x8VbQ0e:APA91b${'Hc7_-'.repeat(24)}`;
+    const android = { ...phone, platform: 'android', name: 'June’s Pixel', pushToken: fcm };
+    expect((await api('/v1/devices/pixel-1', json(person, 'PUT', android))).status).toBe(200);
+    expect(await cottageOf(env, person).listDevices()).toEqual([
+      expect.objectContaining({ device: 'pixel-1', platform: 'android', pushToken: fcm }),
+    ]);
+    const iphone = await api(
+      '/v1/devices/phone-1',
+      json(person, 'PUT', { ...phone, pushToken: fcm }),
+    );
+    expect(iphone.status).toBe(400);
+  });
+
   it('turns away a push token that is not an Expo one', async () => {
     const person = freshPerson();
     const response = await api(

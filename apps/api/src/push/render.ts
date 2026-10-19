@@ -70,15 +70,24 @@ export function notificationCategoryOf(
 }
 
 /**
- * The Android channel a push arrives in (`14 Platforms`): every message on a farm in
- * "Every message", the quiet "a few things" in its own soundless channel, and everything else
- * (plans, the doorstep, mentions, knocks, reminders) in "Plans & doorstep".
+ * The Android channel a push arrives in (`14 Platforms`, two channels): every message on a farm in
+ * "Every message", and everything else (plans, the doorstep, mentions, knocks, reminders) in
+ * "Plans & doorstep". The quiet "a few things" roundup goes there too, drawn without a sound.
  */
 export function androidChannelOf(
   job: Pick<PushJob, 'kind' | 'seq' | 'copy' | 'farm' | 'forYou'>,
 ): AndroidChannel {
-  if (PASSIVE_COPY.has(job.copy.key)) return 'quiet';
   return notificationTypeOf(job) === 'messages' ? 'messages' : 'plans';
+}
+
+/** The copy parameter that carries who a push is from, for Android to draw their critter. */
+export const FROM_PARAM = 'from';
+
+/** Who a push is from, when it names one person: their id and the name the copy uses. */
+export function senderOf(job: Pick<PushJob, 'copy'>): { person: string; name: string } | null {
+  const person = job.copy.params[FROM_PARAM];
+  const name = job.copy.params['name'];
+  return person !== undefined && name !== undefined ? { person, name } : null;
 }
 
 /**

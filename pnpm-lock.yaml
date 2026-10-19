@@ -2406,9 +2406,6 @@ packages:
   '@expo/local-build-cache-provider@58.0.6':
     resolution: {integrity: sha512-AJk3pslFNlwRMbUbfvxhu6CPA9U7A+JPb88VS/uWkG/S/QMJL90Iw4sPVfG4BOKfRUNkB8ipl432Dr4txjSMKw==}
 
-  '@expo/log-box-utils@58.0.1':
-    resolution: {integrity: sha512-BUDoo1BUsSNmGonRkVWBNI6moKsZxH/Tkt9a1pphOBJQMdr8/1HbhGEB84YOwaKMpMXMWAK6cwu3Ip8ax3J28g==}
-
   '@expo/log-box-utils@58.0.2':
     resolution: {integrity: sha512-My8Lwe9FU/yDwwzqwi5LN2rzzDcJqIAZKrD9f0XHZEKz/FQnWJYdt1rsV7+RwqMGeGq2XsxTCVT1ggTCOvumxw==}
 
@@ -2448,9 +2445,6 @@ packages:
 
   '@expo/metro@58.0.0':
     resolution: {integrity: sha512-PMD640ihB0C3Oqm0AnDVJ/8qF2cKbRUEqGuSOr4tM/OTb9ktxsQqsiSSSeaOEgdCZBq20AxRS0d6WHNhhH2P+g==}
-
-  '@expo/metro@58.0.0-rc.0':
-    resolution: {integrity: sha512-9ZXNH/rppKQcoW0ycTSQqnKcjuYnutWf/6YkfAh1PBeWs+W1Nuc2uMTRM0qWNc9btbD4iHZKovru3gJqMgFzFQ==}
 
   '@expo/modules-macros-win32-arm64@0.20.0':
     resolution: {integrity: sha512-7B57gc7+TeygPcK8fLYlEhJbbvaPh+JBzex11YIYZrSzbFhz7Q+Z37fSdAfp4EsfCswJNcX0S6wpkgSlVNefVw==}
@@ -10030,14 +10024,12 @@ snapshots:
       - supports-color
       - typescript
 
-  '@expo/log-box-utils@58.0.1': {}
-
   '@expo/log-box-utils@58.0.2': {}
 
   '@expo/log-box@58.0.10(@expo/dom-webview@58.0.2)(expo@58.0.9)(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)':
     dependencies:
       '@expo/dom-webview': 58.0.2(expo@58.0.9)(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
-      '@expo/log-box-utils': 58.0.1
+      '@expo/log-box-utils': 58.0.2
       anser: 1.4.10
       react: 19.3.0
       react-native: 0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
@@ -10109,27 +10101,6 @@ snapshots:
       react-dom: 19.3.0(react@19.3.0)
 
   '@expo/metro@58.0.0(supports-color@8.1.1)':
-    dependencies:
-      metro: 0.87.1(supports-color@8.1.1)
-      metro-babel-transformer: 0.87.1(supports-color@8.1.1)
-      metro-cache: 0.87.1(supports-color@8.1.1)
-      metro-cache-key: 0.87.1
-      metro-config: 0.87.1(supports-color@8.1.1)
-      metro-core: 0.87.1
-      metro-file-map: 0.87.1(supports-color@8.1.1)
-      metro-minify-terser: 0.87.1
-      metro-resolver: 0.87.1
-      metro-runtime: 0.87.1
-      metro-source-map: 0.87.1(supports-color@8.1.1)
-      metro-symbolicate: 0.87.1
-      metro-transform-plugins: 0.87.1(supports-color@8.1.1)
-      metro-transform-worker: 0.87.1(supports-color@8.1.1)
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-
-  '@expo/metro@58.0.0-rc.0(supports-color@8.1.1)':
     dependencies:
       metro: 0.87.1(supports-color@8.1.1)
       metro-babel-transformer: 0.87.1(supports-color@8.1.1)
@@ -13601,7 +13572,7 @@ snapshots:
       '@expo/local-build-cache-provider': 58.0.6(supports-color@8.1.1)(typescript@6.0.3)
       '@expo/log-box': 58.0.10(@expo/dom-webview@58.0.2)(expo@58.0.9)(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
       '@expo/log-box-utils': 58.0.2
-      '@expo/metro': 58.0.0-rc.0(supports-color@8.1.1)
+      '@expo/metro': 58.0.0(supports-color@8.1.1)
       '@expo/metro-config': 58.0.13(expo@58.0.9)(supports-color@8.1.1)(typescript@6.0.3)
       '@ungap/structured-clone': 1.4.0
       babel-preset-expo: 58.0.14(@babel/core@7.29.7(supports-color@8.1.1))(@babel/runtime@7.29.10)(expo@58.0.9)(react-refresh@0.14.2)(supports-color@8.1.1)
@@ -15562,7 +15533,7 @@ snapshots:
       react: 19.3.0
       react-native: 0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
     optionalDependencies:
-      expo: 58.0.9(@babel/core@7.29.7(supports-color@8.1.1))(@expo/dom-webview@58.0.2)(@expo/metro-runtime@58.0.14)(expo-router@58.0.19)(react-dom@19.3.0(react@19.3.0))(react-native-worklets@0.13.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      expo: 58.0.9(@babel/core@7.29.7(supports-color@8.1.1))(@expo/dom-webview@58.0.2)(@expo/metro-runtime@58.0.14)(expo-router@58.0.19)(react-dom@19.3.0(react@19.3.0))(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native-worklets@0.13.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1))(react-native@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
 
   react-native-drawer-layout@4.2.11(a11f6fc98eb31f8d49cff31670078b70):
     dependencies:

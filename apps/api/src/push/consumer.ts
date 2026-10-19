@@ -24,7 +24,7 @@ import { type LedgerRow, writeLedger } from './ledger';
 import { enqueuePush, RECEIPT_DELAY_SECONDS, ReceiptCheck, SurfaceRefreshJob } from './queue';
 import { sendRefreshes } from './refresh';
 import { checkReceipts } from './receipts';
-import { androidChannelOf, expoMessage, renderPush } from './render';
+import { androidChannelOf, expoMessage, renderPush, senderOf } from './render';
 
 /** What the consumer reaches the outside world through; tests pass a double for Expo. */
 export interface PushDeps {
@@ -230,7 +230,12 @@ async function sendAndroid(
     const result: FcmResult =
       config === null || send.android === null
         ? { kind: 'refused', why: 'fcm_unset' }
-        : await sendToFcm(deps.fetch, config, fcmMessage(send.expo, send.android), deps.now());
+        : await sendToFcm(
+            deps.fetch,
+            config,
+            fcmMessage(send.expo, send.android, senderOf(item.out.job)),
+            deps.now(),
+          );
     const { out } = item;
     const row = {
       person: out.job.person,

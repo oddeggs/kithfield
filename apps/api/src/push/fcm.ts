@@ -22,7 +22,13 @@ const TOKEN_LIFETIME_S = 60 * 60;
 const RENEW_BEFORE_MS = 60_000;
 
 /** The Android channels the app makes (`features/android/notification-channels`). */
-export type AndroidChannel = 'plans' | 'messages' | 'quiet';
+export type AndroidChannel = 'plans' | 'messages';
+
+/** Who a push is from: the app draws it as their message, with their critter. */
+export interface FcmSender {
+  readonly person: string;
+  readonly name: string;
+}
 
 /** What sending needs; null when the service account isn't set, which turns Android push off. */
 export interface FcmConfig {
@@ -181,9 +187,14 @@ export interface FcmMessage {
 /**
  * The FCM message for one push: a data message in the shape expo-notifications draws on Android
  * (`title`, `message`, the push's data as JSON under `body`, the channel, the category whose
- * actions it offers, and the tag that replaces a push already shown).
+ * actions it offers, and the tag that replaces a push already shown), and who it is from, which the
+ * app draws as a conversation with their critter.
  */
-export function fcmMessage(expo: ExpoMessage, channel: AndroidChannel): FcmMessage {
+export function fcmMessage(
+  expo: ExpoMessage,
+  channel: AndroidChannel,
+  sender: FcmSender | null = null,
+): FcmMessage {
   return {
     message: {
       token: expo.to,
@@ -195,6 +206,7 @@ export function fcmMessage(expo: ExpoMessage, channel: AndroidChannel): FcmMessa
         tag: expo.tag,
         threadIdentifier: expo.threadId,
         ...(expo.categoryId !== undefined ? { categoryId: expo.categoryId } : {}),
+        ...(sender !== null ? { senderPerson: sender.person, senderName: sender.name } : {}),
         // A quiet push makes no sound; the channel decides the rest.
         ...(expo.sound === undefined ? { sound: 'false' } : {}),
       },
