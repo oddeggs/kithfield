@@ -2032,6 +2032,208 @@ S.apart = { anim: true,
 /* ---------- element + ticker ---------- */
 let motion = !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 const live = new Set(), t0 = performance.now();
+/* ---------- 20 Together (after launch) ---------- */
+const PLK = '#c49a68', PLKW = '#7a5636', SCAF = '#9a7a52';
+function skyT(c, w, h, o, seed) { const P = SEASONS[o.season]; paper(c, w, h, P.sky, seed); wash(c, [[-10, -10], [w + 10, -10], [w + 10, h * .3], [-10, h * .38]], P.sky2, { al: .5, seed: seed + 1, smooth: false, off: 6, gran: .06, edge: .12 }); if (!o.night) sun(c, w * .84, h * .11, Math.min(w, h) * .055); return P; }
+function nightT(c, w, h, t, o, lights, k = .82) { night(o.el, c, w, h, lights, k); stars(c, 0, h * .02, w, h * .3, 30, t, 7001); moon(c, w * .16, h * .09, Math.min(w, h) * .045); }
+function paperLantern(c, x, y, s, a, col = '#e8803a', maxR = Infinity) {
+  if (a > 0) glow(c, x, y + s * .75, Math.min(maxR, s * 2.6 * (.75 + .25 * a)), '#ffc768', .6 * a);
+  ink(c, [[x, y], [x, y + s * .26]], { w: 1, seed: 7010 });
+  gouache(c, rbox(x, y + s * .3, s * .22, s * .06, 1, 7011), '#3d2f26', 1, false);
+  const body = blob(x, y + s * .76, s * .44, s * .42, 7012, .03, 12); gouache(c, body, a > 0 ? mix(col, '#ffe9a8', .5 * a) : shade(col, .2)); wash(c, body, shade(col, .35), { al: .3, seed: 7013 });
+  for (let i = -1; i <= 1; i++) pencil(c, [[x + i * s * .18, y + s * .37], [x + i * s * .27, y + s * .76], [x + i * s * .18, y + s * 1.15]], { w: .8, color: shade(col, .5), alpha: .6, seed: 7014 + i, passes: 1 });
+  ink(c, body, { close: true, w: 1.1, seed: 7017 });
+  gouache(c, rbox(x, y + s * 1.2, s * .16, s * .05, 1, 7018), '#3d2f26', 1, false);
+  ink(c, [[x, y + s * 1.25], [x + 1, y + s * 1.5]], { w: 1.2, color: '#c9543e', seed: 7019 });
+  if (a > 0) glow(c, x, y + s * .8, s * .55, '#fff1c0', .55 * a);
+}
+function flower5(c, x, y, r, col, cen, seed, pointy) {
+  for (let i = 0; i < 5; i++) { const a = i / 5 * TAU + seed, px = x + Math.cos(a) * r * .55, py = y + Math.sin(a) * r * .55, p = blob(px, py, r * (pointy ? .5 : .52), r * (pointy ? .3 : .42), seed + i, .06, 8, a); gouache(c, p, col); wash(c, p, shade(col, .25), { al: .35, seed: seed + 10 + i }); }
+  c.fillStyle = cen; c.beginPath(); c.arc(x, y, r * .2, 0, TAU); c.fill();
+  for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; c.fillStyle = shade(cen, .3); c.beginPath(); c.arc(x + Math.cos(a) * r * .32, y + Math.sin(a) * r * .32, r * .06, 0, TAU); c.fill(); }
+}
+function lixiAt(c, x, y, s, seed) { const b = rbox(x, y, s * .3, s * .46, s * .05, seed); gouache(c, b, '#c8352e', 1, false); wash(c, b, '#8a1e1a', { al: .3, seed: seed + 1 }); ink(c, b, { close: true, smooth: false, w: .9, seed: seed + 2 });
+  c.fillStyle = '#f2c25a'; c.beginPath(); c.arc(x, y - s * .02, s * .1, 0, TAU); c.fill(); pencil(c, [[x - s * .3, y - s * .22], [x, y - s * .06], [x + s * .3, y - s * .22]], { w: .8, color: '#f2c25a', alpha: .9, seed: seed + 3, passes: 1 }); }
+function starLan(c, x, y, s, lit, seed) {
+  const pts = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? s * .4 : s; pts.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); }
+  if (lit) glow(c, x, y, s * 2.4, '#ffc768', .55);
+  gouache(c, pts, lit ? '#f0584a' : '#c8352e', .92, false); wash(c, pts, '#8a1e1a', { al: .25, seed, smooth: false });
+  ink(c, pts, { close: true, smooth: false, w: 1.2, color: '#d6a24a', seed: seed + 1 });
+  const inner = pts.map(([px, py]) => [x + (px - x) * .45, y + (py - y) * .45]); pencil(c, inner, { close: true, smooth: false, w: .8, color: '#f6cf6a', alpha: .9, seed: seed + 2, passes: 1 });
+  [pts[4], pts[6]].forEach((p, i) => ink(c, [p, [p[0] + (i ? 2 : -2), p[1] + s * .5]], { w: 1.2, color: '#f6cf6a', seed: seed + 3 + i }));
+  if (lit) glow(c, x, y, s * .6, '#fff1c0', .6);
+}
+function fullMoon(c, x, y, r) { glow(c, x, y, r * 3.2, '#f4ecd0', .3); const d = blob(x, y, r, r, 7051, .015, 14); gouache(c, d, '#f7efd2'); wash(c, d, '#d9cfae', { al: .35, seed: 7052, off: 2 });
+  [[-.3, -.2, .2], [.25, .15, .16], [-.05, .38, .12]].forEach(([dx, dy, rr], i) => wash(c, blob(x + dx * r, y + dy * r, rr * r, rr * r * .8, 7053 + i, .1, 8), '#cfc39c', { al: .4, seed: 7060 + i })); pencil(c, d.slice(0, 9), { w: .9, color: '#c9bd94', alpha: .5, seed: 7066, passes: 1 }); }
+function tzBadge(c, x, y, r, kind) {
+  if (kind === 'moon') { glow(c, x, y, r * 2.2, '#cfd6ff', .25); const d = blob(x, y, r, r, 7071, .02, 12); gouache(c, d, '#2b2f52'); ink(c, d, { close: true, w: 1, color: '#f4ecda', seed: 7072 }); c.save(); c.fillStyle = '#f6eed3'; c.beginPath(); c.arc(x - r * .1, y, r * .55, 0, TAU); c.arc(x + r * .12, y - r * .12, r * .48, 0, TAU, true); c.fill('evenodd'); c.restore(); return; }
+  glow(c, x, y, r * 2.4, '#f7d27a', .35); for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; ink(c, [[x + Math.cos(a) * r * 1.05, y + Math.sin(a) * r * 1.05], [x + Math.cos(a) * r * 1.45, y + Math.sin(a) * r * 1.45]], { w: 1.2, color: '#d08a2c', seed: 7080 + i }); }
+  const d = blob(x, y, r * .85, r * .85, 7090, .03, 12); gouache(c, d, '#f8da8f'); wash(c, d, '#ecb24c', { al: .5, seed: 7091 }); ink(c, d, { close: true, w: 1, color: '#b07a2c', seed: 7092 });
+}
+ICONS.gate = (c, lw, col) => { [[22, 86, 22, 30], [78, 86, 78, 30]].forEach(([x0, y0, x1, y1], i) => ink(c, [[x0, y0], [x1, y1]], { w: lw * 1.4, color: col, seed: 7101 + i }));
+  ink(c, [[16, 34], [50, 14], [84, 34]], { w: lw * 1.2, color: col, seed: 7103 }); for (let i = 0; i < 4; i++) ink(c, [[32 + i * 12, 82], [32 + i * 12, 44]], { w: lw, color: col, seed: 7104 + i }); ink(c, [[28, 52], [72, 52]], { w: lw, color: col, seed: 7110 }); };
+S.lantern = { anim: true,
+  bg(c, w, h, o) { if (o.name !== 'cottage') return {}; const P = skyT(c, w, h, o, 7121);
+    const Y = hill(c, w, h, h * .62, h * .02, .01, 7122, P.mid, { washC: P.midW, alpha: .4 });
+    const hm = house(c, w * .44, Y(w * .44) + 6, Math.min(w * .5, h * .5), { roof: ROOF[o.kind] || ROOF.sheep, seed: 7123, lit: o.night && o.state !== 'off' });
+    hill(c, w, h, h * .8, h * .02, .01, 7124, P.near, { washC: P.nearW, line: 'ink', alpha: .6 }); tufts(c, 0, w, h * .82, h, 30, 7125, P.shade);
+    const px = hm.x + 40 * hm.k; ink(c, [[px, hm.y + 2], [px, hm.y - 42 * hm.k], [px - 9 * hm.k, hm.y - 42 * hm.k]], { w: 2.2, color: '#6d4c35', seed: 7126 });
+    return { hm, lx: px - 9 * hm.k, ly: hm.y - 42 * hm.k, ls: 14 * hm.k }; },
+  fg(c, w, h, t, o) { const a = o.state === 'off' ? 0 : o.state === 'dim' ? .3 : .86 + .14 * Math.sin(t * 2.2);
+    if (o.name !== 'cottage') { const s = Math.min(w * .9, h / 1.55) * .62; paperLantern(c, w / 2, h * .5 - s * .78, s, a, undefined, Math.min(w, h * .9) * .5); return; }
+    const m = o.meta; smoke(c, m.hm.chim[0], m.hm.chim[1], w * .04, t, 7130);
+    if (o.night) { const L = [{ x: m.lx, y: m.ly + m.ls * .8, r: w * .4 * (a + .15), k: .9 * a + .05 }]; if (o.state !== 'off') L.push({ x: m.hm.win[0], y: m.hm.win[1], r: w * .12, k: .7 }); nightT(c, w, h, t, o, L); if (o.state !== 'off') litWindow(c, m.hm); }
+    if (o.kind && o.pose !== 'none') critter(c, o.kind, w * .2, h * .93, Math.min(w, h) * .2, { t, dpr: o.dpr, sleep: o.state === 'off' && o.night });
+    paperLantern(c, m.lx, m.ly, m.ls, a); } };
+S.gatecrit = { anim: true,
+  bg(c, w, h, o) { const P = skyT(c, w, h, o, 7201);
+    const Y = hill(c, w, h, h * .46, h * .025, .01, 7202, P.far, { washC: P.farW, alpha: .4 }), homes = [];
+    homes.push(house(c, w * .2, Y(w * .2) + 4, w * .12, { roof: ROOF.rabbit, seed: 7203, lit: o.night }), house(c, w * .8, Y(w * .8) + 4, w * .11, { roof: ROOF.frog, seed: 7204, lit: o.night }), house(c, w * .62, Y(w * .62) + 4, w * .09, { roof: ROOF.sheep, seed: 7209, lit: o.night }));
+    hill(c, w, h, h * .62, h * .015, .01, 7205, P.near, { washC: P.nearW, line: 'ink', alpha: .65 });
+    pathRibbon(c, [[w * .5, h + 10], [w * .47, h * .88], [w * .52, h * .76], [w * .5, h * .62]], w * .24, w * .06, P, 7206);
+    const gx = w * .5, gy = h * .76, u = Math.min(w, h) / 100;
+    fence(c, 4, gx - 30 * u, gy, 7210); fence(c, gx + 32 * u, w + 10, gy, 7220);
+    [-1, 1].forEach((sd, i) => { const p = rbox(gx + sd * 26 * u, gy - 17 * u, 2.4 * u, 19 * u, 1, 7230 + i); gouache(c, p, '#b98a5a', 1, false); wash(c, p, PLKW, { al: .35, seed: 7232 + i }); ink(c, p, { close: true, smooth: false, w: 1.4, seed: 7234 + i }); });
+    ink(c, [[gx - 31 * u, gy - 33 * u], [gx, gy - 42 * u], [gx + 31 * u, gy - 33 * u]], { w: 2.4, color: '#6d4c35', seed: 7236 });
+    const sg = rbox(gx, gy - 33 * u, 9 * u, 4 * u, 1, 7237); gouache(c, sg, '#f3e6cc', 1, false); ink(c, sg, { close: true, smooth: false, w: 1, seed: 7238 }); ink(c, [[gx - 5 * u, gy - 37 * u], [gx - 4 * u, gy - 40 * u]], { w: .8, seed: 7239 }); ink(c, [[gx + 5 * u, gy - 37 * u], [gx + 4 * u, gy - 40 * u]], { w: .8, seed: 7240 });
+    [-1, 1].forEach((sd, i) => { const x0 = gx + sd * 23.5 * u, x1 = gx + sd * 9 * u, lf = [[x0, gy - 1 * u], [x0, gy - 22 * u], [x1, gy - 19 * u], [x1, gy + 1 * u]]; for (let j = 0; j < 4; j++) { const xx = x0 + (x1 - x0) * (j + .5) / 4; ink(c, [[xx, gy - 21 * u + j * .7 * u * sd * 0], [xx, gy]], { w: 1.4, color: '#7a5636', seed: 7250 + i * 5 + j }); } ink(c, [[x0, gy - 15 * u], [x1, gy - 13 * u]], { w: 1.4, color: '#7a5636', seed: 7260 + i }); ink(c, [[x0, gy - 5 * u], [x1, gy - 4 * u]], { w: 1.4, color: '#7a5636', seed: 7262 + i }); });
+    tufts(c, 0, w, h * .8, h, 40, 7270, P.shade, (x, y) => Math.abs(x - gx) < w * .12);
+    return { homes, gx, gy, u }; },
+  fg(c, w, h, t, o) { const m = o.meta, lx = m.gx + 26 * m.u, ly = m.gy - 40 * m.u;
+    if (o.night) nightT(c, w, h, t, o, [{ x: lx, y: ly + 6 * m.u, r: w * .4, k: .9 }].concat(m.homes.map(hm => ({ x: hm.win[0], y: hm.win[1], r: w * .08, k: .7 }))));
+    if (o.night) m.homes.forEach(hm => litWindow(c, hm));
+    paperLantern(c, lx, ly, 6 * m.u, o.night ? 1 : .35);
+    critter(c, CR[o.kind] ? o.kind : 'fox', m.gx, h * .93, Math.min(w, h) * .3, { t, dpr: o.dpr, v: o.v });
+    if (!o.night) glints(c, [[m.gx - w * .2, h * .84], [m.gx + w * .22, h * .86]], t, 7280); } };
+const BUILD = {
+  bridge(c, p, u, P) { const st = (a, b) => clamp((p - a) / (b - a), 0, 1);
+    [-30, 30].forEach((x, i) => { const pr = [[x - 6, 4], [x - 5, -14], [x + 5, -14], [x + 6, 4]]; gouache(c, pr, '#c9bfae', 1, false); wash(c, pr, '#7d7466', { al: .4, seed: 7301 + i }); ink(c, pr, { close: true, smooth: false, w: 1.3, seed: 7303 + i }); });
+    const arch = []; for (let i = 0; i <= 16; i++) { const x = -26 + i * 52 / 16; arch.push([x, -6 - Math.sin(i / 16 * Math.PI) * 10]); }
+    if (st(.15, .3) > 0) ink(c, arch.slice(0, 1 + Math.round(st(.15, .3) * 16)), { w: 2.4, color: PLKW, seed: 7305 }); else pencil(c, arch, { w: .8, alpha: .45, seed: 7306, passes: 1 });
+    const N = 16, built = Math.round(st(.25, .65) * N);
+    for (let i = 0; i < N; i++) { const x = -40 + i * 5, y = -15 - Math.sin((i + .5) / N * Math.PI) * 4, pl = [[x, y], [x + 4.6, y], [x + 4.6, y + 3], [x, y + 3]];
+      if (i < built) { gouache(c, pl, i % 3 ? PLK : shade(PLK, .08), 1, false); ink(c, pl, { close: true, smooth: false, w: .9, seed: 7310 + i }); } else pencil(c, pl, { close: true, smooth: false, w: .7, alpha: .35, seed: 7330 + i, passes: 1 }); }
+    const rails = Math.round(st(.65, .9) * 9); for (let i = 0; i < 9; i++) { const x = -38 + i * 9.5, y = -15 - Math.sin((x + 40) / 80 * Math.PI) * 4; if (i < rails) ink(c, [[x, y], [x, y - 10]], { w: 1.5, color: PLKW, seed: 7350 + i }); else pencil(c, [[x, y], [x, y - 10]], { w: .7, alpha: .35, seed: 7360 + i, passes: 1 }); }
+    const hr = []; for (let i = 0; i <= 12; i++) { const x = -38 + i * 76 / 12; hr.push([x, -25 - Math.sin((x + 40) / 80 * Math.PI) * 4]); }
+    if (p >= .95) ink(c, hr, { w: 2, color: PLKW, seed: 7370 }); else pencil(c, hr, { w: .7, alpha: .35, seed: 7371, passes: 1 });
+    return [-44, -34, 44, -34]; },
+  bandstand(c, p, u, P) { const st = (a, b) => clamp((p - a) / (b - a), 0, 1);
+    const base = [[-40, 0], [-36, -10], [36, -10], [40, 0]]; if (p > .05) { gouache(c, base, '#d9c6a4', 1, false); wash(c, base, '#8f7a5a', { al: .35, seed: 7401 }); ink(c, base, { close: true, smooth: false, w: 1.4, seed: 7402 }); for (let i = 0; i < 4; i++) pencil(c, [[-30 + i * 20, -9], [-30 + i * 20, -1]], { w: .8, alpha: .5, seed: 7403 + i, passes: 1 }); } else pencil(c, base, { close: true, smooth: false, w: .8, alpha: .45, seed: 7408, passes: 1 });
+    const cols = Math.round(st(.15, .55) * 5); [-30, -15, 0, 15, 30].forEach((x, i) => { const cl = [[x - 1.8, -10], [x - 1.5, -48], [x + 1.5, -48], [x + 1.8, -10]]; if (i < cols) { gouache(c, cl, '#f2e6cf', 1, false); ink(c, cl, { close: true, smooth: false, w: 1.1, seed: 7410 + i }); } else pencil(c, cl, { close: true, smooth: false, w: .7, alpha: .35, seed: 7420 + i, passes: 1 }); });
+    const rail = st(.5, .6); if (rail > 0) ink(c, [[-34, -20], [34, -20]], { w: 1.4, color: PLKW, seed: 7430 }); else pencil(c, [[-34, -20], [34, -20]], { w: .7, alpha: .35, seed: 7431, passes: 1 });
+    const roof = [[-42, -46], [-30, -58], [0, -72], [30, -58], [42, -46]], rf = st(.6, .9);
+    if (rf > 0) { c.save(); c.beginPath(); c.rect(-50, -48 - rf * 30, 100, rf * 30 + 4); c.clip(); gouache(c, roof, '#5f8a8b', 1, false); wash(c, roof, '#2f5556', { al: .4, seed: 7432, smooth: false }); for (let i = 0; i < 6; i++) pencil(c, [[0, -72], [-36 + i * 14.4, -46]], { w: .7, color: '#2f5556', alpha: .6, seed: 7433 + i, passes: 1 }); ink(c, roof, { close: true, smooth: false, w: 1.5, seed: 7440 }); c.restore(); }
+    if (rf < 1) pencil(c, roof, { close: true, smooth: false, w: .7, alpha: .35, seed: 7441, passes: 1 });
+    if (p >= .95) { ink(c, [[0, -72], [0, -80]], { w: 1.4, seed: 7442 }); gouache(c, [[0, -80], [9, -77], [0, -74]], '#d4704e', 1, false); }
+    return [-44, -46, 44, -46]; },
+  treehouse(c, p, u, P) { const st = (a, b) => clamp((p - a) / (b - a), 0, 1);
+    const tr = [[-7, 2], [-5, -40], [-14, -58], [-10, -60], [-2, -48], [2, -66], [7, -66], [5, -46], [14, -56], [17, -53], [6, -36], [7, 2]]; gouache(c, tr, '#a37c59'); wash(c, tr, '#6b4a33', { al: .45, seed: 7501 }); ink(c, tr, { close: true, w: 1.5, seed: 7502 });
+    const cn = blob(0, -74, 40, 24, 7503, .08, 14); gouache(c, cn, P.bare ? '#d9d2c4' : P.mid === undefined ? '#8fb06f' : mix(P.near, '#6f9a5a', .6), .95); wash(c, cn, '#4f7a3f', { al: .35, seed: 7504 }); ink(c, cn, { close: true, w: 1.2, alpha: .8, seed: 7505 });
+    const pf = [[-28, -38], [28, -38], [28, -34], [-28, -34]]; if (p > .08) { gouache(c, pf, PLK, 1, false); ink(c, pf, { close: true, smooth: false, w: 1.2, seed: 7506 }); } else pencil(c, pf, { close: true, smooth: false, w: .7, alpha: .4, seed: 7507, passes: 1 });
+    const ld = Math.round(st(.2, .4) * 6); ink(c, [[30, 2], [30, -34]], { w: ld ? 1.4 : .5, color: ld ? PLKW : SCAF, alpha: ld ? 1 : .4, seed: 7508 }); ink(c, [[37, 2], [37, -34]], { w: ld ? 1.4 : .5, color: ld ? PLKW : SCAF, alpha: ld ? 1 : .4, seed: 7509 }); for (let i = 0; i < ld; i++) ink(c, [[30, -3 - i * 5.5], [37, -3 - i * 5.5]], { w: 1.2, color: PLKW, seed: 7510 + i });
+    const wl = [[-20, -38], [-20, -58], [20, -58], [20, -38]], wv = st(.4, .7); if (wv > 0) { c.save(); c.beginPath(); c.rect(-30, -38 - wv * 20, 60, wv * 20); c.clip(); gouache(c, wl, '#e6c79a', 1, false); wash(c, wl, '#a7804f', { al: .3, seed: 7520 }); for (let i = 0; i < 4; i++) pencil(c, [[-20, -43 - i * 4.5], [20, -43 - i * 4.5]], { w: .7, alpha: .5, seed: 7521 + i, passes: 1 }); ink(c, wl, { close: true, smooth: false, w: 1.2, seed: 7526 }); c.restore(); }
+    if (wv < 1) pencil(c, wl, { close: true, smooth: false, w: .7, alpha: .35, seed: 7527, passes: 1 });
+    const rf = [[-26, -57], [0, -74], [26, -57]], rv = st(.72, .92); if (rv > 0) { gouache(c, rf, '#c96f4f', rv, false); ink(c, rf, { close: true, smooth: false, w: 1.4, alpha: rv, seed: 7528 }); } if (rv < 1) pencil(c, rf, { close: true, smooth: false, w: .7, alpha: .35, seed: 7529, passes: 1 });
+    if (p >= .95) { const wn = [[-6, -52], [4, -52], [4, -44], [-6, -44]]; gouache(c, wn, '#ffd877', 1, false); ink(c, wn, { close: true, smooth: false, w: 1, seed: 7530 }); ink(c, [[0, -74], [0, -86]], { w: 1.2, seed: 7531 }); gouache(c, [[0, -86], [10, -83], [0, -80]], '#e8b44e', 1, false); }
+    return [-28, -38, 28, -38]; } };
+S.build = { anim: true,
+  bg(c, w, h, o) { const P = skyT(c, w, h, o, 7601), nm = BUILD[o.name] ? o.name : 'bridge', p = clamp(+(o.progress ?? .5), 0, 1);
+    hill(c, w, h, h * .5, h * .025, .01, 7602, P.far, { washC: P.farW, alpha: .4 });
+    const gy = h * .8, Y = hill(c, w, h, gy - h * .02, h * .012, .008, 7603, P.near, { washC: P.nearW, line: 'ink', alpha: .65 });
+    if (nm === 'bridge') { const st = [[-10, gy - 2], [w + 10, gy - 6], [w + 10, gy + h * .07], [-10, gy + h * .09]]; gouache(c, st, '#a9cbd4', 1); wash(c, st, '#5f8fa6', { al: .4, seed: 7604 }); for (let i = 0; i < 4; i++) pencil(c, [[w * (.1 + i * .22), gy + h * .03 + i % 2 * 6], [w * (.18 + i * .22), gy + h * .03 + i % 2 * 6]], { w: .9, color: '#fff', alpha: .7, seed: 7605 + i, passes: 1 }); }
+    tufts(c, 0, w, gy + h * .06, h, 30, 7610, P.shade);
+    const u = Math.min(w, h * 1.1) / 105, ox = w * .52, oy = gy + (nm === 'bridge' ? h * .02 : 0);
+    let sc = null; local(c, ox, oy, u, () => { sc = BUILD[nm](c, p, u, P);
+      if (p < .95) { const top = -36 - p * 34; [-46, 46].forEach((x, i) => { ink(c, [[x, 4], [x, top]], { w: 1.3, color: SCAF, seed: 7620 + i }); }); for (let y = -8; y > top; y -= 13) ink(c, [[-46, y], [46, y - 2]], { w: .9, color: SCAF, alpha: .7, seed: 7630 - y }); ink(c, [[-46, top + 4], [46, -6]], { w: .8, color: SCAF, alpha: .55, seed: 7640 }); }
+      if (p < .95) { [[56, 2], [56, -1.5], [57, -5]].forEach(([x, y], i) => { const pl = [[x - 9, y], [x + 9, y - .5], [x + 9, y - 3], [x - 9, y - 2.5]]; gouache(c, pl, PLK, 1, false); ink(c, pl, { close: true, smooth: false, w: .9, seed: 7650 + i }); }); const tb = [[-62, 2], [-50, 2], [-50, -6], [-62, -6]]; gouache(c, tb, '#c96f4f', 1, false); ink(c, tb, { close: true, smooth: false, w: 1, seed: 7655 }); ink(c, [[-59, -6], [-56, -10], [-53, -6]], { w: 1, seed: 7656 }); }
+    });
+    return { ox, oy, u, sc, p, nm }; },
+  fg(c, w, h, t, o) { const m = o.meta, done = m.p >= .95, L = (x, y) => [m.ox + x * m.u, m.oy + y * m.u];
+    if (o.night) { const lights = done ? [{ x: m.ox, y: m.oy - 40 * m.u, r: w * .45, k: .8 }] : []; nightT(c, w, h, t, o, lights, .8); }
+    if (done) { const [x0, y0] = L(m.sc[0], m.sc[1]), [x1, y1] = L(m.sc[2], m.sc[3]); bunting(c, x0, y0, x1, y1, 10 * m.u, 9, 7660); if (o.night) [[-30, -30], [30, -30]].forEach(([x, y]) => { const [lx, ly] = L(x, y); paperLantern(c, lx, ly, 5 * m.u, 1); }); else glints(c, [L(-30, -60), L(34, -50), L(0, -84), L(-44, -20)], t, 7670); }
+    const rest = o.state === 'rest', k = CR[o.kind] ? o.kind : 'badger';
+    critter(c, k, rest ? w * .16 : w * .14, h * .95, Math.min(w, h) * .2, { t, dpr: o.dpr, sleep: rest, v: { outfit: 'beanie', oc: '#e8b44e' } }); if (rest) zzz(c, w * .2, h * .8, Math.min(w, h) * .07, t);
+    if (!done && !rest && !o.night) glints(c, [L(-46, -40), L(46, -30)], t * .6, 7680); } };
+S.blossom = { anim: false,
+  bg(c, w, h, o) { if (o.color && o.color !== 'none') paper(c, w, h, o.color, 7701); const mai = o.name === 'mai', col = mai ? '#f2c230' : '#f3a6b8', cen = mai ? '#e0782c' : '#c4506e', m = Math.min(w, h);
+    const br = [[w * .02, h * .98], [w * .3, h * .62], [w * .55, h * .42], [w * .98, h * .1]]; ink(c, br, { w: m * .035, color: '#5a3f2e', seed: 7702 });
+    const tw = [[[w * .3, h * .62], [w * .2, h * .32]], [[w * .55, h * .42], [w * .62, h * .74]], [[w * .72, h * .3], [w * .62, h * .08]], [[w * .42, h * .52], [w * .5, h * .22]]];
+    tw.forEach((p, i) => ink(c, p, { w: m * .018, color: '#5a3f2e', seed: 7703 + i }));
+    const spots = [[.3, .62], [.2, .32], [.24, .44], [.55, .42], [.62, .74], [.6, .6], [.72, .3], [.62, .08], [.67, .18], [.88, .17], [.5, .22], [.46, .36], [.12, .78], [.8, .23], [.4, .55]];
+    spots.forEach(([x, y], i) => { const r = m * (.055 + hash(i, 7710) * .03); if (i % 4 === 3) { const b = blob(w * x, h * y, r * .35, r * .45, 7720 + i, .05, 8); gouache(c, b, mai ? '#e7b021' : '#e98aa3'); ink(c, b, { close: true, w: .7, seed: 7740 + i }); } else flower5(c, w * x, h * y, r, col, cen, 7760 + i * 3, mai); });
+    for (let i = 0; i < 6; i++) leafDot(c, w * (.15 + i * .14), h * (.7 - i * .1), m * .03, -.6 + i * .2, mai ? '#7f9a4a' : '#9fb57a', true);
+    if ((o.items || '').includes('lixi')) [[.62, .74], [.2, .32], [.88, .17]].forEach(([x, y], i) => { ink(c, [[w * x, h * y], [w * x + 1, h * y + m * .08]], { w: .8, color: '#c9543e', seed: 7790 + i }); lixiAt(c, w * x, h * y + m * .14, m * .14, 7795 + i * 5); });
+    return {}; } };
+S.lixi = { anim: false,
+  bg(c, w, h, o) { if (o.color && o.color !== 'none') paper(c, w, h, o.color, 7801); const open = o.state === 'open', ew = Math.min(w * .7, h * .55), eh = ew * 1.5, x = w / 2, y = h * (open ? .6 : .5);
+    c.save(); c.fillStyle = 'rgba(60,30,20,.2)'; c.beginPath(); c.ellipse(x + 4, y + eh / 2 + 4, ew * .5, 6, 0, 0, TAU); c.fill(); c.restore();
+    if (open) { const cd = rbox(x, y - eh * .38, ew * .42, eh * .3, 4, 7802); gouache(c, cd, '#fbf4e6', 1, false); ink(c, cd, { close: true, smooth: false, w: 1, seed: 7803 }); for (let i = 0; i < 3; i++) pencil(c, [[x - ew * .3, y - eh * .55 + i * eh * .08], [x + ew * (.3 - i * .08), y - eh * .55 + i * eh * .08]], { w: .9, alpha: .4, seed: 7804 + i, passes: 1 }); }
+    const b = rbox(x, y, ew / 2, eh / 2, ew * .06, 7810); gouache(c, b, '#c8352e', 1, false); wash(c, b, '#8a1e1a', { al: .32, seed: 7811 }); ink(c, b, { close: true, smooth: false, w: 1.4, seed: 7812 });
+    pencil(c, rbox(x, y, ew / 2 - ew * .07, eh / 2 - ew * .07, ew * .04, 7813), { close: true, smooth: false, w: 1, color: '#f2c25a', alpha: .9, seed: 7814, passes: 1 });
+    const fy = y - eh / 2, flap = open ? [[x - ew / 2, fy], [x, fy - eh * .26], [x + ew / 2, fy]] : [[x - ew / 2, fy], [x, fy + eh * .26], [x + ew / 2, fy]]; gouache(c, flap, '#a82a24', 1, false); ink(c, flap, { close: true, smooth: false, w: 1.2, seed: 7815 });
+    const my = y + eh * .08; for (let i = 0; i < 8; i++) { const a = i / 8 * TAU, p = blob(x + Math.cos(a) * ew * .13, my + Math.sin(a) * ew * .13, ew * .09, ew * .05, 7820 + i, .05, 8, a); gouache(c, p, '#f2c25a'); }
+    c.fillStyle = '#c8352e'; c.beginPath(); c.arc(x, my, ew * .07, 0, TAU); c.fill(); c.fillStyle = '#f6cf6a'; c.beginPath(); c.arc(x, my, ew * .035, 0, TAU); c.fill();
+    return {}; } };
+S.starlantern = { anim: true, bg(c, w, h, o) { if (o.color && o.color !== 'none') paper(c, w, h, o.color, 7901); return {}; },
+  fg(c, w, h, t, o) { const m = Math.min(w, h);
+    if (o.name === 'moon') { fullMoon(c, w / 2, h / 2, m * .3); return; }
+    const sx = w * .5, sy = h * .38, s = m * .3, sw = Math.sin(t * 1.3) * .04; c.save(); c.translate(sx, sy + s); c.rotate(sw); c.translate(-sx, -sy - s);
+    ink(c, [[sx + s * .35, sy + s * .55], [sx + s * .9, h * .98]], { w: 2.2, color: '#7a5636', seed: 7902 }); starLan(c, sx, sy, s, o.state !== 'off', 7903); c.restore(); } };
+S.tzbadge = { anim: false, bg(c, w, h, o) { tzBadge(c, w / 2, h / 2, Math.min(w, h) * .32, o.name === 'moon' ? 'moon' : 'sun'); return {}; } };
+S.festfarm = { anim: true,
+  bg(c, w, h, o) { const m = S.farm.bg(c, w, h, o), nm = o.name || 'tet';
+    if (nm === 'tet') { const mai = o.state === 'mai'; KINDS.forEach((k, i) => { const hm = m.homes[k], x = hm.x - 30 * hm.k, y = hm.y; local(c, x, y, hm.k, () => { const pot = [[-5, 0], [-6, -7], [6, -7], [5, 0]]; gouache(c, pot, '#b8683a', 1, false); ink(c, pot, { close: true, smooth: false, w: 1, seed: 7950 + i }); ink(c, [[0, -7], [-3, -18], [-6, -26]], { w: 1.4, color: '#5a3f2e', seed: 7955 + i }); ink(c, [[-3, -18], [4, -27]], { w: 1.1, color: '#5a3f2e', seed: 7960 + i }); [[-6, -26], [4, -27], [-2, -21], [1, -15], [-5, -15]].forEach(([fx, fy], j) => flower5(c, fx, fy, 4.2, mai ? '#f2c230' : '#f3a6b8', mai ? '#e0782c' : '#c4506e', 7965 + i * 7 + j, mai)); }); }); }
+    if (nm === 'trungthu' && !o.night) KINDS.forEach((k, i) => { const hm = m.homes[k]; ink(c, [[hm.x + 26 * hm.k, hm.y - 30 * hm.k], [hm.x + 33 * hm.k, hm.y - 25 * hm.k]], { w: .8, seed: 7980 + i }); starLan(c, hm.x + 33 * hm.k, hm.y - 14 * hm.k, 11 * hm.k, false, 7985 + i * 4); });
+    return m; },
+  fg(c, w, h, t, o) { S.farm.fg.call(this, c, w, h, t, o); const m = o.meta, nm = o.name || 'tet', it = (o.items || '').split(',').filter(Boolean);
+    if (nm === 'tet') { it.forEach((k, i) => { const hm = m.homes[k]; if (hm) lixiAt(c, hm.door[0] + 14 * hm.k, hm.y - 1 * hm.k, 26 * hm.k, 8001 + i * 5); }); if (o.night) { const fx = w * .2, fy = h * .93; glow(c, fx, fy - w * .04, w * .22, '#ffb050', .55); flame(c, fx, fy, w * .07, t, 8010); sparks(c, fx, fy, w * .06, t, 8011); } }
+    if (nm === 'trungthu' && o.night) { fullMoon(c, w * .18, h * .1, w * .075); KINDS.forEach((k, i) => { const hm = m.homes[k]; ink(c, [[hm.x + 26 * hm.k, hm.y - 30 * hm.k], [hm.x + 33 * hm.k, hm.y - 25 * hm.k]], { w: .8, color: '#e9dcc0', seed: 8020 + i }); starLan(c, hm.x + 33 * hm.k, hm.y - 14 * hm.k + Math.sin(t * 1.5 + i) * .8, 11 * hm.k, true, 8025 + i * 4); }); }
+    if (nm === 'free') it.forEach((s2, i) => { const [k, stt] = s2.split(':'), hm = m.homes[k]; if (!hm) return; const px = hm.x - 40 * hm.k; ink(c, [[px, hm.y + 2], [px, hm.y - 46 * hm.k], [px + 10 * hm.k, hm.y - 46 * hm.k]], { w: 2, color: o.night ? '#a08670' : '#6d4c35', seed: 8040 + i }); const a = stt === 'dim' ? .25 : stt === 'off' ? 0 : .88 + .12 * Math.sin(t * 2.2 + i); if (a > .5) glow(c, px + 10 * hm.k, hm.y - 30 * hm.k, 60 * hm.k, '#ffc768', .35); paperLantern(c, px + 10 * hm.k, hm.y - 46 * hm.k, 19 * hm.k, a); });
+    if (nm === 'far') it.forEach(s2 => { const [k, b] = s2.split(':'), hm = m.homes[k]; if (hm) tzBadge(c, hm.peak[0], hm.peak[1] - 22 * hm.k, 12 * hm.k, b); });
+  } };
+S.weekpage = { anim: false,
+  bg(c, w, h, o) { paper(c, w, h, o.color || '#e9dcc4', 8101); const cast = (o.items || 'rabbit,hedgehog,frog,sheep').split(',').filter(Boolean), cs = Math.min(w, h) * .2;
+    [[w * .17, -1], [w * .83, 1]].forEach(([x, d], i) => cast[2 + i] && critter(c, cast[2 + i], x, h * .1 + cs * .34, cs, { t: 0, dir: -d, dpr: o.dpr, shadow: false }));
+    const pg = rbox(w / 2, h * .54, w * .45, h * .43, 6, 8102); c.save(); c.shadowColor = 'rgba(60,40,20,.25)'; c.shadowBlur = 14; c.shadowOffsetY = 6; gouache(c, pg, '#fbf4e6', 1, false); c.restore(); wash(c, pg, '#e2cfae', { al: .22, seed: 8103, off: 3 }); pencil(c, pg, { close: true, w: .8, alpha: .35, seed: 8104, passes: 1 });
+    const bw = Math.min(w * .5, h * .3), bh = bw * .9; c.save(); c.translate(w / 2 - bw / 2, h * .54 - bh / 2); S.harvest.bg(c, bw, bh, o); c.restore();
+    [[.14, .3, .4], [.86, .72, -.8], [.2, .86, 1.2], [.8, .26, 2.4], [.5, .2, -.2]].forEach(([x, y, r], i) => leafDot(c, w * x, h * y, Math.min(w, h) * .025, r, ['#9fb57a', '#d6a24a', '#c96f4f', '#9fb57a', '#e8b44e'][i], true));
+    [[w * .1, 1], [w * .9, -1]].forEach(([x, d], i) => cast[i] && critter(c, cast[i], x, h * .985, cs * 1.05, { t: 0, dir: d, dpr: o.dpr, shadow: false }));
+    if (o.cap) { c.save(); c.translate(w / 2, h * .13); c.rotate(-.02); c.fillStyle = INK; c.font = '700 ' + Math.round(Math.min(w * .065, 26)) + 'px ' + (o.lang === 'vi' ? "'Patrick Hand'" : 'Gaegu') + ', cursive'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(o.cap, 0, 0); c.restore(); }
+    return {}; } };
+S.shelf = { anim: false,
+  bg(c, w, h, o) { paper(c, w, h, o.night ? '#3a3550' : '#efe2c9', 8201); wash(c, [[-10, -10], [w + 10, -10], [w + 10, h + 10], [-10, h + 10]], o.night ? '#22213a' : '#cdb48f', { al: .3, seed: 8202, smooth: false, off: 4 });
+    const sy = h * .8, pl = [[-10, sy], [w + 10, sy], [w + 10, sy + h * .06], [-10, sy + h * .06]]; gouache(c, pl, '#a37c59', 1, false); wash(c, pl, '#6b4a33', { al: .4, seed: 8203 }); ink(c, pl, { close: true, smooth: false, w: 1.4, seed: 8204 });
+    const it = (o.items || 'w,w,f:daisy,w,w,w,f:poppy,w,w').split(','), cols = ['#7d8f6a', '#c96f4f', '#5f8a8b', '#d6a24a', '#8a6f98', '#b85a4a', '#6f8faa', '#9b7454'];
+    let x = w * .05; const lean = it.length;
+    it.forEach((tok, i) => { const [kind, lab] = tok.split(':');
+      if (kind === 'f') { const pw = h * .05, ph = h * .5, sh = [[x, sy], [x + pw, sy], [x + pw, sy - ph], [x, sy - ph]]; gouache(c, sh, '#f7efe0', 1, false); ink(c, sh, { close: true, smooth: false, w: .9, seed: 8210 + i }); const fx = x + pw / 2, fy = sy - ph - h * .03; ink(c, [[fx, sy - ph + 4], [fx + 1, fy]], { w: 1.1, color: '#6f9a5a', seed: 8230 + i }); flower5(c, fx, fy, h * .045, lab === 'poppy' ? '#e0614f' : lab === 'aster' ? '#9b86c9' : '#fbf3e2', '#e8b44e', 8240 + i * 6, false); x += pw + h * .012; return; }
+      const sw = h * (.075 + hash(i, 8250) * .035), sh2 = h * (.5 + hash(i, 8251) * .14), col = cols[i % cols.length], sp = [[x, sy], [x + sw, sy], [x + sw, sy - sh2], [x, sy - sh2]];
+      gouache(c, sp, col, 1, false); wash(c, sp, shade(col, .35), { al: .35, seed: 8260 + i, smooth: false }); ink(c, sp, { close: true, smooth: false, w: 1.1, seed: 8280 + i });
+      pencil(c, [[x + 2, sy - sh2 + h * .05], [x + sw - 2, sy - sh2 + h * .05]], { w: .8, color: '#f6cf6a', alpha: .8, seed: 8300 + i, passes: 1 }); pencil(c, [[x + 2, sy - h * .05], [x + sw - 2, sy - h * .05]], { w: .8, color: '#f6cf6a', alpha: .8, seed: 8320 + i, passes: 1 });
+      if (lab) { c.save(); c.translate(x + sw / 2, sy - sh2 / 2); c.rotate(-Math.PI / 2); c.fillStyle = '#fbf4e6'; c.font = '700 ' + Math.round(sw * .5) + 'px ' + (o.lang === 'vi' ? "'Patrick Hand'" : 'Gaegu') + ', cursive'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(lab, 0, 1); c.restore(); }
+      x += sw + 1.5; });
+    const cr = (o.kind && CR[o.kind]) ? o.kind : null; if (cr) critter(c, cr, w * .9, sy, h * .3, { t: 0, dir: -1, dpr: o.dpr, sleep: o.night });
+    return {}; } };
+const HW = [['rabbit', .12, .96], ['hedgehog', .31, 1.04], ['frog', .5, .94], ['mole', .69, 1.02], ['sheep', .88, .98]];
+S.homewidget = { anim: true,
+  bg(c, w, h, o) { const P = SEASONS[o.season]; paper(c, w, h, P.sky, 8401);
+    wash(c, [[-10, -10], [w + 10, -10], [w + 10, h * .5], [-10, h * .5]], P.sky2, { al: .16, seed: 8402, off: 4, gran: .04, edge: 0, smooth: false }); if (!o.night) sun(c, w * .74, h * .22, h * .075);
+    const F = hill(c, w, h, h * .5, h * .04, .009, 8408, P.far, { washC: P.farW, alpha: .3 });
+    tree(c, w * .975, F(w * .975) + h * .2, h * .62, P, 8409);
+    const Y = hill(c, w, h, h * .7, h * .035, .011, 8403, P.mid, { washC: P.midW, line: 'ink', alpha: .5 }), homes = {}, hs = Math.min(w * .125, h * .4);
+    tufts(c, 0, w, h * .7, h * .86, 30, 8411, P.shade); flowers(c, 0, w, h * .72, h * .86, 14, 8412, P.flower);
+    HW.forEach(([k, x, z], i) => homes[k] = house(c, w * x, Math.min(Y(w * x) + h * .07, h * .78), hs * z, { roof: ROOF[k], seed: 8410 + i, lit: o.night && o.lit.includes(k) }));
+    const G = hill(c, w, h, h * .9, h * .015, .02, 8404, P.near, { washC: P.nearW, line: 'ink', alpha: .55 }); tufts(c, 0, w, h * .9, h, 26, 8405, P.shade); flowers(c, 0, w, h * .92, h, 8, 8413, P.flower);
+    return { homes }; },
+  fg(c, w, h, t, o) { const m = o.meta, on = HW.map(a => a[0]).filter(k => o.lit.includes(k)), it = (o.items || '').split(',').filter(Boolean);
+    on.slice(0, 2).forEach((k, i) => { const hm = m.homes[k]; smoke(c, hm.chim[0], hm.chim[1], h * .04, t + i * .7, 8430 + i); });
+    if (o.night) { night(o.el, c, w, h, on.map(k => ({ x: m.homes[k].win[0], y: m.homes[k].win[1], r: w * .09, k: .7, color: '#ffc768', a: .22 })), .84); stars(c, 0, h * .03, w, h * .42, 26, t, 8406); moon(c, w * .74, h * .22, h * .065); fireflies(c, 4, w * .05, h * .8, w * .9, h * .97, t, 8407); on.forEach(k => litWindow(c, m.homes[k])); }
+    else { on.forEach(k => { const hm = m.homes[k], [x, y] = hm.win, r = hm.winR; glow(c, x, y, r * 4, '#ffd27a', .45, 'source-over'); c.fillStyle = '#ffe1a0'; c.fillRect(x - r, y - r, r * 2, r * 2); });
+      on.slice(0, 3).forEach((k, i) => { const hm = m.homes[k], d = k === 'sheep' || k === 'hedgehog' ? -1 : 1; critter(c, k, hm.x + d * 30 * hm.k, hm.y + h * .05, h * .19, { t, dpr: o.dpr, dir: -d, ph: i * .3 }); }); }
+    it.forEach((s2, i) => { const [what, k] = s2.split(':'), hm = m.homes[k]; if (!hm) return;
+      if (what === 'lantern') { const px = hm.x - 34 * hm.k; ink(c, [[px, hm.y + 1], [px, hm.y - 38 * hm.k], [px + 6 * hm.k, hm.y - 38 * hm.k]], { w: 1.4, color: o.night ? '#a08670' : '#6d4c35', seed: 8420 + i }); paperLantern(c, px + 6 * hm.k, hm.y - 38 * hm.k, 10 * hm.k, .9 + .1 * Math.sin(t * 2.2)); }
+      if (what === 'sent') { const cyc = (t % 2.4) / 2.4; glow(c, hm.win[0], hm.win[1], hm.winR * 6, '#ffe39a', .7 * (1 - cyc)); c.save(); c.globalAlpha = 1 - cyc; c.strokeStyle = '#ffe39a'; c.lineWidth = 1.4; c.beginPath(); c.arc(hm.win[0], hm.win[1], hm.winR * (1.5 + cyc * 4), 0, TAU); c.stroke(); c.restore(); } });
+  } };
 const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { e.target.visible = e.isIntersecting; if (e.isIntersecting) e.target.dirty = true; }), { rootMargin: '200px' }) : null;
 const ro = new ResizeObserver(es => es.forEach(e => { e.target.dirty = true; }));
 class KfArt extends HTMLElement {
