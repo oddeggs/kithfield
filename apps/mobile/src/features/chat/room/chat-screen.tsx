@@ -194,6 +194,14 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
   const outLine = useOutLine(state, presence.here, data.me);
   const peer = visitPeer(state, data.me);
   const owner = porchOwner(state);
+  // Who sits on the porch, the owner first: the two the header draws.
+  const porchCast = [
+    owner,
+    owner === peer ? null : peer,
+    ...(state?.members ?? []).filter((m) => m !== owner && m !== peer),
+  ]
+    .filter((m) => m !== null && m !== undefined)
+    .slice(0, 2);
   const typing = presence.typing.filter((p) => p !== data.me);
 
   const sheetTop = useAnimatedStyle(() => ({ top: height.get() - SHEET_OVERLAP }));
@@ -218,15 +226,8 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
         <HeaderArtFrame height={height} size={size}>
           {visit ? (
             <PorchArt
-              cast={[
-                owner,
-                owner === peer ? null : peer,
-                ...state.members.filter((m) => m !== owner && m !== peer),
-              ]
-                .filter((m) => m !== null && m !== undefined)
-                .slice(0, 2)
-                .map((m) => castOf(m.critter))
-                .join(',')}
+              cast={porchCast.map((m) => castOf(m.critter)).join(',')}
+              seats={porchCast.map((m) => travelIds.porchSeat(farm, m.person))}
               pot={state.pot ? { plant: state.pot.plant, stage: state.pot.stage } : null}
               width={screenW}
               height={size.full}

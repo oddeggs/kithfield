@@ -13,6 +13,8 @@ export const travelIds = {
   chatFace: (farm: string, seq: number) => `chat:face:${farm}:${seq}`,
   /** A sticker sent in a chat, by its write's op id (the same while sending and once landed). */
   chatSticker: (farm: string, opId: string) => `chat:sticker:${farm}:${opId}`,
+  /** A person's seat on a visit's porch, in its chat's header. */
+  porchSeat: (farm: string, person: string) => `chat:seat:${farm}:${person}`,
   /** Where a sprout comes up in a farm chat's header when a dewdrop is left. */
   chatSprout: (farm: string) => `chat:sprout:${farm}`,
   /** The dewdrop on a message's chip, where its ripples spread. */
