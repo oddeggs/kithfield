@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useDerivedValue,
@@ -84,9 +84,21 @@ export function GlassCircle({
   );
 }
 
-/** The back chevron, drawn as the design writes it. */
+/** The back chevron, drawn as the design writes it; Android's top app bar has its arrow. */
 export function BackGlyph() {
   const { palette } = useTheme();
+  if (Platform.OS === 'android') {
+    return (
+      <Txt
+        variant="body"
+        color={palette.text}
+        style={{ fontSize: 24, lineHeight: 28 }}
+        importantForAccessibility="no"
+      >
+        ←
+      </Txt>
+    );
+  }
   return (
     <Txt
       variant="body"
@@ -141,6 +153,18 @@ export function HeaderBar({
       )}
     </View>
   );
+  const androidTitle = (
+    <View>
+      <Txt variant="displayS" numberOfLines={1} maxFontSizeMultiplier={2}>
+        {ax ? shortName(title) : title}
+      </Txt>
+      {ax ? null : (
+        <Txt variant="caption" color={palette.body} numberOfLines={1} style={{ fontSize: 13 }}>
+          {subtitle}
+        </Txt>
+      )}
+    </View>
+  );
   return (
     <View
       pointerEvents="box-none"
@@ -162,26 +186,53 @@ export function HeaderBar({
       ) : (
         <View style={{ width: 44 }} />
       )}
-      <Glass
-        radius={22}
-        fill={colours.glassFill}
-        border={colours.glassBorder}
-        style={{ flexShrink: 1, minWidth: 0 }}
-      >
-        {onTitle ? (
-          <Press
-            onPress={onTitle}
-            radius={22}
-            accessibilityLabel={titleLabel ?? `${title}, ${subtitle}`}
-          >
-            {pill}
-          </Press>
-        ) : (
-          <View accessible accessibilityRole="header" accessibilityLabel={`${title}, ${subtitle}`}>
-            {pill}
-          </View>
-        )}
-      </Glass>
+      {Platform.OS === 'android' ? (
+        // Android's top app bar (`14 Platforms`, 14-06): the title starts after the arrow, on the art.
+        <View style={{ flex: 1, minWidth: 0, paddingLeft: 6 }}>
+          {onTitle ? (
+            <Press
+              onPress={onTitle}
+              darken={false}
+              accessibilityLabel={titleLabel ?? `${title}, ${subtitle}`}
+            >
+              {androidTitle}
+            </Press>
+          ) : (
+            <View
+              accessible
+              accessibilityRole="header"
+              accessibilityLabel={`${title}, ${subtitle}`}
+            >
+              {androidTitle}
+            </View>
+          )}
+        </View>
+      ) : (
+        <Glass
+          radius={22}
+          fill={colours.glassFill}
+          border={colours.glassBorder}
+          style={{ flexShrink: 1, minWidth: 0 }}
+        >
+          {onTitle ? (
+            <Press
+              onPress={onTitle}
+              radius={22}
+              accessibilityLabel={titleLabel ?? `${title}, ${subtitle}`}
+            >
+              {pill}
+            </Press>
+          ) : (
+            <View
+              accessible
+              accessibilityRole="header"
+              accessibilityLabel={`${title}, ${subtitle}`}
+            >
+              {pill}
+            </View>
+          )}
+        </Glass>
+      )}
       <GlassCircle label={right.label} onPress={right.onPress}>
         <ArtIcon name={right.icon} size={right.icon === 'seeds' ? 24 : 22} color={palette.text} />
       </GlassCircle>
