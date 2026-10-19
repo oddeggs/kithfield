@@ -8,6 +8,7 @@ import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { itemName } from '../copy';
 import { useGiveGift } from '../data/flows';
 import { useShop } from '../data/shop-data';
@@ -41,6 +42,7 @@ export function WrapSwatch({
 }) {
   const inks = useInks();
   const { t } = useLocale();
+  const ax = useAccessibilitySize();
   const label = t(`shop.wrap.${wrap}`);
   return (
     <Press
@@ -87,7 +89,7 @@ export function WrapSwatch({
           }}
         />
       </View>
-      <SText s={11.5} w={600} numberOfLines={1}>
+      <SText s={11.5} w={600} align="center" numberOfLines={ax ? undefined : 1}>
         {label}
       </SText>
     </Press>
@@ -163,6 +165,7 @@ function GiftChoice({
   const inks = useInks();
   const toast = useToast();
   const { width } = useWindowDimensions();
+  const ax = useAccessibilitySize();
   const { state, give } = useGiveGift(farm);
   const wraps = (shop.catalog?.wraps ?? WRAP_IDS).filter(isWrapId);
   const [wrap, setWrap] = useState<WrapId>(wraps[0] ?? 'clay');
@@ -241,7 +244,12 @@ function GiftChoice({
         {t('shop.gift.wrapping')}
       </SText>
       <View
-        style={{ flexDirection: 'row', justifyContent: 'space-between' }}
+        style={
+          ax
+            ? // The names outgrow one row at the accessibility sizes: the swatches wrap instead.
+              { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 12 }
+            : { flexDirection: 'row', justifyContent: 'space-between' }
+        }
         accessibilityRole="radiogroup"
       >
         {wraps.map((w) => (

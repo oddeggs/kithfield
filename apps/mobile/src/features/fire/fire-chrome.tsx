@@ -11,6 +11,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import type { ViewStyleProp } from '../../ui/style';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { FireTxt } from './fire-text';
 import { fireLook, fireSize } from './look';
 
@@ -18,6 +19,12 @@ import { fireLook, fireSize } from './look';
  * The fire room's chrome over the night scene: the round glass buttons and title pill, the panel
  * at the bottom, its buttons, and the name chips over the critters.
  */
+
+/**
+ * How far the labels anchored over the scene (name chips, the dock's buttons) grow with Dynamic
+ * Type: past this they'd cover the critters, so the large content viewer shows them whole instead.
+ */
+export const FIRE_TEXT_MAX_SCALE = 2;
 
 /** The safe area's top on the phone the design is drawn for (iPhone 16). */
 const DESIGN_TOP_INSET = 59;
@@ -243,6 +250,8 @@ export function FireButton({
   const fill =
     kind === 'primary' ? fireLook.primary : kind === 'stop' ? fireLook.stop : fireLook.secondary;
   const ink = kind === 'primary' ? fireLook.primaryInk : fireLook.text;
+  // At the accessibility sizes the label takes two lines, held to twice its size.
+  const ax = useAccessibilitySize();
   const style: ViewStyleProp = [
     {
       minHeight: height,
@@ -255,6 +264,7 @@ export function FireButton({
       paddingHorizontal: 14,
       opacity: disabled ? 0.5 : 1,
     },
+    ax ? { paddingVertical: 8 } : null,
     flex === undefined ? null : { flex, minWidth: 0 },
   ];
   return (
@@ -265,6 +275,8 @@ export function FireButton({
       radius={height / 2}
       accessibilityLabel={label}
       accessibilityRole="button"
+      accessibilityShowsLargeContentViewer
+      accessibilityLargeContentTitle={label}
       style={style}
       {...(testID ? { testID } : {})}
     >
@@ -272,8 +284,10 @@ export function FireButton({
       <FireTxt
         variant="button"
         color={ink}
-        numberOfLines={1}
-        style={{ fontSize: 16, lineHeight: 19 }}
+        align={ax ? 'center' : undefined}
+        numberOfLines={ax ? 2 : 1}
+        maxFontSizeMultiplier={FIRE_TEXT_MAX_SCALE}
+        style={[{ fontSize: 16, lineHeight: 19 }, ax ? { flexShrink: 1 } : null]}
       >
         {label}
       </FireTxt>
@@ -347,9 +361,14 @@ export function NameChip({
   const ink = talking ? fireLook.talkingInk : fireLook.text;
   const icon =
     kind === 'muted' ? 'muted' : kind === 'listening' ? 'ear' : kind === 'paused' ? 'moon' : null;
+  // At the accessibility sizes the chip grows to two lines, held to twice its size so it doesn't
+  // cover the critter; it then takes a touch, so a long press shows it whole.
+  const ax = useAccessibilitySize();
+  const lines = ax ? { numberOfLines: 2 } : {};
+  const shrink = ax ? { flexShrink: 1 } : null;
   return (
     <View
-      pointerEvents="none"
+      pointerEvents={ax ? 'box-none' : 'none'}
       style={{
         position: 'absolute',
         left: x - 120,
@@ -362,8 +381,13 @@ export function NameChip({
       <View
         accessible
         accessibilityLabel={label}
+        accessibilityShowsLargeContentViewer
+        accessibilityLargeContentTitle={label}
+        pointerEvents={ax ? 'auto' : 'none'}
         style={{
-          height: fireSize.chipHeight,
+          ...(ax
+            ? { minHeight: fireSize.chipHeight, paddingVertical: 3, maxWidth: '100%' }
+            : { height: fireSize.chipHeight }),
           paddingHorizontal: 8,
           borderRadius: fireSize.chipHeight / 2,
           backgroundColor: talking ? fireLook.talking : fireLook.chip,
@@ -374,14 +398,22 @@ export function NameChip({
       >
         {talking && level ? <LevelBars level={level} color={ink} /> : null}
         {icon ? <ArtIcon name={icon} size={13} color={ink} /> : null}
-        <FireTxt variant="buttonSmall" color={ink} style={{ fontSize: 12, lineHeight: 14 }}>
+        <FireTxt
+          variant="buttonSmall"
+          color={ink}
+          {...lines}
+          maxFontSizeMultiplier={FIRE_TEXT_MAX_SCALE}
+          style={[{ fontSize: 12, lineHeight: 14 }, shrink]}
+        >
           {name}
         </FireTxt>
         {note ? (
           <FireTxt
             variant="handS"
             color={ink}
-            style={{ fontSize: 12.5, lineHeight: 13, opacity: 0.85 }}
+            {...lines}
+            maxFontSizeMultiplier={FIRE_TEXT_MAX_SCALE}
+            style={[{ fontSize: 12.5, lineHeight: 13, opacity: 0.85 }, shrink]}
           >
             {note}
           </FireTxt>

@@ -10,6 +10,7 @@ import { ArtIcon } from '../../ui/art/art-view';
 import { CritterStack } from '../../ui/components/card';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { say } from '../farm/farm-copy';
 import { NightVeil } from '../farm/panel';
@@ -65,6 +66,8 @@ export function PlantPage({
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  // At the accessibility sizes the stages go two to a row, so a stage's name has room to wrap.
+  const ax = useAccessibilitySize();
   const k = width / W;
   const tint = useHeroTint(plant);
   const entry = entryOf(plant);
@@ -220,9 +223,22 @@ export function PlantPage({
               </Txt>
             ) : null}
           </View>
-          <View style={{ flexDirection: 'row', gap: 4 }}>
+          <View
+            style={
+              ax
+                ? { flexDirection: 'row', flexWrap: 'wrap', rowGap: 10 }
+                : { flexDirection: 'row', gap: 4 }
+            }
+          >
             {STRIP.map((s, i) => (
-              <View key={i} style={{ flex: 1, alignItems: 'center', gap: 3 }}>
+              <View
+                key={i}
+                style={
+                  ax
+                    ? { width: '50%', alignItems: 'center', gap: 3 }
+                    : { flex: 1, alignItems: 'center', gap: 3 }
+                }
+              >
                 <View
                   style={{
                     borderRadius: 12,
@@ -239,7 +255,8 @@ export function PlantPage({
                 <Txt
                   variant="caption"
                   color={palette.secondary}
-                  numberOfLines={1}
+                  align="center"
+                  numberOfLines={ax ? undefined : 1}
                   style={typeAt('rowTitle', 10.5, 10.5, fontLocale)}
                 >
                   {say(

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { itemName } from '../copy';
 import { useShop } from '../data/shop-data';
 import { lowerFirst } from '../format';
@@ -27,6 +28,7 @@ export function WidgetPreviewScreen() {
   const top = useDesignTop();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const ax = useAccessibilitySize();
   const { item: id } = useShopParams('item');
   const item = shop.item(id);
   const { loadPrices } = shop;
@@ -144,12 +146,15 @@ export function WidgetPreviewScreen() {
             flexBasis: 0,
             minHeight: 54,
             borderRadius: 27,
+            // The label wraps at the accessibility sizes; the pill grows around it.
+            paddingHorizontal: ax ? 12 : 0,
+            paddingVertical: ax ? 10 : 0,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: w.soft.bg,
           }}
         >
-          <SText s={16} w={600} color={w.soft.fg} numberOfLines={1}>
+          <SText s={16} w={600} color={w.soft.fg} align="center" numberOfLines={ax ? undefined : 1}>
             {t('shop.widget.back')}
           </SText>
         </Press>

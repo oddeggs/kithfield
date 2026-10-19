@@ -18,6 +18,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { Segmented } from '../../ui/components/segmented';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { say } from '../farm/farm-copy';
 import { useNow } from '../farm/use-now';
@@ -67,6 +68,8 @@ export function GuidePage({
   const { palette } = useTheme();
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
+  // At the accessibility sizes nothing is cut to one line, and a row's status moves under its name.
+  const ax = useAccessibilitySize();
   const [season, setSeason] = useState<Season | null>(null);
   const current = state?.season.season ?? 'spring';
   const tab = season ?? current;
@@ -121,7 +124,7 @@ export function GuidePage({
               <Txt
                 variant="handS"
                 color={look.found}
-                numberOfLines={1}
+                numberOfLines={ax ? undefined : 1}
                 style={typeAt('handS', 16, 16, fontLocale)}
               >
                 {t('fieldGuide.whose', { farm: state.name ?? '' })}
@@ -129,7 +132,7 @@ export function GuidePage({
               <Txt
                 variant="displayL"
                 accessibilityRole="header"
-                numberOfLines={1}
+                numberOfLines={ax ? undefined : 1}
                 style={typeAt('displayL', 30, 31.5, fontLocale)}
               >
                 {t('fieldGuide.title')}
@@ -146,6 +149,7 @@ export function GuidePage({
                 flexDirection: 'row',
                 justifyContent: 'space-between',
                 alignItems: 'baseline',
+                ...(ax ? { flexWrap: 'wrap', columnGap: 10 } : {}),
               }}
             >
               <Txt
@@ -167,6 +171,16 @@ export function GuidePage({
                 const name = plantTitle(t, language, state, row.plant);
                 const line = familyLine(t, row.family);
                 const st = status(row);
+                const statusText = (
+                  <Txt
+                    variant="handS"
+                    color={st.color}
+                    numberOfLines={ax ? undefined : 1}
+                    style={typeAt('handS', 14, 14, fontLocale)}
+                  >
+                    {st.text}
+                  </Txt>
+                );
                 return (
                   <Press
                     key={row.plant}
@@ -195,7 +209,7 @@ export function GuidePage({
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Txt
                         variant="rowTitle"
-                        numberOfLines={1}
+                        numberOfLines={ax ? undefined : 1}
                         style={typeAt('rowTitle', 15.5, 18.6, fontLocale)}
                       >
                         {name}
@@ -215,21 +229,15 @@ export function GuidePage({
                         <Txt
                           variant="caption"
                           color={palette.secondary}
-                          numberOfLines={1}
+                          numberOfLines={ax ? undefined : 1}
                           style={{ ...typeAt('caption', 12.5, 15, fontLocale), flexShrink: 1 }}
                         >
                           {line}
                         </Txt>
                       </View>
+                      {ax ? statusText : null}
                     </View>
-                    <Txt
-                      variant="handS"
-                      color={st.color}
-                      numberOfLines={1}
-                      style={typeAt('handS', 14, 14, fontLocale)}
-                    >
-                      {st.text}
-                    </Txt>
+                    {ax ? null : statusText}
                   </Press>
                 );
               })}
@@ -308,6 +316,7 @@ function AllYearTile({
 }) {
   const { palette } = useTheme();
   const { fontLocale } = useLocale();
+  const ax = useAccessibilitySize();
   return (
     <Press
       onPress={onPress}
@@ -319,7 +328,7 @@ function AllYearTile({
       <Txt
         variant="rowTitle"
         align="center"
-        numberOfLines={1}
+        numberOfLines={ax ? undefined : 1}
         style={typeAt('rowTitle', 12.5, 13.75, fontLocale)}
       >
         {title}
@@ -328,7 +337,7 @@ function AllYearTile({
         variant="caption"
         align="center"
         color={palette.secondary}
-        numberOfLines={1}
+        numberOfLines={ax ? undefined : 1}
         style={typeAt('caption', 11.5, 11.5, fontLocale)}
       >
         {sub}

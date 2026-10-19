@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { Press } from '../../../ui/motion/press';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { ItemArt, type ItemLook } from '../item-art';
 import { useInks } from './inks';
 import { SText } from './text';
@@ -34,6 +35,8 @@ export function ItemTile({
   readonly bottomPad?: number;
 }) {
   const inks = useInks();
+  // At the accessibility sizes the name wraps and what trails it moves under it.
+  const ax = useAccessibilitySize();
   const artWidth = width - 16;
   const body = (
     <>
@@ -45,11 +48,12 @@ export function ItemTile({
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
+          flexWrap: ax ? 'wrap' : 'nowrap',
           gap: 4,
           paddingHorizontal: 2,
         }}
       >
-        <SText s={13} lh={1.2} w={600} numberOfLines={1} style={{ flexShrink: 1 }}>
+        <SText s={13} lh={1.2} w={600} numberOfLines={ax ? undefined : 1} style={{ flexShrink: 1 }}>
           {name}
         </SText>
         {trailing}
@@ -59,7 +63,7 @@ export function ItemTile({
           s={12.5}
           lh={1.2}
           color={inks.body}
-          numberOfLines={1}
+          numberOfLines={ax ? undefined : 1}
           style={{ marginTop: -3, paddingHorizontal: 2 }}
         >
           {below}

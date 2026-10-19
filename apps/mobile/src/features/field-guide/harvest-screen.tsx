@@ -14,6 +14,7 @@ import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { listOf, say } from '../farm/farm-copy';
 import { typeAt } from '../farm/type-at';
@@ -89,6 +90,7 @@ export function HarvestPage({
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const ax = useAccessibilitySize();
   const k = width / W;
   const toast = useToast();
   const [sending, setSending] = useState(false);
@@ -181,14 +183,14 @@ export function HarvestPage({
                   <View style={{ flex: 1 }}>
                     <Txt
                       variant="rowTitle"
-                      numberOfLines={1}
+                      numberOfLines={ax ? undefined : 1}
                       style={typeAt('rowTitle', 15.5, 18.6, fontLocale)}
                     >
                       {cropName(t, language, state, crop)}
                     </Txt>
                     <Txt
                       variant="caption"
-                      numberOfLines={1}
+                      numberOfLines={ax ? undefined : 1}
                       color={palette.secondary}
                       style={typeAt('caption', 13, 16.9, fontLocale)}
                     >

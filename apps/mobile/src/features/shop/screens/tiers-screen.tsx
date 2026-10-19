@@ -1,13 +1,15 @@
 import { PATRON_PRODUCTS, type StoreProductId } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, View, type AccessibilityActionEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
+import { haptics } from '../../../ui/motion/haptics';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { useBecomePatron } from '../data/flows';
 import { useShop } from '../data/shop-data';
 import { useInks } from '../kit/inks';
@@ -162,7 +164,11 @@ export function TiersScreen() {
   );
 }
 
-/** One tier: name and price on a line, what it is, and a hand-written note under it. */
+/**
+ * One tier: name and price on a line, what it is, and a hand-written note under it. VoiceOver
+ * reads the card as one radio; a note that switches the period is the card's own action, since an
+ * element inside the card can't be reached.
+ */
 function TierCard({
   chosen,
   onPress,
@@ -182,64 +188,83 @@ function TierCard({
 }) {
   const inks = useInks();
   const { palette } = useTheme();
+  const ax = useAccessibilitySize();
+  const switchNote = note && onNote ? note : null;
+  const noteText = note ? (
+    <SText f="hand" s={14} lh={1.2} color={inks.eyebrow.honey} style={{ marginTop: 2 }}>
+      {note}
+    </SText>
+  ) : null;
+  const onAction = (e: AccessibilityActionEvent) => {
+    if (e.nativeEvent.actionName === 'activate') {
+      haptics.select();
+      onPress();
+    }
+    if (e.nativeEvent.actionName === 'switchPeriod') onNote?.();
+  };
   return (
-    <Press
-      onPress={onPress}
-      haptic="select"
-      radius={22}
+    <View
+      accessible
       accessibilityRole="radio"
       accessibilityState={{ selected: chosen }}
-      accessibilityLabel={[name, price, body].filter(Boolean).join(', ')}
-      style={{
-        borderRadius: 22,
-        backgroundColor: chosen ? inks.chosen.bg : inks.tile,
-        borderWidth: chosen ? 2 : 1,
-        borderColor: chosen ? inks.chosen.border : palette.hairline,
-        // The chosen card's thicker border doesn't move what's inside it.
-        paddingVertical: chosen ? 11 : 12,
-        paddingHorizontal: chosen ? 15 : 16,
-        gap: 4,
-      }}
+      accessibilityLabel={[name, price, body, switchNote ? null : note].filter(Boolean).join(', ')}
+      accessibilityActions={[
+        { name: 'activate' },
+        ...(switchNote ? [{ name: 'switchPeriod', label: switchNote }] : []),
+      ]}
+      onAccessibilityAction={onAction}
     >
-      <View
+      <Press
+        onPress={onPress}
+        haptic="select"
+        radius={22}
+        accessible={false}
         style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'baseline',
-          gap: 8,
+          borderRadius: 22,
+          backgroundColor: chosen ? inks.chosen.bg : inks.tile,
+          borderWidth: chosen ? 2 : 1,
+          borderColor: chosen ? inks.chosen.border : palette.hairline,
+          // The chosen card's thicker border doesn't move what's inside it.
+          paddingVertical: chosen ? 11 : 12,
+          paddingHorizontal: chosen ? 15 : 16,
+          gap: 4,
         }}
       >
-        <SText f="serif" s={20} lh={1.1} style={{ flexShrink: 1 }}>
-          {name}
-        </SText>
-        {price ? (
-          <SText s={15} w={600} numberOfLines={1}>
-            {price}
+        <View
+          style={{
+            flexDirection: 'row',
+            // At the accessibility sizes the price moves under the name rather than being cut.
+            flexWrap: ax ? 'wrap' : 'nowrap',
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
+            gap: 8,
+          }}
+        >
+          <SText f="serif" s={20} lh={1.1} style={{ flexShrink: 1 }}>
+            {name}
           </SText>
-        ) : null}
-      </View>
-      <SText s={13.5} lh={1.4} multiline color={inks.paragraph}>
-        {body}
-      </SText>
-      {note ? (
-        onNote ? (
-          <Press
-            onPress={onNote}
-            darken={false}
-            accessibilityRole="button"
-            accessibilityLabel={note}
-            hitSlop={8}
-          >
-            <SText f="hand" s={14} lh={1.2} color={inks.eyebrow.honey} style={{ marginTop: 2 }}>
-              {note}
+          {price ? (
+            <SText
+              s={15}
+              w={600}
+              numberOfLines={ax ? undefined : 1}
+              style={ax ? { flexShrink: 1 } : undefined}
+            >
+              {price}
             </SText>
+          ) : null}
+        </View>
+        <SText s={13.5} lh={1.4} multiline color={inks.paragraph}>
+          {body}
+        </SText>
+        {noteText && onNote ? (
+          <Press onPress={onNote} darken={false} accessible={false} hitSlop={8}>
+            {noteText}
           </Press>
         ) : (
-          <SText f="hand" s={14} lh={1.2} color={inks.eyebrow.honey} style={{ marginTop: 2 }}>
-            {note}
-          </SText>
-        )
-      ) : null}
-    </Press>
+          noteText
+        )}
+      </Press>
+    </View>
   );
 }

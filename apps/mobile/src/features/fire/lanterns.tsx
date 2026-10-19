@@ -16,7 +16,8 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { fadeTo, sheetTo } from '../../ui/motion/motion';
 import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
-import { LevelBars } from './fire-chrome';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
+import { FIRE_TEXT_MAX_SCALE, LevelBars } from './fire-chrome';
 import { FireTxt } from './fire-text';
 import { fireLook } from './look';
 import type { Layout } from './room-model';
@@ -85,6 +86,9 @@ export function LanternFrame({
   readonly onPress?: () => void;
 }) {
   const { t } = useLocale();
+  // At the accessibility sizes the name chip takes two lines, held to twice its size so it doesn't
+  // cover the frame; a long press on it shows the name whole.
+  const ax = useAccessibilitySize();
   const inset = size >= 150 ? (size >= 170 ? 9 : 8) : 4;
   const video =
     participant && person.lantern ? trackOf(participant, Track.Source.Camera) : undefined;
@@ -154,8 +158,10 @@ export function LanternFrame({
         }}
       >
         <View
+          accessibilityShowsLargeContentViewer
+          accessibilityLargeContentTitle={name}
           style={{
-            height: 22,
+            ...(ax ? { minHeight: 22, paddingVertical: 2, maxWidth: '100%' } : { height: 22 }),
             paddingHorizontal: 8,
             borderRadius: 11,
             backgroundColor: talking ? fireLook.talking : fireLook.card,
@@ -176,7 +182,9 @@ export function LanternFrame({
           <FireTxt
             variant="buttonSmall"
             color={talking ? fireLook.talkingInk : fireLook.text}
-            style={{ fontSize: 11.5, lineHeight: 13 }}
+            {...(ax ? { numberOfLines: 2 } : {})}
+            maxFontSizeMultiplier={FIRE_TEXT_MAX_SCALE}
+            style={[{ fontSize: 11.5, lineHeight: 13 }, ax ? { flexShrink: 1 } : null]}
           >
             {name}
           </FireTxt>

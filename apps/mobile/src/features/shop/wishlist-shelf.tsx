@@ -16,6 +16,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { shopApi } from './api';
 import { itemName } from './copy';
 import { ItemArt } from './item-art';
@@ -64,6 +65,7 @@ export function WishTiles({
 }) {
   const { t } = useLocale();
   const inks = useInks();
+  const ax = useAccessibilitySize();
   const season = currentSeason();
   const tile = (width - 16) / 3;
   return (
@@ -79,7 +81,7 @@ export function WishTiles({
                 height={84}
               />
             </View>
-            <SText s={12} lh={1.2} w={600} align="center" numberOfLines={1}>
+            <SText s={12} lh={1.2} w={600} align="center" numberOfLines={ax ? undefined : 1}>
               {name}
             </SText>
           </>
