@@ -12,8 +12,12 @@ import { useEffect, useState, type ComponentType } from 'react';
 import { View } from 'react-native';
 
 import { webAsset } from './src/web/base-url';
-import { surfaceOf } from './src/web/desktop/tauri';
+import { openLinksOutside } from './src/web/desktop/external-links';
+import { inDesktop, surfaceOf } from './src/web/desktop/tauri';
 import type { loadWebFonts } from './src/web/fonts';
+
+// In the desktop app's window, links out of the app open in the system's browser.
+if (inDesktop() && surfaceOf(window.location.search) === 'app') openLinksOutside();
 
 const canvasKit = LoadSkiaWeb({ locateFile: (file: string) => webAsset(file) });
 

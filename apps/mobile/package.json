@@ -32,6 +32,7 @@
     "@shopify/react-native-skia": "catalog:",
     "@tauri-apps/api": "catalog:",
     "@tauri-apps/plugin-notification": "catalog:",
+    "@tauri-apps/plugin-opener": "catalog:",
     "better-auth": "catalog:",
     "expo": "catalog:",
     "expo-apple-authentication": "catalog:",
