@@ -19,6 +19,7 @@ import { type Context, Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { z } from 'zod';
 
+import { withinSocketLimit } from '../socket-limit';
 import { newActionKey, storeActionKey } from './action-key';
 import { cottageAdapters, type SessionRouteEnv } from './adapters';
 import { linkSession, listDevices, signOutDevice } from './device-sessions';
@@ -29,8 +30,12 @@ type RouteEnv = SessionRouteEnv;
 /** An Expo push token, as `getExpoPushTokenAsync` gives it. */
 const EXPO_PUSH_TOKEN = /^Expo(nent)?PushToken\[[^\]]+\]$/;
 
-const fail = (c: Context, status: 400 | 401 | 404 | 409, code: ErrorCode, fields?: string[]) =>
-  c.json<ErrorBody>({ error: fields === undefined ? { code } : { code, fields } }, status);
+const fail = (
+  c: Context,
+  status: 400 | 401 | 404 | 409 | 429,
+  code: ErrorCode,
+  fields?: string[],
+) => c.json<ErrorBody>({ error: fields === undefined ? { code } : { code, fields } }, status);
 
 /** The request's JSON body checked against a schema, or the `400 bad_request` to answer with. */
 async function bodyOf<S extends z.ZodType>(
@@ -61,12 +66,13 @@ export function cottageRoutes(): Hono<RouteEnv> {
   const app = new Hono<RouteEnv>();
 
   // The token comes in the first frame, never the URL; the cottage checks it is this person's.
-  app.get('/v1/cottage/:person/socket', (c) => {
+  app.get('/v1/cottage/:person/socket', async (c) => {
     const person = Id.safeParse(c.req.param('person'));
     if (!person.success) return fail(c, 404, 'not_found');
     if (c.req.header('Upgrade')?.toLowerCase() !== 'websocket') {
       return fail(c, 400, 'bad_request', ['Upgrade']);
     }
+    if (!(await withinSocketLimit(c.env, c.req.raw))) return fail(c, 429, 'rate_limited');
     return cottageOf(c.env, person.data).fetch(c.req.raw);
   });
 

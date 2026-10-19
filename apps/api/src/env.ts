@@ -140,6 +140,8 @@ export type Bindings = Secrets & {
   readonly SHOP_LIMIT: RateLimit;
   /** Pieces of a speaker's voice for live captions, per person: about twelve a minute. */
   readonly FIRE_LIMIT: RateLimit;
+  /** Farm and cottage socket upgrades: at most 120 a minute per client address. */
+  readonly SOCKET_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;

@@ -16,6 +16,7 @@ import { eitherBlocked, type SessionEnv } from '../auth';
 import { ACTION_KEY_HEADER } from '../cottage/action-key';
 import type { Bindings } from '../env';
 import { claimGift, claimOf, releaseGift } from '../purchases/gift-claims';
+import { withinSocketLimit } from '../socket-limit';
 import { profileOf } from './adapters/identity';
 import { knowsSomeoneOn, noteVisitor, roleOf } from './d1';
 import {
@@ -61,6 +62,7 @@ export const farmRoutes = (): Hono<SessionEnv> => {
     if (c.req.header('Upgrade')?.toLowerCase() !== 'websocket') return fail(c, 400, 'bad_request');
     const farm = farmParam(c);
     if (farm === null) return fail(c, 404, 'not_found');
+    if (!(await withinSocketLimit(c.env, c.req.raw))) return fail(c, 429, 'rate_limited');
     return farmStub(c.env, farm).fetch(c.req.raw);
   });
 

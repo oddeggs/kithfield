@@ -147,6 +147,12 @@
           "namespace_id": "1263",
           "simple": { "limit": 12, "period": 60 },
         },
+        // Farm and cottage socket upgrades, per client address (an IPv6 /64 as one).
+        {
+          "name": "SOCKET_LIMIT",
+          "namespace_id": "1265",
+          "simple": { "limit": 120, "period": 60 },
+        },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
       "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["hello@kithfield.com"] }],
@@ -297,6 +303,12 @@
           "name": "FIRE_LIMIT",
           "namespace_id": "1264",
           "simple": { "limit": 12, "period": 60 },
+        },
+        // Farm and cottage socket upgrades, per client address (an IPv6 /64 as one).
+        {
+          "name": "SOCKET_LIMIT",
+          "namespace_id": "1266",
+          "simple": { "limit": 120, "period": 60 },
         },
       ],
       // Email Sending on kithfield.com (sign-in codes). `wrangler dev` simulates it and only logs.
