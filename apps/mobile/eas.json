@@ -20,6 +20,15 @@
       "pnpm": "12.6.0",
       "env": { "APP_VARIANT": "dev" }
     },
+    "beta": {
+      "distribution": "store",
+      "channel": "beta",
+      "autoIncrement": true,
+      "node": "24.21.0",
+      "pnpm": "12.6.0",
+      "environment": "preview",
+      "env": { "APP_VARIANT": "prd", "API_BASE": "https://dev.kithfield.com/api" }
+    },
     "prd": {
       "distribution": "store",
       "channel": "prd",
@@ -31,6 +40,7 @@
   },
   "submit": {
     "dev": { "ios": { "ascAppId": "6824232574" } },
+    "beta": { "ios": { "ascAppId": "6824232249" } },
     "prd": { "ios": { "ascAppId": "6824232249" } }
   }
 }
