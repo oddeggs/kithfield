@@ -14,6 +14,7 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import type { ViewStyleProp } from '../../ui/style';
 import { typeAt } from '../farm/type-at';
+import { ANDROID_BACK, AndroidBackArrow } from '../android/back-arrow';
 
 /* The chrome the rhythm screens share: the top bar over the art, the title pill and buttons. */
 
@@ -36,13 +37,17 @@ export function BackButton({ onPress }: { readonly onPress: () => void }) {
         border={palette.glassButton.border}
         style={{ width: CIRCLE, height: CIRCLE, alignItems: 'center', justifyContent: 'center' }}
       >
-        <Txt
-          variant="chevron"
-          color={palette.text}
-          style={[typeAt('body', 26, 26, fontLocale), { marginTop: -3 }]}
-        >
-          ‹
-        </Txt>
+        {ANDROID_BACK ? (
+          <AndroidBackArrow color={palette.text} />
+        ) : (
+          <Txt
+            variant="chevron"
+            color={palette.text}
+            style={[typeAt('body', 26, 26, fontLocale), { marginTop: -3 }]}
+          >
+            ‹
+          </Txt>
+        )}
       </Glass>
     </Press>
   );

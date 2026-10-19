@@ -11,6 +11,7 @@ import { useTheme } from '../../../ui/theme/theme-provider';
 import type { ViewStyleProp } from '../../../ui/style';
 import { useKitColors } from './colors';
 import { KText } from './text';
+import { ANDROID_BACK, AndroidBackArrow } from '../../android/back-arrow';
 
 /** The design's status bar is 54 tall and its content starts at 59 on an iPhone 16. */
 const DESIGN_SAFE_TOP = 59;
@@ -47,12 +48,16 @@ export function BackButton({
           : { backgroundColor: palette.fillSoft },
       ]}
     >
-      <KText
-        kind="chevron"
-        style={{ fontSize: glass ? 26 : 24, lineHeight: 26, marginTop: -3, fontWeight: '400' }}
-      >
-        ‹
-      </KText>
+      {ANDROID_BACK ? (
+        <AndroidBackArrow color={palette.text} />
+      ) : (
+        <KText
+          kind="chevron"
+          style={{ fontSize: glass ? 26 : 24, lineHeight: 26, marginTop: -3, fontWeight: '400' }}
+        >
+          ‹
+        </KText>
+      )}
     </Press>
   );
 }

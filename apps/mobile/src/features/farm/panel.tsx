@@ -15,6 +15,7 @@ import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import type { ViewStyleProp } from '../../ui/style';
 import { withAlpha } from './over-art';
+import { ANDROID_BACK, AndroidBackArrow } from '../android/back-arrow';
 
 /**
  * The resting sheet of a full-screen farm moment (move-in, leaving, a dozing cottage): the
@@ -157,13 +158,17 @@ export function GlyphButton({
           border={palette.glassButton.border}
           style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}
         >
-          <Txt
-            variant="chevron"
-            color={palette.text}
-            style={glyph === '‹' ? { fontSize: 26, marginTop: -3 } : { fontSize: 20 }}
-          >
-            {glyph}
-          </Txt>
+          {ANDROID_BACK && glyph === '‹' ? (
+            <AndroidBackArrow color={palette.text} />
+          ) : (
+            <Txt
+              variant="chevron"
+              color={palette.text}
+              style={glyph === '‹' ? { fontSize: 26, marginTop: -3 } : { fontSize: 20 }}
+            >
+              {glyph}
+            </Txt>
+          )}
         </Glass>
       </Press>
     </View>

@@ -13,6 +13,7 @@ import { Txt } from '../../../ui/type/text';
 import { useGestureRejections } from '../send';
 import { leave } from './presentation';
 import { useGestureColours } from './colours';
+import { ANDROID_BACK, AndroidBackArrow } from '../../android/back-arrow';
 
 /** Glass over art: night-blue over a night scene, paper over a day one. */
 export type GlassTone = 'night' | 'day';
@@ -38,9 +39,13 @@ export function GlassBack({
         style={{ width: size, height: size }}
       >
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Txt variant="displayM" color={g.ink} style={{ marginTop: -3 }}>
-            ‹
-          </Txt>
+          {ANDROID_BACK ? (
+            <AndroidBackArrow color={g.ink} />
+          ) : (
+            <Txt variant="displayM" color={g.ink} style={{ marginTop: -3 }}>
+              ‹
+            </Txt>
+          )}
         </View>
       </Glass>
     </Press>
