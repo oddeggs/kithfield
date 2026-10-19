@@ -119,6 +119,8 @@ export interface AuthOptionsInput {
   /** Every Google OAuth client id an identity token may be issued for (iOS and web). */
   readonly googleClientIds: readonly string[];
   readonly sendCode: (input: { email: string; code: string }) => Promise<void>;
+  /** The fixed sign-in code for an App Review address (`review-account.ts`); undefined otherwise. */
+  readonly reviewCode?: (email: string) => string | undefined;
   readonly databaseHooks?: BetterAuthOptions['databaseHooks'];
   readonly hooks?: BetterAuthOptions['hooks'];
 }
@@ -182,6 +184,13 @@ export function buildAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
         expiresIn: CODE_LIFETIME_SECONDS,
         allowedAttempts: CODE_ATTEMPTS,
         storeOTP: 'hashed',
+        // A review address gets its fixed code; everyone else (undefined) a random one.
+        ...(input.reviewCode
+          ? {
+              generateOTP: ({ email, type }: { email: string; type: string }) =>
+                type === 'sign-in' ? input.reviewCode?.(email) : undefined,
+            }
+          : {}),
         sendVerificationOTP: async ({ email, otp }) => {
           await input.sendCode({ email, code: otp });
         },

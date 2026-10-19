@@ -2,8 +2,9 @@ import { pickLanguage } from '@kithfield/i18n';
 import { betterAuth } from 'better-auth';
 
 import type { Bindings, EnvironmentName } from '../env';
-import { sendCodeLetter } from './email-code';
+import { recordSend, sendCodeLetter } from './email-code';
 import { buildAuthOptions } from './options';
+import { readReviewAccount, reviewCodeFor } from './review-account';
 import { markLetterFailed, scopeLanguage, withSignInScope } from './sign-in-scope';
 import { upgradeDatabaseHooks, upgradeRequestHooks } from './upgrade';
 
@@ -41,6 +42,7 @@ function listOf(value: string | undefined): string[] {
 }
 
 function createAuth(env: Bindings) {
+  const review = readReviewAccount(env.REVIEW_ACCOUNT);
   return betterAuth(
     buildAuthOptions({
       db: env.DB,
@@ -53,7 +55,13 @@ function createAuth(env: Bindings) {
         env.GOOGLE_WEB_CLIENT_ID,
         ...listOf(env.GOOGLE_EXTRA_CLIENT_IDS),
       ],
+      ...(review ? { reviewCode: (email: string) => reviewCodeFor(review, email) } : {}),
       sendCode: async ({ email, code }) => {
+        // App Review's code is known already: nothing is mailed, but the send still counts.
+        if (reviewCodeFor(review, email) !== undefined) {
+          await recordSend(env.DB, email, Date.now());
+          return;
+        }
         try {
           await sendCodeLetter(
             { email: env.EMAIL, db: env.DB },
