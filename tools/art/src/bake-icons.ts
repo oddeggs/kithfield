@@ -6,6 +6,11 @@
  * Writes `Assets.xcassets/iMessage App Icon.stickersiconset` (the name the target's
  * `ASSETCATALOG_COMPILER_APPICON_NAME` points at). Messages draws these icons 4:3, so each is the
  * square icon at its width, cropped to its height about the middle. Every file is opaque.
+ *
+ * It also writes the Messages icons as loose files in `MessagesIcons/`, named as `actool` names
+ * them, which the target's `CFBundleIcons` lists. `actool` only writes those files for Xcode's
+ * Messages extension product type, and `@bacons/apple-targets` builds the target as a plain app
+ * extension, so without them App Store processing rejects the set as incomplete (ITMS-90649).
  */
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -25,24 +30,32 @@ interface Slot {
   readonly size: readonly [number, number];
   readonly scale: 1 | 2 | 3;
   readonly platform?: 'ios';
+  /** Listed in `CFBundleIcons`, so it ships as a loose file too. */
+  readonly loose?: true;
 }
 
-/** The slots of Xcode's iMessage App Icon set. */
+/**
+ * The slots of Xcode's iMessage App Icon set. Its 1024×1024 App Store slot is left out: the app's
+ * own icon covers it, and beside the 1024×768 one it gave the set two large icons of one name, of
+ * which the build kept either (ITMS-90645 wants the 1024×768).
+ */
 const SLOTS: readonly Slot[] = [
   { idiom: 'iphone', size: [29, 29], scale: 2 },
   { idiom: 'iphone', size: [29, 29], scale: 3 },
-  { idiom: 'iphone', size: [60, 45], scale: 2 },
-  { idiom: 'iphone', size: [60, 45], scale: 3 },
+  { idiom: 'iphone', size: [60, 45], scale: 2, loose: true },
+  { idiom: 'iphone', size: [60, 45], scale: 3, loose: true },
   { idiom: 'ipad', size: [29, 29], scale: 2 },
-  { idiom: 'ipad', size: [67, 50], scale: 2 },
-  { idiom: 'ipad', size: [74, 55], scale: 2 },
-  { idiom: 'ios-marketing', size: [1024, 1024], scale: 1 },
-  { idiom: 'universal', size: [27, 20], scale: 2, platform: 'ios' },
-  { idiom: 'universal', size: [27, 20], scale: 3, platform: 'ios' },
-  { idiom: 'universal', size: [32, 24], scale: 2, platform: 'ios' },
-  { idiom: 'universal', size: [32, 24], scale: 3, platform: 'ios' },
+  { idiom: 'ipad', size: [67, 50], scale: 2, loose: true },
+  { idiom: 'ipad', size: [74, 55], scale: 2, loose: true },
+  { idiom: 'universal', size: [27, 20], scale: 2, platform: 'ios', loose: true },
+  { idiom: 'universal', size: [27, 20], scale: 3, platform: 'ios', loose: true },
+  { idiom: 'universal', size: [32, 24], scale: 2, platform: 'ios', loose: true },
+  { idiom: 'universal', size: [32, 24], scale: 3, platform: 'ios', loose: true },
   { idiom: 'ios-marketing', size: [1024, 768], scale: 1, platform: 'ios' },
 ];
+
+/** The base name `CFBundleIcons` lists the loose Messages icons by. */
+const LOOSE_NAME = 'iMessage App Icon';
 
 /** The page colour behind the art, so no icon carries alpha. */
 const PAPER = { r: 0xf5, g: 0xee, b: 0xe2 };
@@ -64,23 +77,28 @@ async function icon(width: number, height: number): Promise<Buffer> {
 const dir = join(target, 'Assets.xcassets', 'iMessage App Icon.stickersiconset');
 rmSync(dir, { recursive: true, force: true });
 mkdirSync(dir, { recursive: true });
+const looseDir = join(target, 'MessagesIcons');
+rmSync(looseDir, { recursive: true, force: true });
+mkdirSync(looseDir, { recursive: true });
 writeFileSync(
   join(target, 'Assets.xcassets', 'Contents.json'),
   `${JSON.stringify({ info: { author: 'xcode', version: 1 } }, null, 2)}\n`,
 );
 
 const images: Record<string, string>[] = [];
-const made = new Map<string, string>();
+const made = new Map<string, Buffer>();
 for (const slot of SLOTS) {
   const [w, h] = slot.size;
   const px = [w * slot.scale, h * slot.scale] as const;
   const key = `${px[0]}x${px[1]}`;
-  let filename = made.get(key);
-  if (!filename) {
-    filename = `icon-${key}.png`;
-    writeFileSync(join(dir, filename), await icon(px[0], px[1]));
-    made.set(key, filename);
+  const filename = `icon-${key}.png`;
+  let png = made.get(key);
+  if (!png) {
+    png = await icon(px[0], px[1]);
+    writeFileSync(join(dir, filename), png);
+    made.set(key, png);
   }
+  if (slot.loose) writeFileSync(join(looseDir, `${LOOSE_NAME}${w}x${h}@${slot.scale}x.png`), png);
   images.push({
     filename,
     idiom: slot.idiom,
