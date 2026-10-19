@@ -290,3 +290,4 @@ in the house voice, and is logged here so design can draw it later.
 | Web, 600 to 1100 px | The phone's layout across the window, as under 600 px | The notes give under 600 (phone) and over 1100 (three panes) only |
 | 14-11 Desktop, any screen but a chat | The route's own phone screen (settings, the seed bed, a farm page) fills the middle pane between the list and the farm | Only the chat is drawn in the middle pane |
 | 14-12 Stickers by colon | "No stickers match. Keep typing, or press Esc." in the suggestion card when no sticker's words match | The design shows a match only |
+| Web, choices and the name prompt | A list of choices (a critter's card, search filters, shared media) is a small modal dialog in the app's paper and ink, a button per choice and the cancel one last; the critter's name when starting a farm is asked in the browser's own prompt | The browser has no action sheet or `Alert.prompt`; none is drawn for the web |
