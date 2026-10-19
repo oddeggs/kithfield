@@ -11,6 +11,12 @@ let engine: Promise<SqlJsStatic> | null = null;
 const sqlJs = () => (engine ??= initSqlJs({ locateFile: wasmUrl }));
 
 /**
+ * Settings for each connection: deleted rows are overwritten, so a wiped store's saved copy (it
+ * is not encrypted here) keeps none of what was in it, and foreign keys as on the phone.
+ */
+const CONNECTION_SETTINGS = 'PRAGMA secure_delete = ON; PRAGMA foreign_keys = ON;';
+
+/**
  * The browser's store: SQLite (sql.js, in memory) with the same tables as the phone, saved to
  * IndexedDB a moment after each write so a reload keeps the outbox. The browser has no SQLCipher;
  * what it holds is protected by the browser profile, as a web session is.
@@ -27,10 +33,20 @@ function wrap(db: Database, name: string): OpenedDatabase {
       statement.free();
     }
   };
-  const changed = () => saveSoon(name, () => db.export());
+  let depth = 0;
+  // sql.js's export closes and reopens the connection: it would end an open transaction (losing
+  // its writes) and resets the connection's settings, so it waits for the transaction and puts
+  // the settings back.
+  const take = (): Uint8Array | null => {
+    if (depth > 0) return null;
+    const bytes = db.export();
+    db.exec(CONNECTION_SETTINGS);
+    return bytes;
+  };
+  const changed = () => saveSoon(name, take);
   // sql.js is synchronous; a throw becomes a rejection, as from expo-sqlite.
   const run = <T>(task: () => T): Promise<T> => new Promise((resolve) => resolve(task()));
-  let depth = 0;
+  db.exec(CONNECTION_SETTINGS);
   return {
     execAsync: (source) =>
       run(() => {
