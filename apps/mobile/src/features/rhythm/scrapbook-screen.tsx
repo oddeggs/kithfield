@@ -12,9 +12,11 @@ import { EmptyState, ErrorState } from '../../ui/components/state-shell';
 import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics } from '../../ui/motion/haptics';
+import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Glass } from '../../ui/components/glass';
+import { TravelSpot, timing, useTravel } from '../../ui/travel';
 import { Txt } from '../../ui/type/text';
 import { typeAt } from '../farm/type-at';
 import { useNow } from '../farm/use-now';
@@ -190,9 +192,33 @@ function PressCard({
       <Txt variant="note" multiline color={palette.muted}>
         {from}
       </Txt>
+      {/* Where the hangout's photos fan out as it is pressed, and gather again (signature motion). */}
+      <TravelSpot id={pressSpot(item.seed.seq, 'page')} box={pageBox(width)} />
+      {FAN.map((f, i) => (
+        <TravelSpot key={i} id={pressSpot(item.seed.seq, i)} box={fanBox(width, i)} />
+      ))}
     </Press>
   );
 }
+
+/** The photos of a hangout being pressed: where each fans out on its card, and the page between. */
+const SNAP = { width: 76, height: 62 };
+const FAN = [
+  { x: 0.08, y: -0.12 },
+  { x: 0.3, y: 0.02 },
+  { x: 0.52, y: -0.06 },
+] as const;
+const pressSpot = (seq: number, at: number | 'page') => `rhythm:press:${seq}:${at}`;
+const fanBox = (width: number, i: number) => ({
+  x: width * (FAN[i]?.x ?? 0),
+  y: CARD_H * (FAN[i]?.y ?? 0),
+  ...SNAP,
+});
+const pageBox = (width: number) => ({
+  x: width / 2 - SNAP.width / 2,
+  y: CARD_H * 0.25,
+  ...SNAP,
+});
 
 /**
  * The scrapbook: every hangout pressed into a page with its flower and photos. Any member can
@@ -205,6 +231,8 @@ export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
   const { width } = useWindowDimensions();
   const api = useRhythmApi();
   const toast = useToast();
+  const travel = useTravel();
+  const reduce = useReduceMotion();
   const now = useNow();
   useOpenFarm(farm);
   const state = useFarm(farm)?.state ?? null;
@@ -268,8 +296,37 @@ export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
       flower: item.flower,
     });
     if (sent.status !== 'queued') return;
-    toast.show(t('rhythm.scrapbook.pressed'));
-    setRound((r) => r + 1);
+    const done = () => {
+      toast.show(t('rhythm.scrapbook.pressed'));
+      setRound((r) => r + 1);
+    };
+    if (reduce) return done();
+    // Its photos fan out on the page, then gather as the page closes on its flower.
+    const pressing = timing('photo', 'pressing');
+    const seq = item.seed.seq;
+    FAN.forEach((_, i) => {
+      const sprite = { scene: 'snap', attrs: { name: snapArt(seq + i), season }, ...SNAP } as const;
+      travel.fly({
+        from: pressSpot(seq, 'page'),
+        to: pressSpot(seq, i),
+        sprite,
+        arc: 30,
+        delayMs: i * 90,
+        durationMs: pressing * 0.3,
+        holdMs: pressing * 0.2,
+        onLanded: () =>
+          travel.fly({
+            from: pressSpot(seq, i),
+            to: pressSpot(seq, 'page'),
+            sprite,
+            toWidth: SNAP.width * 0.3,
+            arc: 0,
+            fade: 'out',
+            durationMs: pressing * 0.25,
+            ...(i === FAN.length - 1 ? { onTouchdown: done } : {}),
+          }),
+      });
+    });
   };
 
   const pressable =
