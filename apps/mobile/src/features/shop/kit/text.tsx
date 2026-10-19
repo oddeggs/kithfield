@@ -21,7 +21,7 @@ export interface STextProps extends Omit<TxtProps, 'variant'> {
   readonly caps?: boolean;
 }
 
-/** Gaegu has no curly apostrophe; the design sets its hand lettering with the straight one. */
+/** The design sets its hand lettering with the straight apostrophe, never the curly one. */
 const straightQuotes = (children: ReactNode): ReactNode =>
   Children.map(children, (c) => (typeof c === 'string' ? c.replace(/\u2019/g, "'") : c));
 
