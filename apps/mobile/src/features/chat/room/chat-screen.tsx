@@ -1,7 +1,7 @@
 import type { PersonId } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, View } from 'react-native';
+import { Keyboard, Platform, View } from 'react-native';
 import {
   KeyboardStickyView,
   useReanimatedKeyboardAnimation,
@@ -440,7 +440,7 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
         />
         <Noticeboard open={board} pinned={pinned} onClose={() => setBoard(false)} />
         {/* Android 14's back preview over the chat (`14 Platforms`). */}
-        {pane.back ? (
+        {Platform.OS === 'android' && pane.back ? (
           <BackPreview onBack={() => (router.canGoBack() ? router.back() : go.chatList())} />
         ) : null}
         <HintOverlay
