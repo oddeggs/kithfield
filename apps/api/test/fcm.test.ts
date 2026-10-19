@@ -189,6 +189,34 @@ describe('the FCM service account', () => {
     expect(
       await send(answer(400, { status: 'INVALID_ARGUMENT', message: 'bad ttl' })),
     ).toMatchObject({ kind: 'refused' });
+    expect(
+      await send(answer(404, { status: 'NOT_FOUND', message: 'Requested entity was not found.' })),
+    ).toMatchObject({ kind: 'refused', why: 'NOT_FOUND' });
+    expect(
+      await send(
+        answer(403, {
+          status: 'PERMISSION_DENIED',
+          details: [{ errorCode: 'SENDER_ID_MISMATCH' }],
+        }),
+      ),
+    ).toMatchObject({ kind: 'refused', why: 'SENDER_ID_MISMATCH' });
+  });
+
+  it('answers no access token, without throwing, for a key that isn’t one', async () => {
+    const google = fakeGoogle(sent);
+    const broken = {
+      ...config(),
+      privateKey: '-----BEGIN PRIVATE KEY-----\nnot a key\n-----END PRIVATE KEY-----',
+    };
+    expect(await fcmAccessToken(google.fetch, broken, Date.parse(MIDDAY))).toBeNull();
+    const message = {
+      message: { token: FCM_TOKEN, data: {}, android: { priority: 'HIGH' as const, ttl: '60s' } },
+    };
+    expect(await sendToFcm(google.fetch, broken, message, Date.parse(MIDDAY))).toEqual({
+      kind: 'retry',
+      why: 'no_access_token',
+    });
+    expect(google.calls).toHaveLength(0);
   });
 });
 

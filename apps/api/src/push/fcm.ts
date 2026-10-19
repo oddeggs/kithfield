@@ -127,7 +127,13 @@ export async function fcmAccessToken(
   if (cached !== null && cached.email === config.clientEmail && now < cached.expiresAt) {
     return cached.token;
   }
-  const assertion = await serviceAccountJwt(config, now);
+  let assertion: string;
+  try {
+    assertion = await serviceAccountJwt(config, now);
+  } catch {
+    // A key that isn't one: no Android push, and the batch's other pushes still go.
+    return null;
+  }
   let response: Response;
   try {
     response = await fetcher(config.tokenUri, {
@@ -269,7 +275,8 @@ export async function sendToFcm(
       continue;
     }
     const { code: why, message: said } = await errorOf(response);
-    if (why === 'UNREGISTERED' || response.status === 404) return { kind: 'gone', why };
+    // Only FCM's own word drops a token: a bare 404 (a wrong project id) would drop every one.
+    if (why === 'UNREGISTERED') return { kind: 'gone', why };
     // A token that isn't one is as good as gone; any other bad argument is the message's fault.
     if (why === 'INVALID_ARGUMENT' && /registration token/i.test(said)) {
       return { kind: 'gone', why };
