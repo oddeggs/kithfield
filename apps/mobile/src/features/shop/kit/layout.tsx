@@ -10,6 +10,7 @@ import type { ViewStyleProp } from '../../../ui/style';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { useInks } from './inks';
 import { SText } from './text';
+import { ANDROID_BACK, AndroidBackArrow } from '../../android/back-arrow';
 
 /** The design's status bar is 54 tall and content starts at 59 on an iPhone 16. */
 const DESIGN_SAFE_TOP = 59;
@@ -52,6 +53,8 @@ export function RoundButton({
     >
       {icon ? (
         <ArtIcon name={icon} size={22} color={palette.text} />
+      ) : ANDROID_BACK ? (
+        <AndroidBackArrow color={palette.text} />
       ) : (
         <SText s={24} style={{ marginTop: -3 }}>
           ‹

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ScrollView, View } from 'react-native';
+import { Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLocale } from '../../../ui/locale/locale-provider';
@@ -88,7 +88,12 @@ export function ManageScreen() {
               : null}
           </GroupCard>
         ) : null}
-        {p?.state === 'grace' ? <InfoNote text={t('shop.manage.grace')} tone="honey" /> : null}
+        {p?.state === 'grace' ? (
+          <InfoNote
+            text={t(Platform.OS === 'android' ? 'android.shop.grace' : 'shop.manage.grace')}
+            tone="honey"
+          />
+        ) : null}
         {lifetime ? (
           <SText s={14.5} lh={1.45} multiline color={inks.paragraph}>
             {t('shop.manage.lifetime')}
@@ -101,7 +106,7 @@ export function ManageScreen() {
             <Tick text={t('shop.manage.wall')} />
             <Tick text={t('shop.manage.friends')} />
             <BigPill
-              label={t('shop.manage.cancel')}
+              label={t(Platform.OS === 'android' ? 'android.shop.cancel' : 'shop.manage.cancel')}
               tone="danger"
               onPress={() => void shop.store.manage()}
             />

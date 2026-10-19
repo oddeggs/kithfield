@@ -14,6 +14,7 @@ import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { withAlpha } from '../media/colour';
 import { seasonNow } from './calendar';
+import { ANDROID_BACK, AndroidBackArrow } from '../android/back-arrow';
 
 /** The design draws these screens on a 393×852 phone whose safe area starts 59 points down. */
 const DESIGN_TOP_INSET = 59;
@@ -86,7 +87,9 @@ export function BackButton({
   const { t } = useLocale();
   // The chevron is the button's icon, not text: it keeps its size in the 44-point circle at every
   // Dynamic Type size, or the accessibility sizes push it out of the circle.
-  const glyph = (
+  const glyph = ANDROID_BACK ? (
+    <AndroidBackArrow color={palette.text} />
+  ) : (
     <Txt
       variant="body"
       allowFontScaling={false}

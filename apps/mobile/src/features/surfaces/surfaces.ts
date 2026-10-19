@@ -240,7 +240,9 @@ export function createSurfaces(deps: SurfacesDeps) {
       // same op id, as the farm's socket sleeps while the app is in the background. The farm
       // applies an op id once, so the outbox's later send of it is only acknowledged.
       const sent = await deps.client.send(read.farm, kind, payload, opId);
-      if (sent.status === 'refused') {
+      // A push can be about something the phone hasn't caught up to yet (the app was asleep when
+      // it arrived): the phone's copy of the farm can't find it, but the farm itself can.
+      if (sent.status === 'refused' && sent.reason !== 'not_found') {
         deps.report(new Error(`${kind} refused: ${sent.reason}`));
         return;
       }

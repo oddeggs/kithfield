@@ -6,6 +6,7 @@ import { ArtIcon } from '../art/art-view';
 import { Press } from '../motion/press';
 import { useTheme } from '../theme/theme-provider';
 import { Txt } from '../type/text';
+import { ANDROID_BACK, AndroidBackArrow } from '../../features/android/back-arrow';
 
 export interface PaneAction {
   readonly icon: string;
@@ -91,13 +92,17 @@ export function PaneHeader({
             accessibilityRole="button"
             style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Txt
-              variant="body"
-              style={{ fontSize: 26, marginTop: -3 }}
-              importantForAccessibility="no"
-            >
-              ‹
-            </Txt>
+            {ANDROID_BACK ? (
+              <AndroidBackArrow color={palette.text} />
+            ) : (
+              <Txt
+                variant="body"
+                style={{ fontSize: 26, marginTop: -3 }}
+                importantForAccessibility="no"
+              >
+                ‹
+              </Txt>
+            )}
           </Press>
         ) : null}
         <View style={{ flex: 1, minWidth: 0 }}>

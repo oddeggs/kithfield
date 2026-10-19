@@ -25,6 +25,7 @@ import { ActionButton } from './chrome';
 import { handText } from './copy';
 import { useLoad, useRhythmApi } from './rhythm-api';
 import { fruitWords } from './visit-screen';
+import { ANDROID_BACK, AndroidBackArrow } from '../android/back-arrow';
 
 const W = 393;
 const newOpId = createOpIdMaker(getRandomBytes);
@@ -256,9 +257,13 @@ function Swap({
             justifyContent: 'center',
           }}
         >
-          <Txt variant="chevron" style={[typeAt('body', 24, 24, fontLocale), { marginTop: -3 }]}>
-            ‹
-          </Txt>
+          {ANDROID_BACK ? (
+            <AndroidBackArrow color={palette.text} />
+          ) : (
+            <Txt variant="chevron" style={[typeAt('body', 24, 24, fontLocale), { marginTop: -3 }]}>
+              ‹
+            </Txt>
+          )}
         </Press>
         <View style={{ alignItems: 'center' }} accessible accessibilityRole="header">
           <Txt variant="trayTitle" style={typeAt('button', 17, 20.4, fontLocale)}>

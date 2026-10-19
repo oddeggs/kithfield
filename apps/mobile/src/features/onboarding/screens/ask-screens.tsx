@@ -3,7 +3,7 @@ import * as Location from 'expo-location';
 import * as MediaLibrary from 'expo-media-library';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import { Share } from 'react-native';
+import { Platform, Share } from 'react-native';
 
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useAccount } from '../../../ui/session/account';
@@ -101,12 +101,21 @@ export function PhotosAsk({ onDone }: { readonly onDone: () => void }) {
       eyebrow={t('onboarding.photos.eyebrow')}
       title={t('onboarding.photos.title')}
       body={t('onboarding.photos.body')}
-      promises={[{ text: t('onboarding.photos.picker') }, { text: t('onboarding.photos.recent') }]}
+      promises={
+        // Android's photo picker is the only way in: the app never asks for the whole library.
+        Platform.OS === 'android'
+          ? [{ text: t('onboarding.photos.picker') }]
+          : [{ text: t('onboarding.photos.picker') }, { text: t('onboarding.photos.recent') }]
+      }
       yes={t('onboarding.photos.yes')}
-      no={t('onboarding.photos.no')}
+      no={t(Platform.OS === 'android' ? 'android.photos.notNow' : 'onboarding.photos.no')}
       systemAsksNext={false}
       onYes={onDone}
       onNo={() => {
+        if (Platform.OS === 'android') {
+          onDone();
+          return;
+        }
         void MediaLibrary.requestPermissionsAsync(false, ['photo', 'video'])
           .catch(() => undefined)
           .then(onDone);

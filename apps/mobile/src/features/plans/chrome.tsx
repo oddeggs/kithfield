@@ -8,6 +8,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
+import { ANDROID_BACK, AndroidBackArrow } from '../android/back-arrow';
 
 const SIZE = 44;
 
@@ -39,14 +40,18 @@ export function GlassBack({
         border={border ?? (day ? glass.button.border : palette.glassButton.border)}
         style={{ width: SIZE, height: SIZE, alignItems: 'center', justifyContent: 'center' }}
       >
-        <Txt
-          variant="body"
-          color={color ?? palette.text}
-          style={{ fontSize: 26, lineHeight: 30, marginTop: -3 }}
-          importantForAccessibility="no"
-        >
-          ‹
-        </Txt>
+        {ANDROID_BACK ? (
+          <AndroidBackArrow color={color ?? palette.text} />
+        ) : (
+          <Txt
+            variant="body"
+            color={color ?? palette.text}
+            style={{ fontSize: 26, lineHeight: 30, marginTop: -3 }}
+            importantForAccessibility="no"
+          >
+            ‹
+          </Txt>
+        )}
       </Glass>
     </Press>
   );

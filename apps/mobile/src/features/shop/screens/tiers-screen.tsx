@@ -1,7 +1,7 @@
 import { PATRON_PRODUCTS, type StoreProductId } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, View, type AccessibilityActionEvent } from 'react-native';
+import { Platform, ScrollView, View, type AccessibilityActionEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useToast } from '../../../ui/components/toast';
@@ -61,7 +61,9 @@ export function TiersScreen() {
   }, [api, loadPrices]);
 
   const price = (product: StoreProductId): string | null => prices[product] ?? null;
-  const said = (product: StoreProductId): string => price(product) ?? t('shop.tiers.priceUnknown');
+  const said = (product: StoreProductId): string =>
+    price(product) ??
+    t(Platform.OS === 'android' ? 'android.shop.priceUnknown' : 'shop.tiers.priceUnknown');
   const month = price(PATRON_PRODUCTS.patronMonthly);
   const year = price(PATRON_PRODUCTS.patronYearly);
   const plus = price(PATRON_PRODUCTS.farmPlusMonthly);
@@ -143,7 +145,7 @@ export function TiersScreen() {
             <SText s={11.5} lh={1.45} w={600} color={inks.disclosure.strong}>
               {t('shop.tiers.disclosureLead')}
             </SText>
-            {t('shop.tiers.disclosure', {
+            {t(Platform.OS === 'android' ? 'android.shop.disclosure' : 'shop.tiers.disclosure', {
               month: said(PATRON_PRODUCTS.patronMonthly),
               year: said(PATRON_PRODUCTS.patronYearly),
               plus: said(PATRON_PRODUCTS.farmPlusMonthly),

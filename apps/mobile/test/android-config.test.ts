@@ -60,6 +60,21 @@ describe('the Android app', () => {
     );
   });
 
+  it('asks for neither precise location nor the photo library, which Play restricts', () => {
+    const android = buildConfig({}, 'prd', unset).android;
+    const asked = android?.permissions ?? [];
+    for (const restricted of [
+      'ACCESS_FINE_LOCATION',
+      'READ_MEDIA_IMAGES',
+      'READ_MEDIA_VIDEO',
+      'READ_MEDIA_VISUAL_USER_SELECTED',
+    ]) {
+      expect(asked).not.toContain(restricted);
+      expect(ANDROID_BLOCKED).toContain(`android.permission.${restricted}`);
+    }
+    expect(asked).toContain('ACCESS_COARSE_LOCATION');
+  });
+
   it('reads google-services.json from GOOGLE_SERVICES_JSON only when the file is there', () => {
     const root = resolve(__dirname, '..');
     expect(googleServicesFile(undefined, root)).toBeUndefined();

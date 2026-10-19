@@ -8,6 +8,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { HeldElsewhere } from '../data';
+import { HintLayerHost } from '../features/hints/hint-layer';
 import { clearMediaForSignOut, MediaUploads, pendingUploadCount } from '../features/media';
 import { useStoredLanguage } from '../features/settings/device-prefs';
 import { StickerPurchases } from '../features/shop/store/sticker-purchases';
@@ -114,6 +115,8 @@ export default function RootLayout() {
                           <SplashGate>
                             <Screens />
                           </SplashGate>
+                          {/* Android's first-run tips, over every screen and sheet. */}
+                          <HintLayerHost />
                         </DataSlot>
                       </ToastHost>
                     </TabActivityProvider>

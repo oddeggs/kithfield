@@ -12,6 +12,7 @@ import {
   androidIntentFilters,
   googleServicesFile,
   NOTIFICATION_ICON,
+  withMossAccent,
   withWidgetLabels,
 } from './android-config.ts';
 
@@ -444,7 +445,7 @@ export function buildConfig(
       eas: { projectId: EAS_PROJECT_ID },
     },
   };
-  const withModes = withWidgetLabels(withBackgroundModes(app, BACKGROUND_MODES));
+  const withModes = withMossAccent(withWidgetLabels(withBackgroundModes(app, BACKGROUND_MODES)));
   return appVariant === 'prd' ? withoutLocalNetworking(withModes) : withModes;
 }
 

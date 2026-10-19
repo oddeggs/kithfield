@@ -6,6 +6,7 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
+import { ANDROID_BACK, AndroidBackArrow } from '../../android/back-arrow';
 
 /** Leaves a sticker screen: back to where it came from, or home when opened from a link. */
 export function leave(): void {
@@ -65,9 +66,13 @@ export function ScreenHeader({
             : { backgroundColor: palette.fillSoft }),
         }}
       >
-        <Txt variant="chevron" style={{ marginTop: -3 }}>
-          ‹
-        </Txt>
+        {ANDROID_BACK ? (
+          <AndroidBackArrow color={palette.text} />
+        ) : (
+          <Txt variant="chevron" style={{ marginTop: -3 }}>
+            ‹
+          </Txt>
+        )}
       </Press>
       {title ? (
         <Txt
