@@ -70,5 +70,12 @@ screens there without editing a shared file.
   a session the server ended counts as signed out. A first launch that can't reach the server
   shows the error shell with "Try again". Screens read and write with the hooks from `data/`.
 
+- **Large screens.** `ui/layout` decides the layout from the window (`useScreenLayout()`: phone,
+  iPad columns, iPad wide, an opened foldable) and shows a screen in a pane with `PaneProvider`.
+  A screen that can sit in a pane (the chat, the live farm) sizes itself with `usePane()`, not
+  `useWindowDimensions()`; inside a pane `useSafeAreaInsets()` reports only the edges the pane
+  touches. The Chats tab's layout puts farms and visits and the live farm beside its stack, and
+  the Farm tab draws the farm full screen with the chat floating at its side.
+
 Build screens from `ui/components` and `ui/art`; copy comes from your feature's catalogue in
 `@kithfield/i18n`.
