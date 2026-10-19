@@ -1,4 +1,5 @@
 import { requireOptionalNativeModule, type EventSubscription } from 'expo';
+import { day } from '@kithfield/theme';
 import { ActionSheetIOS, Alert, Platform } from 'react-native';
 
 /** A file another app shared, copied into the app's cache. */
@@ -38,6 +39,7 @@ interface AndroidSystemNative {
     options: string[];
     cancel?: string;
     dark: boolean;
+    accent: string;
   }): Promise<number>;
   promptAsync(options: {
     title: string;
@@ -46,9 +48,14 @@ interface AndroidSystemNative {
     ok: string;
     cancel: string;
     dark: boolean;
+    accent: string;
   }): Promise<string | null>;
   takeShare(): SharedIntent | null;
+  forgetConversations(): void;
 }
+
+/** The Material dialogs' buttons: the farm's moss, by day and night alike (`12 States`). */
+const DIALOG_ACCENT = day.moss;
 
 /** The Android module (`modules/android-system/android`), or null elsewhere and in tests. */
 export const androidSystem = requireOptionalNativeModule<AndroidSystemNative>('AndroidSystem');
@@ -91,6 +98,7 @@ export function showChoices(sheet: ChoiceSheet, then: (index: number) => void): 
       options: shown.map((s) => s.label),
       ...(cancel !== undefined ? { cancel } : {}),
       dark: sheet.dark ?? false,
+      accent: DIALOG_ACCENT,
     })
     .then((picked) => then(shown[picked]?.index ?? cancelButtonIndex ?? -1));
 }
@@ -127,6 +135,7 @@ export function promptText(prompt: TextPrompt, then: (value: string) => void): v
       ok: prompt.ok,
       cancel: prompt.cancel,
       dark: prompt.dark ?? false,
+      accent: DIALOG_ACCENT,
     })
     .then((value) => {
       if (value !== null) then(value);

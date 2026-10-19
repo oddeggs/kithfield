@@ -2,13 +2,20 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
 
 import type { ExpoConfig } from 'expo/config';
-import { type ConfigPlugin, withDangerousMod } from 'expo/config-plugins';
+import {
+  AndroidConfig,
+  type ConfigPlugin,
+  withAndroidColors,
+  withAndroidStyles,
+  withDangerousMod,
+} from 'expo/config-plugins';
 
 // The catalogue files themselves: the config runs in Node, outside Metro, so the path names the file.
 import { surfacesEn } from '../../packages/i18n/src/surfaces.en.ts';
 import { surfacesVi } from '../../packages/i18n/src/surfaces.vi.ts';
 import { androidEn } from '../../packages/i18n/src/android.en.ts';
 import { androidVi } from '../../packages/i18n/src/android.vi.ts';
+import { day } from '../../packages/theme/src/colour.ts';
 
 /*
  * The Android app's native config: what the Play build asks for, the links it opens, its
@@ -24,10 +31,6 @@ export const ANDROID_PERMISSIONS = [
   'RECORD_AUDIO',
   'READ_CONTACTS',
   'ACCESS_COARSE_LOCATION',
-  'ACCESS_FINE_LOCATION',
-  'READ_MEDIA_IMAGES',
-  'READ_MEDIA_VIDEO',
-  'READ_MEDIA_VISUAL_USER_SELECTED',
   'POST_NOTIFICATIONS',
   'USE_BIOMETRIC',
   'VIBRATE',
@@ -36,13 +39,19 @@ export const ANDROID_PERMISSIONS = [
 
 /**
  * Taken out of the merged manifest: calendar access (adding a plan opens the calendar app's own
- * screen), writing contacts, music, the old fingerprint API, and every launcher's badge counter
- * (the house rules: no counts).
+ * screen), writing contacts, precise location (the lantern only needs the neighbourhood, and the
+ * app never reads where the phone is), reading the photo library (photos come through the
+ * system's photo picker, which needs no access, and saving needs none on Android 13+), music,
+ * the old fingerprint API, and every launcher's badge counter (the house rules: no counts).
  */
 export const ANDROID_BLOCKED = [
   'android.permission.READ_CALENDAR',
   'android.permission.WRITE_CALENDAR',
   'android.permission.WRITE_CONTACTS',
+  'android.permission.ACCESS_FINE_LOCATION',
+  'android.permission.READ_MEDIA_IMAGES',
+  'android.permission.READ_MEDIA_VIDEO',
+  'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
   'android.permission.READ_MEDIA_AUDIO',
   'android.permission.USE_FINGERPRINT',
   'android.permission.READ_APP_BADGE',
@@ -188,3 +197,29 @@ export const withWidgetLabels: ConfigPlugin = (config) =>
 
 /** The notification look: the critter's small white icon, tinted with the farm's moss. */
 export const NOTIFICATION_ICON = './assets/icon/android-notification.png';
+
+/**
+ * The app theme's accent: the farm's moss on the system's own dialogs (their buttons), the text
+ * cursor and selection handles, by day and night alike (`12 States` gives moss no night colour).
+ */
+export const ACCENT = day.moss;
+
+export const withMossAccent: ConfigPlugin = (config) =>
+  withAndroidStyles(
+    withAndroidColors(config, (mod) => {
+      mod.modResults = AndroidConfig.Colors.assignColorValue(mod.modResults, {
+        name: 'colorAccent',
+        value: ACCENT,
+      });
+      return mod;
+    }),
+    (mod) => {
+      mod.modResults = AndroidConfig.Styles.assignStylesValue(mod.modResults, {
+        add: true,
+        parent: AndroidConfig.Styles.getAppThemeGroup(),
+        name: 'colorAccent',
+        value: '@color/colorAccent',
+      });
+      return mod;
+    },
+  );

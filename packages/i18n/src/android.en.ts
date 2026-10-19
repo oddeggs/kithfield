@@ -1,8 +1,9 @@
 import type { EnCatalogue } from './catalogue-types';
 
 /**
- * Android's own words (`14 Platforms`): the notification channels people see in
- * system settings, the home-screen widgets beside "Your farm", and the predictive back preview.
+ * Android's own words (`14 Platforms`): the two notification channels people see in system
+ * settings, the home-screen widgets beside "Your farm", the predictive back preview, and Google's
+ * names where iOS's words name Apple's.
  */
 export const androidEn = {
   /* Notification channels */
@@ -11,9 +12,6 @@ export const androidEn = {
     'Plans that need your yes, things on your doorstep, and @mentions.',
   'android.channel.messages.name': 'Every message',
   'android.channel.messages.description': 'Most people leave this off.',
-  'android.channel.quiet.name': 'A few things',
-  'android.channel.quiet.description':
-    'The quiet roundup when a farm has been busy. Never a sound.',
 
   /* Widgets */
   'android.widget.nextPlan.name': 'Next plan',
@@ -39,4 +37,14 @@ export const androidEn = {
   'android.store.unavailable': 'Google Play can’t be reached from this phone right now.',
   'android.delete.purchases': 'Purchases stay with your Google account if you come back',
   'android.delete.biometric': 'You’ll confirm with your fingerprint, face or screen lock.',
+  /** The photos ask's quiet way out: the photo picker needs no access, so there's none to give. */
+  'android.photos.notNow': 'Not now',
+  'android.shop.disclosure':
+    ' at {month} a month, or {year} a year, until you cancel. Farm Plus renews at {plus} a month. Payment is charged to your Google Play account when you confirm. It renews unless you cancel before the current period ends. Manage or cancel any time in Google Play › Payments & subscriptions › Subscriptions.',
+  'android.shop.priceUnknown': 'Google Play’s price',
+  'android.shop.grace': 'Google Play is retrying the payment. Perks stay on meanwhile.',
+  'android.shop.cancel': 'Cancel in Google Play',
+  'android.fire.captionsFree':
+    'Captions are free if Live Caption is on in your phone’s accessibility settings.',
+  'android.fire.share': 'Sharing your screen from this phone isn’t ready yet.',
 } as const satisfies EnCatalogue;

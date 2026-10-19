@@ -1,7 +1,14 @@
 import type { FarmId, LocalDate, Seq, Yeses } from '@kithfield/contracts';
 import { fontFor, type } from '@kithfield/theme';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, TextInput, useWindowDimensions, View } from 'react-native';
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useDataClient, useOpenFarm } from '../../data';
@@ -111,6 +118,7 @@ export function PlantSheet({
   };
 
   const titleFont = fontFor({ ...type.displayM, size: 25, lineHeight: 27.5 }, fontLocale);
+  const placeholderRoom = Platform.OS === 'android' && title === '';
   return (
     <View
       style={{ flex: 1, backgroundColor: palette.sheet }}
@@ -147,18 +155,34 @@ export function PlantSheet({
             <SeedArt stage={stage} size={SEED} tile={look.seedTile} radius={24} />
           </TravelAnchor>
           <View style={{ flex: 1, gap: 4 }}>
-            <TextInput
-              value={title}
-              onChangeText={setTitle}
-              placeholder={t('plans.plant.namePlaceholder')}
-              placeholderTextColor={palette.placeholder}
-              selectionColor={palette.go.bg}
-              accessibilityLabel={t('plans.plant.namePlaceholder')}
-              multiline
-              maxLength={80}
-              testID="plans-title"
-              style={[titleFont, { color: palette.text, padding: 0 }]}
-            />
+            <View>
+              {/* Android sizes a field by its text, not its hint: a hint that wraps (Vietnamese)
+                  would be cut off, so the empty field takes the hint's own height. */}
+              {placeholderRoom ? (
+                <Txt
+                  importantForAccessibility="no-hide-descendants"
+                  style={[titleFont, { opacity: 0 }]}
+                >
+                  {t('plans.plant.namePlaceholder')}
+                </Txt>
+              ) : null}
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder={t('plans.plant.namePlaceholder')}
+                placeholderTextColor={palette.placeholder}
+                selectionColor={palette.go.bg}
+                accessibilityLabel={t('plans.plant.namePlaceholder')}
+                multiline
+                maxLength={80}
+                testID="plans-title"
+                style={[
+                  titleFont,
+                  { color: palette.text, padding: 0 },
+                  placeholderRoom ? StyleSheet.absoluteFill : null,
+                ]}
+              />
+            </View>
             {author ? (
               <Txt variant="caption" color={palette.secondary} style={{ fontSize: 13, lineHeight: 17 }}>
                 {t('plans.plant.fromMessage', { name: author })}

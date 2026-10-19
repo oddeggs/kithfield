@@ -16,6 +16,7 @@ import { Txt } from '../../../ui/type/text';
 // The farm's short name, as the farm's own header shortens it.
 import { shortName } from '../../farm/farm-copy';
 import { useChatColours } from '../ui/chat-colours';
+import { ANDROID_BACK, AndroidBackArrow } from '../../android/back-arrow';
 
 /** How a chat's header sizes: the farm 236 points tall shrinking to 150, the porch 300 to 170. */
 export interface HeaderSize {
@@ -87,18 +88,7 @@ export function GlassCircle({
 /** The back chevron, drawn as the design writes it; Android's top app bar has its arrow. */
 export function BackGlyph() {
   const { palette } = useTheme();
-  if (Platform.OS === 'android') {
-    return (
-      <Txt
-        variant="body"
-        color={palette.text}
-        style={{ fontSize: 24, lineHeight: 28 }}
-        importantForAccessibility="no"
-      >
-        ←
-      </Txt>
-    );
-  }
+  if (ANDROID_BACK) return <AndroidBackArrow color={palette.text} />;
   return (
     <Txt
       variant="body"

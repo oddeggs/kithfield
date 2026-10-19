@@ -1,6 +1,6 @@
 import type { Critter, LanguageTag } from '@kithfield/contracts';
 import { useEffect } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { Avatar } from '../../ui/art/avatar';
@@ -420,7 +420,7 @@ export function CaptionsSheet({
             multiline
             style={{ fontSize: 12.5, lineHeight: 18 }}
           >
-            {t('fire.captions.free')}
+            {t(Platform.OS === 'android' ? 'android.fire.captionsFree' : 'fire.captions.free')}
           </FireTxt>
           <View style={{ marginTop: 'auto', gap: 6 }}>
             {perks ? (

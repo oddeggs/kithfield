@@ -28,6 +28,7 @@ import type { ViewStyleProp } from '../../ui/style';
 import { nameOf } from '../farm/farm-copy';
 import { typeAt } from '../farm/type-at';
 import { useGuideLook } from './guide-look';
+import { ANDROID_BACK, AndroidBackArrow } from '../android/back-arrow';
 
 /** Grey and faded: a plant the farm hasn't met yet, as a pencil sketch (`grayscale(1) opacity(.45)`). */
 const SKETCH = (() => {
@@ -202,6 +203,8 @@ export function RoundButton({
     >
       {icon ? (
         <ArtIcon name={icon} size={icon === 'search' ? 22 : 20} color={palette.text} />
+      ) : ANDROID_BACK ? (
+        <AndroidBackArrow color={palette.text} />
       ) : (
         <Txt
           variant="chevron"

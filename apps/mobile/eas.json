@@ -10,7 +10,8 @@
       "channel": "dev",
       "node": "24.21.0",
       "pnpm": "12.6.0",
-      "env": { "APP_VARIANT": "dev" }
+      "env": { "APP_VARIANT": "dev" },
+      "android": { "buildType": "apk" }
     },
     "dev": {
       "distribution": "store",
@@ -18,7 +19,8 @@
       "autoIncrement": true,
       "node": "24.21.0",
       "pnpm": "12.6.0",
-      "env": { "APP_VARIANT": "dev" }
+      "env": { "APP_VARIANT": "dev" },
+      "android": { "buildType": "app-bundle", "autoIncrement": true }
     },
     "beta": {
       "distribution": "store",
@@ -27,7 +29,8 @@
       "node": "24.21.0",
       "pnpm": "12.6.0",
       "environment": "preview",
-      "env": { "APP_VARIANT": "prd", "API_BASE": "https://dev.kithfield.com/api" }
+      "env": { "APP_VARIANT": "prd", "API_BASE": "https://dev.kithfield.com/api" },
+      "android": { "buildType": "app-bundle", "autoIncrement": true }
     },
     "prd": {
       "distribution": "store",
@@ -35,12 +38,22 @@
       "autoIncrement": true,
       "node": "24.21.0",
       "pnpm": "12.6.0",
-      "env": { "APP_VARIANT": "prd" }
+      "env": { "APP_VARIANT": "prd" },
+      "android": { "buildType": "app-bundle", "autoIncrement": true }
     }
   },
   "submit": {
-    "dev": { "ios": { "ascAppId": "6824232574" } },
-    "beta": { "ios": { "ascAppId": "6824232249" } },
-    "prd": { "ios": { "ascAppId": "6824232249" } }
+    "dev": {
+      "ios": { "ascAppId": "6824232574" },
+      "android": { "track": "internal", "releaseStatus": "draft" }
+    },
+    "beta": {
+      "ios": { "ascAppId": "6824232249" },
+      "android": { "track": "internal", "releaseStatus": "draft" }
+    },
+    "prd": {
+      "ios": { "ascAppId": "6824232249" },
+      "android": { "track": "production", "releaseStatus": "draft" }
+    }
   }
 }

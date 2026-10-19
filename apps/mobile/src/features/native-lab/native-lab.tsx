@@ -1,9 +1,10 @@
+import { APP_GROUP_PATHS, SurfaceData } from '@kithfield/contracts';
 import type { StringKey } from '@kithfield/i18n';
 import { ExtensionStorage } from '@bacons/apple-targets';
 import { registerGlobals } from '@livekit/react-native';
 import { requireOptionalNativeModule } from 'expo';
 import Constants from 'expo-constants';
-import { Paths } from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 import { getNetworkStateAsync } from 'expo-network';
 import * as Notifications from 'expo-notifications';
 import { isAvailableAsync } from 'expo-task-manager';
@@ -14,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { surfaces } from '../../../modules/surfaces';
 import { useDataClient } from '../../data';
+import { androidSurfaceRoot } from '../android/surface-root';
 import { Button } from '../../ui/components/button';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useTheme } from '../../ui/theme/theme-provider';
@@ -167,6 +169,22 @@ export function NativeLab() {
 }
 
 /**
+ * Who the samples are from: a friend on the farm as the surfaces last drew them, so the doorstep
+ * sample shows as their message with their critter, as a server push with a sender does.
+ */
+function sampleSender(farm: string): { senderPerson: string; senderName: string } | null {
+  try {
+    const file = new File(androidSurfaceRoot(), APP_GROUP_PATHS.data);
+    if (!file.exists) return null;
+    const data = SurfaceData.parse(JSON.parse(file.textSync()));
+    const friend = data.farms.find((f) => f.farm === farm)?.critters.find((c) => c.name !== null);
+    return friend?.name ? { senderPerson: friend.person, senderName: friend.name } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Android: a plan push and a doorstep push on the first farm, in the channels and with the actions
  * FCM's data messages carry, so the notification shade can be seen without a server push.
  */
@@ -178,6 +196,7 @@ async function showSamplePushes(
   if (farm === undefined) return;
   const title = farm.name ?? t('push.app');
   const at = Date.now();
+  const sender = sampleSender(farm.farm);
   const samples = [
     {
       body: t('push.planDay.start', { title: t('gallery.type.sample.rowTitle') }),
@@ -185,9 +204,15 @@ async function showSamplePushes(
       data: { farm: farm.farm, seq: 1, kind: 'seed_planted', push: `sample-plan-${at}`, seed: 1 },
     },
     {
-      body: t('push.doorstep.firefly', { name: 'Otis' }),
+      body: t('push.doorstep.firefly', { name: sender?.senderName ?? 'Otis' }),
       categoryIdentifier: 'tend',
-      data: { farm: farm.farm, seq: 1, kind: 'firefly', push: `sample-step-${at}` },
+      data: {
+        farm: farm.farm,
+        seq: 1,
+        kind: 'firefly',
+        push: `sample-step-${at}`,
+        ...(sender ?? {}),
+      },
     },
   ];
   for (const sample of samples) {

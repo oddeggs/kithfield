@@ -2,7 +2,7 @@ import { type Entitlements, type FarmId, type LanguageTag, OWN_PACK } from '@kit
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { Platform, useWindowDimensions, View } from 'react-native';
 
 import { useFarm, useFarmEvents, useOpenFarm, useSend } from '../../data';
 import { announcePolitely } from '../../ui/announce';
@@ -418,7 +418,12 @@ export function FireRoomScreen({
   // Captions show only where they can be had at all; until then there is no CC button.
   const right =
     phase !== 'room' ? undefined : compact ? (
-      <GlassRound label={t('fire.dock.share')} onPress={() => toast.show(t('fire.error.share'))}>
+      <GlassRound
+        label={t('fire.dock.share')}
+        onPress={() =>
+          toast.show(t(Platform.OS === 'android' ? 'android.fire.share' : 'fire.error.share'))
+        }
+      >
         <ArtIcon name="share" size={20} color={fireLook.text} />
       </GlassRound>
     ) : snap.captionsAvailable ? (

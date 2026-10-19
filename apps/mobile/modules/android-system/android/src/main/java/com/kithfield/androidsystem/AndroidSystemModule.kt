@@ -5,6 +5,9 @@ import androidx.activity.BackEventCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.Color
+import androidx.core.graphics.ColorUtils
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
@@ -14,6 +17,7 @@ import android.view.ViewGroup
 import android.webkit.MimeTypeMap
 import android.widget.EditText
 import android.widget.FrameLayout
+import com.kithfield.androidsystem.notifications.FarmConversations
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -31,6 +35,8 @@ class ChoiceOptions : Record {
   /** Shown as the dialog's dismiss button; the list leaves it out. */
   @Field val cancel: String? = null
   @Field val dark: Boolean = false
+  /** The dialog's buttons, in the farm's moss. */
+  @Field val accent: String? = null
 }
 
 /** A one-line text question, as iOS's `Alert.prompt` asks it. */
@@ -41,6 +47,8 @@ class PromptOptions : Record {
   @Field val ok: String = "OK"
   @Field val cancel: String = "Cancel"
   @Field val dark: Boolean = false
+  /** The dialog's buttons and field, in the farm's moss. */
+  @Field val accent: String? = null
 }
 
 /**
@@ -82,7 +90,7 @@ class AndroidSystemModule : Module() {
           .setOnDismissListener { answer(-1) }
         options.title?.let { builder.setTitle(it) }
         options.cancel?.let { builder.setNegativeButton(it) { _, _ -> answer(-1) } }
-        builder.show()
+        tint(builder.show(), options.accent, null)
       }
     }
 
@@ -123,6 +131,7 @@ class AndroidSystemModule : Module() {
         val dialog = builder.create()
         dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
         dialog.show()
+        tint(dialog, options.accent, input)
         input.requestFocus()
       }
     }
@@ -160,11 +169,34 @@ class AndroidSystemModule : Module() {
       }
     }
 
+    /** Takes away every farm's conversation shortcut, when the person signs out. */
+    Function("forgetConversations") {
+      appContext.reactContext?.let { FarmConversations.forgetAll(it) }
+    }
+
     /** What another app shared and the app hasn't taken yet, once. */
     Function("takeShare") {
       val share = pendingShare
       pendingShare = null
       share
+    }
+  }
+
+  /** Moss on the dialog's buttons and its field's line, cursor and handles (`14 Platforms`). */
+  private fun tint(dialog: AlertDialog, accent: String?, field: EditText?) {
+    val colour = accent?.let { runCatching { Color.parseColor(it) }.getOrNull() } ?: return
+    for (which in listOf(AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE, AlertDialog.BUTTON_NEUTRAL)) {
+      dialog.getButton(which)?.setTextColor(colour)
+    }
+    if (field != null) {
+      field.backgroundTintList = ColorStateList.valueOf(colour)
+      if (Build.VERSION.SDK_INT >= 29) {
+        field.textCursorDrawable?.setTint(colour)
+        field.textSelectHandle?.setTint(colour)
+        field.textSelectHandleLeft?.setTint(colour)
+        field.textSelectHandleRight?.setTint(colour)
+        field.highlightColor = ColorUtils.setAlphaComponent(colour, 0x55)
+      }
     }
   }
 

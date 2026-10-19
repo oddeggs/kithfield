@@ -14,6 +14,7 @@ import type { ViewStyleProp } from '../../ui/style';
 import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { FireTxt } from './fire-text';
 import { fireLook, fireSize } from './look';
+import { ANDROID_BACK, AndroidBackArrow } from '../android/back-arrow';
 
 /*
  * The fire room's chrome over the night scene: the round glass buttons and title pill, the panel
@@ -114,14 +115,18 @@ export function FireHeader({
       }}
     >
       <GlassRound label={t('fire.back')} onPress={leaveRoom} testID="fire-back">
-        <FireTxt
-          variant="body"
-          color={fireLook.text}
-          importantForAccessibility="no"
-          style={{ fontSize: 26, lineHeight: 30, marginTop: -3 }}
-        >
-          ‹
-        </FireTxt>
+        {ANDROID_BACK ? (
+          <AndroidBackArrow color={fireLook.text} />
+        ) : (
+          <FireTxt
+            variant="body"
+            color={fireLook.text}
+            importantForAccessibility="no"
+            style={{ fontSize: 26, lineHeight: 30, marginTop: -3 }}
+          >
+            ‹
+          </FireTxt>
+        )}
       </GlassRound>
       <Glass
         radius={22}
