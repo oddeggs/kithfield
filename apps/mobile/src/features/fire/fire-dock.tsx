@@ -314,10 +314,28 @@ export function RoomDock(p: RoomDockProps) {
         <ArtIcon name="lantern" size={26} color={fireLook.primaryInk} />
       </GlassRound>
     );
+  // Where the fire sounds: a small round beside who's here, so the dock's buttons keep their room.
   const sound = (
-    <GlassRound label={t('surfaces.route.title')} onPress={p.onSound} testID="fire-sound">
-      <ArtIcon name="ear" size={24} color={fireLook.text} />
-    </GlassRound>
+    <Press
+      onPress={p.onSound}
+      haptic="select"
+      radius={18}
+      accessibilityRole="button"
+      accessibilityLabel={t('surfaces.route.title')}
+      testID="fire-sound"
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: fireLook.glass,
+        borderWidth: 1,
+        borderColor: fireLook.glassBorder,
+      }}
+    >
+      <ArtIcon name="ear" size={20} color={fireLook.text} />
+    </Press>
   );
   const home = (
     <FireButton
@@ -360,7 +378,6 @@ export function RoomDock(p: RoomDockProps) {
       <>
         {mic}
         {lantern}
-        {sound}
         {home}
       </>
     );
@@ -415,7 +432,10 @@ export function RoomDock(p: RoomDockProps) {
               {status.line}
             </FireTxt>
           </View>
-          <CritterStack people={p.others} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            {sound}
+            <CritterStack people={p.others} />
+          </View>
         </View>
       )}
       {!p.compact && p.weak === null && p.state === 'muted' ? (
