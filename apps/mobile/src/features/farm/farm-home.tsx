@@ -1,11 +1,20 @@
 import type { DoorstepItem, FarmId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useDataClient, useFarm, useFarmLink, useFarmView, useOpenFarm, useSend } from '../../data';
+import {
+  useDataClient,
+  useFarm,
+  useFarmEvents,
+  useFarmLink,
+  useFarmView,
+  useOpenFarm,
+  useSend,
+} from '../../data';
 import { ArtStill } from '../../ui/art/art-view';
 import { EmptyState } from '../../ui/components/state-shell';
 import { Sheet, SheetScrollView } from '../../ui/components/sheet';
@@ -17,7 +26,7 @@ import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
 import { useYouCritter } from '../../ui/tab-bar/tab-activity';
 import { useSunPlace, useTheme } from '../../ui/theme/theme-provider';
 // The fire on the farm: its glow, who is by it, and the way into the fire room.
-import { FireGlowCard, openFire, useFireOnFarm } from '../fire/fire-glow';
+import { FireGlowCard, useFireOnFarm } from '../fire/fire-glow';
 // A sticker pack given as a gift opens as the stickers' own parcel.
 import { stickerRoutes } from '../stickers';
 import { packOf } from '../stickers/model/catalogue';
@@ -33,11 +42,43 @@ import { momentFor, visitBefore } from './moments';
 import { removalNote } from './removal-note';
 import { farmRoutes } from './routes';
 import { sceneHeight } from './scene-layout';
+import { useFireWay, useHarvestWay } from './scene-ways';
+import { reactionTo, SAID_MS, type FarmReaction } from './reactions';
 import { useNow } from './use-now';
 import { useFarmFlags, useValley } from './valley-store';
 
 /** The sheet overlaps the bottom of the farm by this much (the farm is drawn 540 tall, the sheet rests at 500). */
 const OVERLAP = 40;
+
+/**
+ * The farm reacting to a friend's message while it is open (signature motion): their words pop
+ * over their cottage for a moment, one burst every four seconds at most.
+ */
+function useFarmReaction(farm: FarmId, me: string | null): FarmReaction | null {
+  const events = useFarmEvents(farm, 10);
+  const focused = useIsFocused();
+  const so = useRef<{ afterSeq: number; lastAt: number | null } | null>(null);
+  const [said, setSaid] = useState<FarmReaction | null>(null);
+  useEffect(() => {
+    if (events.length === 0) return;
+    const newest = events.reduce((top, e) => Math.max(top, e.seq), 0);
+    // What was there as the farm opened, or while it was out of sight, never pops up.
+    if (so.current === null || !focused) {
+      so.current = { afterSeq: newest, lastAt: so.current?.lastAt ?? null };
+      return;
+    }
+    const now = Date.now();
+    const next = reactionTo(events, me, so.current, now);
+    so.current = { afterSeq: next.afterSeq, lastAt: next.reaction ? now : so.current.lastAt };
+    if (next.reaction) setSaid(next.reaction);
+  }, [events, focused, me]);
+  useEffect(() => {
+    if (!said) return;
+    const timer = setTimeout(() => setSaid(null), SAID_MS);
+    return () => clearTimeout(timer);
+  }, [said]);
+  return said;
+}
 
 /**
  * The welcome-back and move-in moments, decided as the farm opens and again when someone new
@@ -114,6 +155,9 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
   const reduce = useReduceMotion();
   const [sheet, setSheet] = useState(0);
   const fire = useFireOnFarm(farm);
+  const fireWay = useFireWay(farm, { width, height, screen }, fire.lit);
+  const harvestWay = useHarvestWay(farm, view, { width, height });
+  const said = useFarmReaction(farm, me);
   const client = useDataClient();
   // A gift opens on the step (the shop's 09-05), or, for a sticker pack, as its parcel (08-06).
   const openGift = async (d: DoorstepItem, gift: string) => {
@@ -149,26 +193,32 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <FarmScene
-        state={state}
-        view={view}
-        me={me}
-        width={width}
-        height={height}
-        night={appearance === 'night'}
-        // The farm rests while the sheet covers it at full height.
-        running={visible && !reduce && sheet === 0}
-        now={now}
-        fire={fire}
-        targets={{
-          onCritter: openCritter,
-          onHouse: (h) =>
-            h.former ? router.push(farmRoutes.cottage(farm, h.person)) : openCritter(h.person),
-          onFire: () => openFire(farm),
-          onPatch: () => router.navigate(farmRoutes.seedbed()),
-          onPlan: (p) => router.push(farmRoutes.plan(farm, p.seed.seq)),
-        }}
-      />
+      <Animated.View
+        style={[{ position: 'absolute', left: 0, top: 0, width, height }, fireWay.style]}
+      >
+        <FarmScene
+          state={state}
+          view={view}
+          me={me}
+          width={width}
+          height={height}
+          night={appearance === 'night'}
+          // The farm rests while the sheet covers it at full height.
+          running={visible && !reduce && sheet === 0}
+          now={now}
+          fire={fire}
+          coverTop={height - OVERLAP}
+          said={said}
+          targets={{
+            onCritter: openCritter,
+            onHouse: (h) =>
+              h.former ? router.push(farmRoutes.cottage(farm, h.person)) : openCritter(h.person),
+            onFire: fireWay.open,
+            onPatch: () => router.navigate(farmRoutes.seedbed()),
+            onPlan: (p) => router.push(farmRoutes.plan(farm, p.seed.seq)),
+          }}
+        />
+      </Animated.View>
       {state && view ? (
         <FarmHeader
           name={state.name ?? ''}
@@ -192,7 +242,7 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
           >
             {fire.line !== null ? (
               <View style={{ marginBottom: 12 }}>
-                <FireGlowCard farm={farm} />
+                <FireGlowCard farm={farm} onOpen={fireWay.open} />
               </View>
             ) : null}
             <FarmSheetContent
@@ -214,7 +264,7 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
                 onRose: (person) => router.push(rhythmRoutes.birthday(farm, person)),
               }}
             />
-            <RhythmSheetRows farm={farm} state={state} view={view} />
+            <RhythmSheetRows farm={farm} state={state} view={view} onRecap={harvestWay.open} />
           </SheetScrollView>
         </Sheet>
       ) : null}

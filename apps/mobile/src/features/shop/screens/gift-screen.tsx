@@ -1,4 +1,4 @@
-import { LIMITS, type FarmId, type ShopItem, type Wishlist } from '@kithfield/contracts';
+import { LIMITS, Species, type FarmId, type ShopItem, type Wishlist } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
@@ -8,6 +8,7 @@ import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { TravelAnchor, timing, travelIds, useTravel } from '../../../ui/travel';
 import { itemName } from '../copy';
 import { useGiveGift } from '../data/flows';
 import { useShop } from '../data/shop-data';
@@ -23,6 +24,13 @@ import { currentSeason, useShopParams } from '../kit/season';
 import { ShopFailed } from '../kit/states';
 import { SText } from '../kit/text';
 import { wishedItems } from '../wishlist-shelf';
+
+/** The gift's stage, where the parcel ties up before it hops to the friend's step. */
+const STAGE_ID = 'shop:gift-stage';
+const PARCEL = { width: 110, height: 96 };
+const GIFT_MS = timing('gift', 'total');
+/** The gift screen closes by then even if the parcel never set off. */
+const CLOSE_AT_LATEST_MS = GIFT_MS * 0.25 + 250;
 
 /** The five free wrappings, in the design's order. */
 export const WRAP_IDS = ['clay', 'dusk', 'fern', 'brown_paper', 'plum'] as const;
@@ -150,12 +158,18 @@ function GiftChoice({
   name,
   item,
   wishes,
+  gate,
+  species,
 }: {
   readonly farm: FarmId;
   readonly to: string;
   readonly name: string;
   readonly item: ShopItem;
   readonly wishes: Wishlist | null;
+  /** Left at the gate of `farm`, the farm being visited. */
+  readonly gate: boolean;
+  /** The friend's critter, when the phone doesn't hold their farm (a gate). */
+  readonly species: string;
 }) {
   const shop = useShop();
   const { t, language } = useLocale();
@@ -164,10 +178,12 @@ function GiftChoice({
   const toast = useToast();
   const { width } = useWindowDimensions();
   const { state, give } = useGiveGift(farm);
+  const travel = useTravel();
   const wraps = (shop.catalog?.wraps ?? WRAP_IDS).filter(isWrapId);
   const [wrap, setWrap] = useState<WrapId>(wraps[0] ?? 'clay');
   const [note, setNote] = useState('');
-  const friendSpecies = memberOf(useFarmState(farm), to)?.critter.species;
+  const friendSpecies =
+    memberOf(useFarmState(farm), to)?.critter.species ?? Species.safeParse(species).data;
   const wished = wishes?.items.find((w) => w.item === item.item) ?? null;
   const { loadPrices } = shop;
   useEffect(() => {
@@ -183,10 +199,40 @@ function GiftChoice({
       item: item.item,
       wrap,
       ...(note.trim() === '' ? {} : { note: note.trim() }),
+      ...(gate ? { gate } : {}),
     });
     if (outcome === 'given') {
-      toast.show(t('shop.gift.left', { name }));
-      router.back();
+      toast.show(t(gate ? 'shop.gift.leftAtGate' : 'shop.gift.left', { name }));
+      if (gate) return router.back();
+      // The parcel ties up on the stage, then hops down to the friend's step on the farm below
+      // as this screen closes (signature motion).
+      let closed = false;
+      const close = () => {
+        if (closed) return;
+        closed = true;
+        router.back();
+      };
+      travel.fly({
+        from: STAGE_ID,
+        to: travelIds.farmDoor(farm, to),
+        sprite: {
+          scene: 'gift',
+          attrs: { color: inks.wraps[wrap] ?? inks.giftStage },
+          ...PARCEL,
+          at: 0.3,
+          drawings: 2,
+        },
+        fromWidth: PARCEL.width,
+        hops: { count: 2, height: 30 },
+        arc: 20,
+        delayMs: GIFT_MS * 0.25,
+        durationMs: GIFT_MS * 0.4,
+        holdMs: GIFT_MS * 0.1,
+        hideSource: false,
+        onStart: close,
+        onReturned: close,
+      });
+      setTimeout(close, CLOSE_AT_LATEST_MS);
     } else if (outcome === 'owned') toast.show(t('shop.gift.owned', { name }));
     else if (outcome === 'unavailable') toast.show(t('shop.gift.cant'));
   };
@@ -197,7 +243,15 @@ function GiftChoice({
       header={<Header title={t('shop.gift.title', { name })} glass={false} />}
       footer={
         <Pill
-          label={price === null ? t('shop.gift.leaveFree') : t('shop.gift.leave', { price })}
+          label={
+            gate
+              ? price === null
+                ? t('shop.gift.leaveAtGateFree')
+                : t('shop.gift.leaveAtGate', { price })
+              : price === null
+                ? t('shop.gift.leaveFree')
+                : t('shop.gift.leave', { price })
+          }
           kind="ink"
           size={16}
           busy={state === 'busy'}
@@ -206,7 +260,8 @@ function GiftChoice({
         />
       }
     >
-      <View
+      <TravelAnchor
+        id={STAGE_ID}
         style={{
           marginHorizontal: 8,
           marginBottom: 6,
@@ -230,12 +285,12 @@ function GiftChoice({
           width={stageW}
           height={240}
         />
-      </View>
+      </TravelAnchor>
       <Title text={itemName(t, item.item)} size={24} />
       <SText s={14.5} lh={1.45} color={palette.body} multiline>
         {wished
           ? t('shop.gift.wished', { name, month: monthName(language, wished.at) })
-          : t('shop.gift.waiting', { name })}
+          : t(gate ? 'shop.gift.waitingAtGate' : 'shop.gift.waiting', { name })}
       </SText>
       <SText s={12} w={700} caps color={inks.label} accessibilityRole="header">
         {t('shop.gift.wrapping')}
@@ -264,10 +319,17 @@ function GiftFor({
   farm,
   to,
   item,
+  gate,
+  friend,
+  species,
 }: {
   readonly farm: FarmId;
   readonly to: string;
   readonly item: string;
+  readonly gate: boolean;
+  /** The friend's name, when the phone doesn't hold their farm (a gate). */
+  readonly friend: string;
+  readonly species: string;
 }) {
   const shop = useShop();
   const { t } = useLocale();
@@ -284,20 +346,40 @@ function GiftFor({
       live = false;
     };
   }, [api, farm, to]);
-  const name = memberOf(state, to)?.name ?? t('shop.gift.friend');
+  const name = memberOf(state, to)?.name ?? (friend === '' ? t('shop.gift.friend') : friend);
   const chosen = item === '' ? null : shop.item(item);
   return chosen ? (
-    <GiftChoice farm={farm} to={to} name={name} item={chosen} wishes={wishes} />
+    <GiftChoice
+      farm={farm}
+      to={to}
+      name={name}
+      item={chosen}
+      wishes={wishes}
+      gate={gate}
+      species={species}
+    />
   ) : (
     <GiftPicker farm={farm} to={to} name={name} wishes={wishes} />
   );
 }
 
-/** Choosing a gift for a friend, wrapping it, and leaving it on their step. */
+/**
+ * Choosing a gift for a friend, wrapping it, and leaving it on their step, or at their farm's gate
+ * while visiting it (`gate`, with the friend's `name` and `species` from the gate).
+ */
 export function GiftScreen() {
   const shop = useShop();
-  const { farm, to, item } = useShopParams('farm', 'to', 'item');
+  const { farm, to, item, gate, name, species } = useShopParams(
+    'farm',
+    'to',
+    'item',
+    'gate',
+    'name',
+    'species',
+  );
   if (shop.failed || farm === '' || to === '') return <ShopFailed onRetry={shop.reload} />;
   if (shop.loading) return <ScreenLoading />;
-  return <GiftFor farm={farm} to={to} item={item} />;
+  return (
+    <GiftFor farm={farm} to={to} item={item} gate={gate === '1'} friend={name} species={species} />
+  );
 }

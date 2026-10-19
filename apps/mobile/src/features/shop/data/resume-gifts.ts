@@ -1,7 +1,7 @@
 import type { DataClient } from '../../../data';
 import { ApiError } from '../../../data';
 import type { ShopApi } from '../api';
-import { giftOpId, givenPayload, nextStep } from './pending-gifts';
+import { leaveGift, nextStep } from './pending-gifts';
 import { dropPendingGift, readPendingGifts } from './pending-gifts-store';
 
 /**
@@ -30,12 +30,7 @@ export async function resumePendingGifts(
         step = nextStep(pending, state, now);
       }
       if (step === 'give') {
-        await client.send(
-          pending.farm,
-          'gift',
-          givenPayload(pending),
-          giftOpId(pending.gift, pending.at),
-        );
+        await leaveGift(pending, { send: client.send, atGate: api.atGate });
       } else if (step === 'drop') {
         await dropPendingGift(person, pending.gift);
       }

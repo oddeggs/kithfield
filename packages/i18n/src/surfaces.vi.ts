@@ -16,6 +16,8 @@ export const surfacesVi: ViCatalogue<typeof surfacesEn> = {
   'surfaces.native.widget.byTheFire': { other: '{names} đang ngồi bên lửa' },
   'surfaces.native.widget.comeSit': 'Chạm để đến ngồi cùng',
   'surfaces.native.widget.byTheFireLabel': 'Bên lửa',
+  'surfaces.native.widget.youByTheFire': 'Bạn đang ngồi bên lửa',
+  'surfaces.native.widget.fireLitTitle': 'Lửa đã nhóm',
   'surfaces.native.widget.noPlan': 'Chưa có kế hoạch nào',
 
   'surfaces.native.plan.onTheWay': '{count} người đang đến',

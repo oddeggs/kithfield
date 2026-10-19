@@ -4,7 +4,11 @@ import { radii } from '@kithfield/theme';
 import { detentFor, presentationFor, SHEETS, screenOptionsFor } from './presentation';
 
 const palette = { background: '#F5EEE2', sheet: '#FBF6EA' };
-const ctx = { screenH: 852, palette };
+const insets = { top: 59, bottom: 34 };
+const ctx = { screenH: 852, insets, palette };
+/** On an iPhone 16: the tallest detent, and a sheet's detent height for a top, as iOS lays them out. */
+const tallest = 852 - 59 - 34 - 34;
+const height = (top: number) => 852 - top - 34 - 8.5;
 
 describe('route presentation', () => {
   it('presents the modal group as sheets and the cover group full screen', () => {
@@ -31,22 +35,37 @@ describe('route presentation', () => {
 
 describe('sheet routes', () => {
   it('turns a sheet’s tops into detents, smallest first', () => {
-    expect(detentFor(286, 852)).toBeCloseTo(566 / 852);
+    expect(detentFor(286, 852, insets)).toBeCloseTo(height(286) / tallest);
     const card = screenOptionsFor('(modal)/farm-critter', ctx);
     expect(card).toEqual({
       headerShown: false,
       presentation: 'formSheet',
       contentStyle: { backgroundColor: palette.sheet },
       sheetCornerRadius: radii.sheet,
-      sheetAllowedDetents: [(852 - 286) / 852, (852 - 150) / 852],
+      sheetAllowedDetents: [height(286) / tallest, height(150) / tallest],
       sheetGrabberVisible: true,
       sheetLargestUndimmedDetentIndex: 0,
     });
   });
 
+  it('measures detents against the tallest sheet, not the whole screen, as iOS does', () => {
+    // The fire's mic ask rests with its top 190 points down, as 10-12 draws it.
+    const mic = screenOptionsFor('(modal)/surfaces-mic', ctx).sheetAllowedDetents;
+    expect(mic).toEqual([height(190) / tallest]);
+    expect(detentFor(10, 852, insets)).toBe(1);
+  });
+
+  it('fades the fire room in over the farm that zooms into it', () => {
+    expect(screenOptionsFor('(cover)/fire-room', ctx)).toMatchObject({
+      presentation: 'fullScreenModal',
+      animation: 'fade',
+    });
+  });
+
   it('keeps a sheet’s tops where the design puts them on any screen height', () => {
-    const small = screenOptionsFor('(modal)/plans-remember', { ...ctx, screenH: 667 });
-    expect(small.sheetAllowedDetents).toEqual([(667 - 214) / 667]);
+    const se = { top: 20, bottom: 0 };
+    const small = screenOptionsFor('(modal)/plans-remember', { ...ctx, screenH: 667, insets: se });
+    expect(small.sheetAllowedDetents).toEqual([(667 - 214 - 8.5) / (667 - 20 - 34)]);
     expect(small.sheetGrabberVisible).toBe(false);
   });
 
@@ -90,7 +109,7 @@ describe('sheet routes', () => {
     }
   });
 
-  it('names only routes in the modal group, or development screens', () => {
-    for (const route of Object.keys(SHEETS)) expect(route).toMatch(/^\((modal|dev)\)\//);
+  it('names only routes in the modal and cover groups, or development screens', () => {
+    for (const route of Object.keys(SHEETS)) expect(route).toMatch(/^\((modal|cover|dev)\)\//);
   });
 });

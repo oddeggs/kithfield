@@ -187,7 +187,8 @@ export const shopEn = {
   'shop.collection.setOne': '{set} set: {have} of {total}. One {item} to go.',
   'shop.collection.setMany': '{set} set: {have} of {total}.',
   'shop.collection.setDone': '{set} set: finished. Your critter {pose}.',
-  'shop.collection.keep': 'Everything here is yours to keep, even if you stop being a patron.',
+  'shop.collection.keep':
+    'What you buy and what friends give you is yours to keep. What you pick as a patron rests if you stop, and comes back when you return.',
   'shop.collection.empty.title': 'Nothing here yet',
   'shop.collection.empty.body':
     'What you keep from Rocco’s cart, and gifts from friends, will wait for you here.',
@@ -274,6 +275,11 @@ export const shopEn = {
   'shop.gift.leave': 'Leave it on the step · {price}',
   'shop.gift.leaveFree': 'Leave it on the step',
   'shop.gift.left': 'Left on {name}’s step',
+  /** A gift left at a friend's farm gate while visiting it. */
+  'shop.gift.waitingAtGate': 'It’ll be waiting at the gate for {name}.',
+  'shop.gift.leaveAtGate': 'Leave it at the gate · {price}',
+  'shop.gift.leaveAtGateFree': 'Leave it at the gate',
+  'shop.gift.leftAtGate': 'Left at the gate for {name}',
   'shop.gift.owned': '{name} already has this one.',
   'shop.gift.cant': 'This can’t be given right now.',
   'shop.gift.pick': 'Choose something for {name}',
@@ -398,7 +404,7 @@ export const shopEn = {
     'Lifetime patron, offered in the launch season only. Your name on the founders’ gate.',
   'shop.tiers.foundingNote': 'launch season only, then retired',
   'shop.tiers.honest':
-    'No trial that turns into a charge. Cancel in two taps. Items you keep are yours forever.',
+    'No trial that turns into a charge. Cancel in two taps. What you buy is yours for good; patron picks rest while you’re away.',
   'shop.tiers.disclosureLead': 'Patron renews automatically',
   'shop.tiers.disclosure':
     ' at {month} a month, or {year} a year, until you cancel. Farm Plus renews at {plus} a month. Payment is charged to your Apple Account when you confirm. It renews unless you turn it off at least 24 hours before the current period ends, and the renewal is charged within those 24 hours. Manage or cancel any time in Settings › your name › Subscriptions.',
@@ -425,7 +431,7 @@ export const shopEn = {
   'shop.member.wallOn': 'Up there as {name}',
   'shop.member.wallAdd': 'Add your name',
   'shop.member.wardrobe': 'The whole wardrobe',
-  'shop.member.wardrobeBody': 'Try on and keep anything',
+  'shop.member.wardrobeBody': 'Try on anything, and keep it while you’re a patron',
   'shop.member.farmPlus': 'Your Farm Plus covers',
   'shop.member.farmPlusPick': 'Choose the farm it covers',
   'shop.member.farmPlusCovered': 'Everyone you share it with gets the perks.',
@@ -456,7 +462,8 @@ export const shopEn = {
   'shop.manage.toYearly': 'Switch to yearly',
   'shop.manage.ifStop': 'If you stop',
   'shop.manage.stayOn': 'Perks stay on until {date}',
-  'shop.manage.kept': 'Everything you kept is yours forever',
+  'shop.manage.kept':
+    'What you bought or were given stays yours; patron picks rest until you’re back',
   'shop.manage.wall': 'Your name stays on the farmers’ wall',
   'shop.manage.friends': 'Friends see no change at all',
   'shop.manage.cancel': 'Cancel in the App Store',
@@ -464,12 +471,13 @@ export const shopEn = {
 
   /* When patronage lapses */
   'shop.lapsed.eyebrow': 'your patronage has ended',
-  'shop.lapsed.title': 'Everything you kept is still yours',
+  'shop.lapsed.title': 'What you bought or were given is still yours',
   'shop.lapsed.body':
-    'Everything you kept stays. The lantern glow and parcels rest until you come back. Thank you for the time you helped.',
-  'shop.lapsed.kept': 'Kept forever',
+    'What you bought, and gifts from friends, stay with you. Your patron picks, the lantern glow and parcels rest until you come back. Thank you for the time you helped.',
+  'shop.lapsed.kept': 'Still yours',
   'shop.lapsed.resting': 'Resting',
-  'shop.lapsed.restingList': 'Lantern glow, parcels, votes, betas, trying on patron items',
+  'shop.lapsed.restingList':
+    'Patron picks, lantern glow, parcels, votes, betas, trying on patron items',
   'shop.lapsed.wallName': 'your wall name',
   'shop.lapsed.packs': { one: '{count} sticker pack', other: '{count} sticker packs' },
   'shop.lapsed.nothing': 'your wall name, and the thanks',

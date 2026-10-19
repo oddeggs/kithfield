@@ -20,7 +20,7 @@ const GLOW_R = 0.26;
 /** The firelight's strength by day (drawn over) and by night (lightening what is under it). */
 const GLOW_A = { day: 0.35, night: 0.55 } as const;
 /** The flame's and the sparks' sizes, as fractions of the width. */
-const FLAME = 0.07;
+export const FLAME = 0.07;
 const SPARKS = 0.06;
 /** The box the flame and sparks are drawn in: this far (of the width) each side, above and below the ring. */
 const BOX = { side: 0.1, up: 0.2, down: 0.03 } as const;

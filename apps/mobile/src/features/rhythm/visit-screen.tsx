@@ -210,6 +210,26 @@ function Gate({
             disabled={left !== null}
             onPress={() => void leave('wave')}
           />
+          <IconChip
+            label={t('rhythm.visit.gift')}
+            icon="rosette"
+            bg={colours.gateChip.bg}
+            fg={colours.gateChip.fg}
+            disabled={left !== null || host === null}
+            onPress={() =>
+              host &&
+              router.push({
+                pathname: '/shop/gift',
+                params: {
+                  farm: gate.farm,
+                  to: host.person,
+                  gate: '1',
+                  name: host.name ?? '',
+                  species: host.critter.species,
+                },
+              })
+            }
+          />
         </View>
       </Panel>
       {gate.signature ? (

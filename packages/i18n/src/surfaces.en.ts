@@ -26,6 +26,10 @@ export const surfacesEn = {
     one: '{names} is by the fire',
     other: '{names} are by the fire',
   },
+  /** The person themselves, alone by the fire. */
+  'surfaces.native.widget.youByTheFire': 'You’re by the fire',
+  /** The fire is lit and the phone doesn't know who is by it. */
+  'surfaces.native.widget.fireLitTitle': 'The fire’s lit',
   'surfaces.native.widget.comeSit': 'Tap to come sit',
   'surfaces.native.widget.byTheFireLabel': 'By the fire',
   /** The small widget with no plan and no fire. */

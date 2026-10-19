@@ -6,11 +6,11 @@ import type { ArtId, Season } from '@kithfield/contracts';
  */
 
 /**
- * What a patron keeps from the wardrobe. `true` (today's behaviour): kept items are theirs for good,
- * patron or not. `false`: items kept as a patron rest with the perks when patronage lapses, and
- * come back with them; bought items, gifts and parcels always stay. A founder decision pending.
+ * What a patron keeps from the wardrobe. `false` (decided, `docs/products.md` §6): items kept as a
+ * patron rest with the perks when patronage lapses, and come back with them; bought items, gifts and
+ * parcels always stay. `true` would make kept items theirs for good, patron or not.
  */
-export const PATRON_KEEP_ALL = true;
+export const PATRON_KEEP_ALL = false;
 
 /**
  * How long past its period a subscription in billing grace keeps its perks when no news of its

@@ -108,6 +108,7 @@ export const rhythmVi: ViCatalogue<typeof rhythmEn> = {
   'rhythm.visit.fireflyLeft': 'Đã để lại đom đóm',
   'rhythm.visit.wave': 'Vẫy tay ở cổng',
   'rhythm.visit.waved': 'Bạn đã vẫy tay',
+  'rhythm.visit.gift': 'Để lại món quà',
   'rhythm.visit.take': 'Mang ít {fruits} về',
   'rhythm.visit.gone': 'Cánh cổng này không còn mở cho bạn nữa.',
   'rhythm.visit.oncePerDay': 'Hôm nay bạn đã để lại gì đó ở đây rồi. Mai quay lại nhé.',

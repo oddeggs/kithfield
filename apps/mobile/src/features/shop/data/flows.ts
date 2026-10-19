@@ -16,7 +16,7 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { useToast } from '../../../ui/components/toast';
 import type { BuyResult } from '../store/store';
 import { payGate } from '../chip/pay-gate';
-import { givenPayload, giftOpId, type PendingGift } from './pending-gifts';
+import { leaveGift, type PendingGift } from './pending-gifts';
 import { dropPendingGift, keepPendingGift } from './pending-gifts-store';
 import { useShop } from './shop-data';
 
@@ -130,11 +130,14 @@ export interface GiftInput {
   readonly item: ArtId;
   readonly wrap: ArtId;
   readonly note?: string;
+  /** Left at the gate of `farm` while visiting it. */
+  readonly gate?: boolean;
 }
 
 /**
  * Giving a gift: the server reserves the gift's id, the store sells the gift at its tier, the
- * server ties the transaction to it, and the phone leaves `gift {given}` on the farm. Answers
+ * server ties the transaction to it, and the phone leaves `gift {given}` on the farm (or the gift
+ * at its gate, visiting). Answers
  * `given`, or why not (`owned`: the friend has it; `unavailable`: it can't be given; `stopped`:
  * the store didn't sell it or the server hasn't heard yet).
  */
@@ -165,6 +168,7 @@ export function useGiveGift(farm: FarmId): {
           item: input.item,
           wrap: input.wrap,
           ...(input.note ? { note: input.note } : {}),
+          ...(input.gate ? { gate: true as const } : {}),
           transaction: null,
           at: Date.now(),
         };
@@ -186,13 +190,11 @@ export function useGiveGift(farm: FarmId): {
           toast.show(t('shop.store.waiting'));
           return 'stopped';
         }
-        const sent = await client.send(
-          farm,
-          'gift',
-          givenPayload(pending),
-          giftOpId(pending.gift, pending.at),
-        );
-        if (sent.status !== 'queued') {
+        const left = await leaveGift(pending, {
+          send: (...args) => client.send(...args),
+          atGate: shop.api.atGate,
+        });
+        if (!left) {
           toast.show(t('shop.gift.cant'));
           return 'unavailable';
         }

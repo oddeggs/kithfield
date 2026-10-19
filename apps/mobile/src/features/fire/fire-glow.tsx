@@ -53,14 +53,21 @@ export function useFireOnFarm(farm: FarmId): {
 }
 
 /** The card on the farm while friends sit by the fire: "Come sit if you like. No need to talk." */
-export function FireGlowCard({ farm }: { readonly farm: FarmId }) {
+export function FireGlowCard({
+  farm,
+  onOpen,
+}: {
+  readonly farm: FarmId;
+  /** Opens the room its own way (the farm zooms into its fire); straight in otherwise. */
+  readonly onOpen?: () => void;
+}) {
   const { t } = useLocale();
   const { line } = useFireOnFarm(farm);
   const state = useFarm(farm)?.state ?? null;
   if (line === null) return null;
   return (
     <Press
-      onPress={() => openFire(farm)}
+      onPress={onOpen ?? (() => openFire(farm))}
       radius={22}
       accessibilityRole="button"
       accessibilityLabel={`${line}. ${t('fire.glow.body')}`}

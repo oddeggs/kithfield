@@ -4,8 +4,9 @@ import { motion, travel } from '@kithfield/theme';
 import { Canvas, Group, Image } from '@shopify/react-native-skia';
 import { useMemo, type ReactNode } from 'react';
 import { View } from 'react-native';
-import {
+import Animated, {
   useAnimatedReaction,
+  useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
   withDelay,
@@ -15,6 +16,7 @@ import {
 } from 'react-native-reanimated';
 
 import { ArtStill } from '../../../ui/art/art-view';
+import { TravelSpot, useTravelShownAll } from '../../../ui/travel';
 import { useArt, useArtStill } from '../../../ui/art/art-provider';
 import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
@@ -95,13 +97,25 @@ export function placeCritters(critters: readonly HeaderCritter[], w: number, h: 
  * from their own cached layers, so the farm shows who really lives there. When the header has
  * shrunk all the way, the critters settle in two drawings.
  */
+/** The sprout a dewdrop brings up in the header: its size, and where on the strip's ground. */
+export const SPROUT = 90;
+export const sproutBox = (width: number, height: number) => ({
+  x: width * 0.42 - SPROUT / 2,
+  y: height * 0.62 - SPROUT,
+  width: SPROUT,
+  height: SPROUT,
+});
+
 export function FarmHeaderArt({
   season,
   critters,
   width,
   height,
   collapsed,
+  sproutId,
 }: {
+  /** The travel id where a dewdrop's sprout pops up (signature motion). */
+  readonly sproutId?: string;
   readonly season: string;
   readonly critters: readonly HeaderCritter[];
   readonly width: number;
@@ -160,6 +174,7 @@ export function FarmHeaderArt({
           </SettlingLayer>
         ))}
       </Canvas>
+      {sproutId ? <TravelSpot id={sproutId} box={sproutBox(width, height)} /> : null}
     </View>
   );
 }
@@ -188,6 +203,13 @@ function SettlingLayer({
  * A visit's porch: the two critters on the bench, the porch owner's first (`S.porch`). Tapping
  * the pot opens its page.
  */
+/** Where the porch seats its two critters (`S.porch`): feet 70% down, a third in from each side. */
+export function porchSeat(i: number, width: number, height: number) {
+  const size = height * 0.42;
+  const x = width * (i === 0 ? 0.34 : 0.66);
+  return { x: x - size / 2, y: height * 0.7 - size * 0.86, width: size, height: size };
+}
+
 export function PorchArt({
   cast,
   pot,
@@ -195,8 +217,11 @@ export function PorchArt({
   height,
   night,
   onPot,
+  seats = [],
 }: {
   readonly cast: string;
+  /** The travel ids of the two seats, in the cast's order: critters walking in land on them. */
+  readonly seats?: readonly string[];
   /** The visit's porch pot: this season's plant and how far it has grown. */
   readonly pot: { readonly plant: string; readonly stage: number } | null;
   readonly width: number;
@@ -204,6 +229,11 @@ export function PorchArt({
   readonly night: boolean;
   readonly onPot: { readonly label: string; readonly open: () => void };
 }) {
+  // The pair shows once both have sat down (signature motion: they walk onto the porch).
+  const shown = useTravelShownAll(seats);
+  const castStyle = useAnimatedStyle(() => ({
+    opacity: shown.reduce((least, s) => Math.min(least, s.get()), 1),
+  }));
   return (
     <View style={{ width, height }} pointerEvents="box-none">
       <View pointerEvents="none">
@@ -212,8 +242,20 @@ export function PorchArt({
           width={width}
           height={height}
           t={1.2}
-          attrs={{ cast, ...(night ? { night: true } : {}) }}
+          attrs={{ cast, state: 'empty', ...(night ? { night: true } : {}) }}
         />
+        <Animated.View style={[{ position: 'absolute', left: 0, top: 0 }, castStyle]}>
+          <ArtStill
+            scene="porch"
+            width={width}
+            height={height}
+            t={1.2}
+            attrs={{ cast, ...(night ? { night: true } : {}) }}
+          />
+        </Animated.View>
+        {seats.map((id, i) => (
+          <TravelSpot key={id} id={id} box={porchSeat(i, width, height)} />
+        ))}
       </View>
       {pot ? (
         <Press

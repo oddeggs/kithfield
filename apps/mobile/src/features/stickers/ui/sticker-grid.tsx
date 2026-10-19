@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, type LayoutChangeEvent } from 'react-native';
 
 import { Press } from '../../../ui/motion/press';
+import { TravelAnchor } from '../../../ui/travel';
 import { StickerArt } from './sticker';
 
 /** One sticker in a grid: what the art draws, and what it says to VoiceOver. */
@@ -39,6 +40,8 @@ export function StickerGrid({
   hint,
   onPress,
   onLongPress,
+  anchorOf,
+  sheetTop,
 }: {
   readonly stickers: readonly GridSticker[];
   readonly size: number;
@@ -48,6 +51,10 @@ export function StickerGrid({
   readonly hint?: string;
   readonly onPress: (key: string) => void;
   readonly onLongPress?: (key: string) => void;
+  /** A travel id for each sticker, for a sticker that flies from here. */
+  readonly anchorOf?: (key: string) => string;
+  /** Inside a native sheet: where the sheet's top is on the window, for the travel. */
+  readonly sheetTop?: number;
 }) {
   const [width, setWidth] = useState(0);
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
@@ -71,7 +78,17 @@ export function StickerGrid({
                   {...(hint ? { accessibilityHint: hint } : {})}
                   style={{ width: size, height: size }}
                 >
-                  <StickerArt attrs={s.attrs} size={size} still={!visible} />
+                  {anchorOf ? (
+                    <TravelAnchor
+                      id={anchorOf(s.key)}
+                      {...(sheetTop === undefined ? {} : { sheetTop })}
+                      style={{ width: size, height: size }}
+                    >
+                      <StickerArt attrs={s.attrs} size={size} still={!visible} />
+                    </TravelAnchor>
+                  ) : (
+                    <StickerArt attrs={s.attrs} size={size} still={!visible} />
+                  )}
                 </Press>
               </View>
             ))}

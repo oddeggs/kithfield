@@ -62,6 +62,8 @@ const FOOT_AT = 0.3;
 const LEAN = (2 * Math.PI) / 180;
 /** The flame settles to embers over four seconds as the last person leaves. */
 const SETTLE_MS = 4000;
+/** How far the scene rises behind a tall panel. */
+export const SCENE_LIFT = 170;
 /** Laughter lifts the flame by up to 30%. */
 const LIFT = 0.3;
 
@@ -333,7 +335,7 @@ export function FireScene({
     rise.set(sheetTo(lifted ? 1 : 0, reduce));
   }, [lifted, rise, reduce]);
   const liftStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -170 * rise.get() }],
+    transform: [{ translateY: -SCENE_LIFT * rise.get() }],
   }));
 
   return (

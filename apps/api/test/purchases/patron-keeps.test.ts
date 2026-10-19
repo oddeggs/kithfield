@@ -15,6 +15,22 @@ const lapsedKeeper = async () => {
 };
 
 describe('what a patron kept, once patronage lapses', () => {
+  it('rests while bought items stay, and comes back when patronage resumes', async () => {
+    const pip = await lapsedKeeper();
+    await tell(rcEvent(pip.id, 'NON_RENEWING_PURCHASE', 'kf.item.lighthouse'));
+    let e = await entitlementsOf(env.DB, pip.id, Date.now());
+    expect(e.perks).toBe(false);
+    expect(e.owned).not.toContain('houseboat');
+    expect(e.owned).toContain('lighthouse');
+    const collection = await api(pip, 'GET', '/v1/me/collection');
+    const items = (collection.body as { items: { item: string }[] }).items.map((i) => i.item);
+    expect(items).toEqual(expect.arrayContaining(['lighthouse']));
+    expect(items).not.toContain('houseboat');
+    await tell(rcEvent(pip.id, 'RENEWAL', 'kf.patron.monthly'));
+    e = await entitlementsOf(env.DB, pip.id, Date.now());
+    expect(e.owned).toEqual(expect.arrayContaining(['houseboat', 'lighthouse']));
+  });
+
   it('stays theirs while patrons keep everything', async () => {
     const pip = await lapsedKeeper();
     const e = await entitlementsOf(env.DB, pip.id, Date.now(), { keepAll: true });

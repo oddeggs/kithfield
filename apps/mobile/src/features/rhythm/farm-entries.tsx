@@ -78,10 +78,13 @@ export function RhythmSheetRows({
   farm,
   state,
   view,
+  onRecap,
 }: {
   readonly farm: FarmId;
   readonly state: FarmState;
   readonly view: FarmView;
+  /** Opens the Sunday harvest its own way (the crops hop into its basket); straight in otherwise. */
+  readonly onRecap?: () => void;
 }) {
   const { t } = useLocale();
   if (state.kind !== 'farm') return null;
@@ -120,7 +123,7 @@ export function RhythmSheetRows({
         art={<ArtStill scene="harvest" width={TILE} height={TILE} />}
         title={t('rhythm.row.recap')}
         line={t('rhythm.row.recapLine')}
-        onPress={() => router.push(rhythmRoutes.recap(farm))}
+        onPress={onRecap ?? (() => router.push(rhythmRoutes.recap(farm)))}
       />
       <Row
         art={<ArtStill scene="pressed" width={TILE} height={TILE} attrs={{ name: 'daisy' }} />}

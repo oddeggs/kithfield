@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import type { Species } from '@kithfield/contracts';
 
-import { FIELD_SPOTS, HOME_SPOTS, placeFarm } from './scene-layout';
+import { FIELD_SPOTS, fireTarget, HOME_SPOTS, LANDMARKS, placeFarm } from './scene-layout';
 
 const people = (species: readonly Species[]) =>
   species.map((s, i) => ({ person: `p${i}`, species: s, joinedAt: 1000 + i }));
@@ -93,5 +93,23 @@ describe('placing critters on the farm', () => {
     expect(p.critters).toHaveLength(24);
     expect(new Set(p.critters.map((c) => `${c.spot.x},${c.spot.y}`)).size).toBe(24);
     expect(p.houses).toHaveLength(5);
+  });
+});
+
+describe('the fire ring’s tap target', () => {
+  it('sits over the ring and its flame where they show above the farm’s sheet', () => {
+    const [w, h, sheetTop] = [393, 540, 500];
+    const box = fireTarget(w, h, sheetTop);
+    const ringTop = h * (LANDMARKS.fire.y - LANDMARKS.fire.ry);
+    expect(box.y + box.h / 2).toBeLessThanOrEqual(sheetTop);
+    expect(box.y - box.h / 2).toBeLessThanOrEqual(ringTop);
+    expect(box.h).toBeGreaterThanOrEqual(44);
+    expect(box.w).toBeGreaterThanOrEqual(44);
+    expect(box.x).toBeCloseTo(w * LANDMARKS.fire.x);
+  });
+
+  it('covers the whole ring when nothing covers the farm', () => {
+    const box = fireTarget(393, 540);
+    expect(box.y + box.h / 2).toBeCloseTo(540 * (LANDMARKS.fire.y + LANDMARKS.fire.ry));
   });
 });

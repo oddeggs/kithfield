@@ -43,7 +43,7 @@ screens there without editing a shared file.
   (`<Stack.Screen options>` in its file arrives after mount: detents are ignored, and a
   `fitToContents` sheet can't find its screen and drops taps). Instead it adds one line to `SHEETS` in
   `ui/navigation/presentation.ts`, which the root stack reads through
-  `screenOptionsFor(route.name, { screenH, palette })` before the screen mounts:
+  `screenOptionsFor(route.name, { screenH, insets, palette })` before the screen mounts:
 
   | `SHEETS` entry | What it gives | Used by |
   |---|---|---|
