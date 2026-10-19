@@ -11,8 +11,13 @@ import googleKit from '../../../../assets/brand/google-g.png';
 const height = sizes.buttonLarge;
 const radius = pill(height);
 
-/** Apple's own logo, U+F8FF in the system font: it takes the label's size, weight and colour. */
-const APPLE_LOGO = '';
+/** Apple's own logo, U+F8FF in the system font, in the label's weight and colour. */
+const APPLE_LOGO = '\uF8FF';
+/**
+ * Beside a 17-point label the glyph reads small, so it is drawn about the G's height and lifted to
+ * the label's centre. It still grows with Dynamic Type.
+ */
+const appleLogo = { fontSize: 26, lineHeight: 28, marginTop: -1 } as const;
 
 /**
  * The brands' colours, which their rules fix: Apple's button is black or white, never tinted,
@@ -74,7 +79,7 @@ export function AppleSignInButton({ onPress }: ProviderButtonProps) {
       style={[shape, { backgroundColor: fill }]}
     >
       <View style={row}>
-        <Txt variant="button" color={ink} importantForAccessibility="no">
+        <Txt variant="button" color={ink} style={appleLogo} importantForAccessibility="no">
           {APPLE_LOGO}
         </Txt>
         <Txt variant="button" color={ink} style={labelStyle}>
