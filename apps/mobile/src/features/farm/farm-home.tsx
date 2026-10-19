@@ -160,6 +160,7 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
         running={visible && !reduce && sheet === 0}
         now={now}
         fire={fire}
+        coverTop={height - OVERLAP}
         targets={{
           onCritter: openCritter,
           onHouse: (h) =>

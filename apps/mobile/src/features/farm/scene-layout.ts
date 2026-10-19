@@ -74,6 +74,30 @@ export const LANDMARKS = {
   stake: { x: 0.36, y: 0.675, rx: 0.04, ry: 0.05 },
 } as const;
 
+/** How far above the fire ring its flame reaches, as a fraction of the width. */
+export const FIRE_TOP = 0.12;
+
+/** A tap target's centre and size, in the scene's points. */
+export interface TargetBox {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+/**
+ * The fire ring's tap target: the ring and its flame, cut off where something covers the farm
+ * (`coverTop`, the farm sheet's top edge) and grown upward to at least 44 points, so the fire
+ * opens wherever it is drawn.
+ */
+export function fireTarget(width: number, height: number, coverTop?: number): TargetBox {
+  const { x, y, rx, ry } = LANDMARKS.fire;
+  const top = height * (y - ry) - width * FIRE_TOP;
+  const bottom = Math.min(height * (y + ry), coverTop ?? Infinity);
+  const h = Math.max(44, bottom - top);
+  return { x: width * x, y: bottom - h / 2, w: Math.max(44, width * rx * 2), h };
+}
+
 export interface Resident {
   readonly person: PersonId;
   readonly species: Species;

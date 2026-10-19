@@ -8,7 +8,7 @@ import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { TravelSpot, travelIds } from '../../ui/travel';
 import { FarmCanvas } from './farm-canvas';
 import { flagOf, hoursLeft, nameOf } from './farm-copy';
-import { HOUSES, LANDMARKS, type PlacedHouse } from './scene-layout';
+import { FIRE_TOP, fireTarget, HOUSES, LANDMARKS, type PlacedHouse } from './scene-layout';
 import { headOf, layoutBubbles, type BubbleWish } from './bubble-layout';
 import { SpeechBubble } from './speech-bubble';
 import { useFarmScene } from './use-farm-scene';
@@ -20,9 +20,6 @@ export interface SceneTargets {
   readonly onPatch: () => void;
   readonly onPlan: (plan: PlanView) => void;
 }
-
-/** How far above the fire ring its flame reaches, as a fraction of the width. */
-const FIRE_TOP = 0.12;
 
 /** A tap target over the art, at least 44 points. */
 function Target({
@@ -74,6 +71,7 @@ export function FarmScene({
   running,
   now,
   fire = null,
+  coverTop,
   targets,
 }: {
   readonly state: FarmState | null;
@@ -86,6 +84,8 @@ export function FarmScene({
   readonly now: number;
   /** The fire on the farm: whether it is lit, and the line about who is by it. */
   readonly fire?: { readonly lit: boolean; readonly line: string | null } | null;
+  /** Where something laid over the farm (its sheet) begins, from the scene's top. */
+  readonly coverTop?: number;
   readonly targets: SceneTargets;
 }) {
   const { t } = useLocale();
@@ -230,10 +230,7 @@ export function FarmScene({
         onPress={targets.onPatch}
       />
       <Target
-        x={width * LANDMARKS.fire.x}
-        y={height * LANDMARKS.fire.y}
-        w={width * LANDMARKS.fire.rx * 2}
-        h={height * LANDMARKS.fire.ry * 2}
+        {...fireTarget(width, height, coverTop)}
         label={t('farm.fire.label')}
         onPress={targets.onFire}
       />
