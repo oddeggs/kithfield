@@ -33,17 +33,17 @@ describe('the Android app', () => {
   });
 
   it('claims the Google redirect only once an Android client exists, and hands the app its id', () => {
-    const none = buildConfig({}, 'dev', unset);
+    const none = buildConfig({}, 'prd', unset);
     expect(none.extra?.['googleAndroidClientId']).toBeUndefined();
     const schemes = (none.android?.intentFilters ?? []).flatMap((f) =>
       [f.data ?? []].flat().map((d) => d.scheme ?? ''),
     );
-    expect(schemes).not.toContain('com.kithfield.app.dev');
+    expect(schemes).not.toContain('com.kithfield.app');
     const id = '564934268570-android.apps.googleusercontent.com';
-    const set = buildConfig({}, 'dev', { ...unset, googleAndroidClientId: id });
+    const set = buildConfig({}, 'prd', { ...unset, googleAndroidClientId: id });
     expect(set.extra?.['googleAndroidClientId']).toBe(id);
     expect(set.android?.intentFilters).toContainEqual(
-      expect.objectContaining({ data: [{ scheme: 'com.kithfield.app.dev' }] }),
+      expect.objectContaining({ data: [{ scheme: 'com.kithfield.app' }] }),
     );
   });
 
