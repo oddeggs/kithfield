@@ -49,7 +49,15 @@ object FarmConversations {
   fun forgetAll(context: Context) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return
     val manager = context.getSystemService(ShortcutManager::class.java) ?: return
-    val ids = manager.dynamicShortcuts.map { it.id }.filter { it.startsWith(PREFIX) }
+    // A shortcut a push pointed at stays cached after the launcher's limit pushes it out of the
+    // dynamic ones, still holding the friend's name and critter: those go too.
+    val shortcuts =
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        manager.getShortcuts(ShortcutManager.FLAG_MATCH_DYNAMIC or ShortcutManager.FLAG_MATCH_CACHED)
+      } else {
+        manager.dynamicShortcuts
+      }
+    val ids = shortcuts.map { it.id }.filter { it.startsWith(PREFIX) }.distinct()
     if (ids.isEmpty()) return
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) manager.removeLongLivedShortcuts(ids)
     manager.removeDynamicShortcuts(ids)
