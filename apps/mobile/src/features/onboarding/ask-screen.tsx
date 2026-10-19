@@ -1,12 +1,13 @@
-import { useState } from "react";
-import { Platform, View } from "react-native";
+import { useState } from 'react';
+import { View } from 'react-native';
 
-import { Button } from "../../ui/components/button";
-import { useLocale } from "../../ui/locale/locale-provider";
-import { useTheme } from "../../ui/theme/theme-provider";
-import { useAccessibilitySize } from "../../ui/type/accessibility-size";
-import { Txt } from "../../ui/type/text";
-import { SceneArt } from "./scene-art";
+import { Button } from '../../ui/components/button';
+import { useLocale } from '../../ui/locale/locale-provider';
+import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
+import { Txt } from '../../ui/type/text';
+import { askNextKey } from './ask-next';
+import { SceneArt } from './scene-art';
 import {
   AxFlow,
   BarAction,
@@ -18,8 +19,8 @@ import {
   TopBar,
   useDesignTop,
   useSceneAttrs,
-} from "./kit";
-import { useWayInWindow } from "./way-in-frame";
+} from './kit';
+import { useWayInWindow } from './way-in-frame';
 
 export interface AskPromise {
   readonly text: string;
@@ -80,7 +81,7 @@ export function AskScreen({
   const bar = (
     <TopBar
       onBack={onBack}
-      trailing={<BarAction label={t("onboarding.skip")} onPress={onSkip} />}
+      trailing={<BarAction label={t('onboarding.skip')} onPress={onSkip} />}
     />
   );
   const words = (
@@ -91,11 +92,7 @@ export function AskScreen({
       <View style={{ height: 6 }} />
       <View style={{ gap: 10 }}>
         {promises.map((p) => (
-          <PromiseRow
-            key={p.text}
-            text={p.text}
-            {...(p.never ? { never: true } : {})}
-          />
+          <PromiseRow key={p.text} text={p.text} {...(p.never ? { never: true } : {})} />
         ))}
       </View>
     </>
@@ -109,11 +106,7 @@ export function AskScreen({
           color={palette.secondary}
           style={{ fontSize: 13, lineHeight: 18.2, marginBottom: 2 }}
         >
-          {t(
-            Platform.OS === "android"
-              ? "android.ask.next"
-              : "onboarding.ask.next",
-          )}
+          {t(askNextKey('onboarding.ask.next'))}
         </Txt>
       ) : null}
       <Button label={yes} onPress={() => void yesPressed()} disabled={busy} />
@@ -123,12 +116,7 @@ export function AskScreen({
   if (ax) {
     return (
       <AxFlow bar={bar} footer={buttons}>
-        <SceneArt
-          scene="spot"
-          width={width}
-          height={270}
-          attrs={{ ...scene, name: spot }}
-        />
+        <SceneArt scene="spot" width={width} height={270} attrs={{ ...scene, name: spot }} />
         <View style={{ paddingHorizontal: 28, gap: 10 }}>{words}</View>
       </AxFlow>
     );
@@ -141,18 +129,10 @@ export function AskScreen({
         width={width}
         height={270}
         attrs={{ ...scene, name: spot }}
-        style={{ position: "absolute", top: top(64), left: 0 }}
+        style={{ position: 'absolute', top: top(64), left: 0 }}
       />
       {bar}
-      <View
-        style={{
-          position: "absolute",
-          top: top(350),
-          left: 28,
-          right: 28,
-          gap: 10,
-        }}
-      >
+      <View style={{ position: 'absolute', top: top(350), left: 28, right: 28, gap: 10 }}>
         {words}
       </View>
       <BottomBar>{buttons}</BottomBar>
