@@ -15,6 +15,7 @@ import { AuthNotConfigured, authSecret, handleAuthRequest } from './instance';
 import { deletePerson, findPerson, recordAgeOk, recordTerms } from './people';
 import { issueSignInNonce } from './nonce';
 import { signRtToken } from './rt-token';
+import { beforeSignOut } from './sign-out';
 import { errorResponse, requireSession, type SessionEnv } from './session';
 import { CURRENT_TERMS_VERSION } from './terms';
 
@@ -53,6 +54,13 @@ export function authRoutes(): Hono<SessionEnv> {
   routes.route('/', accountDeletionRoutes());
   routes.route('/', consentRoutes());
   routes.route('/', desktopLinkRoutes());
+
+  // A phone signing itself out ends its device too (push, action key, sockets), then Better Auth
+  // ends the session.
+  routes.post('/auth/sign-out', async (c, next) => {
+    await beforeSignOut(c.env, c.req.raw.headers);
+    await next();
+  });
 
   routes.on(['GET', 'POST'], '/auth/*', async (c) => {
     try {

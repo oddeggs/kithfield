@@ -51,3 +51,4 @@ export async function verifyRtToken(
     .first();
   return live === null ? null : person;
 }
+export { registerSignOutStep, type SignOutStep } from './sign-out';
