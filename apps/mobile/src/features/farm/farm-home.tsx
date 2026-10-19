@@ -55,13 +55,19 @@ const OVERLAP = 40;
 /** How far the farm zooms toward its fire ring on the way into the fire room. */
 const FIRE_ZOOM = 2.2;
 const fireEase = Easing.bezier(...sampleCurves.fireZoom);
+/** The room opens by then even if the flame never took off. */
+const OPEN_AT_LATEST_MS = 250;
 
 /**
  * The way into the fire room (signature motion): the farm zooms toward its fire ring while its
  * flame, if lit, flies into the room's. Coming back, the farm zooms out again. Under Reduce Motion
  * the room only fades in.
  */
-function useFireWay(farm: FarmId, width: number, height: number, lit: boolean) {
+function useFireWay(
+  farm: FarmId,
+  { width, height, screen }: { width: number; height: number; screen: number },
+  lit: boolean,
+) {
   const travel = useTravel();
   const reduce = useReduceMotion();
   const store = useArt();
@@ -93,12 +99,23 @@ function useFireWay(farm: FarmId, width: number, height: number, lit: boolean) {
     }, [zoom]),
   );
   const open = () => {
-    if (!reduce) {
-      const ease = { duration: timing('fire', 'in'), easing: fireEase };
-      zoom.set(withTiming(1, { ...ease, reduceMotion: ReduceMotion.Never }));
-      if (lit) travel.fly(fireFlight(farm, { ...ring, flame: width * FARM_FLAME }, width));
-    }
-    openFire(farm);
+    if (reduce) return openFire(farm);
+    const ease = { duration: timing('fire', 'in'), easing: fireEase };
+    zoom.set(withTiming(1, { ...ease, reduceMotion: ReduceMotion.Never }));
+    if (!lit) return openFire(farm);
+    // The room opens once the flame is in the air, so mounting it never holds the flame back.
+    let opened = false;
+    const go = () => {
+      if (opened) return;
+      opened = true;
+      openFire(farm);
+    };
+    travel.fly({
+      ...fireFlight({ ...ring, flame: width * FARM_FLAME }, { width, height: screen }),
+      onStart: go,
+      onReturned: go,
+    });
+    setTimeout(go, OPEN_AT_LATEST_MS);
   };
   return { style, open };
 }
@@ -178,7 +195,7 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
   const reduce = useReduceMotion();
   const [sheet, setSheet] = useState(0);
   const fire = useFireOnFarm(farm);
-  const fireWay = useFireWay(farm, width, height, fire.lit);
+  const fireWay = useFireWay(farm, { width, height, screen }, fire.lit);
   const client = useDataClient();
   // A gift opens on the step (the shop's 09-05), or, for a sticker pack, as its parcel (08-06).
   const openGift = async (d: DoorstepItem, gift: string) => {

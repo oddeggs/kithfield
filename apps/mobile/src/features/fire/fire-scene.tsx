@@ -19,7 +19,6 @@ import { useArt, useArtStill, whenIdle } from '../../ui/art/art-provider';
 import { fadeTo, sheetTo } from '../../ui/motion/motion';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useArtVisible } from '../../ui/motion/visibility';
-import { TravelSpot, useTravelShown } from '../../ui/travel';
 import { STILL_T } from '../farm/farm-bake';
 import { breathOf, isBlinking, tick } from '../farm/farm-clock';
 import {
@@ -32,7 +31,6 @@ import {
   type FireState,
   type SeatPoses,
 } from './fire-art';
-import { roomFlameBox } from './fire-travel';
 import { FIRE_AT, PATH_END, PATH_FOOT, PATH_HOME, SLOTS } from './seats';
 
 /*
@@ -64,6 +62,8 @@ const FOOT_AT = 0.3;
 const LEAN = (2 * Math.PI) / 180;
 /** The flame settles to embers over four seconds as the last person leaves. */
 const SETTLE_MS = 4000;
+/** How far the scene rises behind a tall panel. */
+export const SCENE_LIFT = 170;
 /** Laughter lifts the flame by up to 30%. */
 const LIFT = 0.3;
 
@@ -247,7 +247,6 @@ export function FireScene({
   levelOf,
   loudest,
   onGone,
-  flameId,
   children,
 }: {
   readonly width: number;
@@ -263,8 +262,6 @@ export function FireScene({
   /** The loudest voice by the fire now, 0 to 1: laughter lifts the flame. */
   readonly loudest: SharedValue<number>;
   readonly onGone: (id: string) => void;
-  /** The travel id of the flame: the farm's flame flies into it as the room opens. */
-  readonly flameId: string;
   /** Drawn over the scene and lifted with it: name chips, gestures. */
   readonly children?: ReactNode;
 }) {
@@ -316,9 +313,7 @@ export function FireScene({
     const k = flame.get() * lift.get();
     return [{ translateX: fx }, { translateY: fy }, { scale: k }];
   });
-  // Hidden while the farm's flame is still flying in to take its place.
-  const flameShown = useTravelShown(flameId);
-  const fireOpacity = useDerivedValue(() => Math.min(1, flame.get() * 4) * flameShown.get());
+  const fireOpacity = useDerivedValue(() => Math.min(1, flame.get() * 4));
 
   // Each critter's poses, baked once per critter and seat.
   // Baked again only when someone sits on a different log or changes how they look, never as
@@ -340,7 +335,7 @@ export function FireScene({
     rise.set(sheetTo(lifted ? 1 : 0, reduce));
   }, [lifted, rise, reduce]);
   const liftStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -170 * rise.get() }],
+    transform: [{ translateY: -SCENE_LIFT * rise.get() }],
   }));
 
   return (
@@ -384,7 +379,6 @@ export function FireScene({
             ) : null}
           </Canvas>
         </View>
-        <TravelSpot id={flameId} box={roomFlameBox(width, height)} />
         {children}
       </Animated.View>
     </View>
