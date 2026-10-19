@@ -1,4 +1,5 @@
 import { radii } from '@kithfield/theme';
+import { Platform } from 'react-native';
 
 import type { Palette } from '../theme/palette';
 
@@ -77,7 +78,7 @@ export const SHEETS: Readonly<Record<string, SheetSpec>> = {
 export interface RootScreenOptions {
   readonly headerShown: false;
   readonly presentation: Presentation;
-  readonly contentStyle: { readonly backgroundColor: string };
+  readonly contentStyle: { readonly backgroundColor: string; readonly paddingTop?: number };
   readonly animation?: 'none' | 'slide_from_bottom' | 'fade';
   readonly gestureEnabled?: boolean;
   readonly sheetAllowedDetents?: number[] | 'fitToContents';
@@ -127,7 +128,19 @@ export function screenOptionsFor(routeName: string, ctx: ScreenContext): RootScr
     contentStyle: { backgroundColor: ctx.palette.background },
   } as const;
   const spec = SHEETS[routeName];
-  if (!spec) return { ...base, presentation: presentationFor(routeName) };
+  if (!spec) {
+    const presentation = presentationFor(routeName);
+    // Android has no page sheet: the modal fills the screen, so it starts below the status bar
+    // as iOS's sheet starts below the screen it covers.
+    if (presentation === 'modal' && Platform.OS === 'android') {
+      return {
+        ...base,
+        presentation,
+        contentStyle: { ...base.contentStyle, paddingTop: ctx.insets.top },
+      };
+    }
+    return { ...base, presentation };
+  }
   const sheet = {
     headerShown: false,
     presentation: 'formSheet',
