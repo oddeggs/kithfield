@@ -20,7 +20,8 @@ function addFontFaces(): void {
     )
     .join('\n');
   const style = document.createElement('style');
-  style.textContent = css;
+  // Fields show focus with their own border, as on the phone, not the browser's ring.
+  style.textContent = `${css}\ninput:focus,textarea:focus,select:focus{outline:none}`;
   document.head.appendChild(style);
 }
 
