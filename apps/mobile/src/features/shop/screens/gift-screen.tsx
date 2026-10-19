@@ -8,6 +8,7 @@ import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { TravelAnchor, timing, travelIds, useTravel } from '../../../ui/travel';
 import { itemName } from '../copy';
 import { useGiveGift } from '../data/flows';
 import { useShop } from '../data/shop-data';
@@ -23,6 +24,13 @@ import { currentSeason, useShopParams } from '../kit/season';
 import { ShopFailed } from '../kit/states';
 import { SText } from '../kit/text';
 import { wishedItems } from '../wishlist-shelf';
+
+/** The gift's stage, where the parcel ties up before it hops to the friend's step. */
+const STAGE_ID = 'shop:gift-stage';
+const PARCEL = { width: 110, height: 96 };
+const GIFT_MS = timing('gift', 'total');
+/** The gift screen closes by then even if the parcel never set off. */
+const CLOSE_AT_LATEST_MS = GIFT_MS * 0.25 + 250;
 
 /** The five free wrappings, in the design's order. */
 export const WRAP_IDS = ['clay', 'dusk', 'fern', 'brown_paper', 'plum'] as const;
@@ -170,6 +178,7 @@ function GiftChoice({
   const toast = useToast();
   const { width } = useWindowDimensions();
   const { state, give } = useGiveGift(farm);
+  const travel = useTravel();
   const wraps = (shop.catalog?.wraps ?? WRAP_IDS).filter(isWrapId);
   const [wrap, setWrap] = useState<WrapId>(wraps[0] ?? 'clay');
   const [note, setNote] = useState('');
@@ -194,7 +203,36 @@ function GiftChoice({
     });
     if (outcome === 'given') {
       toast.show(t(gate ? 'shop.gift.leftAtGate' : 'shop.gift.left', { name }));
-      router.back();
+      if (gate) return router.back();
+      // The parcel ties up on the stage, then hops down to the friend's step on the farm below
+      // as this screen closes (signature motion).
+      let closed = false;
+      const close = () => {
+        if (closed) return;
+        closed = true;
+        router.back();
+      };
+      travel.fly({
+        from: STAGE_ID,
+        to: travelIds.farmDoor(farm, to),
+        sprite: {
+          scene: 'gift',
+          attrs: { color: inks.wraps[wrap] ?? inks.giftStage },
+          ...PARCEL,
+          at: 0.3,
+          drawings: 2,
+        },
+        fromWidth: PARCEL.width,
+        hops: { count: 2, height: 30 },
+        arc: 20,
+        delayMs: GIFT_MS * 0.25,
+        durationMs: GIFT_MS * 0.4,
+        holdMs: GIFT_MS * 0.1,
+        hideSource: false,
+        onStart: close,
+        onReturned: close,
+      });
+      setTimeout(close, CLOSE_AT_LATEST_MS);
     } else if (outcome === 'owned') toast.show(t('shop.gift.owned', { name }));
     else if (outcome === 'unavailable') toast.show(t('shop.gift.cant'));
   };
@@ -222,7 +260,8 @@ function GiftChoice({
         />
       }
     >
-      <View
+      <TravelAnchor
+        id={STAGE_ID}
         style={{
           marginHorizontal: 8,
           marginBottom: 6,
@@ -246,7 +285,7 @@ function GiftChoice({
           width={stageW}
           height={240}
         />
-      </View>
+      </TravelAnchor>
       <Title text={itemName(t, item.item)} size={24} />
       <SText s={14.5} lh={1.45} color={palette.body} multiline>
         {wished

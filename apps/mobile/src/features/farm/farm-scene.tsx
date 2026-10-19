@@ -8,7 +8,14 @@ import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { TravelSpot, travelIds } from '../../ui/travel';
 import { FarmCanvas } from './farm-canvas';
 import { flagOf, hoursLeft, nameOf } from './farm-copy';
-import { FIRE_TOP, fireTarget, HOUSES, LANDMARKS, type PlacedHouse } from './scene-layout';
+import {
+  doorStep,
+  FIRE_TOP,
+  fireTarget,
+  HOUSES,
+  LANDMARKS,
+  type PlacedHouse,
+} from './scene-layout';
 import { headOf, layoutBubbles, type BubbleWish } from './bubble-layout';
 import { SpeechBubble } from './speech-bubble';
 import { useFarmScene } from './use-farm-scene';
@@ -204,6 +211,16 @@ export function FarmScene({
               />
             );
           })
+        : null}
+      {/* Where a gift left for a friend lands: the step of their cottage (signature motion). */}
+      {state
+        ? scene.placement.houses.map((h) => (
+            <TravelSpot
+              key={`door:${h.key}`}
+              id={travelIds.farmDoor(state.farm, h.person)}
+              box={doorStep(h.key, width, height)}
+            />
+          ))
         : null}
       {scene.placement.houses.map((h) => {
         const house = HOUSES[h.key];

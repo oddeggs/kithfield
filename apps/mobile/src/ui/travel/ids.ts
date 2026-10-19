@@ -5,6 +5,8 @@
 export const travelIds = {
   /** A critter standing on its farm (the farm home canvas). */
   farmCritter: (farm: string, person: string) => `farm:critter:${farm}:${person}`,
+  /** The step of a friend's cottage on the farm, where a gift waits. */
+  farmDoor: (farm: string, person: string) => `farm:door:${farm}:${person}`,
   /** A critter's face beside a message in a chat. */
   chatFace: (farm: string, seq: number) => `chat:face:${farm}:${seq}`,
   /** The dewdrop on a message's chip, where its ripples spread. */
