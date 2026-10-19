@@ -9,8 +9,7 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import { Modal, Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BackHandler, Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { FullWindowOverlay } from 'react-native-screens';
 import Animated, {
   Easing,
@@ -28,6 +27,7 @@ import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
+import { setHintLayer } from './hint-layer';
 import { useHint, type Hint } from './hint-store';
 import { navBarHeight } from '../../ui/tab-bar/material-bar';
 import { tabBarFrame } from '../../ui/tab-bar/tab-bar';
@@ -211,6 +211,8 @@ function HintCard({
     <Layer onBack={state.ok}>
       <Animated.View
         style={[{ position: 'absolute', left: 0, top: 0, width, height }, scrim]}
+        // On Android the screen under the tip keeps its touches: the person can try what it shows.
+        pointerEvents={Platform.OS === 'android' ? 'none' : 'auto'}
         importantForAccessibility="no-hide-descendants"
         accessibilityElementsHidden
       >
@@ -302,22 +304,31 @@ function Layer({
     </View>
   );
   if (Platform.OS === 'ios') return <FullWindowOverlay>{body}</FullWindowOverlay>;
-  // Android has no window-wide layer above its sheets: the tip takes a see-through window of its
-  // own, edge to edge, and the back gesture puts it away as "OK" does.
-  if (Platform.OS === 'android') {
-    return (
-      <Modal
-        transparent
-        visible
-        animationType="none"
-        statusBarTranslucent
-        navigationBarTranslucent
-        onRequestClose={onBack}
-      >
-        {/* A window of its own needs its own gesture root for the card's buttons. */}
-        <GestureHandlerRootView style={{ flex: 1 }}>{body}</GestureHandlerRootView>
-      </Modal>
-    );
-  }
+  if (Platform.OS === 'android') return <AndroidLayer onBack={onBack}>{body}</AndroidLayer>;
   return body;
+}
+
+/**
+ * Android has no window-wide layer above its sheets: the tip goes in the app's own layer over
+ * every screen (`HintLayerHost`), which leaves the screen under it its touches, and the back
+ * gesture puts it away as "OK" does.
+ */
+function AndroidLayer({
+  children,
+  onBack,
+}: {
+  readonly children: ReactNode;
+  readonly onBack: () => void;
+}) {
+  // Every render: the card's words and place follow the screen.
+  useEffect(() => setHintLayer(children));
+  useEffect(() => () => setHintLayer(null), []);
+  useEffect(() => {
+    const back = BackHandler.addEventListener('hardwareBackPress', () => {
+      onBack();
+      return true;
+    });
+    return () => back.remove();
+  }, [onBack]);
+  return null;
 }
