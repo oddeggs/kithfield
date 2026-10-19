@@ -341,15 +341,22 @@ export function Composer({
           { flex: 1, color: palette.text, paddingTop: 10, paddingBottom: 10, maxHeight: 132 },
         ]}
         // A browser's text area takes its text as a value, not styled children, and sends on
-        // Return (Shift-Return for a new line), as a keyboard on a computer expects.
+        // Return (Shift-Return for a new line), as a keyboard on a computer expects. Return that
+        // ends an input method's composing (Vietnamese Telex, say) only commits the letters.
         {...(Platform.OS === 'web'
           ? {
               value: text,
               onKeyPress: (e: {
-                nativeEvent: { key: string; shiftKey?: boolean };
+                nativeEvent: {
+                  key: string;
+                  shiftKey?: boolean;
+                  isComposing?: boolean;
+                  keyCode?: number;
+                };
                 preventDefault: () => void;
               }) => {
-                if (e.nativeEvent.key !== 'Enter' || e.nativeEvent.shiftKey) return;
+                const { key, shiftKey, isComposing, keyCode } = e.nativeEvent;
+                if (key !== 'Enter' || shiftKey || isComposing || keyCode === 229) return;
                 e.preventDefault();
                 send();
               },

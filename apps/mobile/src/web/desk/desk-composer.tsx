@@ -131,10 +131,12 @@ export const DeskComposer = forwardRef<
   };
 
   const onKey = (e: {
-    nativeEvent: { key: string; shiftKey?: boolean; metaKey?: boolean };
+    nativeEvent: { key: string; shiftKey?: boolean; isComposing?: boolean; keyCode?: number };
     preventDefault: () => void;
   }) => {
-    const { key, shiftKey } = e.nativeEvent;
+    const { key, shiftKey, isComposing, keyCode } = e.nativeEvent;
+    // Keys while an input method composes (Vietnamese Telex, say) are its own: Return commits.
+    if (isComposing || keyCode === 229) return;
     if (open && matches.length > 0) {
       if (key === 'ArrowRight' || key === 'ArrowLeft') {
         e.preventDefault();
