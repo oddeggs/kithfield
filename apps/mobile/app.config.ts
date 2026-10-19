@@ -5,6 +5,15 @@ import { type ConfigPlugin, withInfoPlist } from 'expo/config-plugins';
 import { systemPermissionsEn } from '../../packages/i18n/src/system-permissions.en.ts';
 import { systemPermissionsVi } from '../../packages/i18n/src/system-permissions.vi.ts';
 import { day } from '../../packages/theme/src/colour.ts';
+import {
+  ANDROID_BLOCKED,
+  ANDROID_PERMISSIONS,
+  ANDROID_WIDGETS,
+  androidIntentFilters,
+  googleServicesFile,
+  NOTIFICATION_ICON,
+  withWidgetLabels,
+} from './android-config.ts';
 
 /**
  * The launch background (`13 Launch`): the farm's paper by day, and at night a warm dark that is
@@ -64,6 +73,12 @@ export interface VariantConfig {
   host: string;
   /** The Google OAuth client for iOS; the API accepts its ID tokens (`GOOGLE_IOS_CLIENT_ID`). */
   googleIosClientId: string;
+  /**
+   * The Google OAuth client for the Android app (its package and signing SHA-1), with custom URI
+   * schemes allowed; the API accepts its ID tokens through `GOOGLE_EXTRA_CLIENT_IDS`. Null until
+   * it exists: Android then offers email sign-in only.
+   */
+  googleAndroidClientId: string | null;
 }
 
 /** The `kithfield` project on the `kithfield` Expo account: https://expo.dev/accounts/kithfield/projects/kithfield */
@@ -97,6 +112,7 @@ export const VARIANTS: Record<AppVariant, VariantConfig> = {
     scheme: 'kithfield-dev',
     host: 'dev.kithfield.com',
     googleIosClientId: '564934268570-n2lmcq3r3vc060p5hsankdnisfnalk0v.apps.googleusercontent.com',
+    googleAndroidClientId: null,
   },
   prd: {
     name: 'Kithfield',
@@ -105,6 +121,7 @@ export const VARIANTS: Record<AppVariant, VariantConfig> = {
     scheme: 'kithfield',
     host: 'kithfield.com',
     googleIosClientId: '564934268570-jr7d94ci3jtb88sm4uqio1pjoatb3l31.apps.googleusercontent.com',
+    googleAndroidClientId: null,
   },
 };
 
@@ -121,6 +138,12 @@ export interface BuildEnv {
   apiBase: string | undefined;
   /** RevenueCat's public SDK key for this variant's App Store app (`REVENUECAT_IOS_KEY`). */
   revenueCatIosKey: string | undefined;
+  /** RevenueCat's public SDK key for this variant's Play app (`REVENUECAT_ANDROID_KEY`). */
+  revenueCatAndroidKey?: string | undefined;
+  /** The Android Google OAuth client, until it is written into `VARIANTS` (`GOOGLE_ANDROID_CLIENT_ID`). */
+  googleAndroidClientId?: string | undefined;
+  /** The Firebase app's `google-services.json`, for push: a file that exists, or unset. */
+  googleServicesJson?: string | undefined;
 }
 
 const isSet = (value: string | undefined): value is string => value !== undefined && value !== '';
@@ -161,7 +184,13 @@ const PERMISSION_PLUGINS: NonNullable<ExpoConfig['plugins']> = [
   // Silent pushes (`SurfaceRefreshData`) wake the app to redraw its widgets and activities.
   [
     'expo-notifications',
-    { enableRemoteNotifications: true, enableBackgroundRemoteNotifications: true },
+    {
+      enableRemoteNotifications: true,
+      enableBackgroundRemoteNotifications: true,
+      // Android's status bar icon, tinted with the moss of the farm's buttons.
+      icon: NOTIFICATION_ICON,
+      color: day.moss,
+    },
   ],
   [
     'expo-camera',
@@ -313,9 +342,13 @@ export const PRIVACY_MANIFEST = {
 export function buildConfig(
   config: ConfigContext['config'],
   appVariant: AppVariant,
-  { apiBase, revenueCatIosKey }: BuildEnv,
+  { apiBase, revenueCatIosKey, revenueCatAndroidKey, ...android }: BuildEnv,
 ): ExpoConfig {
   const variant = VARIANTS[appVariant];
+  const googleAndroidClientId = isSet(android.googleAndroidClientId)
+    ? android.googleAndroidClientId
+    : variant.googleAndroidClientId;
+  const googleServices = android.googleServicesJson;
   const app: ExpoConfig = {
     ...config,
     name: variant.name,
@@ -363,6 +396,16 @@ export function buildConfig(
         monochromeImage: `${ICON_DIR}/android-monochrome.png`,
         backgroundColor: LAUNCH_BACKGROUND.day,
       },
+      permissions: ANDROID_PERMISSIONS,
+      blockedPermissions: ANDROID_BLOCKED,
+      // Android 14's back preview: stack screens and sheets show what's behind as you swipe.
+      predictiveBackGestureEnabled: true,
+      // Google sends an Android client's sheet back to the package name, a scheme the app claims.
+      intentFilters: androidIntentFilters(
+        variant.host,
+        googleAndroidClientId === null ? null : variant.bundleIdentifier,
+      ),
+      ...(googleServices !== undefined ? { googleServicesFile: googleServices } : {}),
     },
     locales: { vi: { ios: usageStrings(systemPermissionsVi) } },
     plugins: [
@@ -375,6 +418,8 @@ export function buildConfig(
       ...PERMISSION_PLUGINS,
       // Links each folder in `targets/` as an extension, signed by the same team.
       '@bacons/apple-targets',
+      // The home-screen widgets, drawn from what the app writes (`features/android/widgets`).
+      ['react-native-android-widget', { widgets: ANDROID_WIDGETS }],
     ],
     experiments: {
       typedRoutes: true,
@@ -385,21 +430,26 @@ export function buildConfig(
       apiBase: isSet(apiBase) ? apiBase : `https://${variant.host}/api`,
       appGroup: variant.appGroup,
       googleIosClientId: variant.googleIosClientId,
+      ...(googleAndroidClientId !== null ? { googleAndroidClientId } : {}),
       // A public key, read at runtime; left out when unset (purchases are unavailable). Not null:
       // the dev manifest turns a null into `{}`.
       ...(isSet(revenueCatIosKey) ? { revenueCatIosKey } : {}),
+      ...(isSet(revenueCatAndroidKey) ? { revenueCatAndroidKey } : {}),
       eas: { projectId: EAS_PROJECT_ID },
     },
   };
-  const withModes = withBackgroundModes(app, BACKGROUND_MODES);
+  const withModes = withWidgetLabels(withBackgroundModes(app, BACKGROUND_MODES));
   return appVariant === 'prd' ? withoutLocalNetworking(withModes) : withModes;
 }
 
 // React Native's globals type `process` loosely; this file runs in Node, where each value is a string.
 const env = process.env as Partial<Record<string, string>>;
 
-export default ({ config }: ConfigContext): ExpoConfig =>
+export default ({ config, projectRoot }: ConfigContext): ExpoConfig =>
   buildConfig(config, resolveVariant(env['APP_VARIANT']), {
     apiBase: env['API_BASE'],
     revenueCatIosKey: env['REVENUECAT_IOS_KEY'],
+    revenueCatAndroidKey: env['REVENUECAT_ANDROID_KEY'],
+    googleAndroidClientId: env['GOOGLE_ANDROID_CLIENT_ID'],
+    googleServicesJson: googleServicesFile(env['GOOGLE_SERVICES_JSON'], projectRoot),
   });

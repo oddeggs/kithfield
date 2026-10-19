@@ -49,7 +49,10 @@ export type Platform = z.infer<typeof Platform>;
 export const RegisterDeviceRequest = z.object({
   platform: Platform,
   name: text(64),
-  /** Expo push token; null until notifications are allowed. */
+  /**
+   * Expo push token (iOS) or the device's own FCM token (Android); null until notifications are
+   * allowed.
+   */
   pushToken: z.string().min(1).max(256).nullable(),
   appVersion: z.string().regex(/^\d+\.\d+\.\d+( \(\d+\))?$/),
   /** The app's own bundle id: the store app and a development build reach the same server. */

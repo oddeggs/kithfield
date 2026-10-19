@@ -9,7 +9,8 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Modal, Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FullWindowOverlay } from 'react-native-screens';
 import Animated, {
   Easing,
@@ -28,6 +29,7 @@ import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { useHint, type Hint } from './hint-store';
+import { navBarHeight } from '../../ui/tab-bar/material-bar';
 import { tabBarFrame } from '../../ui/tab-bar/tab-bar';
 
 /** The spotlight's ease in and the card's rise (`12 States`, first-run hints). */
@@ -152,7 +154,11 @@ function HintCard({
     if (!spot && !tabBar) return null;
     const b = Skia.PathBuilder.Make();
     if (spot) b.addCircle(spot.x, spot.y, spot.r);
-    if (tabBar) {
+    if (tabBar && Platform.OS === 'android') {
+      // Android's navigation bar runs the full width along the bottom edge.
+      const bar = navBarHeight(insets.bottom);
+      b.addRect({ x: 0, y: height - bar, width, height: bar });
+    } else if (tabBar) {
       const r = sizes.tabBar / 2;
       b.addRRect({
         rect: {
@@ -166,7 +172,7 @@ function HintCard({
       });
     }
     return b.build();
-  }, [spot, tabBar, width, height, barBottom]);
+  }, [spot, tabBar, width, height, barBottom, insets.bottom]);
 
   // Wider when the text is large, so the card keeps a few words a line.
   const cardW = fontScale > 1.3 ? width - 32 : CARD_W;
@@ -202,7 +208,7 @@ function HintCard({
     );
 
   return (
-    <Layer>
+    <Layer onBack={state.ok}>
       <Animated.View
         style={[{ position: 'absolute', left: 0, top: 0, width, height }, scrim]}
         importantForAccessibility="no-hide-descendants"
@@ -283,12 +289,35 @@ function HintCard({
  * The window-wide layer the toasts use, so a tip shows over everything on the screen without
  * presenting anything (an RN `Modal` would hide the screen from VoiceOver and the tab bar's place).
  */
-function Layer({ children }: { readonly children: ReactNode }) {
+function Layer({
+  children,
+  onBack,
+}: {
+  readonly children: ReactNode;
+  readonly onBack: () => void;
+}) {
   const body = (
     <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
       {children}
     </View>
   );
-  if (Platform.OS !== 'ios') return body;
-  return <FullWindowOverlay>{body}</FullWindowOverlay>;
+  if (Platform.OS === 'ios') return <FullWindowOverlay>{body}</FullWindowOverlay>;
+  // Android has no window-wide layer above its sheets: the tip takes a see-through window of its
+  // own, edge to edge, and the back gesture puts it away as "OK" does.
+  if (Platform.OS === 'android') {
+    return (
+      <Modal
+        transparent
+        visible
+        animationType="none"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={onBack}
+      >
+        {/* A window of its own needs its own gesture root for the card's buttons. */}
+        <GestureHandlerRootView style={{ flex: 1 }}>{body}</GestureHandlerRootView>
+      </Modal>
+    );
+  }
+  return body;
 }

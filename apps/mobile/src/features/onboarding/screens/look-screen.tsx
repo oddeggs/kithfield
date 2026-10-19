@@ -1,7 +1,9 @@
 import { LIMITS } from '@kithfield/contracts';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, Text, useWindowDimensions, View } from 'react-native';
+import { Text, useWindowDimensions, View } from 'react-native';
+
+import { promptText } from '../../../../modules/android-system';
 
 import { ApiError } from '../../../data/api-client';
 import { Avatar } from '../../../ui/art/avatar';
@@ -40,7 +42,7 @@ type Tab = 'coat' | 'mark' | 'accessory';
 export function LookScreen() {
   const router = useRouter();
   const { t, language } = useLocale();
-  const { palette } = useTheme();
+  const { palette, appearance } = useTheme();
   const inks = useInks();
   const { width } = useWindowDimensions();
   const top = useDesignTop();
@@ -66,23 +68,21 @@ export function LookScreen() {
   const check = farmmateCheck(choice, farmmates);
 
   const askName = (then?: (name: string) => void) =>
-    Alert.prompt(
-      t('onboarding.look.namePrompt'),
-      t('onboarding.look.namePromptBody'),
-      [
-        { text: t('onboarding.look.cancel'), style: 'cancel' },
-        {
-          text: t('onboarding.look.save'),
-          onPress: (value?: string) => {
-            const typed = (value ?? '').trim().slice(0, LIMITS.displayName);
-            if (!typed) return;
-            update({ name: typed });
-            then?.(typed);
-          },
-        },
-      ],
-      'plain-text',
-      name,
+    promptText(
+      {
+        title: t('onboarding.look.namePrompt'),
+        message: t('onboarding.look.namePromptBody'),
+        ok: t('onboarding.look.save'),
+        cancel: t('onboarding.look.cancel'),
+        ...(name ? { initial: name } : {}),
+        dark: appearance === 'night',
+      },
+      (value) => {
+        const typed = value.trim().slice(0, LIMITS.displayName);
+        if (!typed) return;
+        update({ name: typed });
+        then?.(typed);
+      },
     );
 
   const moveIn = async (chosenName: string) => {

@@ -1,4 +1,4 @@
-import type { NotificationAction } from '@kithfield/contracts';
+import type { NotificationAction, SurfaceData } from '@kithfield/contracts';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useMemo, useRef } from 'react';
 import { AppState, Image, Platform } from 'react-native';
@@ -9,13 +9,17 @@ import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useSession } from '../../ui/session/session';
 import { useUpload } from '../media';
+import { setUpChannels } from '../android/notification-channels';
+import { useAndroidShares } from '../android/use-android-shares';
+import { androidSurfaceRoot } from '../android/surface-root';
+import { reloadAndroidWidgets } from '../android/widgets/reload';
 import { useMessagesSync } from '../stickers/export/use-messages-sync';
 import { followActivityTokens } from './activity-tokens';
 import { registerBackgroundTask, takeWoken } from './background';
 import { clearSurfacesForSignOut, writtenForSomeoneElse } from './clear';
 import { endOrphanFireActivities } from './fire-activity';
 import { groupRoot, nativeGroupStore } from './group-store';
-import { ACTION_TITLES, categories } from './notification-actions';
+import { ACTION_TITLES, categories, DEFAULT_ACTION } from './notification-actions';
 import { openTarget } from './open';
 import { appScheme } from './scheme';
 import type { ShareSender, SharedFile } from './share-outbox';
@@ -77,13 +81,24 @@ function useShareSender(): ShareSender {
 }
 
 /**
+ * Android leaves a push in the shade after one of its actions; iOS puts it away. Once the action
+ * is answered, Android's goes too.
+ */
+function answeredOnAndroid(id: string, action: string) {
+  if (Platform.OS !== 'android' || action === DEFAULT_ACTION) return;
+  void Notifications.dismissNotificationAsync(id).catch(() => undefined);
+}
+
+/**
  * The native surfaces' side in the app, mounted once under the data layer: see `surfaces.ts`.
  * It renders nothing.
  */
 export function SurfacesHost() {
   const session = useSession();
   const me = session.status === 'signedIn' && session.onboarded ? session.person?.id : null;
-  if (Platform.OS !== 'ios' || me === undefined || me === null) return null;
+  // Android has no App Group or Live Activities, but the same widgets, pushes and their actions.
+  const native = Platform.OS === 'ios' || Platform.OS === 'android';
+  if (!native || me === undefined || me === null) return null;
   return <Running me={me} />;
 }
 
@@ -97,11 +112,12 @@ function Running({ me }: { readonly me: string }) {
   const lang = useRef(language);
   lang.current = language;
   const surfacesRef = useRef<Surfaces | null>(null);
+  const androidShares = useAndroidShares();
   // The Messages drawer keeps wearing what the critter wears now.
   useMessagesSync();
 
   useEffect(() => {
-    const root = groupRoot();
+    const root = Platform.OS === 'android' ? androidSurfaceRoot() : groupRoot();
     if (root === null) return;
     const report = (error: unknown) => {
       if (__DEV__) console.warn('surfaces', error);
@@ -117,6 +133,9 @@ function Running({ me }: { readonly me: string }) {
       open: openTarget,
       sharesRefused: () => toast.show(t('surfaces.share.failed')),
       report,
+      ...(Platform.OS === 'android'
+        ? { reloadWidgets: (data: SurfaceData) => reloadAndroidWidgets(art, data) }
+        : {}),
     });
     surfacesRef.current = surfaces;
     const stopTokens = followActivityTokens(client, report);
@@ -125,6 +144,7 @@ function Running({ me }: { readonly me: string }) {
         await surfaces.refresh({ force: true, catchUp: [event.data.farm] });
       } else {
         await surfaces.respond(event);
+        if (event.kind === 'response') answeredOnAndroid(event.id, event.action);
       }
     });
     registerBackgroundTask().catch(report);
@@ -150,6 +170,7 @@ function Running({ me }: { readonly me: string }) {
           data: request.content.data,
           at: response.notification.date,
         })
+        .then(() => answeredOnAndroid(request.identifier, response.actionIdentifier))
         .catch(report);
     };
     const responses = Notifications.addNotificationResponseReceivedListener(respond);
@@ -158,6 +179,9 @@ function Running({ me }: { readonly me: string }) {
       respond(last);
       Notifications.clearLastNotificationResponse();
     }
+
+    // Android: what another app shared waits for a farm, then goes out as the extension's would.
+    const stopAndroidShares = androidShares(nativeGroupStore(root), () => surfaces.shares());
 
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') void surfaces.refresh().then(() => surfaces.shares());
@@ -172,12 +196,18 @@ function Running({ me }: { readonly me: string }) {
       stopWoken();
       responses.remove();
       appState.remove();
+      stopAndroidShares();
     };
-  }, [client, art, me, shares, t, toast]);
+  }, [client, art, me, shares, t, toast, androidShares]);
 
   // The lock-screen actions, titled in the person's language. One at a time: each call reads the
   // categories already set and writes them back with its own, so calls side by side lose one.
   useEffect(() => {
+    if (Platform.OS === 'android') {
+      setUpChannels(t).catch((error: unknown) => {
+        if (__DEV__) console.warn('surfaces: channels', error);
+      });
+    }
     const set = categories((action: NotificationAction) => t(ACTION_TITLES[action]));
     void (async () => {
       for (const category of set) {

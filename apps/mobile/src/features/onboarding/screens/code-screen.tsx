@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   useAnimatedKeyboard,
   useAnimatedStyle,
@@ -152,7 +152,7 @@ export function CodeScreen() {
   } as const;
   const noteText = (
     <Txt variant="caption" multiline color={inks.note.fg} style={{ lineHeight: 18.9 }}>
-      {t('onboarding.code.note')}
+      {t(Platform.OS === 'android' ? 'android.code.note' : 'onboarding.code.note')}
     </Txt>
   );
 

@@ -3,7 +3,7 @@ import type { FarmView } from '@kithfield/farm';
 import { screens } from '@kithfield/theme';
 import { router, useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { Platform, View, useWindowDimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -63,6 +63,7 @@ import { reactionTo, SAID_MS, type FarmReaction } from './reactions';
 import { useNow } from './use-now';
 import { useOpenMoments } from './use-open-moments';
 import { useValley } from './valley-store';
+import { DewdropFab } from '../android/dewdrop-fab';
 
 /** The sheet overlaps the bottom of the farm by this much (the farm is drawn 540 tall, the sheet rests at 500). */
 const OVERLAP = 40;
@@ -322,6 +323,8 @@ function FarmFor({
           </SheetScrollView>
         </Sheet>
       ) : null}
+      {/* Android's dewdrop FAB over the sheet (`14 Platforms`). */}
+      {Platform.OS === 'android' && state && !large ? <DewdropFab farm={farm} /> : null}
     </View>
   );
 }

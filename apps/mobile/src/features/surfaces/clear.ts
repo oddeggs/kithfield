@@ -1,6 +1,9 @@
 import { ExtensionStorage } from '@bacons/apple-targets';
+import { Platform } from 'react-native';
 
 import { surfaces } from '../../../modules/surfaces';
+import { androidSurfaceRoot } from '../android/surface-root';
+import { redrawWidgets } from '../android/widgets/redraw';
 import { groupRoot, nativeGroupStore, type GroupStore } from './group-store';
 
 /*
@@ -56,7 +59,8 @@ export async function writtenForSomeoneElse(group: GroupStore, me: string): Prom
 
 /** Clears the surfaces on this phone; see `clearSurfaces`. Safe where they aren't built in. */
 export function clearSurfacesForSignOut(): Promise<void> {
-  const root = groupRoot();
+  const android = Platform.OS === 'android';
+  const root = android ? androidSurfaceRoot() : groupRoot();
   return clearSurfaces({
     group: root === null ? null : nativeGroupStore(root),
     activities: {
@@ -64,10 +68,14 @@ export function clearSurfacesForSignOut(): Promise<void> {
       end: (id) => surfaces?.endActivity(id, null) ?? Promise.resolve(),
     },
     reload: () => {
+      if (android) {
+        void redrawWidgets().catch(() => undefined);
+        return;
+      }
       try {
         ExtensionStorage.reloadWidget();
       } catch {
-        // No widgets here (tests, Android).
+        // No widgets here (tests).
       }
     },
   });

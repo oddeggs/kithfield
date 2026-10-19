@@ -3,6 +3,8 @@
 import type { FeatureCatalogues } from './catalogue-types';
 import { aiEn } from './ai.en';
 import { aiSameInBoth, aiVi } from './ai.vi';
+import { androidEn } from './android.en';
+import { androidVi } from './android.vi';
 import { chatEn } from './chat.en';
 import { chatSameInBoth, chatVi } from './chat.vi';
 import { deletionCodeEn } from './deletion-code.en';
@@ -73,6 +75,7 @@ import { websitePagesSameInBoth, websitePagesVi } from './website-pages.vi';
 /** Every feature catalogue pair, in file-name order. */
 export const features: readonly FeatureCatalogues[] = [
   { name: 'ai', file: 'ai', en: aiEn, vi: aiVi, sameInBoth: aiSameInBoth },
+  { name: 'android', file: 'android', en: androidEn, vi: androidVi, sameInBoth: [] },
   { name: 'chat', file: 'chat', en: chatEn, vi: chatVi, sameInBoth: chatSameInBoth },
   { name: 'deletionCode', file: 'deletion-code', en: deletionCodeEn, vi: deletionCodeVi, sameInBoth: [] },
   { name: 'deletionScheduled', file: 'deletion-scheduled', en: deletionScheduledEn, vi: deletionScheduledVi, sameInBoth: [] },
@@ -111,6 +114,7 @@ export const features: readonly FeatureCatalogues[] = [
 /** The source catalogue: every key, in English. */
 export const en = {
   ...aiEn,
+  ...androidEn,
   ...chatEn,
   ...deletionCodeEn,
   ...deletionScheduledEn,
@@ -149,6 +153,7 @@ export const en = {
 /** Every key, in Vietnamese. */
 export const vi = {
   ...aiVi,
+  ...androidVi,
   ...chatVi,
   ...deletionCodeVi,
   ...deletionScheduledVi,
