@@ -7,9 +7,6 @@ export const androidVi: ViCatalogue<typeof androidEn> = {
     'Kế hoạch cần bạn đồng ý, món đồ trước cửa nhà bạn, và lời @nhắc tên.',
   'android.channel.messages.name': 'Mọi tin nhắn',
   'android.channel.messages.description': 'Hầu hết mọi người để tắt.',
-  'android.channel.quiet.name': 'Vài điều nho nhỏ',
-  'android.channel.quiet.description':
-    'Lời tóm tắt nhẹ nhàng khi nông trại có nhiều chuyện. Không bao giờ có tiếng.',
 
   'android.widget.nextPlan.name': 'Kế hoạch tới',
   'android.widget.nextPlan.description':
@@ -31,4 +28,13 @@ export const androidVi: ViCatalogue<typeof androidEn> = {
   'android.store.unavailable': 'Điện thoại này chưa kết nối được Google Play lúc này.',
   'android.delete.purchases': 'Những gì đã mua vẫn ở với tài khoản Google nếu bạn quay lại',
   'android.delete.biometric': 'Bạn sẽ xác nhận bằng vân tay, khuôn mặt hoặc khoá màn hình.',
+  'android.photos.notNow': 'Để sau',
+  'android.shop.disclosure':
+    ' với giá {month} một tháng, hoặc {year} một năm, cho đến khi bạn huỷ. Farm Plus gia hạn với giá {plus} một tháng. Tiền được trừ vào tài khoản Google Play khi bạn xác nhận. Gói tự gia hạn trừ khi bạn huỷ trước khi kỳ hiện tại kết thúc. Quản lý hoặc huỷ bất cứ lúc nào trong Google Play › Thanh toán và gói thuê bao › Gói thuê bao.',
+  'android.shop.priceUnknown': 'giá của Google Play',
+  'android.shop.grace': 'Google Play đang thử thanh toán lại. Quyền lợi vẫn giữ trong lúc đó.',
+  'android.shop.cancel': 'Huỷ trong Google Play',
+  'android.fire.captionsFree':
+    'Phụ đề miễn phí nếu bạn bật Phụ đề trực tiếp trong cài đặt hỗ trợ tiếp cận của điện thoại.',
+  'android.fire.share': 'Chia sẻ màn hình từ điện thoại này chưa sẵn sàng.',
 };
