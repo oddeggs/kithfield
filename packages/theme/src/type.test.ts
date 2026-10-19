@@ -10,8 +10,8 @@ const SPEC =
   /^(Young Serif|Gaegu|SF Pro)(?: (Bold|Semibold))? ([\d.]+)(?: \/ ([\d.]+))?(?:, \+([\d.]+)% tracking)?(?: · (\w+)(?: \([−-]\d+\))?)?$/;
 
 const FACES: Record<string, Face> = {
-  'Young Serif': 'youngSerif',
-  Gaegu: 'gaegu',
+  'Young Serif': 'display',
+  Gaegu: 'hand',
   'SF Pro': 'system',
 };
 const WEIGHTS: Record<string, Weight> = { '': 400, Semibold: 600, Bold: 700 };

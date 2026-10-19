@@ -1,5 +1,48 @@
 import { FONT_LINE_HEIGHT } from './font-metrics.generated';
-import { type Face, type TypeStyle, type TypeStyleKey, type Weight, type } from './type';
+import { hand } from './hand';
+import { type, type TypeStyle, type TypeStyleKey, type Weight } from './type';
+
+/** One static cut of the display face, used for text designed at sizes below `below`. */
+export interface DisplayCut {
+  name:
+    | 'Fraunces18ptSuperSoft-SemiBold'
+    | 'Fraunces36ptSuperSoft-SemiBold'
+    | 'Fraunces72ptSuperSoft-SemiBold';
+  /** The optical size it is cut at. */
+  opsz: number;
+  /** The designed sizes it sets: from the previous cut's `below` up to this one. */
+  below: number;
+  /**
+   * Its size over the designed size: the design is drawn in Young Serif, and this keeps each
+   * style's x-height, width and line box where the design has them.
+   */
+  sizeAdjust: number;
+}
+
+/**
+ * The display face (titles, farm names): Fraunces, fully soft (SOFT 100) and wonky (WONK 1),
+ * semibold, cut at three optical sizes. Both languages read in it.
+ */
+export const display = {
+  family: 'Fraunces',
+  weight: 600,
+  cuts: [
+    { name: 'Fraunces18ptSuperSoft-SemiBold', opsz: 18, below: 24, sizeAdjust: 1.06 },
+    { name: 'Fraunces36ptSuperSoft-SemiBold', opsz: 36, below: 48, sizeAdjust: 1.07 },
+    { name: 'Fraunces72ptSuperSoft-SemiBold', opsz: 72, below: Infinity, sizeAdjust: 1.08 },
+  ],
+} as const satisfies { family: string; weight: Weight; cuts: readonly DisplayCut[] };
+
+/**
+ * The fonts `kithfield-art.js` writes its scenes' words in (sticker captions, the week page,
+ * labels), by the names its CSS gives them. The app's own text uses none of them; they stay
+ * embedded until the art names the app's faces.
+ */
+export const artFonts = {
+  youngSerif: 'YoungSerif-Regular',
+  gaeguBold: 'Gaegu-Bold',
+  patrickHand: 'PatrickHand-Regular',
+} as const;
 
 /**
  * The embedded fonts, by the name each registers under: the PostScript name, which is also the
@@ -7,66 +50,63 @@ import { type Face, type TypeStyle, type TypeStyleKey, type Weight, type } from 
  * the file or the name it is loaded as).
  */
 export const fonts = {
-  youngSerif: 'YoungSerif-Regular',
-  gaeguBold: 'Gaegu-Bold',
-  patrickHand: 'PatrickHand-Regular',
-  lora: 'Lora-Regular',
-  loraSemiBold: 'Lora-SemiBold',
+  display18: display.cuts[0].name,
+  display36: display.cuts[1].name,
+  display72: display.cuts[2].name,
+  hand: hand.name,
+  ...artFonts,
 } as const;
 
 export type FontName = (typeof fonts)[keyof typeof fonts];
 
 export interface FontFace {
   name: FontName;
-  /** The family as the design's CSS names it. */
+  /** The family it registers under. */
   family: string;
   weight: Weight;
   /** File name in `@kithfield/theme/fonts/`. */
   file: `${FontName}.ttf`;
-  /** The design's CSS stack for this family. */
-  css: string;
 }
 
-const face = (name: FontName, family: string, weight: Weight, css: string): FontFace => ({
+const face = (name: FontName, family: string, weight: Weight): FontFace => ({
   name,
   family,
   weight,
   file: `${name}.ttf`,
-  css,
 });
 
-/** Every embedded font. Young Serif and Gaegu have no Vietnamese; Patrick Hand and Lora do. */
+/** The fonts the app's own text is set in. */
 export const fontFaces: readonly FontFace[] = [
-  face(fonts.youngSerif, 'Young Serif', 400, "'Young Serif',Georgia,serif"),
-  face(fonts.gaeguBold, 'Gaegu', 700, 'Gaegu,cursive'),
-  face(fonts.patrickHand, 'Patrick Hand', 400, "'Patrick Hand',cursive"),
-  face(fonts.lora, 'Lora', 400, "'Lora',Georgia,serif"),
-  face(fonts.loraSemiBold, 'Lora', 600, "'Lora',Georgia,serif"),
+  ...display.cuts.map((c) =>
+    face(c.name, `${display.family} ${c.opsz}pt SuperSoft`, display.weight),
+  ),
+  face(hand.name, hand.family, hand.weight),
+];
+
+/** The art's fonts, as `kithfield-art.js` names their families in CSS. */
+export const artFontFaces: readonly FontFace[] = [
+  face(artFonts.youngSerif, 'Young Serif', 400),
+  face(artFonts.gaeguBold, 'Gaegu', 700),
+  face(artFonts.patrickHand, 'Patrick Hand', 400),
 ];
 
 /** The system face (SF Pro) as the design's CSS names it. */
 export const systemCss = '-apple-system,system-ui';
 
 /**
- * Vietnamese swaps the whole stack, never glyph by glyph: display becomes Lora 600 and hand
- * becomes Patrick Hand, set 2 points larger. SF Pro covers Vietnamese and stays.
+ * Vietnamese stacks its marks above capitals, higher than Fraunces' ascender ("Ễ" reaches 1.07
+ * em over its 0.98 em), so in Vietnamese no line is set tighter than this, and stacked marks never
+ * touch the line above. Kithfield Hand keeps its stacks inside its ascender ("Ẳ" at 746 of 760).
  *
- * Text set in the hand face must be precomposed (NFC): Patrick Hand has every precomposed
- * Vietnamese letter but no combining circumflex (U+0302) or breve (U+0306), so decomposed text
- * would fall back to another font inside a word. Catalogue copy is NFC-checked; normalise
- * user-typed text with `text.normalize('NFC')` before rendering it.
+ * Display text must be precomposed (NFC): Fraunces has every precomposed Vietnamese letter but no
+ * combining hook above (U+0309) or dot below (U+0323), so decomposed text would fall back to
+ * another font inside a word. Normalise user-typed text with `text.normalize('NFC')` before
+ * rendering it. Kithfield Hand composes decomposed text itself.
  */
 export const vietnamese = {
-  youngSerif: { font: fonts.loraSemiBold, sizeDelta: 0 },
-  gaegu: { font: fonts.patrickHand, sizeDelta: 2 },
   /** Wrapping text rises to at least this line height so stacked marks never touch. */
   minLineHeightRatio: 1.4,
 } as const;
-
-const english: Record<Exclude<Face, 'system'>, FontName> = {
-  youngSerif: fonts.youngSerif,
-  gaegu: fonts.gaeguBold,
-};
 
 /** A text style resolved for one locale, shaped to spread into a React Native or web style. */
 export interface TextFont {
@@ -91,25 +131,40 @@ export function isVietnamese(locale: string): boolean {
   return l === 'vi' || l.startsWith('vi-');
 }
 
-/** The type style `style` as set in `locale`, with the Vietnamese stack swapped in. */
+/** The display cut for text designed at `size`. */
+export function displayCut(size: number): DisplayCut {
+  return display.cuts.find((c) => size < c.below) ?? display.cuts[2];
+}
+
+/** The display cut and size that set display text designed at `size`, keeping its line box. */
+export function displayAt(size: number): { fontFamily: FontName; fontSize: number } {
+  const { name, sizeAdjust } = displayCut(size);
+  return { fontFamily: name, fontSize: Math.round(size * sizeAdjust * 4) / 4 };
+}
+
+/**
+ * The type style `style` as set in `locale`. Both languages share the faces: display text is in
+ * Fraunces, sized to keep the design's box, and hand text is in Kithfield Hand at the design's
+ * size.
+ */
 export function fontFor(
   style: TypeStyleKey | TypeStyle,
   locale: string,
   options: FontOptions = {},
 ): TextFont {
   const s = typeof style === 'string' ? type[style] : style;
-  const vi = isVietnamese(locale);
-  const swap = vi && s.face !== 'system' ? vietnamese[s.face] : null;
-  const fontSize = s.size + (swap?.sizeDelta ?? 0);
-  let lineHeight = Math.round((s.lineHeight * fontSize) / s.size);
-  if (vi && options.multiline) {
-    lineHeight = Math.max(lineHeight, Math.round(fontSize * vietnamese.minLineHeightRatio));
+  const face: Pick<TextFont, 'fontFamily' | 'fontWeight' | 'fontSize'> =
+    s.face === 'display'
+      ? displayAt(s.size)
+      : s.face === 'hand'
+        ? { fontFamily: hand.name, fontSize: s.size }
+        : { fontWeight: String(s.weight) as NonNullable<TextFont['fontWeight']>, fontSize: s.size };
+  let lineHeight = s.lineHeight;
+  if (isVietnamese(locale) && options.multiline) {
+    lineHeight = Math.max(lineHeight, Math.round(face.fontSize * vietnamese.minLineHeightRatio));
   }
   return {
-    ...(s.face === 'system'
-      ? { fontWeight: String(s.weight) as NonNullable<TextFont['fontWeight']> }
-      : { fontFamily: swap?.font ?? english[s.face] }),
-    fontSize,
+    ...face,
     lineHeight,
     letterSpacing: s.letterSpacing,
     ...(s.uppercase ? { textTransform: 'uppercase' as const } : {}),

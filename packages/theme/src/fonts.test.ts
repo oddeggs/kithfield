@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  artFontFaces,
+  display,
+  displayAt,
+  displayCut,
   fontFaces,
   fontFor,
   fonts,
@@ -10,70 +14,64 @@ import {
   systemCss,
   vietnamese,
 } from './fonts';
+import { hand } from './hand';
 import { between, foundations, num, one, readDesign, textOf } from './test/design';
 import { type } from './type';
 
-const faceOf = (name: string) => {
-  const f = fontFaces.find((x) => x.name === name);
-  if (!f) throw new Error(`no embedded font ${name}`);
-  return f;
-};
-
 const states = readDesign('12 States.dc.html');
 
-describe('the Vietnamese stack matches the design', () => {
-  it('swaps display and hand as 01 Foundations says', () => {
-    const [loraWeight] = one(
-      textOf(between(foundations(), 'id="type"', 'id="space"')),
-      /For Vietnamese, Young Serif becomes Lora (\d+) and Gaegu becomes Patrick Hand/,
-    ).map(num);
-    expect(faceOf(vietnamese.youngSerif.font)).toMatchObject({
-      family: 'Lora',
-      weight: loraWeight,
-    });
-    expect(faceOf(vietnamese.gaegu.font)).toMatchObject({ family: 'Patrick Hand', weight: 400 });
+describe('the faces', () => {
+  it('cut the display face at optical sizes that rise with the designed size', () => {
+    expect(display.cuts.map((c) => c.opsz)).toEqual([18, 36, 72]);
+    expect(displayCut(17).name).toBe(fonts.display18);
+    expect(displayCut(23.5).name).toBe(fonts.display18);
+    expect(displayCut(24).name).toBe(fonts.display36);
+    expect(displayCut(34).name).toBe(fonts.display36);
+    expect(displayCut(60).name).toBe(fonts.display72);
   });
 
-  it('agrees with the developer note for the Vietnamese state', () => {
-    expect(textOf(states)).toContain('swap display to Lora 600 and hand to Patrick Hand');
+  it('keep the design’s line box and scale the display size to Fraunces', () => {
+    expect(displayAt(34)).toEqual({ fontFamily: fonts.display36, fontSize: 36.5 });
+    expect(displayAt(60)).toEqual({ fontFamily: fonts.display72, fontSize: 64.75 });
   });
 
-  it('sets each swapped face at the size the whole-stack sample does', () => {
+  it('keep the art’s fonts under the names the art’s CSS uses', () => {
+    const art = readDesign('kithfield-art.js');
+    for (const f of artFontFaces) expect(art, f.family).toContain(f.family);
+    const embedded = new Set(Object.values(fonts));
+    for (const f of [...fontFaces, ...artFontFaces])
+      expect(embedded.has(f.name), f.name).toBe(true);
+  });
+
+  it('name the system face as the design’s CSS does', () => {
+    expect(foundations()).toContain(systemCss);
+  });
+});
+
+describe('the Vietnamese line height', () => {
+  it('rises as the developer note for the Vietnamese state says', () => {
     const block = between(states, 'id="vi-fonts"', 'More empty states');
-    const [display, hand] = one(
-      block,
-      /font:400 (\d+)px\/1\.2 'Young Serif'.*?font:700 (\d+)px\/1\.2 Gaegu/s,
-    ).map(num);
-    const [lora, patrick] = one(
-      block,
-      /font:600 (\d+)px\/1\.2 'Lora'.*?font:400 (\d+)px\/1\.2 'Patrick Hand'/s,
-    ).map(num);
-    expect(vietnamese.youngSerif.sizeDelta).toBe(lora! - display!);
-    expect(vietnamese.gaegu.sizeDelta).toBe(patrick! - hand!);
     const [ratio] = one(textOf(block), /line height rises to ([\d.]+)/).map(num);
     expect(vietnamese.minLineHeightRatio).toBe(ratio);
-  });
-
-  it('names every family with the CSS stack the design uses', () => {
-    const design = foundations() + states + readDesign('17 Landing VI.dc.html');
-    for (const f of fontFaces)
-      expect(design, f.name).toMatch(
-        new RegExp(`font:${f.weight} [\\d.]+px/[\\d.]+ ${f.css.replace(/[()]/g, '\\$&')}`),
-      );
-    expect(design).toContain(systemCss);
   });
 });
 
 describe('fontFor', () => {
-  it('sets English in Young Serif, Gaegu and the system face', () => {
+  it('sets display in Fraunces, hand in Kithfield Hand, and the system face by weight', () => {
     expect(fontFor('displayL', 'en')).toEqual({
-      fontFamily: fonts.youngSerif,
-      fontSize: 34,
+      fontFamily: fonts.display36,
+      fontSize: 36.5,
       lineHeight: 37,
       letterSpacing: 0,
     });
+    expect(fontFor('displayS', 'en')).toEqual({
+      fontFamily: fonts.display18,
+      fontSize: 18,
+      lineHeight: 20,
+      letterSpacing: 0,
+    });
     expect(fontFor('handS', 'en')).toEqual({
-      fontFamily: fonts.gaeguBold,
+      fontFamily: hand.name,
       fontSize: 15,
       lineHeight: 15,
       letterSpacing: 0,
@@ -87,31 +85,15 @@ describe('fontFor', () => {
     });
   });
 
-  it('swaps the whole stack for Vietnamese and keeps the system face', () => {
-    expect(fontFor('displayS', 'vi')).toEqual({
-      fontFamily: fonts.loraSemiBold,
-      fontSize: 17,
-      lineHeight: 20,
-      letterSpacing: 0,
-    });
-    expect(fontFor('handS', 'vi-VN')).toEqual({
-      fontFamily: fonts.patrickHand,
-      fontSize: 17,
-      lineHeight: 17,
-      letterSpacing: 0,
-    });
-    expect(fontFor('handL', 'vi')).toEqual({
-      fontFamily: fonts.patrickHand,
-      fontSize: 22,
-      lineHeight: 24,
-      letterSpacing: 0,
-    });
-    expect(fontFor('body', 'vi')).toEqual(fontFor('body', 'en'));
+  it('sets Vietnamese in the same faces as English', () => {
+    for (const key of Object.keys(type) as (keyof typeof type)[])
+      expect(fontFor(key, 'vi'), key).toEqual(fontFor(key, 'en'));
   });
 
   it('opens up wrapping Vietnamese lines, and only those', () => {
     expect(fontFor('body', 'vi', { multiline: true }).lineHeight).toBe(22);
-    expect(fontFor('displayL', 'vi', { multiline: true }).lineHeight).toBe(48);
+    // Fraunces is set at 36.5 for the design's 34: 1.4 of that.
+    expect(fontFor('displayL', 'vi', { multiline: true }).lineHeight).toBe(51);
     expect(fontFor('displayL', 'en', { multiline: true }).lineHeight).toBe(37);
     expect(fontFor(type.caption, 'vi', { multiline: true }).lineHeight).toBe(19);
   });
@@ -128,7 +110,7 @@ describe('fontFor', () => {
 
 describe('natural line height', () => {
   it('is each face’s own, SF Pro’s for the system face', () => {
-    expect(naturalLineHeight(fonts.youngSerif)).toBe(1.412);
+    expect(naturalLineHeight(fonts.display36)).toBe(1.233);
     expect(naturalLineHeight(fonts.gaeguBold)).toBe(1.25);
     expect(naturalLineHeight(undefined)).toBeCloseTo(1.1934, 4);
     expect(naturalLineHeight('Menlo')).toBeCloseTo(1.164, 3);

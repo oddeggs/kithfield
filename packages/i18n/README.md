@@ -51,7 +51,7 @@ import { pickLanguage, t, translator, fontLocaleFor } from '@kithfield/i18n';
 const language = pickLanguage(deviceLocales, storedChoice); // 'en' | 'vi'
 t(language, 'glossary.seedBed'); // typed key; params are required exactly when the text has placeholders
 const tr = translator(language); // bound to one language, for a screen
-fontLocaleFor(language); // 'default' | 'vi': the theme swaps Young Serif → Lora, Gaegu → Patrick Hand for 'vi'
+fontLocaleFor(language); // 'default' | 'vi': the theme gives 'vi' taller lines for its stacked marks
 ```
 
 A key the language lacks reads in English. The core has no React or Node dependency; the app holds the chosen language in its own state and passes it in.

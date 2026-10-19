@@ -3,8 +3,12 @@
  * spacing are in points; `letterSpacing` is absolute (the design's +6% tracking at 12 is 0.72).
  */
 
-/** The faces the scale is set in. `system` is SF Pro on iOS (the platform face elsewhere). */
-export type Face = 'youngSerif' | 'gaegu' | 'system';
+/**
+ * The faces the scale is set in: `display` (the design's Young Serif, set in Fraunces), `hand`
+ * (the design's Gaegu, set in the hand face) and `system`, SF Pro on iOS (the platform face
+ * elsewhere). Sizes and line heights are the design's; `fontFor` sets them in the app's faces.
+ */
+export type Face = 'display' | 'hand' | 'system';
 
 /** Font weights the scale uses. */
 export type Weight = 400 | 600 | 700;
@@ -43,17 +47,17 @@ const style = (
 
 export const type = {
   /** File and hero titles. */
-  displayXL: style('youngSerif', 400, 60, 60, null),
+  displayXL: style('display', 400, 60, 60, null),
   /** Screen titles. */
-  displayL: style('youngSerif', 400, 34, 37, 'largeTitle'),
+  displayL: style('display', 400, 34, 37, 'largeTitle'),
   /** Sheet titles. */
-  displayM: style('youngSerif', 400, 26, 29, 'title1'),
+  displayM: style('display', 400, 26, 29, 'title1'),
   /** Farm name pill. */
-  displayS: style('youngSerif', 400, 17, 20, 'headline'),
+  displayS: style('display', 400, 17, 20, 'headline'),
   /** Eyebrows, celebrations. */
-  handL: style('gaegu', 700, 20, 22, null),
+  handL: style('hand', 700, 20, 22, null),
   /** Day dividers, critter bubbles. */
-  handS: style('gaegu', 700, 15, 15, null),
+  handS: style('hand', 700, 15, 15, null),
   /** Buttons. */
   button: style('system', 600, 17, 17, 'headline'),
   /** Bubbles, paragraphs. */
