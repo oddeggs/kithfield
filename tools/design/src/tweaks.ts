@@ -11,7 +11,15 @@ export interface Tweak {
   /** Every value the tweak can take; the first is not necessarily the default. */
   values: TweakValue[];
   default: TweakValue;
+  /**
+   * The file's own default lays every option out side by side (`both`); renders take one option
+   * at a time instead, so the page is set to `default` before anything is captured.
+   */
+  pinned?: true;
 }
+
+/** The enum option that shows every other option at once. */
+const SIDE_BY_SIDE = 'both';
 
 export interface Variant {
   /** File-name suffix, e.g. `night`, `winter`, `winter.night`; empty for the defaults. */
@@ -64,10 +72,14 @@ export function readTweaks(html: string): Tweak[] {
       const d = typeof def === 'boolean' ? def : false;
       tweaks.push({ name, values: [d, !d], default: d });
     } else if (editor === 'enum' && Array.isArray(options)) {
-      const values = options.filter(isValue);
+      const all = options.filter(isValue);
+      const pinned = def === SIDE_BY_SIDE && all.length > 2;
+      const values = pinned ? all.filter((v) => v !== SIDE_BY_SIDE) : all;
       const first = values[0];
       if (first === undefined) continue;
-      tweaks.push({ name, values, default: isValue(def) && values.includes(def) ? def : first });
+      if (pinned) tweaks.push({ name, values, default: first, pinned });
+      else
+        tweaks.push({ name, values, default: isValue(def) && values.includes(def) ? def : first });
     }
   }
   return tweaks;

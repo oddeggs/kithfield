@@ -8,7 +8,7 @@ import { type TargetInfo, bringToTop, tagScreens, tagSections } from './in-page'
 import { type RenderEntry } from './manifest';
 import {
   WIDE_SCALE,
-  parseLabel,
+  screenLabels,
   renderFileName,
   scaleForWidth,
   titleSlug,
@@ -17,7 +17,7 @@ import {
 import { fileSelected, idSelected } from './select';
 import { VARIANT_MIN_SHARE, decodePng, pixelDrift } from './png';
 import { type Session, applyTweaks, closeDesignPage, openDesignPage } from './session';
-import { parentVariants, tweakVariants } from './tweaks';
+import { decodeEntities, parentVariants, tweakVariants } from './tweaks';
 
 /**
  * Canvas files are laid out 1600 px wide and taller than any frame or section (the tallest, the
@@ -46,8 +46,15 @@ interface Target {
 
 function toTargets(file: DesignFile, infos: TargetInfo[]): Target[] {
   if (file.mode === 'screens') {
-    return infos.flatMap((info) => {
-      const label = parseLabel(info.label);
+    // A frame labelled in another file (a `dc-import`ed card) is that file's to render.
+    const written = new Set(file.labels.map((l) => decodeEntities(l).trim()));
+    const own = infos.filter((info) => written.has(info.label.trim()));
+    const labels = screenLabels(
+      file.slug,
+      own.map((info) => info.label),
+    );
+    return own.flatMap((info, i) => {
+      const label = labels[i];
       if (!label) return [];
       const e = entry(file, label.id, label.title, info);
       return [{ index: info.index, entry: e, wide: info.overflows }];
@@ -111,6 +118,8 @@ export async function renderCanvasFile(job: RenderJob, file: DesignFile): Promis
   const url = `${job.origin}/${encodeURIComponent(file.name)}`;
   const whole = fileSelected(file.slug, job.tokens);
   const variants = tweakVariants(file.tweaks);
+  const defaults = variants[0];
+  const pinned = file.tweaks.some((t) => t.pinned);
   const firstScale = file.mode === 'screens' ? scaleForWidth(0) : WIDE_SCALE;
   const pages = new Map<string, Page>();
   const pageAt = async (scale: number, wide: boolean): Promise<Page> => {
@@ -119,6 +128,7 @@ export async function renderCanvasFile(job: RenderJob, file: DesignFile): Promis
     if (open) return open;
     const page = await openDesignPage(job.session, canvasViewport(wide), scale, url);
     pages.set(key, page);
+    if (pinned && defaults) await applyTweaks(page, defaults.props);
     return page;
   };
   try {
