@@ -107,7 +107,8 @@ export function DeskFarm({ farm }: { readonly farm: FarmId }) {
           borderRadius: 18,
           paddingVertical: 10,
           paddingHorizontal: 12,
-          backgroundColor: platformLook.chipOverArt,
+          // The page's own sheet colour, a little see-through, so it reads by day and at night.
+          backgroundColor: `${palette.sheet}DB`,
           flexDirection: 'row',
           alignItems: 'center',
           gap: 8,
