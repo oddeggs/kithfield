@@ -3,7 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Text, useWindowDimensions, View } from 'react-native';
 
-import { takeUnsentNotice, type UnsentNotice } from '../../../data';
+import { takeUnsentNotice, useDataClient, type UnsentNotice } from '../../../data';
 import { Button } from '../../../ui/components/button';
 import { NoticeCard } from '../../../ui/components/card';
 import { useLocale } from '../../../ui/locale/locale-provider';
@@ -27,7 +27,13 @@ import {
 } from '../kit';
 import { useProgress } from '../progress';
 import { pageUrl } from './house-rules-screen';
-import { appleSheet, googleSheet, SheetCancelled, type SheetAnswer } from '../social';
+import {
+  appleSheet,
+  googleSheet,
+  handOverAppleCode,
+  SheetCancelled,
+  type SheetAnswer,
+} from '../social';
 import { AppleSignInButton, GoogleSignInButton } from '../ui/provider-buttons';
 
 /** Where a sentence's two links go, split around their placeholders. */
@@ -48,6 +54,7 @@ export function SignInScreen() {
   const scene = useSceneAttrs();
   const ax = useAccessibilitySize();
   const { signIn } = useAccount();
+  const { api } = useDataClient();
   const { update } = useFlow();
   const progress = useProgress();
   const [busy, setBusy] = useState(false);
@@ -66,11 +73,15 @@ export function SignInScreen() {
     setBusy(true);
     setError(null);
     try {
+      let appleCode: string | undefined;
       await signIn.withIdToken(provider, async (nonce) => {
         const answer = await sheet(nonce);
         if (answer.givenName) update({ suggestedName: answer.givenName });
+        appleCode = answer.appleCode;
         return answer.token;
       });
+      // Signed in as whoever this is now: the code is theirs, for revoking when they leave.
+      if (appleCode !== undefined) void handOverAppleCode(api, appleCode);
       await progress.signedIn();
     } catch (failure) {
       if (!(failure instanceof SheetCancelled)) setError(t('onboarding.signIn.failed'));
