@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 
 import { ChatScreen } from '../../../features/chat/room/chat-screen';
 import { DeskChat } from '../../../web/desk/desk-chat';
-import { useDesk } from '../../../web/desk/desk-shell';
+import { useDesk } from '../../../web/desk/desk-context';
 
 const seqOf = (value: string | string[] | undefined): number | undefined => {
   const n = Number(Array.isArray(value) ? value[0] : value);

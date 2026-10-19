@@ -1,36 +1,19 @@
-import { router, useGlobalSearchParams, usePathname } from 'expo-router';
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useGlobalSearchParams, usePathname } from 'expo-router';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { useCottage } from '../../data';
+import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { platformLook } from '../look';
+import { DeskContext, openChat } from './desk-context';
 import { DeskFarm } from './desk-farm';
+import { DeskFire } from './desk-fire';
 import { DeskList } from './desk-list';
+import { DesktopHost } from '../desktop/desktop-host';
+import { inDesktop } from '../desktop/tauri';
 import { DeskKeys } from './desk-keys';
-
-/** The desktop's shared state: the farm the panes are on, and the right pane's mode. */
-export interface Desk {
-  readonly wide: boolean;
-  /** The farm or visit the chat and the live farm show, or null before there is one. */
-  readonly farm: string | null;
-  /** Sitting by the fire: the right pane shows the fire room instead of the farm. */
-  readonly fire: boolean;
-  readonly setFire: (on: boolean) => void;
-}
-
-const DeskContext = createContext<Desk>({
-  wide: false,
-  farm: null,
-  fire: false,
-  setFire: () => undefined,
-});
-
-export const useDesk = (): Desk => useContext(DeskContext);
-
-/** Opens a farm's chat in the middle pane. */
-export const openChat = (farm: string) =>
-  router.navigate({ pathname: '/(tabs)/chat/[farm]', params: { farm } });
 
 /**
  * The desktop's three panes (`14 Platforms`, 14-11): the farms and visits, the screen the route
@@ -49,7 +32,10 @@ export function DeskShell({
   const params = useGlobalSearchParams<{ farm?: string }>();
   const { chats } = useCottage();
   const [chosen, setChosen] = useState<string | null>(null);
-  const [fire, setFire] = useState(false);
+  // The farm whose fire you sit by, while you do: it stays as you move between chats.
+  const [fireFarm, setFireFarm] = useState<string | null>(null);
+  const reduce = useReduceMotion();
+  const [desktop] = useState(inDesktop);
 
   // The farm in the route wins; elsewhere (settings, the seed bed) the panes keep the last one.
   const routed =
@@ -64,7 +50,15 @@ export function DeskShell({
     if (wide && pathname === '/farm' && farm !== null) openChat(farm);
   }, [wide, pathname, farm]);
 
-  const desk = useMemo(() => ({ wide, farm, fire, setFire }), [wide, farm, fire]);
+  const desk = useMemo(
+    () => ({
+      wide,
+      farm,
+      fire: fireFarm !== null,
+      setFire: (on: boolean) => setFireFarm(on ? farm : null),
+    }),
+    [wide, farm, fireFarm],
+  );
   return (
     <DeskContext.Provider value={desk}>
       <View style={{ flex: 1, flexDirection: 'row', backgroundColor: palette.background }}>
@@ -79,10 +73,23 @@ export function DeskShell({
               overflow: 'hidden',
             }}
           >
-            <DeskFarm farm={farm} />
+            {/* The fire room takes the farm's place while you sit by it, cross-fading. */}
+            <Animated.View
+              key={fireFarm ?? `farm:${farm}`}
+              style={{ flex: 1 }}
+              {...(reduce
+                ? {}
+                : {
+                    entering: FadeIn.duration(platformLook.paneSwapMs),
+                    exiting: FadeOut.duration(platformLook.paneSwapMs),
+                  })}
+            >
+              {fireFarm ? <DeskFire farm={fireFarm} /> : <DeskFarm farm={farm} />}
+            </Animated.View>
           </View>
         ) : null}
         {wide ? <DeskKeys /> : null}
+        {desktop ? <DesktopHost /> : null}
       </View>
     </DeskContext.Provider>
   );

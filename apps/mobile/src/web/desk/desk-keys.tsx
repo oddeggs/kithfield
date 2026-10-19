@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import type { ChatListItem } from '@kithfield/contracts';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -11,7 +12,7 @@ import { motion } from '@kithfield/theme';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
-import { openChat, useDesk } from './desk-shell';
+import { openChat, useDesk, type Desk } from './desk-context';
 import { KeyCap } from './key-cap';
 import { actionOf, shortcutRows, type DeskAction } from './keymap';
 
@@ -42,18 +43,69 @@ export const isMac = (): boolean =>
   typeof navigator !== 'undefined' &&
   /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
+/** What the shortcuts act on, kept by the mounted `DeskKeys`. */
+let current: {
+  readonly desk: Desk;
+  readonly chats: readonly ChatListItem[];
+  readonly toggleList: () => void;
+} | null = null;
+
 /**
- * The desktop's shortcuts, listened for on the whole window, and the list of them (⌘/). A
- * shortcut a pane offers goes to that pane; the rest open their screens. The list closes on Esc,
- * a click outside it, or ⌘/ again.
+ * Does what a shortcut (or the desktop's Farm menu) asks. A shortcut a pane offers goes to that
+ * pane; the rest open their screens.
+ */
+export function runDeskAction(action: DeskAction, index = 0): void {
+  if (!current) return;
+  const { desk, chats, toggleList } = current;
+  const farm = desk.farm;
+  const own = offered(action);
+  switch (action) {
+    case 'list':
+      toggleList();
+      return;
+    case 'jump': {
+      const { farms, visits } = sectionsOf(chats);
+      const row = [...farms, ...visits][index];
+      if (row) openChat(row.farm);
+      return;
+    }
+    case 'search':
+      router.push({ pathname: '/(cover)/chat-search', params: farm ? { farm } : {} });
+      return;
+    case 'quickTend':
+      router.push('/(modal)/gestures-quick-tend');
+      return;
+    case 'firefly':
+      if (farm) router.push(gestureRoutes.firefly(farm));
+      return;
+    case 'fire':
+      if (own) own();
+      else if (farm) desk.setFire(!desk.fire);
+      return;
+    case 'dewdrop':
+    case 'seed':
+    case 'mute':
+      own?.();
+      return;
+  }
+}
+
+/**
+ * The desktop's shortcuts, listened for on the whole window, and the list of them (⌘/), which
+ * closes on Esc, a click outside it, or ⌘/ again.
  */
 export function DeskKeys() {
   const desk = useDesk();
   const { chats } = useCottage();
   const [list, setList] = useState(false);
   const mac = useMemo(isMac, []);
-  const state = useRef({ desk, chats });
-  state.current = { desk, chats };
+  current = { desk, chats, toggleList: () => setList((on) => !on) };
+  useEffect(
+    () => () => {
+      current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -66,39 +118,8 @@ export function DeskKeys() {
         mac,
       );
       if (!hit) return;
-      const { desk: d, chats: c } = state.current;
-      const farm = d.farm;
-      const own = offered(hit.action);
       e.preventDefault();
-      switch (hit.action) {
-        case 'list':
-          setList((on) => !on);
-          return;
-        case 'jump': {
-          const { farms, visits } = sectionsOf(c);
-          const row = [...farms, ...visits][hit.index ?? 0];
-          if (row) openChat(row.farm);
-          return;
-        }
-        case 'search':
-          router.push({ pathname: '/(cover)/chat-search', params: farm ? { farm } : {} });
-          return;
-        case 'quickTend':
-          router.push('/(modal)/gestures-quick-tend');
-          return;
-        case 'firefly':
-          if (farm) router.push(gestureRoutes.firefly(farm));
-          return;
-        case 'fire':
-          if (own) own();
-          else if (farm) d.setFire(!d.fire);
-          return;
-        case 'dewdrop':
-        case 'seed':
-        case 'mute':
-          own?.();
-          return;
-      }
+      runDeskAction(hit.action, hit.index);
     };
     window.addEventListener('keydown', down);
     return () => window.removeEventListener('keydown', down);

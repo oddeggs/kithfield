@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Kithfield",
+  "identifier": "com.kithfield.desktop",
+  "version": "0.1.0",
+  "build": {
+    "devUrl": "http://localhost:8190",
+    "frontendDist": "https://kithfield.com/app/"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Kithfield",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 1100,
+        "minHeight": 640,
+        "center": true,
+        "backgroundColor": "#F5EEE2"
+      }
+    ],
+    "macOSPrivateApi": true,
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "msi", "nsis"],
+    "category": "SocialNetworking",
+    "shortDescription": "A small farm you share with your friends",
+    "copyright": "© Odd Eggs Studio",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "13.0"
+    }
+  }
+}

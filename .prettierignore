@@ -9,6 +9,9 @@ plans/
 **/.wrangler/
 apps/mobile/ios/
 apps/mobile/android/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/icons/
 **/*.md
 
 # Generated (formatting follows the generator)

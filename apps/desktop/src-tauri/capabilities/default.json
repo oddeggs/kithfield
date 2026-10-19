@@ -1,0 +1,27 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The web app's window and the critter's popover, on Kithfield's own hosts (and the dev server in development): the tray, menus, windows, events and notifications it drives.",
+  "windows": ["main", "popover"],
+  "remote": {
+    "urls": ["https://kithfield.com/*", "https://dev.kithfield.com/*", "http://localhost:*/*"]
+  },
+  "permissions": [
+    "core:default",
+    "core:tray:default",
+    "core:menu:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "core:window:allow-set-position",
+    "core:window:allow-unminimize",
+    "core:window:allow-is-visible",
+    "core:window:allow-outer-position",
+    "core:window:allow-outer-size",
+    "core:window:allow-scale-factor",
+    "core:window:allow-theme",
+    "core:webview:allow-create-webview-window",
+    "core:app:allow-default-window-icon",
+    "notification:default"
+  ]
+}

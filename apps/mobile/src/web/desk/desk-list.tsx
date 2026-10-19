@@ -18,7 +18,7 @@ import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { platformLook } from '../look';
-import { openChat } from './desk-shell';
+import { openChat } from './desk-context';
 import { KeyCap } from './key-cap';
 import { useNowMinute } from './use-now-minute';
 

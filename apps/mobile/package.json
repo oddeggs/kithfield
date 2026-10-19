@@ -28,6 +28,8 @@
     "@react-native-documents/viewer": "catalog:",
     "@react-native/metro-config": "catalog:",
     "@shopify/react-native-skia": "catalog:",
+    "@tauri-apps/api": "catalog:",
+    "@tauri-apps/plugin-notification": "catalog:",
     "better-auth": "catalog:",
     "expo": "catalog:",
     "expo-apple-authentication": "catalog:",

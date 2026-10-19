@@ -8,7 +8,7 @@ import { useFarm, useFarmEvents, useFarmView } from '../../data';
 import { FarmScene } from '../../features/farm/farm-scene';
 import { reactionTo, SAID_MS, type FarmReaction } from '../../features/farm/reactions';
 import { farmRoutes } from '../../features/farm/routes';
-import { openFire, useFireOnFarm } from '../../features/fire/fire-glow';
+import { useFireOnFarm } from '../../features/fire/fire-glow';
 import { ArtIcon } from '../../ui/art/art-view';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
@@ -16,6 +16,7 @@ import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { platformLook } from '../look';
+import { useDesk } from './desk-context';
 import { useNowMinute } from './use-now-minute';
 
 /** A friend's newest message, popped over their cottage for a moment as they say it. */
@@ -54,6 +55,7 @@ function useReaction(farm: FarmId, me: string | null): FarmReaction | null {
 export function DeskFarm({ farm }: { readonly farm: FarmId }) {
   const { t } = useLocale();
   const { palette } = useTheme();
+  const desk = useDesk();
   const reduce = useReduceMotion();
   const me = useSession().person?.id ?? null;
   const now = useNowMinute();
@@ -90,7 +92,7 @@ export function DeskFarm({ farm }: { readonly farm: FarmId }) {
                 pathname: '/(modal)/farm-critter',
                 params: { farm, person: h.person },
               }),
-            onFire: () => openFire(farm),
+            onFire: () => desk.setFire(true),
             onPatch: () => router.navigate(farmRoutes.seedbed()),
             onPlan: (p) => router.push(farmRoutes.plan(farm, p.seed.seq)),
           }}

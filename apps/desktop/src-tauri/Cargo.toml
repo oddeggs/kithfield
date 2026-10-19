@@ -1,0 +1,19 @@
+[package]
+name = "kithfield-desktop"
+version = "0.1.0"
+description = "Kithfield for Mac and Windows"
+authors = ["Odd Eggs Studio"]
+edition = "2021"
+publish = false
+
+[lib]
+name = "kithfield_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png", "macos-private-api"] }
+tauri-plugin-notification = "2"
+tauri-plugin-single-instance = "2"
