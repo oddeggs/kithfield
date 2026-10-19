@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { Platform, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 
 import { takeUnsentNotice, useDataClient, type UnsentNotice } from '../../../data';
 import { Button } from '../../../ui/components/button';
@@ -36,6 +36,7 @@ import {
   type SheetAnswer,
 } from '../social';
 import { AppleSignInButton, GoogleSignInButton } from '../ui/provider-buttons';
+import { useWayInWindow } from '../way-in-frame';
 
 /** Where a sentence's two links go, split around their placeholders. */
 const RULES = '\u0001';
@@ -49,7 +50,7 @@ export function SignInScreen() {
   const router = useRouter();
   const { t, language } = useLocale();
   const { palette } = useTheme();
-  const { width } = useWindowDimensions();
+  const { width } = useWayInWindow();
   const top = useDesignTop();
   const bottom = useBottom();
   const scene = useSceneAttrs();

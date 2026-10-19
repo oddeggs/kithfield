@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { clockSunPlace } from '../../features/onboarding/clock-place';
 import { FlowProvider } from '../../features/onboarding/flow-state';
+import { WayInFrame } from '../../features/onboarding/way-in-frame';
 import { useSunPlace, useTheme } from '../../ui/theme/theme-provider';
 
 /** Entering the group (a redirect, a cold start) opens on the gate, under any deeper screen. */
@@ -18,25 +19,28 @@ export default function OnboardingStack() {
   useSunPlace(place);
   return (
     <FlowProvider>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: palette.background },
-        }}
-      >
-        <Stack.Screen
-          name="invite"
-          options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.42],
-            sheetGrabberVisible: true,
-            sheetCornerRadius: 30,
-            contentStyle: { backgroundColor: palette.sheet },
+      {/* The phone's window; in a wide browser, a phone-wide column in the middle of it. */}
+      <WayInFrame>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: palette.background },
           }}
-        />
-        {/* Under age there is no way back into the form. */}
-        <Stack.Screen name="too-young" options={{ gestureEnabled: false }} />
-      </Stack>
+        >
+          <Stack.Screen
+            name="invite"
+            options={{
+              presentation: 'formSheet',
+              sheetAllowedDetents: [0.42],
+              sheetGrabberVisible: true,
+              sheetCornerRadius: 30,
+              contentStyle: { backgroundColor: palette.sheet },
+            }}
+          />
+          {/* Under age there is no way back into the form. */}
+          <Stack.Screen name="too-young" options={{ gestureEnabled: false }} />
+        </Stack>
+      </WayInFrame>
     </FlowProvider>
   );
 }

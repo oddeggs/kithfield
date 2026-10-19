@@ -10,6 +10,8 @@ export const platformLook = {
   /** Under this the web uses the phone's layout; from `wide` up, the three panes. */
   narrow: 600,
   wide: 1100,
+  /** The way in's column in a window wider than this: the widest phone the screens are laid out for. */
+  wayInWidth: 430,
   /** The three panes: the farms list and the live farm, the chat between. */
   listWidth: 270,
   farmWidth: 360,
