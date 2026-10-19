@@ -117,7 +117,7 @@ struct SmallFarm: View {
       VStack(alignment: .leading, spacing: 4) {
         Kicker(text: kicker, size: 11, opacity: 0.75)
         Text(title)
-          .font(SurfaceFonts.gaegu(17, relativeTo: .headline))
+          .font(SurfaceFonts.hand(17, relativeTo: .headline))
           .lineSpacing(17 * 0.05)
           .foregroundStyle(paper)
           .lineLimit(2)
@@ -281,13 +281,13 @@ struct LargeFarm: View {
   }
 }
 
-/// The two lines at the bottom: Gaegu over the system face.
+/// The two lines at the bottom: the hand face over the system face.
 private struct Caption: View {
   let lines: (String, String?)
 
   var body: some View {
     VStack(alignment: .leading, spacing: 2) {
-      Text(lines.0).font(SurfaceFonts.gaegu(19, relativeTo: .title3)).foregroundStyle(paper)
+      Text(lines.0).font(SurfaceFonts.hand(19, relativeTo: .title3)).foregroundStyle(paper)
         .lineLimit(1).minimumScaleFactor(0.8)
       if let second = lines.1 {
         Text(second).scaledFont(12, relativeTo: .caption).foregroundStyle(paper.opacity(0.75))

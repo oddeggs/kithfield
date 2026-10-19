@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { fontFaces } from '@kithfield/theme';
+import { artFontFaces } from '@kithfield/theme';
 import { chromium, type Browser, type Page } from 'playwright';
 
 import { themeFontDir } from '../node/fonts';
@@ -10,9 +10,9 @@ import type { GoldenScene } from './scenes';
 const ORIGIN = 'http://kithfield-art.test';
 const SCRIPT = join(import.meta.dirname, '../vendor/kithfield-art.generated.js');
 
-/** The theme's fonts as `@font-face` rules, so Chrome and Skia draw the same faces. */
+/** The art's fonts as `@font-face` rules, so Chrome and Skia draw the same faces. */
 function fontCss(): string {
-  return fontFaces
+  return artFontFaces
     .map(
       (f) =>
         `@font-face{font-family:'${f.family}';font-weight:${f.weight};src:url('${ORIGIN}/fonts/${f.file}')}`,
@@ -22,7 +22,7 @@ function fontCss(): string {
 
 /** Runs in the page: waits for the fonts, then draws one scene and returns its pixels. */
 const HARNESS = `
-window.__ready = Promise.all(${JSON.stringify(fontFaces.map((f) => `${f.weight} 20px '${f.family}'`))}
+window.__ready = Promise.all(${JSON.stringify(artFontFaces.map((f) => `${f.weight} 20px '${f.family}'`))}
   .map((f) => document.fonts.load(f))).then(() => document.fonts.ready);
 window.__render = (s) => {
   const el = document.createElement('kf-art');

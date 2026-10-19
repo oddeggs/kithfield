@@ -1,0 +1,20 @@
+Kithfield Hand (KithfieldHand-Bold.ttf) is the designer's file subset to Latin and Vietnamese:
+Hangul and the full-width forms are dropped (about 2.9 MB), and the layout features (ccmp, mark,
+mkmk), the name table and hinting are kept. Gaegu-Bold.ttf, which the art draws with, goes through
+the same subset. The exact command, with fontTools 4.60.2 (tools/fonts/instances/requirements.txt):
+
+  pyftsubset KithfieldHand-Bold.ttf \
+    --unicodes='U+0000-024F,U+02B0-036F,U+1E00-1EFF,U+2000-206F,U+20A0-20CF' \
+    --layout-features='*' --name-IDs='*' --name-languages='*' --name-legacy \
+    --glyph-names --notdef-outline --legacy-kern --hinting \
+    --output-file=KithfieldHand-Bold.ttf
+
+A new version from the designer: put its SHA-256 in tools/fonts/src/sources.ts (the hand entry's
+`from`), then run the build, which runs this command and checks the result:
+
+  KF_FONTS_PYTHON=<venv>/bin/python pnpm --filter @kithfield/fonts download \
+    --local <dir with KithfieldHand-Bold.ttf and FONTLOG.txt>
+  pnpm --filter @kithfield/fonts metrics
+
+The run names the new file's SHA-256; pin it as the hand entry's `sha256`. OFL-KithfieldHand.txt
+and FONTLOG-KithfieldHand.txt are the licence and log that ship with the font.

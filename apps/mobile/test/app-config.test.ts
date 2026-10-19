@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from '@jest/globals';
-import { fontFaces } from '@kithfield/theme';
+import { artFontFaces, fontFaces } from '@kithfield/theme';
 import type { ExportedConfig, ExportedConfigWithProps, InfoPlist } from 'expo/config-plugins';
 
 import { systemPermissionsEn } from '../../../packages/i18n/src/system-permissions.en';
@@ -59,7 +59,8 @@ describe('app variants', () => {
 
   it('embeds every theme font natively in both variants', () => {
     const projectRoot = resolve(__dirname, '..');
-    expect(FONTS).toEqual(fontFaces.map((f) => `../../packages/theme/fonts/${f.file}`));
+    const files = new Set([...fontFaces, ...artFontFaces].map((f) => f.file));
+    expect(FONTS).toEqual([...files].map((file) => `../../packages/theme/fonts/${file}`));
     for (const font of FONTS) expect(existsSync(resolve(projectRoot, font))).toBe(true);
     for (const variant of ['dev', 'prd'] as const) {
       expect(buildConfig({}, variant, unset).plugins).toContainEqual([

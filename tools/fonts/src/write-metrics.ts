@@ -12,14 +12,15 @@ import { parseArgs } from 'node:util';
 import { metricsModule, metricsModulePath } from './font-metrics';
 
 const { values } = parseArgs({ options: { check: { type: 'boolean' } } });
-const source = metricsModule();
-if (values.check) {
-  const current = existsSync(metricsModulePath) ? readFileSync(metricsModulePath, 'utf8') : '';
-  if (current !== source) {
-    console.error(`${metricsModulePath} is stale: run pnpm --filter @kithfield/fonts metrics`);
-    process.exitCode = 1;
-  } else console.log(`${metricsModulePath} matches the fonts`);
-} else {
-  writeFileSync(metricsModulePath, source);
-  console.log(`wrote ${metricsModulePath}`);
+for (const [path, source] of [[metricsModulePath, metricsModule()]] as const) {
+  if (values.check) {
+    const current = existsSync(path) ? readFileSync(path, 'utf8') : '';
+    if (current !== source) {
+      console.error(`${path} is stale: run pnpm --filter @kithfield/fonts metrics`);
+      process.exitCode = 1;
+    } else console.log(`${path} matches the fonts`);
+  } else {
+    writeFileSync(path, source);
+    console.log(`wrote ${path}`);
+  }
 }

@@ -32,13 +32,15 @@ export interface TxtProps extends TextProps {
 /** True inside a Txt: nested text is drawn on its parent's lines. */
 const InsideTxt = createContext(false);
 
-/** Hand-face text must be precomposed: Patrick Hand has no combining marks (see `fontFor`). */
+/** Display text must be precomposed: Fraunces lacks two combining marks (see `vietnamese`). */
 const nfc = (children: ReactNode): ReactNode =>
   Children.map(children, (c) => (typeof c === 'string' ? c.normalize('NFC') : c));
 
 /**
- * Text in the type ramp, in the reader's language (Vietnamese swaps Young Serif for Lora and Gaegu
- * for Patrick Hand), scaled with the iOS text style it follows for Dynamic Type.
+ * Text in the type ramp, scaled with the iOS text style it follows for Dynamic Type. Sizes and
+ * line heights, a screen's own included, are the design's: display text is set in Fraunces at
+ * the size that keeps the design's box, and hand text in Kithfield Hand, in both languages
+ * (`fontFor`).
  */
 export function Txt({
   variant = 'body',
@@ -56,27 +58,34 @@ export function Txt({
   const s = typeStyleOf(variant);
   const { fontScale } = useWindowDimensions();
   const nested = useContext(InsideTxt);
+  // A screen's own size and line height are the design's, so the face is resolved from them.
+  // Expo's web typings widen text styles past what `flatten` takes; the native shape is the same.
+  const asked = (StyleSheet.flatten(style as never) ?? {}) as TextStyle;
+  const size = asked.fontSize ?? s.size;
+  const line = asked.lineHeight ?? s.lineHeight;
   const font = useMemo<TextStyle>(
     () => ({
       // Vietnamese stacks marks above capitals and tall letters: even one line needs the taller
       // line height, or the marks are clipped at the top of the line.
-      ...fontFor(s, fontLocale, { multiline: multiline || fontLocale === 'vi' }),
+      ...fontFor({ ...s, size, lineHeight: line }, fontLocale, {
+        multiline: multiline || fontLocale === 'vi',
+      }),
       ...(medium && s.face === 'system' ? { fontWeight: '500' as const } : {}),
       ...(mono ? { fontFamily: 'Menlo' } : {}),
     }),
-    [s, fontLocale, multiline, medium, mono],
+    [s, size, line, fontLocale, multiline, medium, mono],
   );
-  // The room iOS needs follows whatever size and line height the caller's style ends with, and
-  // grows with the text when Dynamic Type scales it. Text nested in a Txt is laid out by its
-  // parent's lines, so only the outermost one takes it.
-  // Expo's web typings widen text styles past what `flatten` takes; the native shape is the same.
-  // A screen's own line height still leaves Vietnamese room for its stacked marks.
+  // The room iOS needs follows whatever size and line height the text ends with, and grows with
+  // the text when Dynamic Type scales it. Text nested in a Txt is laid out by its parent's lines,
+  // so only the outermost one takes it. A screen's own line height still leaves Vietnamese room
+  // for its stacked marks.
   const own = roomForMarks(
     StyleSheet.flatten([
       font,
       { color: color ?? palette.text },
       align ? { textAlign: align } : null,
       style,
+      { fontSize: font.fontSize, lineHeight: font.lineHeight },
     ] as never) as TextStyle,
     fontLocale,
   );

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { fontFaces } from '@kithfield/theme';
+import { artFontFaces } from '@kithfield/theme';
 import { describe, expect, it } from 'vitest';
 
 import { Art } from './art';
@@ -23,8 +23,8 @@ function typoOf(file: string): [number, number] {
 }
 
 describe('typo metrics', () => {
-  it('match every embedded font file', () => {
-    for (const face of fontFaces) expect(TYPO_METRICS[face.file]).toEqual(typoOf(face.file));
+  it('match every font file the art draws with', () => {
+    for (const face of artFontFaces) expect(TYPO_METRICS[face.file]).toEqual(typoOf(face.file));
   });
 });
 

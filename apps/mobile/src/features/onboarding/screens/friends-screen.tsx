@@ -1,4 +1,4 @@
-import { day, fontFor, motion } from '@kithfield/theme';
+import { day, motion } from '@kithfield/theme';
 import { Fields, getContactsAsync, getPermissionsAsync, SortTypes } from 'expo-contacts/legacy';
 import { useRouter } from 'expo-router';
 import * as SMS from 'expo-sms';
@@ -14,7 +14,6 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { AX_FONT_SCALE, useAccessibilitySize } from '../../../ui/type/accessibility-size';
-import { componentType } from '../../../ui/type/styles';
 import { Txt } from '../../../ui/type/text';
 import { friendsIn, matching, tintFor, type Friend } from '../contacts';
 import { BottomBar, TopBar, useBottom, useDesignTop } from '../kit';
@@ -34,10 +33,10 @@ function FriendRow({
   readonly onInvite: () => void;
   readonly last: boolean;
 }) {
-  const { t, fontLocale } = useLocale();
+  const { t } = useLocale();
   const { palette } = useTheme();
   const reduce = useReduceMotion();
-  const letter = fontFor({ ...componentType.fieldValue, size: 18, lineHeight: 24 }, fontLocale);
+  const letter = { fontSize: 18, lineHeight: 24 };
   return (
     <View
       style={{
