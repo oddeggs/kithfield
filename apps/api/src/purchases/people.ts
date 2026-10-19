@@ -1,12 +1,14 @@
 import { type PersonMerge, registerAccountDeletionStep, registerMergeStep } from '../auth';
 import { closeChipIn, GONE, type Row } from './chip-in-settle';
 import { transferWrites } from './revenuecat';
+import { forgetRevenueCatCustomer } from './revenuecat-forget';
 
 /*
  * The shop's part of deleting an account and of merging an anonymous person into a returning one.
  * Rows keyed by the person go with `people` (foreign keys); gifts, chip-ins and book shares name
  * people without one, so they are cleared here. A chip-in the person started closes (what friends
- * paid becomes their credit) and forgets who started it; payments stay. A merge moves everything
+ * paid becomes their credit) and forgets who started it and the words on its tag; a chip-in for
+ * them forgets them too. Payments stay, as the shop's financial records. A merge moves everything
  * to the kept person.
  */
 
@@ -19,6 +21,15 @@ const deleteShop = async (db: D1Database, person: string, now: number) => {
     .all<Row>();
   for (const row of results) await closeChipIn(db, row, now);
   await db.batch([
+    // The words on the gift's tag were theirs; a chip-in for them no longer says whom it was for.
+    db
+      .prepare("UPDATE chip_ins SET what_json = json_remove(what_json, '$.note') WHERE by_id = ?")
+      .bind(person),
+    db
+      .prepare(
+        "UPDATE chip_ins SET what_json = json_set(what_json, '$.to', ?) WHERE json_extract(what_json, '$.to') = ?",
+      )
+      .bind(GONE, person),
     db.prepare('UPDATE chip_ins SET by_id = ? WHERE by_id = ?').bind(GONE, person),
     db.prepare('UPDATE owned_items SET from_id = NULL WHERE from_id = ?').bind(person),
     db.prepare('DELETE FROM gifts WHERE from_id = ?1 OR to_id = ?1').bind(person),
@@ -28,6 +39,9 @@ const deleteShop = async (db: D1Database, person: string, now: number) => {
 };
 
 registerAccountDeletionStep('shop', (env, person) => deleteShop(env.DB, person, Date.now()));
+registerAccountDeletionStep('revenuecat', async (env, person) => {
+  await forgetRevenueCatCustomer(env, person);
+});
 
 const moveRows =
   (table: string, key: string, columns: string) => (db: D1Database, m: PersonMerge) => [

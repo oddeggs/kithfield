@@ -12,7 +12,7 @@ export const systemPermissionsVi: ViCatalogue<typeof systemPermissionsEn> = {
   'systemPermissions.faceId':
     'Bạn sẽ xác nhận bằng Face ID trước khi xoá tài khoản hoặc cho một thiết bị mới vào.',
   'systemPermissions.contacts':
-    'Để tìm bạn bè đã có Kithfield. Danh bạ được đối chiếu ngay trên điện thoại này bằng số đã mã hoá, và danh bạ của bạn không bao giờ được tải lên.',
+    'Để bạn chọn bạn bè trong danh bạ và mời họ qua tin nhắn. Danh bạ chỉ ở trên điện thoại này, và danh bạ của bạn không bao giờ được tải lên.',
   'systemPermissions.location':
     'Vào ngày hẹn, để chỉ đường từ chỗ bạn đang ở. Không có gì được chia sẻ với nông trại, không bao giờ.',
   'systemPermissions.calendar':

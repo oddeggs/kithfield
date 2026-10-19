@@ -110,4 +110,39 @@ describe('bans', () => {
     await ban(user.id, null, 'farm');
     expect((await call('/v1/rt-token', { body: {}, token })).status).toBe(200);
   });
+
+  it("stops a banned person's device action keys: a ban row refuses them, banning deletes them", async () => {
+    const { token, user } = await signInAnonymously();
+    const device = { platform: 'ios', name: 'Phone', pushToken: null, appVersion: '1.0.0' };
+    const registered = await call(`/v1/devices/${crypto.randomUUID()}`, {
+      method: 'PUT',
+      body: device,
+      token,
+    });
+    const { actionKey } = await registered.json<{ actionKey: string }>();
+    const withKey = () =>
+      call('/v1/media/upload-url', {
+        body: {},
+        headers: { 'Kithfield-Action-Key': actionKey },
+      });
+    expect((await withKey()).status).not.toBe(401);
+
+    await ban(user.id, null);
+    const refused = await withKey();
+    expect(refused.status).toBe(403);
+    expect(await refused.json()).toEqual({ error: { code: 'banned' } });
+
+    await banPerson(env.DB, {
+      person: user.id,
+      scope: ACCOUNT_BAN_SCOPE,
+      until: null,
+      reason: 'x',
+    });
+    const keys = await env.DB.prepare(
+      'SELECT COUNT(*) AS n FROM device_action_keys WHERE person_id = ?',
+    )
+      .bind(user.id)
+      .first<{ n: number }>();
+    expect(keys?.n).toBe(0);
+  });
 });

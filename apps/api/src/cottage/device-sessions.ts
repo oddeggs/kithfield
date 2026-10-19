@@ -1,5 +1,6 @@
 import { type DeviceList, Platform } from '@kithfield/contracts';
 
+import { registerSignOutStep } from '../auth';
 import type { Bindings } from '../env';
 import { farmStub } from '../farm/http';
 import { cottageOf } from './stub';
@@ -145,3 +146,13 @@ export async function signOutDevice(
   );
   return true;
 }
+
+/** A phone signing itself out signs its device out: the same as ending it from another device. */
+registerSignOutStep(async (env, person, session) => {
+  const row = await env.DB.prepare(
+    'SELECT device_id FROM session_devices WHERE session_id = ? AND person_id = ?',
+  )
+    .bind(session, person)
+    .first<{ device_id: string }>();
+  if (row !== null) await signOutDevice(env, person, row.device_id);
+});

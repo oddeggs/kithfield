@@ -58,10 +58,20 @@ export const tombstoneEvent = (
  * Tombstones everything a person wrote here under any of their ids, apart from `keep`, and the
  * trades a member made here with them as a visitor (which name them). Returns their media keys.
  */
-export const tombstoneAuthor = (store: FarmStore, person: PersonId, keep: number): string[] =>
-  [...store.byActor(person), ...store.tradesWith(person)]
+export const tombstoneAuthor = (store: FarmStore, person: PersonId, keep: number): string[] => {
+  const keys = [...store.byActor(person), ...store.tradesWith(person)]
     .filter((event) => event.seq !== keep)
     .flatMap((event) => tombstoneOne(store, event.seq, 'author_deleted', undefined, null));
+  // What a safety removal held back for an appeal goes too, with its media: no appeal outlives the
+  // account, and the person's words are kept nowhere once it is gone.
+  for (const event of store.byActor(person)) {
+    const held = store.release(event.seq);
+    if (held === undefined) continue;
+    const original = FarmEvent.safeParse({ ...event, payload: held });
+    if (original.success) keys.push(...mediaKeys(original.data));
+  }
+  return keys;
+};
 
 /** Tombstones a person's photos, video, voice notes and files (a removal with `removeMedia`). */
 export const tombstoneMediaOf = (store: FarmStore, person: PersonId): string[] =>

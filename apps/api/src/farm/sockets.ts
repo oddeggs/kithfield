@@ -48,6 +48,18 @@ export const send = (ws: WebSocket, frame: Frame): void => {
   }
 };
 
+/** Sends one frame to many sockets, serialised once rather than once per socket. */
+export const sendAll = (sockets: readonly WebSocket[], frame: Frame): void => {
+  const text = JSON.stringify(frame);
+  for (const ws of sockets) {
+    try {
+      ws.send(text);
+    } catch {
+      // That socket is already closing; its close handler tidies up.
+    }
+  }
+};
+
 /** Says why, then closes. */
 export const refuse = (ws: WebSocket, code: SocketErrorCode): void => {
   send(ws, { type: 'error', code });

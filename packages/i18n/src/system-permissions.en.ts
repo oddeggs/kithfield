@@ -22,9 +22,9 @@ export const systemPermissionsEn = {
   /** Deleting the account (11-03) and letting a new device in (11-13). */
   'systemPermissions.faceId':
     'You’ll confirm with Face ID before deleting your account or letting a new device in.',
-  /** Finding friends (03-08). */
+  /** Inviting friends from the contacts (03-08): read on the phone only, nothing matched or sent. */
   'systemPermissions.contacts':
-    'To find friends already on Kithfield. Your contacts are checked on this phone using scrambled numbers, and your address book is never uploaded.',
+    'So you can pick friends from your contacts to invite by text. Your contacts stay on this phone, and your address book is never uploaded.',
   /** Directions on the day of a hangout (03-12, 06-06). */
   'systemPermissions.location':
     'On a hangout day, to show the path from where you are. Nothing is shared with the farm, ever.',

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CottageDO } from '../../src/cottage/cottage-object';
 import { cottageOf } from '../../src/cottage/stub';
+import { TYPING_EVERY_MS } from '../../src/farm/protocol';
 import { messageFrame, op, TestSocket } from './support/client';
 import {
   api,
@@ -263,6 +264,33 @@ describe('presence and typing', () => {
     expect(opened.map((e) => e.at)).toEqual([ports.clock.at - 61 * 60_000, ports.clock.at]);
 
     figSocket.close();
+    expect(await pipSocket.next('typing')).toEqual({ type: 'typing', people: [] });
+  });
+
+  it('tells the others who is writing only when that changes, at most every quarter second', async () => {
+    const { farm, fig, pipSocket, figSocket } = await twoConnected();
+    const figOtherPhone = await TestSocket.open(farm);
+    await figOtherPhone.hello(fig, farm, 4);
+    await figOtherPhone.drain();
+    await pipSocket.drain();
+    const window = () => new Promise((resolve) => setTimeout(resolve, TYPING_EVERY_MS * 2));
+    const typingFrames = async () => (await pipSocket.drain()).filter((f) => f.type === 'typing');
+
+    figSocket.send({ type: 'typing', on: true });
+    expect(await pipSocket.next('typing')).toEqual({ type: 'typing', people: [fig.id] });
+    // The same frame again, and Fig's other phone starting and stopping, change nobody's view.
+    figSocket.send({ type: 'typing', on: true });
+    figOtherPhone.send({ type: 'typing', on: true });
+    figOtherPhone.send({ type: 'typing', on: false });
+    await window();
+    expect(await typingFrames()).toEqual([]);
+    // Stopping and starting again within the window cancels out.
+    figSocket.send({ type: 'typing', on: false });
+    figSocket.send({ type: 'typing', on: true });
+    await window();
+    expect(await typingFrames()).toEqual([]);
+
+    figSocket.send({ type: 'typing', on: false });
     expect(await pipSocket.next('typing')).toEqual({ type: 'typing', people: [] });
   });
 

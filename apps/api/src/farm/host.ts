@@ -21,7 +21,7 @@ import { departed, handOff } from './handoff';
 import { mirrorMembership } from './mirror';
 import type { FarmPorts } from './ports';
 import { targetedPorts } from './wiring';
-import { attachmentOf, connected, envelope, joined, refuse, send } from './sockets';
+import { attachmentOf, connected, envelope, joined, refuse, sendAll } from './sockets';
 import { FarmStore } from './store';
 import { tombstoneEvent, tombstoneMediaOf } from './tombstones';
 
@@ -176,9 +176,7 @@ export class FarmHost {
   /** Broadcasts new events to every socket, then closes the sockets of anyone who left. */
   publish(events: readonly FarmEvent[]): void {
     const sockets = this.sockets();
-    for (const event of events) {
-      for (const ws of sockets) send(ws, { type: 'event', event: envelope(event) });
-    }
+    for (const event of events) sendAll(sockets, { type: 'event', event: envelope(event) });
     for (const event of events) {
       const gone = departed(event);
       if (gone !== null) this.closeSockets(gone, 'not_member');

@@ -252,6 +252,63 @@ export const withBackgroundModes: ConfigPlugin<string[]> = (config, modes) =>
     return plist;
   });
 
+/**
+ * Release builds talk to the API over HTTPS only. Expo's template lets any build reach the local
+ * network over plain HTTP (for a development server on the LAN); a store build has no need to.
+ */
+export const withoutLocalNetworking: ConfigPlugin = (config) =>
+  withInfoPlist(config, (plist) => {
+    const ats = plist.modResults['NSAppTransportSecurity'] as Record<string, unknown> | undefined;
+    if (ats !== undefined) delete ats['NSAllowsLocalNetworking'];
+    return plist;
+  });
+
+/**
+ * The app's privacy manifest (`PrivacyInfo.xcprivacy`): the required-reason APIs it and its
+ * libraries call, and what it collects, matching the App Store privacy labels in
+ * `docs/launch/hardening.md`. Everything is linked to the person and used only for the app to
+ * work; nothing tracks. Extensions that call a required-reason API carry their own manifest.
+ */
+const COLLECTED = [
+  'EmailAddress',
+  'Name',
+  'UserID',
+  'DeviceID',
+  'EmailsOrTextMessages',
+  'PhotosorVideos',
+  'AudioData',
+  'GameplayContent',
+  'OtherUserContent',
+  'PurchaseHistory',
+  'CoarseLocation',
+  'ProductInteraction',
+  'OtherDataTypes',
+] as const;
+
+export const PRIVACY_MANIFEST = {
+  NSPrivacyTracking: false,
+  NSPrivacyTrackingDomains: [],
+  NSPrivacyAccessedAPITypes: [
+    // Settings kept by React Native and Expo modules in the app's own defaults.
+    { type: 'UserDefaults', reason: 'CA92.1' },
+    // Timestamps of files in the app's container and App Group (caches, the upload queue).
+    { type: 'FileTimestamp', reason: 'C617.1' },
+    // Elapsed time for animation and timers, never sent anywhere.
+    { type: 'SystemBootTime', reason: '35F9.1' },
+    // Free space, before writing media and caches.
+    { type: 'DiskSpace', reason: 'E174.1' },
+  ].map(({ type, reason }) => ({
+    NSPrivacyAccessedAPIType: `NSPrivacyAccessedAPICategory${type}`,
+    NSPrivacyAccessedAPITypeReasons: [reason],
+  })),
+  NSPrivacyCollectedDataTypes: COLLECTED.map((type) => ({
+    NSPrivacyCollectedDataType: `NSPrivacyCollectedDataType${type}`,
+    NSPrivacyCollectedDataTypeLinked: true,
+    NSPrivacyCollectedDataTypeTracking: false,
+    NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+  })),
+};
+
 /** The app's config for one variant. */
 export function buildConfig(
   config: ConfigContext['config'],
@@ -288,6 +345,7 @@ export function buildConfig(
       // The extensions in `targets/` (widgets, stickers, share, notifications) read and write it.
       entitlements: { 'com.apple.security.application-groups': [variant.appGroup] },
       config: { usesNonExemptEncryption: false },
+      privacyManifests: PRIVACY_MANIFEST,
       infoPlist: {
         CFBundleAllowMixedLocalizations: true,
         // The plan's day and the fire, on the Lock Screen and in the Dynamic Island.
@@ -333,7 +391,8 @@ export function buildConfig(
       eas: { projectId: EAS_PROJECT_ID },
     },
   };
-  return withBackgroundModes(app, BACKGROUND_MODES);
+  const withModes = withBackgroundModes(app, BACKGROUND_MODES);
+  return appVariant === 'prd' ? withoutLocalNetworking(withModes) : withModes;
 }
 
 // React Native's globals type `process` loosely; this file runs in Node, where each value is a string.

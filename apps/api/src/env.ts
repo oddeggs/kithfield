@@ -43,6 +43,13 @@ export const secretNames = [
   // Kithfield's Telegram bot (from @BotFather): makes a person's sticker set with the Bot API
   // once they confirm in Telegram. Not used until the Telegram export routes exist.
   'TELEGRAM_BOT_TOKEN',
+  // Sign in with Apple's key (the `.p8`'s contents) and its id: swap the sheet's authorization
+  // code for a refresh token, and revoke it when the account is deleted (`auth/apple-tokens.ts`).
+  'APPLE_SIGN_IN_KEY_P8',
+  'APPLE_SIGN_IN_KEY_ID',
+  // App Review's sign-in as JSON: {"email": "...", "code": "123456", "companion": "..."}. Those
+  // addresses sign in with that code and are never mailed (`auth/review-account.ts`). Unset: off.
+  'REVIEW_ACCOUNT',
 ] as const;
 export type SecretName = (typeof secretNames)[number];
 
@@ -137,6 +144,8 @@ export type Bindings = Secrets & {
   readonly SHOP_LIMIT: RateLimit;
   /** Pieces of a speaker's voice for live captions, per person: about twelve a minute. */
   readonly FIRE_LIMIT: RateLimit;
+  /** Farm and cottage socket upgrades: at most 120 a minute per client address. */
+  readonly SOCKET_LIMIT: RateLimit;
   /** Email Sending from kithfield.com, such as sign-in codes. */
   readonly EMAIL: SendEmail;
   readonly PUSH_QUEUE: Queue;

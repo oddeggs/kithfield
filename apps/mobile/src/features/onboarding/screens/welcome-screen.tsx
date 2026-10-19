@@ -8,6 +8,7 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { AX_FONT_SCALE } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
+import { NightVeil } from '../../farm/panel';
 import { hasSignIn, routes } from '../flow';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
@@ -86,7 +87,10 @@ export function WelcomeScreen() {
   if (ax) {
     return (
       <AxFlow bar={<View style={{ height: insets.top }} />} footer={buttons}>
-        <SceneArt scene="gate" width={width} height={360} attrs={scene} />
+        <View>
+          <SceneArt scene="gate" width={width} height={360} attrs={scene} />
+          <NightVeil width={width} height={360} />
+        </View>
         <View style={{ paddingHorizontal: 28, gap: 12 }}>
           {title}
           {body}
@@ -98,6 +102,8 @@ export function WelcomeScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SceneArt scene="gate" width={width} height={610} attrs={scene} />
+      {/* The gate has no night of its own: after dark it takes the farm's night pass. */}
+      <NightVeil width={width} height={610} />
       {/* The gate already fades into paper by day; at night it fades into the sky. */}
       {scene.night ? <PaperFade width={width} top={470} height={140} /> : null}
       {/* The words sit just above the buttons, so a longer language grows upward. */}

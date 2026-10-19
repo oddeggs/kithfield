@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 
 import {
   DataProvider,
+  forgetAppData,
   kithfieldRules,
-  startData,
+  startAppData,
   useDataStatus,
   type DataRuntime,
   type HeldElsewhere,
@@ -112,20 +113,19 @@ export function DataSlot({
   readonly children: ReactNode;
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'starting' });
-  // One start per attempt, even when an effect runs twice in development.
-  const started = useRef<Promise<Runtime> | null>(null);
   // Read when the data layer starts; a later change doesn't restart it.
   const held = useRef(heldElsewhere);
 
   useEffect(() => {
     if (phase.kind !== 'starting') return;
-    started.current ??= startData<unknown>(
+    // One start for the app, shared by a remounted slot or an effect run twice.
+    const started = startAppData(
       kithfieldRules,
       report,
       held.current ? { heldElsewhere: held.current } : {},
     );
     let live = true;
-    started.current.then(
+    started.then(
       (runtime) => live && setPhase({ kind: 'ready', runtime }),
       () => live && setPhase({ kind: 'failed' }),
     );
@@ -135,7 +135,7 @@ export function DataSlot({
   }, [phase]);
 
   const retry = useCallback(() => {
-    started.current = null;
+    forgetAppData();
     setPhase({ kind: 'starting' });
   }, []);
 

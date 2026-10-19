@@ -11,6 +11,7 @@ import {
   BACKGROUND_MODES,
   EAS_PROJECT_ID,
   FONTS,
+  PRIVACY_MANIFEST,
   USAGE,
   buildConfig,
   googleRedirectScheme,
@@ -129,6 +130,48 @@ describe('app variants', () => {
     const out = await setModes(input as unknown as ExportedConfigWithProps<InfoPlist>);
     expect(out.modResults['UIBackgroundModes']).toEqual(BACKGROUND_MODES);
     expect(config.ios?.infoPlist?.['NSSupportsLiveActivities']).toBe(true);
+  });
+
+  it('lets only development builds reach the local network over plain HTTP', async () => {
+    const plistOf = async (variant: 'dev' | 'prd') => {
+      const mod = (buildConfig({}, variant, unset) as ExportedConfig).mods?.ios?.infoPlist;
+      if (mod === undefined) throw new Error('No Info.plist change');
+      const ats = { NSAllowsArbitraryLoads: false, NSAllowsLocalNetworking: true };
+      const input = { ios: {}, modResults: { NSAppTransportSecurity: ats }, modRequest: {} };
+      return (await mod(input as unknown as ExportedConfigWithProps<InfoPlist>)).modResults;
+    };
+    expect((await plistOf('prd'))['NSAppTransportSecurity']).toEqual({
+      NSAllowsArbitraryLoads: false,
+    });
+    expect((await plistOf('dev'))['NSAppTransportSecurity']).toMatchObject({
+      NSAllowsLocalNetworking: true,
+    });
+  });
+
+  it('declares its privacy manifest: no tracking, every collected type linked and for the app', () => {
+    for (const variant of ['dev', 'prd'] as const) {
+      expect(buildConfig({}, variant, unset).ios?.privacyManifests).toBe(PRIVACY_MANIFEST);
+    }
+    expect(PRIVACY_MANIFEST.NSPrivacyTracking).toBe(false);
+    const apis = PRIVACY_MANIFEST.NSPrivacyAccessedAPITypes.map((a) => a.NSPrivacyAccessedAPIType);
+    expect(apis).toEqual([
+      'NSPrivacyAccessedAPICategoryUserDefaults',
+      'NSPrivacyAccessedAPICategoryFileTimestamp',
+      'NSPrivacyAccessedAPICategorySystemBootTime',
+      'NSPrivacyAccessedAPICategoryDiskSpace',
+    ]);
+    for (const type of PRIVACY_MANIFEST.NSPrivacyCollectedDataTypes) {
+      expect(type).toMatchObject({
+        NSPrivacyCollectedDataTypeLinked: true,
+        NSPrivacyCollectedDataTypeTracking: false,
+        NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+      });
+    }
+    const types = PRIVACY_MANIFEST.NSPrivacyCollectedDataTypes.map(
+      (t) => t.NSPrivacyCollectedDataType,
+    );
+    expect(types).toContain('NSPrivacyCollectedDataTypeEmailsOrTextMessages');
+    expect(types).not.toContain('NSPrivacyCollectedDataTypeCrashData');
   });
 
   it('hands the app RevenueCat’s public key when REVENUECAT_IOS_KEY is set, and leaves it out otherwise', () => {

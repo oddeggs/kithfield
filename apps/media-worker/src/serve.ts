@@ -7,7 +7,8 @@ import { MIN_SIGNING_KEY_LENGTH, verifyReadUrl } from '@kithfield/api/src/media/
  * photo is served only while R2 still has it, so an unsend or a deletion takes effect at once too.
  *
  * Photos are cached on the zone (Cache API, keyed by the object alone, never by the signature) with
- * public cache headers: that is where Cloudflare's CSAM Scanning Tool hashes images. Video, voice
+ * public cache headers on the zone's copy only: that is where Cloudflare's CSAM Scanning Tool
+ * hashes images. Video, voice
  * notes and files are served from R2 with byte ranges, for players and Quick Look.
  */
 
@@ -27,9 +28,13 @@ const INLINE =
 /** Photos: cached on the zone, where the CSAM scanning sees them. */
 const CACHED = /^image\/(jpeg|png|heic|heif|webp|gif)$/;
 
-/** A key's bytes never change (a new upload is a new key), so a cached photo can live a day. */
+/**
+ * The zone's copy of a photo: a key's bytes never change (a new upload is a new key), so it can
+ * live a day. Only the zone's copy says public; phones and browsers are told `private`, so no
+ * shared cache keeps a photo past its signed URL, an unsend or a quarantine.
+ */
 export const PHOTO_CACHE_CONTROL = 'public, max-age=86400, immutable';
-const PRIVATE_CACHE_CONTROL = 'private, max-age=3600';
+export const PRIVATE_CACHE_CONTROL = 'private, max-age=3600';
 
 const plain = (status: number, extra: Record<string, string> = {}) =>
   new Response(null, { status, headers: { 'cache-control': 'no-store', ...extra } });
@@ -54,7 +59,7 @@ function objectHeaders(object: R2Object): Headers {
   }
   headers.set('etag', object.httpEtag);
   headers.set('accept-ranges', 'bytes');
-  headers.set('cache-control', CACHED.test(type) ? PHOTO_CACHE_CONTROL : PRIVATE_CACHE_CONTROL);
+  headers.set('cache-control', PRIVATE_CACHE_CONTROL);
   headers.set('x-content-type-options', 'nosniff');
   headers.set('content-security-policy', "default-src 'none'; sandbox");
   headers.set('cross-origin-resource-policy', 'cross-origin');
@@ -91,7 +96,9 @@ export async function serveMedia(
         await cache.delete(cacheKey);
         return plain(404);
       }
-      return request.method === 'HEAD' ? new Response(null, hit) : hit;
+      const served = new Response(request.method === 'HEAD' ? null : hit.body, hit);
+      served.headers.set('cache-control', PRIVATE_CACHE_CONTROL);
+      return served;
     }
   }
 
@@ -119,7 +126,10 @@ export async function serveMedia(
   headers.set('content-length', String(object.size));
   const response = new Response(object.body, { headers });
   if (CACHED.test(object.httpMetadata?.contentType ?? '')) {
-    ctx.waitUntil(cache.put(cacheKey, response.clone()));
+    const copy = response.clone();
+    const zone = new Response(copy.body, copy);
+    zone.headers.set('cache-control', PHOTO_CACHE_CONTROL);
+    ctx.waitUntil(cache.put(cacheKey, zone));
   }
   return response;
 }
