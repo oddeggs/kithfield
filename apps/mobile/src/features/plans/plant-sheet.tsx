@@ -127,7 +127,7 @@ export function PlantSheet({
         }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Press onPress={() => leave()} darken={false} hitSlop={12} style={{ width: 64 }}>
+          <Press onPress={() => leave()} darken={false} hitSlop={12} style={{ minWidth: 64 }}>
             <Txt variant="body" color={palette.body} style={{ fontSize: 16 }}>
               {t('plans.plant.cancel')}
             </Txt>
@@ -139,7 +139,7 @@ export function PlantSheet({
           >
             {t('plans.plant.title')}
           </Txt>
-          <View style={{ width: 64 }} />
+          <View style={{ minWidth: 64 }} />
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>

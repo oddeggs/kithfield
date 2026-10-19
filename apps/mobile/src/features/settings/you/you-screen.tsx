@@ -28,6 +28,7 @@ import { useDesignTop } from '../kit/layout';
 import { KText } from '../kit/text';
 import { go } from '../go';
 import { useRemoteGate } from '../kit/remote-state';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { useRemote } from '../use-remote';
 import { useBattery, type Battery } from './battery';
 
@@ -64,6 +65,7 @@ export function YouScreen() {
 
   // Nothing of you on the phone and no answer: the quiet failure, with Try again.
   const gate = useRemoteGate([me]);
+  const ax = useAccessibilitySize();
   const person = me.data;
   const critter = person?.critter ?? null;
   useYouCritter(critter ? { kind: critter.species, look: lookOf(critter) } : null);
@@ -196,7 +198,7 @@ export function YouScreen() {
                 <Txt
                   variant="displayM"
                   style={{ fontSize: 24, lineHeight: 26.4 }}
-                  numberOfLines={1}
+                  {...(ax ? {} : { numberOfLines: 1 })}
                 >
                   {name}
                 </Txt>

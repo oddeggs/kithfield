@@ -67,7 +67,7 @@ export function VoteBud({
       style={{
         flex: 1,
         // The design's 236 is its content box: 250 tall with the padding under the critters.
-        height: 250,
+        minHeight: 250,
         borderRadius: 26,
         backgroundColor: look.bud,
         boxShadow: `0 0 0 1px ${palette.cardBorder}${mine ? `, 0 0 0 3px ${palette.go.bg}` : ''}`,
@@ -147,7 +147,7 @@ export function SunPatch({
               accessibilityState={{ selected: best }}
               style={{
                 flex: 1,
-                height: 78,
+                minHeight: 78,
                 borderRadius: 14,
                 backgroundColor: best ? sunPatch.best : warm ? sunPatch.warm : sunPatch.empty,
                 alignItems: 'center',
