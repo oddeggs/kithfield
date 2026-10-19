@@ -27,6 +27,8 @@ export interface Sprite {
   readonly halo?: string;
   /** A pencil ring instead of art: the ripple a dewdrop leaves, in this colour and stroke. */
   readonly ring?: { readonly color: string; readonly stroke: number };
+  /** Drawn mirrored, left to right: a critter turned to face the other way. */
+  readonly mirror?: boolean;
 }
 
 /**
@@ -53,6 +55,8 @@ export type SpriteSpec =
       /** The box it stands in, as the `pose` scene fits it. */
       readonly size: number;
       readonly asleep?: boolean;
+      /** The way it faces as it goes, to match where it lands; as the art draws it when left out. */
+      readonly facing?: Facing;
     }
   | {
       /** The fire alone, flame and sparks on nothing, as the campfire draws it, this wide. */
@@ -66,6 +70,16 @@ export type SpriteSpec =
       readonly stroke?: number;
     }
   | { readonly sprite: Sprite };
+
+export type Facing = 'left' | 'right';
+
+/** The way the art draws a critter standing: the hedgehog and the sheep face left (`FLIP`). */
+export const drawnFacing = (kind: string): Facing =>
+  kind === 'hedgehog' || kind === 'sheep' ? 'left' : 'right';
+
+/** Whether a critter is mirrored to face `facing`. */
+export const mirrorFor = (kind: string, facing: Facing | undefined): boolean =>
+  facing !== undefined && facing !== drawnFacing(kind);
 
 /** The moment the renderer draws a still at, and the next drawings on twos after it. */
 const STILL_T = 1.2;
@@ -133,9 +147,11 @@ function critterSprite(
   look: CritterLook | undefined,
   size: number,
   asleep: boolean,
+  facing?: Facing,
 ): Sprite {
   const attrs = { ...lookAttrs(kind, look), pose: asleep ? 'sleep' : 'awake', color: 'none' };
-  return sceneSprite(store, 'pose', attrs, size, size, MAX_DRAWINGS);
+  const sprite = sceneSprite(store, 'pose', attrs, size, size, MAX_DRAWINGS);
+  return mirrorFor(kind, facing) ? { ...sprite, mirror: true } : sprite;
 }
 
 /** The sprite a spec describes, drawn from the art's caches (bake time: the JS thread). */
@@ -178,5 +194,12 @@ export function spriteOf(store: ArtStore, spec: SpriteSpec): Sprite {
   }
   // The art draws a face once (its avatar scene doesn't move), so a face flies as one drawing.
   if ('avatar' in spec) return avatarSprite(store, spec.avatar, spec.look, spec.size);
-  return critterSprite(store, spec.critter, spec.look, spec.size, spec.asleep ?? false);
+  return critterSprite(
+    store,
+    spec.critter,
+    spec.look,
+    spec.size,
+    spec.asleep ?? false,
+    spec.facing,
+  );
 }

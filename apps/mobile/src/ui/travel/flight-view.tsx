@@ -38,7 +38,15 @@ function Drawing({
   const content = layers.map((l, i) =>
     l.image ? <Image key={i} image={l.image} x={l.x} y={l.y} width={l.w} height={l.h} /> : null,
   );
-  if (!sprite.disc) return <Group opacity={opacity}>{content}</Group>;
+  // A critter turned to face the other way: the same drawings, mirrored in its own box.
+  const mirror = sprite.mirror ? [{ translateX: sprite.width }, { scaleX: -1 }] : undefined;
+  if (!sprite.disc) {
+    return (
+      <Group opacity={opacity} {...(mirror ? { transform: mirror } : {})}>
+        {content}
+      </Group>
+    );
+  }
   return (
     <Group
       opacity={opacity}
