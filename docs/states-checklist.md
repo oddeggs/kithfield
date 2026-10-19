@@ -209,8 +209,8 @@ What is still open (each row's note has the detail):
 | 13-13 | Alternate icons for patrons: your critter, and four seasons | – | – | – | – | – | – | – | – | – | not built |
 | 13-14 | Android adaptive icon and themed monochrome | – | – | – | – | – | – | – | – | – | not built |
 | 13-01 | Launch screen: the first frame of the farm drawing in | – | – | – | – | – | – | – | – | – | not built |
-| 13-15 | Cold start: launch screen → the farm inks in (12-01) → farm home | – | – | – | – | – | – | – | – | – | partly built: the splash holds; no reveal canvas or warm-start split |
-| 13-16 | Warm start, and Reduce Motion | – | – | – | – | – | – | – | – | – | partly built: the splash holds; no reveal canvas or warm-start split |
+| 13-15 | Cold start: launch screen → the farm inks in (12-01) → farm home | – | – | – | – | – | – | – | – | – | partly built: the splash goes once the reveal has drawn its paper; the reveal's paper has no horizon line yet |
+| 13-16 | Warm start, and Reduce Motion | – | – | – | – | – | – | – | – | – | built: a farm drawn before the reveal starts takes the splash's 120 ms cross-fade, Reduce Motion its 200 ms fade |
 | 13-17 | Android 12+ splash: the window lights up | – | – | – | – | – | – | – | – | – | not built |
 | 13-22 | Launch film · 45 s, to animate in Limner | – | – | – | – | – | – | – | – | – | web or store page, not an app screen |
 | 13-23 | Six looping clips for TikTok and Reels | – | – | – | – | – | – | – | – | – | web or store page, not an app screen |

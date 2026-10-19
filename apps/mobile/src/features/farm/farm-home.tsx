@@ -23,6 +23,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useArtVisible } from '../../ui/motion/visibility';
 import { useSession } from '../../ui/session/session';
+import { useSplashHold } from '../../ui/session/splash';
 import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
 import { useYouCritter } from '../../ui/tab-bar/tab-activity';
 import { useSunPlace, useTheme } from '../../ui/theme/theme-provider';
@@ -122,6 +123,10 @@ function FarmFor({
   // The farm is revealed once it is on the phone and drawn (a farm with only you on it draws at once).
   const [drawn, setDrawn] = useState(false);
   const loading = useFarmLoading(state !== null, alone || drawn);
+  // At launch the splash waits for the reveal's first frame (a cold start), or for the farm
+  // itself when it is in before the reveal would start (a warm start: no draw-in).
+  const [revealDrawn, setRevealDrawn] = useState(false);
+  useSplashHold(loading.covered && !(loading.revealing && revealDrawn));
   const k = width / 393;
   const send = useSend(farm);
   const { appearance, palette } = useTheme();
@@ -233,6 +238,7 @@ function FarmFor({
           width={width}
           height={sceneH}
           ready={loading.revealing && loading.ready}
+          onDrawn={() => setRevealDrawn(true)}
           onDone={loading.done}
         />
       ) : null}
@@ -351,6 +357,8 @@ export function FarmHome() {
   const { palette } = useTheme();
   const valley = useValley();
   useGoneNote(valley.gone, valley.forget);
+  // The splash stays up while the farm to open is looked up; the farm then holds it itself.
+  useSplashHold(valley.status === 'loading' && !valley.current);
 
   if (valley.current) {
     const row = valley.farms.find((f) => f.farm === valley.current);

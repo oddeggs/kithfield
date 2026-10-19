@@ -43,18 +43,21 @@ const WOBBLE = Array.from({ length: 28 }, (_, k) => 1 + (hash(k, 77) - 0.5) * 0.
  * The farm drawing itself in (`12 States`, loading): paper while the farm is on its way, then a
  * wobbly blob with a pencil edge growing from the farm's centre over the reveal's 4.2 seconds (the
  * renderer's `revealMask`). With Reduce Motion the paper cross-fades away once the farm is in.
- * Calls `onDone` when the farm shows in full.
+ * Calls `onDrawn` once its first frame (the paper) is on screen, and `onDone` when the farm shows
+ * in full.
  */
 export function FarmReveal({
   width,
   height,
   ready,
+  onDrawn,
   onDone,
 }: {
   readonly width: number;
   readonly height: number;
   /** The farm is on the phone: the reveal may finish. */
   readonly ready: boolean;
+  readonly onDrawn?: () => void;
   readonly onDone: () => void;
 }) {
   const { palette } = useTheme();
@@ -64,6 +67,14 @@ export function FarmReveal({
   const done = useRef(onDone);
   done.current = onDone;
   const [grown, setGrown] = useState(false);
+  const drawn = useRef(onDrawn);
+  drawn.current = onDrawn;
+
+  // The canvas draws its paper with the frame after it mounts.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => drawn.current?.());
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   // The blob grows once there is a farm to show under it.
   useEffect(() => {

@@ -1,4 +1,3 @@
-import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import {
@@ -19,6 +18,7 @@ import { AccountProvider, useOnboarded, useRuntimeAccount } from './account';
 import { PushRegistration, pushDeps } from './push-registration';
 import { SessionProvider, signedOut, type Session } from './session';
 import { SignOutScope } from './sign-out';
+import { releaseSplash } from './splash';
 
 type Runtime = DataRuntime<unknown>;
 
@@ -85,7 +85,7 @@ function SessionBridge({
 function StartFailed({ onRetry }: { readonly onRetry: () => void }) {
   const { t } = useLocale();
   useEffect(() => {
-    void SplashScreen.hideAsync();
+    releaseSplash();
   }, []);
   return (
     <ErrorState
