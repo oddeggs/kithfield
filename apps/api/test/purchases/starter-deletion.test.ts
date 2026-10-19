@@ -89,4 +89,39 @@ describe('deleting the account of whoever started a chip-in', () => {
       expect((await entitlements(kit)).owned).toContain('treehouse');
     },
   );
+
+  it("forgets the starter's words on the tag, and the friend it was for once they go too", async () => {
+    at('2026-10-18T14:00:00Z');
+    const { pip, fig, bea } = await cast('pip', 'fig', 'bea');
+    const { farm } = await plantFarm(pip, [fig, bea]);
+    await api(fig, 'PATCH', '/v1/me/profile', {
+      birthday: localDay(Date.now(), 'Europe/London').slice(5),
+    });
+    const { chipIn } = (
+      await api(pip, 'POST', `/v1/farms/${farm}/chip-ins`, {
+        for: 'gift',
+        to: fig.id,
+        item: 'treehouse',
+        wrap: 'clay',
+        note: 'from all of us, Fig',
+      })
+    ).body as ChipIn;
+    const what = async () =>
+      JSON.parse(
+        (
+          await env.DB.prepare('SELECT what_json FROM chip_ins WHERE id = ?')
+            .bind(chipIn)
+            .first<{ what_json: string }>()
+        )?.what_json ?? '{}',
+      ) as Record<string, unknown>;
+    expect(await what()).toMatchObject({ note: 'from all of us, Fig', to: fig.id });
+    const purge = async (person: Person) => {
+      await env.DB.prepare('UPDATE people SET deleted_at = 0 WHERE id = ?').bind(person.id).run();
+      await purgeAccount(env, { kind: 'account_deleted', person: person.id, at: 0 });
+    };
+    await purge(pip);
+    expect(await what()).not.toHaveProperty('note');
+    await purge(fig);
+    expect((await what())['to']).toBe('gone');
+  });
 });
