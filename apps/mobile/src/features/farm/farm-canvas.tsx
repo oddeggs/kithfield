@@ -1,4 +1,4 @@
-import { farm, nightMatrix } from '@kithfield/theme';
+import { farm, motion, nightMatrix } from '@kithfield/theme';
 import { Canvas, ColorMatrix, Group, Image, Paint } from '@shopify/react-native-skia';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -7,6 +7,8 @@ import {
   useDerivedValue,
   useFrameCallback,
   useSharedValue,
+  withDelay,
+  withSequence,
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
@@ -16,6 +18,7 @@ import { travelIds, useTravelShownAll } from '../../ui/travel';
 import { STILL_T, type Backdrop, type CloudSprite, type CritterPoses } from './farm-bake';
 import { breathOf, isBlinking, tick } from './farm-clock';
 import type { FarmFire } from './farm-fire';
+import { lampsLit } from './reactions';
 
 /** A critter as the canvas draws it: where its feet are, and its cached poses. */
 export interface CanvasCritter {
@@ -28,6 +31,18 @@ export interface CanvasCritter {
   readonly ph: number;
   readonly poses: CritterPoses;
 }
+
+const instant = (to: number) => withTiming(to, { duration: 0, reduceMotion: ReduceMotion.Never });
+
+/** A lamp lights in two drawings on twos: on, a flicker, on (at once under Reduce Motion). */
+const lampOn = (reduce: boolean) =>
+  reduce
+    ? instant(1)
+    : withSequence(
+        instant(1),
+        withDelay(motion.twos.frameMs, instant(0.6)),
+        withDelay(motion.twos.frameMs, instant(1)),
+      );
 
 const fadeOf = (to: number, reduce: boolean) =>
   reduce
@@ -240,7 +255,8 @@ export function FarmCanvas({
     if (before && before.key !== backdrop.key) {
       setUnder(before);
       fade.set(0);
-      fade.set(fadeOf(1, reduce));
+      // A friend's lamp coming on lights in drawings; anything else fades across.
+      fade.set(lampsLit(before.key, backdrop.key) ? lampOn(reduce) : fadeOf(1, reduce));
     }
     return () => clearTimeout(timer);
   }, [backdrop, night, fade, dark, reduce]);

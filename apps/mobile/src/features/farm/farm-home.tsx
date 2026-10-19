@@ -1,12 +1,20 @@
 import type { DoorstepItem, FarmId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useDataClient, useFarm, useFarmLink, useFarmView, useOpenFarm, useSend } from '../../data';
+import {
+  useDataClient,
+  useFarm,
+  useFarmEvents,
+  useFarmLink,
+  useFarmView,
+  useOpenFarm,
+  useSend,
+} from '../../data';
 import { ArtStill } from '../../ui/art/art-view';
 import { EmptyState } from '../../ui/components/state-shell';
 import { Sheet, SheetScrollView } from '../../ui/components/sheet';
@@ -35,11 +43,42 @@ import { removalNote } from './removal-note';
 import { farmRoutes } from './routes';
 import { sceneHeight } from './scene-layout';
 import { useFireWay, useHarvestWay } from './scene-ways';
+import { reactionTo, SAID_MS, type FarmReaction } from './reactions';
 import { useNow } from './use-now';
 import { useFarmFlags, useValley } from './valley-store';
 
 /** The sheet overlaps the bottom of the farm by this much (the farm is drawn 540 tall, the sheet rests at 500). */
 const OVERLAP = 40;
+
+/**
+ * The farm reacting to a friend's message while it is open (signature motion): their words pop
+ * over their cottage for a moment, one burst every four seconds at most.
+ */
+function useFarmReaction(farm: FarmId, me: string | null): FarmReaction | null {
+  const events = useFarmEvents(farm, 10);
+  const focused = useIsFocused();
+  const so = useRef<{ afterSeq: number; lastAt: number | null } | null>(null);
+  const [said, setSaid] = useState<FarmReaction | null>(null);
+  useEffect(() => {
+    if (events.length === 0) return;
+    const newest = events.reduce((top, e) => Math.max(top, e.seq), 0);
+    // What was there as the farm opened, or while it was out of sight, never pops up.
+    if (so.current === null || !focused) {
+      so.current = { afterSeq: newest, lastAt: so.current?.lastAt ?? null };
+      return;
+    }
+    const now = Date.now();
+    const next = reactionTo(events, me, so.current, now);
+    so.current = { afterSeq: next.afterSeq, lastAt: next.reaction ? now : so.current.lastAt };
+    if (next.reaction) setSaid(next.reaction);
+  }, [events, focused, me]);
+  useEffect(() => {
+    if (!said) return;
+    const timer = setTimeout(() => setSaid(null), SAID_MS);
+    return () => clearTimeout(timer);
+  }, [said]);
+  return said;
+}
 
 /**
  * The welcome-back and move-in moments, decided as the farm opens and again when someone new
@@ -118,6 +157,7 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
   const fire = useFireOnFarm(farm);
   const fireWay = useFireWay(farm, { width, height, screen }, fire.lit);
   const harvestWay = useHarvestWay(farm, view, { width, height });
+  const said = useFarmReaction(farm, me);
   const client = useDataClient();
   // A gift opens on the step (the shop's 09-05), or, for a sticker pack, as its parcel (08-06).
   const openGift = async (d: DoorstepItem, gift: string) => {
@@ -168,6 +208,7 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
           now={now}
           fire={fire}
           coverTop={height - OVERLAP}
+          said={said}
           targets={{
             onCritter: openCritter,
             onHouse: (h) =>

@@ -1,9 +1,12 @@
 import type { FarmState, PersonId } from '@kithfield/contracts';
 import { STATUS_MS, type FarmView, type PlanView } from '@kithfield/farm';
+import { useEffect, type ReactNode } from 'react';
 import { View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
+import { sheetTo } from '../../ui/motion/motion';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { TravelSpot, travelIds } from '../../ui/travel';
 import { FarmCanvas } from './farm-canvas';
@@ -17,6 +20,7 @@ import {
   type PlacedHouse,
 } from './scene-layout';
 import { headOf, layoutBubbles, type BubbleWish } from './bubble-layout';
+import type { FarmReaction } from './reactions';
 import { SpeechBubble } from './speech-bubble';
 import { useFarmScene } from './use-farm-scene';
 
@@ -64,6 +68,38 @@ function Target({
   );
 }
 
+/** A bubble that pops up from its tail on the sheet's spring as it appears. */
+function Popping({
+  style,
+  children,
+}: {
+  readonly style: {
+    readonly left: number;
+    readonly top: number;
+    readonly width: number;
+    readonly height: number;
+  };
+  readonly children: ReactNode;
+}) {
+  const reduce = useReduceMotion();
+  const pop = useSharedValue(0);
+  useEffect(() => {
+    pop.set(sheetTo(1, reduce));
+  }, [pop, reduce]);
+  const popStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, pop.get() * 2),
+    transform: [{ scale: 0.2 + 0.8 * pop.get() }],
+  }));
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[{ position: 'absolute', transformOrigin: 'left bottom' }, style, popStyle]}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
 /**
  * The farm canvas with what sits on it: tap targets for every critter, cottage and landmark,
  * status bubbles over critters, a word for a friend dozing, and the flag of the newest plan.
@@ -79,6 +115,7 @@ export function FarmScene({
   now,
   fire = null,
   coverTop,
+  said = null,
   targets,
 }: {
   readonly state: FarmState | null;
@@ -93,6 +130,8 @@ export function FarmScene({
   readonly fire?: { readonly lit: boolean; readonly line: string | null } | null;
   /** Where something laid over the farm (its sheet) begins, from the scene's top. */
   readonly coverTop?: number;
+  /** What a friend just said, popped over their cottage for a moment. */
+  readonly said?: FarmReaction | null;
   readonly targets: SceneTargets;
 }) {
   const { t } = useLocale();
@@ -175,6 +214,28 @@ export function FarmScene({
       meta: false,
       mine: false,
       order: 2,
+    });
+  }
+  // A friend's new message, over their cottage (or over them, without one), before the rest.
+  const saidHouse = said ? scene.placement.houses.find((h) => h.person === said.person) : null;
+  const saidAt = !said
+    ? null
+    : saidHouse
+      ? {
+          x: width * HOUSES[saidHouse.key].x,
+          // Its tail on the cottage's wall: the far cottages sit just under the farm's header.
+          y: height * HOUSES[saidHouse.key].y - width * HOUSES[saidHouse.key].size * 0.3,
+        }
+      : head(said.person);
+  if (said && saidAt && !reduce) {
+    wishes.push({
+      key: `said:${said.key}`,
+      text: said.text,
+      ...saidAt,
+      maxWidth: 170,
+      meta: false,
+      mine: false,
+      order: -1,
     });
   }
   const placed = layoutBubbles(wishes, width, 110);
@@ -280,6 +341,23 @@ export function FarmScene({
       })}
       {placed.map((p, i) => {
         const w = wishes.find((x) => x.key === p.key);
+        if (w && w.key.startsWith('said:')) {
+          return (
+            <Popping
+              key={p.key}
+              style={{ left: p.left, top: p.top, width: p.width, height: p.height }}
+            >
+              <SpeechBubble
+                text={w.text}
+                tail={p.tail}
+                maxWidth={w.maxWidth}
+                width={p.width}
+                running={running}
+                style={{ left: 0, top: 0 }}
+              />
+            </Popping>
+          );
+        }
         return w ? (
           <SpeechBubble
             key={p.key}
