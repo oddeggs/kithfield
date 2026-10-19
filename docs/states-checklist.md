@@ -103,7 +103,7 @@ What is still open (each row's note has the detail):
 | 05-10 | Sending a file or document | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 05-11 | Every warm reaction, with what it means | – | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: scene and overlay sheets scroll at AX5; pills grow |
 | 06-01 | Plant a seed (pick a day and place, watch it grow) | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: Cancel keeps room for its word |
-| 06-02 | Picking a day: voting buds and the sun patch (tap a bud) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✗ | fixed here: buds and sun patches grow; VoiceOver: a bud does not say how many lean on it |
+| 06-02 | Picking a day: voting buds and the sun patch (tap a bud) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: buds and sun patches grow; a bud says who leans on it, by name and never as a count |
 | 06-03 | The organiser's hat chases RSVPs so Pip doesn't have to | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 06-04 | Seed bed: plans live here, not in the chat | ✓ | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: the 12-13 empty state, calendar pill grows, first-run tip 3 of 3 |
 | 06-05 | Remember-me seed: interview Thursday becomes a Friday nudge | – | – | ✗ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ | offline: remember-me goes straight to the API, not the post bag; the envelope wobble is not built |
@@ -118,7 +118,7 @@ What is still open (each row's note has the detail):
 | 08-02 | Together stickers: pick friends (tap the faces) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | 12-16 counterpart; fixed here: one scrolling column at AX5, face names on two lines and faces wrapping |
 | 08-03 | Quick Tend: stickers as one-tap replies (tap one) | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | loading: blank while Quick Tend loads |
 | 08-04 | Sticker shop: themed packs | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ |  |
-| 08-05 | Send a pack as a gift | ✓ | ✓ | ✗ | ✓ | ✓ | – | ✓ fixed | ✓ | ✗ | offline: no "prices unavailable" line; VoiceOver: wrap names read as raw ids |
+| 08-05 | Send a pack as a gift | ✓ | ✓ | ✗ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ fixed | offline: no "prices unavailable" line; fixed here: each wrap is read by its name |
 | 08-06 | On Bea's phone: the gift opens | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | a failed fetch reads as "gone"; fixed here: one scrolling column at AX5, the two buttons stacked |
 | 09-01 | Rocco's cart: this week's rotation | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: names and lines wrap at AX5 |
 | 09-02 | Try it on live on the farm, by day and at night (tap) | ✓ | – | ✓ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ | fixed here: pills and buttons grow |
@@ -180,7 +180,7 @@ What is still open (each row's note has the detail):
 | 11-18 | Asking first: captions use an outside AI (from 16-10) | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 11-19 | Asking first: an AI-written Sunday recap (from 07-02) | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 11-20 | Settings › AI and your data: every switch, and taking it back | ✓ | – | ✓ fixed | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ | fixed here: switches wait, never read "off", and a failure says so |
-| 11-21 | The reporter hears back, kindly and within a day | ✓ fixed | ✓ | ✓ fixed | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✗ | fixed here: loading and failure in the sheet and the list; VoiceOver: the safety email is not a link |
+| 11-21 | The reporter hears back, kindly and within a day | ✓ fixed | ✓ | ✓ fixed | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ fixed | fixed here: loading and failure in the sheet and the list; the safety email is a link that writes to it |
 | 11-22 | The reported person: what was removed, and asking for another look | ✓ fixed | – | ✓ fixed | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ | fixed here: loading and failure in the sheet |
 | 12-01 | Loading: the farm draws itself in | ✓ fixed | – | – | – | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | built here: paper, pencil rows, "drawing the farm…", the wobbly reveal; Reduce Motion cross-fades |
 | 12-02 | Empty: a brand-new farm with just you | ✓ fixed | ✓ fixed | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | built here |
@@ -264,11 +264,11 @@ What is still open (each row's note has the detail):
 | 16-09 | The room goes quiet as the last person leaves | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: buttons and tiles grow |
 | 16-10 | Live captions and translation (Plus) | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: the captions sheet closes with the escape gesture |
 | 16-11 | Hear it, read it: captions, translation and expressions | ✓ | – | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |  |
-| 16-12 | Light your lantern: two people | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✗ | fixed here: name chips grow; VoiceOver: frames do not say who talks |
-| 16-13 | Lanterns for 3–4 people | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✗ | fixed here: name chips grow; VoiceOver: frames do not say who talks |
-| 16-14 | Lanterns for 6–8: the frames sit around the fire | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✗ | fixed here: name chips grow; VoiceOver: frames do not say who talks |
+| 16-12 | Light your lantern: two people | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: name chips grow; each frame says who it is, talking or muted, lantern lit or camera off |
+| 16-13 | Lanterns for 3–4 people | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: name chips grow; each frame says who it is, talking or muted, lantern lit or camera off |
+| 16-14 | Lanterns for 6–8: the frames sit around the fire | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: name chips grow; each frame says who it is, talking or muted, lantern lit or camera off |
 | 16-15 | Sharing your screen by the fire | ✓ | – | – | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | partly built: sharing from your own phone is not ready |
-| 16-16 |  | ✓ | – | – | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✗ | VoiceOver: your own frame is labelled with only your name |
+| 16-16 |  | ✓ | – | – | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: your own frame says it is yours, muted or talking, and your lantern |
 | 16-17 | Critter mask: your face drives your critter | – | – | – | – | – | – | – | – | – | not built (marked later in the design) |
 | 16-18 | A visit call: Otis knocks on your porch door | – | – | – | – | – | – | – | – | – | not built (marked later in the design) |
 | 16-19 | Declined with a sticker, and a missed knock | – | – | – | – | – | – | – | – | – | not built (marked later in the design) |

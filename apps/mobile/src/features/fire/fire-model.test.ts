@@ -5,6 +5,7 @@ import { addRow, lineFrom, type CaptionRow } from './caption-lines';
 import { hasVoice, rateOf, samplesOf, toTargetRate, wavOf } from './pcm';
 import {
   dockStateOf,
+  frameSpeech,
   gestureTarget,
   headerLine,
   layoutOf,
@@ -180,5 +181,22 @@ describe('your voice for captions', () => {
     expect(wav).toHaveLength(44 + 3200);
     expect(hasVoice(down)).toBe(true);
     expect(hasVoice(new Int16Array(1600))).toBe(false);
+  });
+});
+
+describe('what VoiceOver says of a lantern frame', () => {
+  const en = translator('en');
+  const bea = { name: 'Bea', you: false, mic: true, speaking: false, lantern: true };
+
+  it('says who is talking, who is muted, and whose lantern is lit', () => {
+    expect(frameSpeech(en, { ...bea, speaking: true })).toBe('Bea, talking, lantern lit');
+    expect(frameSpeech(en, { ...bea, mic: false })).toBe('Bea, muted, lantern lit');
+    expect(frameSpeech(en, { ...bea, lantern: false })).toBe('Bea, camera off');
+  });
+
+  it('says your own frame is yours and how you are, not just your name', () => {
+    expect(frameSpeech(en, { ...bea, name: 'Pip', you: true, mic: false })).toBe(
+      'You, muted, lantern lit',
+    );
   });
 });

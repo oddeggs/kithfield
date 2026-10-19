@@ -225,3 +225,29 @@ export function fireActivityState(
     listening: you?.mode === 'listen',
   };
 }
+
+/**
+ * A lantern frame as VoiceOver says it: whose it is (yours says "You"), whether they are talking
+ * or muted, and whether their lantern is lit or their camera off.
+ */
+export function frameSpeech(
+  t: Translate,
+  p: {
+    readonly name: string;
+    readonly you: boolean;
+    readonly mic: boolean;
+    readonly speaking: boolean;
+    readonly lantern: boolean;
+  },
+): string {
+  const name = p.you ? t('fire.chip.you') : p.name;
+  const who = p.speaking
+    ? t('fire.chip.talking', { name })
+    : p.mic
+      ? name
+      : t('fire.chip.mutedA11y', { name });
+  return t('fire.frame.a11y', {
+    who,
+    lantern: p.lantern ? t('fire.frame.lit') : t('fire.frame.cameraOff'),
+  });
+}

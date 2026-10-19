@@ -20,7 +20,7 @@ import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { FIRE_TEXT_MAX_SCALE, LevelBars } from './fire-chrome';
 import { FireTxt } from './fire-text';
 import { fireLook } from './look';
-import type { Layout } from './room-model';
+import { frameSpeech, type Layout } from './room-model';
 
 /*
  * Lanterns: video by the fire, in round hand-drawn frames. Off by default; someone with their
@@ -104,8 +104,13 @@ export function LanternFrame({
       : t('fire.chip.youCameraOff')
     : person.name;
   const talking = person.speaking;
+  // Who it is and how: talking or muted, lantern lit or camera off.
+  const speech = frameSpeech(t, person);
   const frame = (
-    <View style={{ position: 'absolute', left: x, top: y, width: size, height: size, zIndex: 8 }}>
+    <View
+      style={{ position: 'absolute', left: x, top: y, width: size, height: size, zIndex: 8 }}
+      {...(onPress ? {} : { accessible: true, accessibilityLabel: speech })}
+    >
       <View
         style={{
           position: 'absolute',
@@ -194,7 +199,7 @@ export function LanternFrame({
   );
   if (!onPress) return frame;
   return (
-    <Press onPress={onPress} darken={false} accessibilityLabel={name} accessibilityRole="button">
+    <Press onPress={onPress} darken={false} accessibilityLabel={speech} accessibilityRole="button">
       {frame}
     </Press>
   );

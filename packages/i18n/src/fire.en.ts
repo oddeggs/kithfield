@@ -85,6 +85,9 @@ export const fireEn = {
   'fire.chip.talking': '{name}, talking',
   'fire.chip.mutedA11y': '{name}, muted',
   'fire.chip.listeningA11y': '{name}, just listening',
+  'fire.frame.a11y': '{who}, {lantern}',
+  'fire.frame.lit': 'lantern lit',
+  'fire.frame.cameraOff': 'camera off',
 
   /* A weak connection */
   'fire.weak.title': '{name}’s connection is weak.',

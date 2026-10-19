@@ -26,6 +26,8 @@ import { StickerArt } from '../ui/sticker';
 import { useMe } from '../ui/use-me';
 import { wornName } from '../ui/worn';
 import { roomy } from '../ui/type';
+// The shop's free wrappings, so a wrap is said by the name the shop gives it.
+import { isWrapId } from '../../shop/screens/gift-screen';
 
 /** The wrappings shown when the shop's catalogue can't be read: the design's four. */
 const FALLBACK_WRAPS = ['clay', 'dusk', 'fern', 'honey'];
@@ -244,15 +246,21 @@ export function GiftScreen({
         >
           <Txt variant="buttonSmall">{t('stickers.gift.wrapping')}</Txt>
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            {wraps.map((w) => {
+            {wraps.map((w, i) => {
               const on = w === chosenWrap;
+              // Said by its name, never its id: the shop's names, then the stickers' own.
+              const wrapName = isWrapId(w)
+                ? t(`shop.wrap.${w}`)
+                : w === 'honey'
+                  ? t('stickers.gift.wrapHoney')
+                  : t('stickers.gift.wrapNumber', { n: i + 1 });
               return (
                 <Press
                   key={w}
                   onPress={() => setWrap(w)}
                   haptic="select"
                   darken={false}
-                  accessibilityLabel={t('stickers.gift.wrapName', { wrap: w.replace(/_/g, ' ') })}
+                  accessibilityLabel={t('stickers.gift.wrapName', { wrap: wrapName })}
                   accessibilityState={{ selected: on }}
                   style={{
                     width: 41,

@@ -190,6 +190,8 @@ export const stickersEn = {
   'stickers.gift.wrap': 'Wrap it up · {price}',
   'stickers.gift.wrapNoPrice': 'Wrap it up',
   'stickers.gift.wrapName': '{wrap} wrapping',
+  'stickers.gift.wrapHoney': 'Honey',
+  'stickers.gift.wrapNumber': 'Wrapping {n}',
   'stickers.gift.alreadyHas': '{name} already has this pack',
   'stickers.gift.nobody': 'Gifts go to friends on your farms. Nobody is here yet.',
   'stickers.gift.sent': 'Your gift is on {name}’s doorstep',
