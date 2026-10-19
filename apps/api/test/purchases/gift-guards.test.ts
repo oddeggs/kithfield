@@ -1,13 +1,17 @@
 import type { GiftStart } from '@kithfield/contracts';
 import { env } from 'cloudflare:workers';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { op } from '../farm/support/client';
-import { api, cast, plantFarm, useTestPorts } from '../farm/support/doubles';
-import { boughtConsumable, entitlements } from './support';
+import { api, cast, plantFarm } from '../farm/support/doubles';
+import { boughtConsumable, entitlements, holdClock } from './support';
 
 beforeEach(() => {
-  useTestPorts({ at: Date.now() });
+  holdClock();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 /** Pip's paid gift of a bee for Fig, waiting to be given. */
