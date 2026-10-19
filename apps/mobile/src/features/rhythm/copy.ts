@@ -1,3 +1,4 @@
+import type { RejectReason } from '@kithfield/contracts';
 import type { Translate } from '@kithfield/i18n';
 
 import { listOf } from '../farm/farm-copy';
@@ -24,3 +25,10 @@ export const inSentence = (name: string, language: string): string =>
  * so these take the straight one the design writes.
  */
 export const handText = (text: string): string => text.replace(/’/g, "'");
+
+/**
+ * What to say when the farm refuses a write (a dewdrop, a signature, a wave, a pressed page): the
+ * same gentle words the gestures use for each reason, so a refusal is never silent.
+ */
+export const refusalCopy = (t: Translate, reason: RejectReason): string =>
+  say(t, `gestures.reject.${reason}`);

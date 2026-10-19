@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { ArtStill } from '../../../ui/art/art-view';
@@ -7,22 +7,8 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
 // The sheet's pencil-dashed rows: the app's one loading look (`12 States`, loading).
-import { LOADER_AFTER_MS, PencilRows } from '../../farm/farm-states';
+import { LoadingRows } from '../../farm/farm-states';
 import { remoteView, type RemoteLike } from './remote-view';
-
-/** True once `on` has held for the loader's wait, so a quick answer shows no loader at all. */
-function useAfterWait(on: boolean): boolean {
-  const [late, setLate] = useState(false);
-  useEffect(() => {
-    if (!on) {
-      setLate(false);
-      return;
-    }
-    const timer = setTimeout(() => setLate(true), LOADER_AFTER_MS);
-    return () => clearTimeout(timer);
-  }, [on]);
-  return on && late;
-}
 
 /**
  * What a screen built on fetched details shows before it can show itself: nothing for a quick
@@ -31,7 +17,6 @@ function useAfterWait(on: boolean): boolean {
  */
 export function useRemoteGate(remotes: readonly RemoteLike[]): ReactNode {
   const view = remoteView(remotes);
-  const slow = useAfterWait(view === 'loading');
   if (view === 'ready') return null;
   if (view === 'failed') {
     return (
@@ -42,13 +27,7 @@ export function useRemoteGate(remotes: readonly RemoteLike[]): ReactNode {
       />
     );
   }
-  return slow ? (
-    <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
-      <PencilRows />
-    </View>
-  ) : (
-    <View />
-  );
+  return <LoadingRows />;
 }
 
 /** The quiet failure inside a page: the duck under its cloud, a sentence and Try again. */

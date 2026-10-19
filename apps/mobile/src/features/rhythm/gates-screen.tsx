@@ -11,6 +11,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { listOf } from '../farm/farm-copy';
+import { LoadingRows } from '../farm/farm-states';
 import { BackButton } from './chrome';
 import { usePeopleKnown } from './people-known';
 import { useLoad, useRhythmApi } from './rhythm-api';
@@ -97,7 +98,9 @@ export function GatesScreen({
               })}
             </ListGroup>
           </View>
-        ) : null}
+        ) : (
+          <LoadingRows />
+        )}
       </ScrollView>
     </View>
   );

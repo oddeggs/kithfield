@@ -380,3 +380,18 @@ export function FarmLoadFailed({
     />
   );
 }
+
+/**
+ * A list or card still on its way: nothing for a quick answer, then the pencil rows. The one
+ * loading look the app has (`12 States`: never grey shimmer, never a spinner).
+ */
+export function LoadingRows({ inset = 20 }: { readonly inset?: number }) {
+  const [late, setLate] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setLate(true), LOADER_AFTER_MS);
+    return () => clearTimeout(timer);
+  }, []);
+  return (
+    <View style={{ paddingHorizontal: inset, paddingTop: 16 }}>{late ? <PencilRows /> : null}</View>
+  );
+}

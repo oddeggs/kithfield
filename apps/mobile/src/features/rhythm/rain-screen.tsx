@@ -19,7 +19,7 @@ import { openFire } from '../fire/fire-glow';
 import { NightVeil, Panel } from '../farm/panel';
 import { useNow } from '../farm/use-now';
 import { ActionButton, Faces, TitlePill } from './chrome';
-import { rainNames } from './copy';
+import { rainNames, refusalCopy } from './copy';
 import { sharedRainToday } from './moments';
 import { rhythmRoutes } from './routes';
 
@@ -66,7 +66,7 @@ export function RainScreen({ farm }: { readonly farm: FarmId }) {
       setWaved(true);
       toast.show(t('rhythm.rain.hiSent'), 'wave');
       close();
-    }
+    } else toast.show(refusalCopy(t, sent.reason));
   };
 
   return (

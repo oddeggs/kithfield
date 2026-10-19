@@ -18,8 +18,9 @@ import { Glass } from '../../ui/components/glass';
 import { Txt } from '../../ui/type/text';
 import { typeAt } from '../farm/type-at';
 import { useNow } from '../farm/use-now';
+import { LoadingRows } from '../farm/farm-states';
 import { BackButton } from './chrome';
-import { handText } from './copy';
+import { handText, refusalCopy } from './copy';
 import { useRhythmApi } from './rhythm-api';
 import {
   pageTilt,
@@ -251,7 +252,10 @@ export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
         style: 'destructive',
         onPress: () =>
           void send('scrapbook_page', { action: 'hidden', target: page.seq }).then((sent) => {
-            if (sent.status !== 'queued') return;
+            if (sent.status !== 'queued') {
+              toast.show(refusalCopy(t, sent.reason));
+              return;
+            }
             setPages((p) => (p ?? []).filter((x) => x.seq !== page.seq));
             toast.show(t('rhythm.scrapbook.hidden'));
           }),
@@ -267,7 +271,10 @@ export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
       items: [...item.items],
       flower: item.flower,
     });
-    if (sent.status !== 'queued') return;
+    if (sent.status !== 'queued') {
+      toast.show(refusalCopy(t, sent.reason));
+      return;
+    }
     toast.show(t('rhythm.scrapbook.pressed'));
     setRound((r) => r + 1);
   };
@@ -332,7 +339,9 @@ export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
             body={t('rhythm.loadFailed')}
             action={{ label: t('rhythm.tryAgain'), onPress: () => setRound((r) => r + 1) }}
           />
-        ) : pages !== null && cards.length === 0 ? (
+        ) : pages === null ? (
+          <LoadingRows />
+        ) : cards.length === 0 ? (
           <EmptyState
             art={<ArtStill scene="spot" width={240} height={172} attrs={{ name: 'media' }} />}
             title={t('rhythm.scrapbook.empty.title')}

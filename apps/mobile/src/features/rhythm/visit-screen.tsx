@@ -21,6 +21,7 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { NightVeil, Panel } from '../farm/panel';
 import { SpeechBubble } from '../farm/speech-bubble';
+import { LoadingRows } from '../farm/farm-states';
 import { ActionButton, Faces, IconChip, TitlePill, TopBar } from './chrome';
 import { handText, say } from './copy';
 import { atGate } from './gate-calls';
@@ -101,7 +102,11 @@ export function VisitScreen({
       </View>
     );
   }
-  return <View style={{ flex: 1, backgroundColor: palette.background }} />;
+  return (
+    <View style={{ flex: 1, backgroundColor: palette.background, justifyContent: 'center' }}>
+      <LoadingRows />
+    </View>
+  );
 }
 
 function Gate({
