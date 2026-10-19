@@ -1,6 +1,6 @@
 import type { InvitePreview } from '@kithfield/contracts';
 import { useCallback, useEffect, useState } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { View } from 'react-native';
 
 import { ArtStill } from '../../ui/art/art-view';
 import { Button } from '../../ui/components/button';
@@ -21,6 +21,7 @@ import {
 } from './kit';
 import type { OnboardingApi } from './onboarding-api';
 import { SceneArt } from './scene-art';
+import { useWayInWindow } from './way-in-frame';
 
 type Preview =
   | { readonly kind: 'loading' }
@@ -52,7 +53,7 @@ export function InviteLanding({
 }) {
   const { t } = useLocale();
   const { palette } = useTheme();
-  const { width } = useWindowDimensions();
+  const { width } = useWayInWindow();
   const top = useDesignTop();
   const scene = useSceneAttrs();
   const ax = useAccessibilitySize();

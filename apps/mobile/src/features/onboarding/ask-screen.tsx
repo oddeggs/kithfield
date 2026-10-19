@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Platform, useWindowDimensions, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Button } from '../../ui/components/button';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
+import { askNextKey } from './ask-next';
 import { SceneArt } from './scene-art';
 import {
   AxFlow,
@@ -19,6 +20,7 @@ import {
   useDesignTop,
   useSceneAttrs,
 } from './kit';
+import { useWayInWindow } from './way-in-frame';
 
 export interface AskPromise {
   readonly text: string;
@@ -60,7 +62,7 @@ export function AskScreen({
 }) {
   const { t } = useLocale();
   const { palette } = useTheme();
-  const { width } = useWindowDimensions();
+  const { width } = useWayInWindow();
   const top = useDesignTop();
   const scene = useSceneAttrs();
   const ax = useAccessibilitySize();
@@ -104,7 +106,7 @@ export function AskScreen({
           color={palette.secondary}
           style={{ fontSize: 13, lineHeight: 18.2, marginBottom: 2 }}
         >
-          {t(Platform.OS === 'android' ? 'android.ask.next' : 'onboarding.ask.next')}
+          {t(askNextKey('onboarding.ask.next'))}
         </Txt>
       ) : null}
       <Button label={yes} onPress={() => void yesPressed()} disabled={busy} />

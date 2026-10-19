@@ -28,6 +28,10 @@ export const platformsEn = {
 
   'platforms.getApp': 'Get the app',
 
+  /** Under a permission ask: what asks next in the browser, and in the desktop app. */
+  'platforms.ask.nextBrowser': 'Next, your browser will ask too.',
+  'platforms.ask.nextDesktop': 'Next, your computer will ask too.',
+
   'platforms.desk.search': 'Search',
   'platforms.desk.farms': 'Farms',
   'platforms.desk.visits': 'Visits',

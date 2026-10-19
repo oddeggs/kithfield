@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, useWindowDimensions, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { ArtStill } from '../../../ui/art/art-view';
 import { Button } from '../../../ui/components/button';
@@ -25,6 +25,7 @@ import {
   useInks,
   useSceneAttrs,
 } from '../kit';
+import { useWayInWindow } from '../way-in-frame';
 
 /** A shape filter: small, ink when chosen. */
 function ShapeChip({
@@ -72,7 +73,7 @@ export function CritterScreen() {
   const { t } = useLocale();
   const { palette } = useTheme();
   const inks = useInks();
-  const { width } = useWindowDimensions();
+  const { width } = useWayInWindow();
   const top = useDesignTop();
   const scene = useSceneAttrs();
   const ax = useAccessibilitySize();

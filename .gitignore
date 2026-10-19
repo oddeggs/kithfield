@@ -23,4 +23,6 @@ coverage/
 # Copied from the installed packages by apps/mobile/web/copy-assets.mjs.
 /apps/mobile/public/*.wasm
 /apps/mobile/public/fonts/
+# Baked from the art by apps/mobile/web/bake-icons.mjs.
+/apps/mobile/public/*.png
 /apps/mobile/dist-web/

@@ -23,6 +23,9 @@ export const platformsVi: ViCatalogue<typeof platformsEn> = {
 
   'platforms.getApp': 'Tải ứng dụng',
 
+  'platforms.ask.nextBrowser': 'Tiếp theo, trình duyệt cũng sẽ hỏi bạn.',
+  'platforms.ask.nextDesktop': 'Tiếp theo, máy tính cũng sẽ hỏi bạn.',
+
   'platforms.desk.search': 'Tìm kiếm',
   'platforms.desk.farms': 'Nông trại',
   'platforms.desk.visits': 'Ghé thăm',

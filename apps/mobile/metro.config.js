@@ -18,10 +18,19 @@ const WEB_MODULES = {
 };
 const shim = (file) => path.resolve(__dirname, 'src/web/shims', file);
 
+/**
+ * The phone's builds only: Expo Router's list of routes (`expo-router/_ctx`) without the
+ * browser's own route files (`*.web.tsx`), so they and what they import stay out of the app.
+ */
+const NATIVE_ROUTES = path.resolve(__dirname, 'src/native-routes.ts');
+
 const resolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (platform === 'web' && Object.hasOwn(WEB_MODULES, moduleName)) {
     return { type: 'sourceFile', filePath: shim(WEB_MODULES[moduleName]) };
+  }
+  if ((platform === 'ios' || platform === 'android') && moduleName === 'expo-router/_ctx') {
+    return { type: 'sourceFile', filePath: NATIVE_ROUTES };
   }
   return (resolveRequest ?? context.resolveRequest)(context, moduleName, platform);
 };

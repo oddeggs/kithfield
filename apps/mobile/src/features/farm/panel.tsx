@@ -1,7 +1,7 @@
 import { farm, radii, sizes } from '@kithfield/theme';
 import { Canvas, Image } from '@shopify/react-native-skia';
 import { useEffect, type ReactNode } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Platform, ScrollView, View } from 'react-native';
 import { useDerivedValue, useFrameCallback, useSharedValue } from 'react-native-reanimated';
 
 import { useArtLoop } from '../../ui/art/art-provider';
@@ -120,11 +120,27 @@ export function NightVeil({ width, height }: { readonly width: number; readonly 
         left: 0,
         width,
         height,
-        backgroundColor: withAlpha(farm.night.color, farm.night.strength),
+        backgroundColor:
+          Platform.OS === 'web'
+            ? opaqueMultiply(farm.night.color, farm.night.strength)
+            : withAlpha(farm.night.color, farm.night.strength),
         mixBlendMode: 'multiply',
       }}
     />
   );
+}
+
+/**
+ * A translucent multiply as the one opaque colour that multiplies the same: white taken toward
+ * `hex` by `strength`, channel by channel. The browser blends a translucent multiply lighter and
+ * greyer than the phone does (and than the art's own night pass); an opaque one it multiplies
+ * exactly.
+ */
+function opaqueMultiply(hex: string, strength: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const channel = (shift: number) =>
+    Math.round(255 * (1 - strength) + ((n >> shift) & 255) * strength);
+  return `rgb(${channel(16)},${channel(8)},${channel(0)})`;
 }
 
 /** The round glass button over a moment's art, with the design's glyph: ‹ back or ✕ close. */
