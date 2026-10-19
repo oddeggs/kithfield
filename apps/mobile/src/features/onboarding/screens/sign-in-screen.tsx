@@ -1,4 +1,3 @@
-import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
@@ -8,7 +7,6 @@ import { takeUnsentNotice, type UnsentNotice } from '../../../data';
 import { Button } from '../../../ui/components/button';
 import { NoticeCard } from '../../../ui/components/card';
 import { useLocale } from '../../../ui/locale/locale-provider';
-import { Press } from '../../../ui/motion/press';
 import { useAccount } from '../../../ui/session/account';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
@@ -30,6 +28,7 @@ import {
 import { useProgress } from '../progress';
 import { pageUrl } from './house-rules-screen';
 import { appleSheet, googleSheet, SheetCancelled, type SheetAnswer } from '../social';
+import { AppleSignInButton, GoogleSignInButton } from '../ui/provider-buttons';
 
 /** Where a sentence's two links go, split around their placeholders. */
 const RULES = '\u0001';
@@ -42,7 +41,7 @@ const PRIVACY = '\u0002';
 export function SignInScreen() {
   const router = useRouter();
   const { t, language } = useLocale();
-  const { palette, appearance } = useTheme();
+  const { palette } = useTheme();
   const { width } = useWindowDimensions();
   const top = useDesignTop();
   const bottom = useBottom();
@@ -113,40 +112,10 @@ export function SignInScreen() {
         />
       ) : null}
       <FadeUp delay={0}>
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-          buttonStyle={
-            appearance === 'night'
-              ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-              : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-          }
-          cornerRadius={28}
-          style={{ height: 56 }}
-          onPress={() => void withSheet('apple', appleSheet)}
-        />
+        <AppleSignInButton onPress={() => void withSheet('apple', appleSheet)} />
       </FadeUp>
       <FadeUp delay={60}>
-        <Press
-          onPress={() => void withSheet('google', googleSheet)}
-          radius={28}
-          accessibilityLabel={t('onboarding.signIn.google')}
-          style={{
-            // At the accessibility sizes the label may wrap, so the button grows with it.
-            ...(ax
-              ? { minHeight: 56, paddingVertical: 10, paddingHorizontal: 18 }
-              : { height: 56 }),
-            borderRadius: 28,
-            backgroundColor: '#ffffff',
-            borderWidth: 1,
-            borderColor: 'rgba(42,34,29,.18)',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Txt variant="button" color="#2a221d">
-            {t('onboarding.signIn.google')}
-          </Txt>
-        </Press>
+        <GoogleSignInButton onPress={() => void withSheet('google', googleSheet)} />
       </FadeUp>
       <FadeUp delay={120}>
         <Button
