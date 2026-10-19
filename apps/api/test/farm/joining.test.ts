@@ -599,6 +599,58 @@ describe('trading', () => {
     expect(await home.stub.canTrade(next.farm, pip.id)).toBeNull();
   });
 
+  it("won't finish a trade from an op id the visited farm gave to something else", async () => {
+    const { pip, fig, kit, home, next } = await neighbours();
+    await growMarigolds([
+      { stub: home.stub, person: pip },
+      { stub: next.stub, person: kit },
+    ]);
+    const tradesOn = async (stub: typeof home.stub) =>
+      (await pageOf(stub, { limit: 50 })).events.filter((e) => e.kind === 'traded');
+    // A gesture at the gate takes an op id on the visited farm...
+    const wave = { opId: op(7), gesture: { gesture: 'firefly', to: fig.id, words: 'hi' } };
+    expect((await api(kit, 'POST', `/v1/farms/${home.farm}/gate`, wave)).body).toMatchObject({
+      result: 'ack',
+    });
+    // ...which can't then be passed off as a trade already written there.
+    const forged = { opId: op(7), from: next.farm, with: pip.id, give: null, take: 'marigold' };
+    expect((await api(kit, 'POST', `/v1/farms/${home.farm}/trade`, forged)).body).toEqual({
+      result: 'rejected',
+      opId: op(7),
+      reason: 'invalid',
+    });
+    expect(await tradesOn(next.stub)).toEqual([]);
+    expect(await tradesOn(home.stub)).toEqual([]);
+  });
+
+  it('finishes a retried trade as it was written, whatever the retry asks for', async () => {
+    const { pip, kit, home, next } = await neighbours();
+    await growMarigolds([
+      { stub: home.stub, person: pip },
+      { stub: next.stub, person: kit },
+    ]);
+    const trade = {
+      opId: op(1),
+      from: next.farm,
+      with: pip.id,
+      give: 'marigold',
+      take: 'marigold',
+    };
+    expect((await api(kit, 'POST', `/v1/farms/${home.farm}/trade`, trade)).body).toMatchObject({
+      result: 'ack',
+    });
+    // The same op id from another farm the visitor lives on is not that trade.
+    const elsewhere = { ...trade, from: home.farm };
+    expect((await api(kit, 'POST', `/v1/farms/${home.farm}/trade`, elsewhere)).status).toBe(400);
+    const changed = { ...trade, give: null };
+    expect((await api(kit, 'POST', `/v1/farms/${home.farm}/trade`, changed)).body).toMatchObject({
+      result: 'ack',
+    });
+    const mine = (await pageOf(next.stub, { limit: 50 })).events.filter((e) => e.kind === 'traded');
+    expect(mine).toHaveLength(1);
+    expect(mine[0]).toMatchObject({ payload: { gave: { plant: 'marigold' } } });
+  });
+
   it('finishes both halves when two farms trade with each other at the same moment', async () => {
     const { pip, kit, home, next } = await neighbours();
     const crop = { plant: 'marigold', variant: null };

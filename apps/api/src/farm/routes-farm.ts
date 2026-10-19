@@ -9,6 +9,7 @@ import {
   type RejectReason,
   SearchQuery,
   TradeRequest,
+  type TradedPayload,
 } from '@kithfield/contracts';
 import { Hono } from 'hono';
 
@@ -193,12 +194,22 @@ export const farmRoutes = (): Hono<SessionEnv> => {
     const give = req.give === null ? null : await ours.basketCrop(req.give);
     if (take === null || (req.give !== null && give === null)) return c.json(rejected('not_found'));
     // A new trade is checked on both farms before either writes; a retry just finishes the pair.
-    if ((await theirs.answered(req.opId)) === null) {
+    let mine: TradedPayload = { with: req.with, otherFarm: visited, gave: give, got: take };
+    const prior = await theirs.answered(req.opId);
+    if (prior === null) {
       const reason =
         (await theirs.canTrade(req.from, req.with)) ?? (await ours.canTrade(visited, person));
       if (reason !== null) return c.json(rejected(reason));
+    } else if (prior.result === 'ack') {
+      // Only the trade that op id wrote, with this visitor from this farm, can be finished: an op
+      // id the farm gave to anything else would otherwise write a trade on one side only.
+      const traded = await theirs.tradeFor(req.opId);
+      if (traded?.payload.with !== person || traded.payload.otherFarm !== req.from) {
+        return c.json(rejected('invalid'));
+      }
+      const { payload } = traded;
+      mine = { with: traded.actor, otherFarm: visited, gave: payload.got, got: payload.gave };
     }
-    const mine = { with: req.with, otherFarm: visited, gave: give, got: take };
     const first = await theirs.recordTrade(
       req.opId,
       req.with,

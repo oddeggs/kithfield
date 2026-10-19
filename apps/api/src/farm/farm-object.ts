@@ -18,7 +18,7 @@ import {
   PONG,
   type RuleRef,
   type SearchResults,
-  type TradedPayload,
+  TradedPayload,
 } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
 import { DurableObject } from 'cloudflare:workers';
@@ -245,6 +245,19 @@ export class FarmDO extends DurableObject<Bindings> {
     options?: actions.TradeOptions,
   ): Promise<CommandResult> {
     return actions.recordTrade(this.host, opId, actor, payload, half, options);
+  }
+
+  /**
+   * The trade this farm wrote for an op id it answered, so a retry finishes that trade and no
+   * other: null when the op id went to anything but a trade.
+   */
+  tradeFor(opId: OpId): { actor: PersonId; payload: TradedPayload } | null {
+    const prior = this.host.store.outcome(opId);
+    if (prior === null || !('seq' in prior)) return null;
+    const event = this.host.store.event(prior.seq);
+    if (event?.kind !== 'traded' || event.actor === null) return null;
+    const payload = TradedPayload.safeParse(event.payload);
+    return payload.success ? { actor: event.actor, payload: payload.data } : null;
   }
 
   /** The visitor's farm wrote its half of a trade: nothing is owed any more. */
