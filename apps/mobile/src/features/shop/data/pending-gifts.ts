@@ -1,4 +1,13 @@
-import type { ArtId, FarmId, GiftView, Id, OpId, PersonId } from '@kithfield/contracts';
+import type {
+  ArtId,
+  CommandResult,
+  FarmId,
+  GateRequest,
+  GiftView,
+  Id,
+  OpId,
+  PersonId,
+} from '@kithfield/contracts';
 
 /*
  * Gifts the person started and paid for that may not be on the step yet: the app closed between
@@ -13,6 +22,8 @@ export interface PendingGift {
   readonly item: ArtId;
   readonly wrap: ArtId;
   readonly note?: string;
+  /** Left at the gate of the farm being visited (`farm`), not on a farm both people live on. */
+  readonly gate?: true;
   /** The store transaction that paid for it, once the store answered. */
   readonly transaction: string | null;
   /** When it was started. */
@@ -68,3 +79,32 @@ export const givenPayload = (pending: PendingGift) => ({
   wrap: pending.wrap,
   ...(pending.note ? { note: pending.note } : {}),
 });
+
+/** How a paid gift reaches its friend: the farm's queue, or the gate of a farm being visited. */
+export interface GiftWays {
+  readonly send: (
+    farm: FarmId,
+    kind: 'gift',
+    payload: ReturnType<typeof givenPayload>,
+    opId: OpId,
+  ) => Promise<{ readonly status: string }>;
+  readonly atGate: (farm: FarmId, request: GateRequest) => Promise<CommandResult>;
+}
+
+/**
+ * Leaves a paid gift under its one op id: `gift {given}` on a farm both people live on, or the gate
+ * gesture at the farm being visited. True once the farm has it (or has it queued).
+ */
+export async function leaveGift(pending: PendingGift, ways: GiftWays): Promise<boolean> {
+  const opId = giftOpId(pending.gift, pending.at);
+  if (pending.gate) {
+    const { action: _given, ...fields } = givenPayload(pending);
+    const result = await ways.atGate(pending.farm, {
+      opId,
+      gesture: { gesture: 'gift', ...fields },
+    });
+    return result.result === 'ack';
+  }
+  const sent = await ways.send(pending.farm, 'gift', givenPayload(pending), opId);
+  return sent.status === 'queued';
+}

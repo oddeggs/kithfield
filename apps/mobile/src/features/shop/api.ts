@@ -4,6 +4,7 @@ import {
   ChipIn,
   ChipInList,
   ChipInOffer,
+  CommandResult,
   Collection,
   CritterVote,
   Entitlements,
@@ -20,6 +21,7 @@ import {
   type ChipInPledgeRequest,
   type ChipInStartRequest,
   type FarmId,
+  type GateRequest,
   type GiftStartRequest,
   type Id,
   type PersonId,
@@ -67,6 +69,9 @@ export function shopApi(api: ApiClient) {
       api.request(Wishlist, 'GET', `/v1/farms/${enc(farm)}/members/${enc(person)}/wishlist`),
 
     startGift: (gift: GiftStartRequest) => api.request(GiftStart, 'POST', '/v1/gifts', gift),
+    /** A paid gift left at the gate of a farm being visited. */
+    atGate: (farm: FarmId, request: GateRequest) =>
+      api.request(CommandResult, 'POST', `/v1/farms/${enc(farm)}/gate`, request),
     giftPaid: (gift: Id, transaction: StoreTransactionId) =>
       api.request(GiftView, 'POST', `/v1/gifts/${enc(gift)}/paid`, { transaction }),
     gift: (gift: Id) => api.request(GiftView, 'GET', `/v1/gifts/${enc(gift)}`),

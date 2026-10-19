@@ -118,6 +118,7 @@ export const rhythmEn = {
   'rhythm.visit.fireflyLeft': 'Firefly left',
   'rhythm.visit.wave': 'Wave at the gate',
   'rhythm.visit.waved': 'You waved',
+  'rhythm.visit.gift': 'Leave a gift',
   'rhythm.visit.take': 'Take some {fruits} home',
   'rhythm.visit.gone': 'This gate isn’t open to you any more.',
   'rhythm.visit.oncePerDay': 'You’ve left something here today already. Come back tomorrow.',

@@ -274,6 +274,11 @@ export const shopEn = {
   'shop.gift.leave': 'Leave it on the step · {price}',
   'shop.gift.leaveFree': 'Leave it on the step',
   'shop.gift.left': 'Left on {name}’s step',
+  /** A gift left at a friend's farm gate while visiting it. */
+  'shop.gift.waitingAtGate': 'It’ll be waiting at the gate for {name}.',
+  'shop.gift.leaveAtGate': 'Leave it at the gate · {price}',
+  'shop.gift.leaveAtGateFree': 'Leave it at the gate',
+  'shop.gift.leftAtGate': 'Left at the gate for {name}',
   'shop.gift.owned': '{name} already has this one.',
   'shop.gift.cant': 'This can’t be given right now.',
   'shop.gift.pick': 'Choose something for {name}',
