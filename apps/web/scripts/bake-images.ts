@@ -3,10 +3,10 @@
  * live): the link-preview cards, the icons and the press kit. Runs before `astro build`; the files
  * land in `public/` and are not committed.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { bakeScene, createNodeArt, encodePng } from '@kithfield/art/node';
+import { bakeScene, createNodeArt, encodePng, loadNodeSkia, nodeFaces } from '@kithfield/art/node';
 import { t, type Language } from '@kithfield/i18n';
 import { Species } from '@kithfield/contracts';
 
@@ -15,7 +15,20 @@ import { zip, type ZipEntry } from './zip';
 
 const publicDir = join(import.meta.dirname, '..', 'public');
 const errors: string[] = [];
-const art = await createNodeArt({ onError: (message) => errors.push(message) });
+
+// The Vietnamese cards set their titles in Lora, as the Vietnamese pages do; the art's own faces
+// have no Vietnamese serif, so the site adds its copy (with its OS/2 typo ascender and descender).
+const skia = await loadNodeSkia();
+const lora = skia.Typeface.MakeFreeTypeFaceFromData(
+  skia.Data.fromBytes(
+    new Uint8Array(readFileSync(join(import.meta.dirname, '../fonts/Lora-Regular.ttf'))),
+  ),
+);
+if (!lora) throw new Error('Could not load fonts/Lora-Regular.ttf');
+const art = await createNodeArt({
+  faces: [...nodeFaces(skia), { family: 'Lora', weight: 400, typeface: lora, typo: [1006, 274] }],
+  onError: (message) => errors.push(message),
+});
 
 function write(path: string, bytes: Uint8Array): void {
   const out = join(publicDir, path);
