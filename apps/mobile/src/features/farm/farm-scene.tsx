@@ -1,6 +1,6 @@
 import type { FarmState, PersonId } from '@kithfield/contracts';
 import { STATUS_MS, type FarmView, type PlanView } from '@kithfield/farm';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
@@ -95,6 +95,7 @@ export function FarmScene({
 }) {
   const { t } = useLocale();
   const reduce = useReduceMotion();
+  const { fontScale } = useWindowDimensions();
   const scene = useFarmScene(state, view, { width, height }, night, fire?.lit === true);
   const spotOf = new Map(scene.placement.critters.map((c) => [c.person, c.spot]));
 
@@ -175,7 +176,7 @@ export function FarmScene({
       order: 2,
     });
   }
-  const placed = layoutBubbles(wishes, width, 110);
+  const placed = layoutBubbles(wishes, width, 110, 10, fontScale);
 
   // A critter's label carries its status, so VoiceOver reads the words with whose they are; the
   // bubbles themselves stay out of its way.
@@ -301,7 +302,7 @@ export function FarmScene({
               {...(w.metaText ? { meta: w.metaText } : {})}
               mine={w.mine}
               tail={p.tail}
-              maxWidth={w.maxWidth}
+              maxWidth={Math.max(w.maxWidth, p.width)}
               width={p.width}
               running={running}
               phase={(i * 0.29) % 1}

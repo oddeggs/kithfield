@@ -11,6 +11,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { castOf, lookOf } from './farm-bake';
 import { crowdLine, headcount } from './farm-copy';
@@ -47,7 +48,10 @@ export function CrittersScreen({ farm }: { readonly farm: FarmId }) {
     members.map((m) => m.critter.species),
   );
   const sleeper = members.find((m) => m.person !== me && sleepy.has(m.person));
-  const tileWidth = (width - 36 - 3 * 8) / 4;
+  // Four to a row, or two at the accessibility sizes so names and states have room to wrap.
+  const ax = useAccessibilitySize();
+  const cols = ax ? 2 : 4;
+  const tileWidth = (width - 36 - (cols - 1) * 8) / cols;
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
@@ -130,7 +134,8 @@ export function CrittersScreen({ farm }: { readonly farm: FarmId }) {
                   <Txt
                     variant="rowTitle"
                     style={typeAt('rowTitle', 14, 16, fontLocale)}
-                    numberOfLines={1}
+                    align="center"
+                    {...(ax ? { multiline: true } : { numberOfLines: 1 })}
                   >
                     {name}
                   </Txt>
@@ -138,7 +143,8 @@ export function CrittersScreen({ farm }: { readonly farm: FarmId }) {
                     variant="handS"
                     style={typeAt('handS', 13, 13, fontLocale)}
                     color={asleep ? palette.muted : palette.go.bg}
-                    numberOfLines={1}
+                    align="center"
+                    {...(ax ? { multiline: true } : { numberOfLines: 1 })}
                   >
                     {word}
                   </Txt>
