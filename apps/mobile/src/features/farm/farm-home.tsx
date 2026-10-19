@@ -1,5 +1,6 @@
 import type { DoorstepItem, FarmId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
+import { screens } from '@kithfield/theme';
 import { router, useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
@@ -22,6 +23,7 @@ import { Sheet, SheetScrollView } from '../../ui/components/sheet';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useArtVisible } from '../../ui/motion/visibility';
+import { useScreenLayout, useWindowed } from '../../ui/layout/pane';
 import { useSession } from '../../ui/session/session';
 import { useSplashHold } from '../../ui/session/splash';
 import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
@@ -49,6 +51,7 @@ import {
 } from './farm-states';
 import { useFarmLoading } from './farm-loading';
 import { JustYou } from './just-you';
+import { LargeFarmChrome, LargeFarmInvite } from './large-farm';
 import { Panel } from './panel';
 import { OfflineBanner, PostBag } from './post-bag';
 import { FarmSheetContent } from './farm-sheet';
@@ -68,7 +71,7 @@ const OVERLAP = 40;
  * The farm reacting to a friend's message while it is open (signature motion): their words pop
  * over their cottage for a moment, one burst every four seconds at most.
  */
-function useFarmReaction(farm: FarmId, me: string | null): FarmReaction | null {
+export function useFarmReaction(farm: FarmId, me: string | null): FarmReaction | null {
   const events = useFarmEvents(farm, 10);
   const focused = useIsFocused();
   const so = useRef<{ afterSeq: number; lastAt: number | null } | null>(null);
@@ -110,7 +113,11 @@ function FarmFor({
   const { t } = useLocale();
   const insets = useSafeAreaInsets();
   const { width, height: screen } = useWindowDimensions();
-  const height = sceneHeight(width);
+  // A large screen draws the farm across the whole window, with the chat floating at its side
+  // instead of the farm's sheet under it.
+  const large = useScreenLayout() !== 'phone';
+  const windowed = useWindowed();
+  const height = large ? screen : sceneHeight(width);
   const me = useSession().person?.id ?? null;
   const now = useNow();
   useOpenFarm(farm);
@@ -185,7 +192,7 @@ function FarmFor({
   }
 
   // Only you on the farm so far: the sketched cottages wait for friends.
-  const sceneH = alone ? ALONE.scene * k : height;
+  const sceneH = alone && !large ? ALONE.scene * k : height;
   const restingTop = alone ? ALONE.sheet * k : height - OVERLAP;
   const farmName = state?.name ?? name ?? '';
 
@@ -220,7 +227,7 @@ function FarmFor({
             onDrawn={() => setDrawn(true)}
             now={now}
             fire={fire}
-            coverTop={height - OVERLAP}
+            coverTop={large ? height : height - OVERLAP}
             said={said}
             targets={{
               onCritter: openCritter,
@@ -250,7 +257,9 @@ function FarmFor({
           season={
             state && view ? seasonLabel(t, view.season.season, view.today, state.hemisphere) : ''
           }
-          top={insets.top + 1}
+          top={
+            large ? screens.farmPillTop + (windowed ? screens.windowControls : 0) : insets.top + 1
+          }
           onSwitch={() => router.push(farmRoutes.valley())}
         />
       ) : null}
@@ -258,12 +267,18 @@ function FarmFor({
       {state && view && !offline ? (
         <RhythmWeatherChip farm={farm} state={state} view={view} top={insets.top + 53} />
       ) : null}
-      {loading.loading ? (
+      {loading.loading && !large ? (
         <Panel top={restingTop}>
           <PencilRows />
         </Panel>
       ) : null}
-      {state && view ? (
+      {large && state ? (
+        <>
+          {alone ? <LargeFarmInvite onInvite={() => router.push(farmRoutes.invite(farm))} /> : null}
+          <LargeFarmChrome farm={farm} onFire={fireWay.open} />
+        </>
+      ) : null}
+      {state && view && !large ? (
         <Sheet
           detents={[screen - restingTop, screen - insets.top - 60]}
           index={sheet}
