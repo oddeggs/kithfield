@@ -222,6 +222,7 @@ function FarmFor({
           night={appearance === 'night'}
           // The farm rests while the sheet covers it at full height.
           running={visible && !reduce && sheet === 0}
+          hints={visible && sheet === 0 && !offline && !loading.revealing && state !== null}
           now={now}
           fire={fire}
           targets={{

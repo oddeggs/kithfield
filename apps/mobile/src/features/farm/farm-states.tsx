@@ -13,6 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { FarmLink } from '../../data';
+import { announcePolitely } from '../../ui/announce';
 import { ArtStill } from '../../ui/art/art-view';
 import { ErrorState } from '../../ui/components/state-shell';
 import { useLocale } from '../../ui/locale/locale-provider';
@@ -244,11 +245,20 @@ export function PencilRows() {
  * (`connecting`) keeps the fog; only a live link lifts it.
  */
 export function useOffline(link: FarmLink): boolean {
+  const { t } = useLocale();
   const [offline, setOffline] = useState(link.status === 'offline');
+  const was = useRef(offline);
   useEffect(() => {
-    if (link.status === 'offline') setOffline(true);
-    else if (link.status === 'live' || link.status === 'catching_up') setOffline(false);
-  }, [link.status]);
+    if (link.status === 'offline') {
+      was.current = true;
+      setOffline(true);
+    } else if (link.status === 'live' || link.status === 'catching_up') {
+      // Said once as the fog lifts, after whatever VoiceOver is reading.
+      if (was.current) announcePolitely(t('states.offline.back'));
+      was.current = false;
+      setOffline(false);
+    }
+  }, [link.status, t]);
   return offline;
 }
 

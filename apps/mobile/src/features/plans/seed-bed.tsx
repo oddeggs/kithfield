@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,6 +10,8 @@ import { Press } from '../../ui/motion/press';
 import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
+// The first-run tip that points at planting a seed.
+import { HintOverlay, useSpotOf } from '../hints/hint-overlay';
 import { addToCalendar } from './calendar';
 import { useFromTop } from './chrome';
 import { personOn, youLast } from './people';
@@ -43,6 +45,8 @@ export function SeedBed() {
   const { entries, states, loading } = useSeedBed();
   usePlanRejections();
   usePlantedAnswers();
+  const focused = useIsFocused();
+  const plantButton = useSpotOf();
 
   const plant = () => router.push('/plans-plant');
   const peopleOf = (entry: BedEntry) => {
@@ -87,23 +91,25 @@ export function SeedBed() {
               {t('plans.bed.subtitle')}
             </Txt>
           </View>
-          <Press
-            onPress={plant}
-            haptic="tap"
-            radius={22}
-            accessibilityLabel={t('plans.bed.plant')}
-            testID="plans-bed-plant"
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: palette.go.bg,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <ArtIcon name="plus" size={20} color={palette.go.fg} />
-          </Press>
+          <View ref={plantButton.ref} onLayout={plantButton.onLayout} collapsable={false}>
+            <Press
+              onPress={plant}
+              haptic="tap"
+              radius={22}
+              accessibilityLabel={t('plans.bed.plant')}
+              testID="plans-bed-plant"
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: palette.go.bg,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <ArtIcon name="plus" size={20} color={palette.go.fg} />
+            </Press>
+          </View>
         </View>
 
         {entries.length > 0 ? (
@@ -131,6 +137,7 @@ export function SeedBed() {
           />
         )}
       </ScrollView>
+      <HintOverlay hint="seed" show={focused && !loading} spot={plantButton.spot} />
     </View>
   );
 }

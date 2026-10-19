@@ -12,6 +12,8 @@ import { HOUSES, LANDMARKS, type PlacedHouse } from './scene-layout';
 import { headOf, layoutBubbles, type BubbleWish } from './bubble-layout';
 import { SpeechBubble } from './speech-bubble';
 import { useFarmScene } from './use-farm-scene';
+// The first-run tip that points at your own critter.
+import { HintOverlay } from '../hints/hint-overlay';
 
 export interface SceneTargets {
   readonly onCritter: (person: PersonId) => void;
@@ -75,6 +77,7 @@ export function FarmScene({
   now,
   fire = null,
   targets,
+  hints = false,
 }: {
   readonly state: FarmState | null;
   readonly view: FarmView | null;
@@ -87,6 +90,8 @@ export function FarmScene({
   /** The fire on the farm: whether it is lit, and the line about who is by it. */
   readonly fire?: { readonly lit: boolean; readonly line: string | null } | null;
   readonly targets: SceneTargets;
+  /** The farm is in front, loaded and settled: the first tip may point at your critter. */
+  readonly hints?: boolean;
 }) {
   const { t } = useLocale();
   const reduce = useReduceMotion();
@@ -171,6 +176,16 @@ export function FarmScene({
     });
   }
   const placed = layoutBubbles(wishes, width, 110);
+
+  // The spotlight of the first tip, round your own critter as the design draws it.
+  const mine = scene.critters.find((c) => c.person === me) ?? null;
+  const spot = mine
+    ? {
+        x: mine.x - mine.poses.open.ox + mine.poses.open.w / 2,
+        y: mine.y - mine.poses.open.oy + mine.poses.open.h / 2,
+        r: (52 * width) / 393,
+      }
+    : null;
 
   return (
     <View style={{ width, height }}>
@@ -281,6 +296,7 @@ export function FarmScene({
           />
         ) : null;
       })}
+      <HintOverlay hint="critter" show={hints && spot !== null} spot={spot} />
     </View>
   );
 }
