@@ -31,6 +31,7 @@ export const farmRoutes = {
   /* Other features' screens */
   chat: (farm: FarmId): Href => ({ pathname: '/(tabs)/chat/[farm]', params: { farm } }),
   media: (farm: FarmId): Href => ({ pathname: '/(tabs)/chat/media', params: { farm } }),
+  invite: (farm: FarmId): Href => ({ pathname: '/(tabs)/you/farm-invite', params: { farm } }),
   seedbed: (): Href => '/(tabs)/seedbed',
   plan: (farm: FarmId, seed: number): Href => ({
     pathname: '/(tabs)/seedbed/[seed]',

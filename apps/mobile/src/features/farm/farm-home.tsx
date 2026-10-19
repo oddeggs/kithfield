@@ -6,7 +6,7 @@ import { View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useDataClient, useFarm, useFarmLink, useFarmView, useOpenFarm, useSend } from '../../data';
-import { ArtStill } from '../../ui/art/art-view';
+import { ArtLoop, ArtStill } from '../../ui/art/art-view';
 import { EmptyState } from '../../ui/components/state-shell';
 import { Sheet, SheetScrollView } from '../../ui/components/sheet';
 import { useLocale } from '../../ui/locale/locale-provider';
@@ -28,6 +28,18 @@ import { lookOf } from './farm-bake';
 import { seasonLabel } from './farm-copy';
 import { FarmHeader } from './farm-header';
 import { FarmScene } from './farm-scene';
+import {
+  DrawingLabel,
+  FarmFog,
+  FarmLoadFailed,
+  FarmReveal,
+  PencilRows,
+  useFarmLoading,
+  useOffline,
+} from './farm-states';
+import { JustYou } from './just-you';
+import { Panel } from './panel';
+import { OfflineBanner, PostBag } from './post-bag';
 import { FarmSheetContent } from './farm-sheet';
 import { momentFor, visitBefore } from './moments';
 import { removalNote } from './removal-note';
@@ -98,7 +110,22 @@ function useMoments(farm: FarmId, me: string | null) {
   }, [client, farm, me, latestJoin, flags]);
 }
 
-function FarmFor({ farm }: { readonly farm: FarmId }) {
+/** Where the scene is drawn for a farm with only you on it, at the design's 393 points wide. */
+const ALONE = { scene: 470, sheet: 440 } as const;
+/** Where "drawing the farm…" sits over the scene, at the design's 393 points wide. */
+const DRAWING_TOP = 250;
+
+function FarmFor({
+  farm,
+  name,
+  onRetry,
+}: {
+  readonly farm: FarmId;
+  /** The farm's name from the farm list, for the header while the farm itself loads. */
+  readonly name: string | null;
+  /** Opens the farm afresh after it couldn't load. */
+  readonly onRetry: () => void;
+}) {
   const { t } = useLocale();
   const insets = useSafeAreaInsets();
   const { width, height: screen } = useWindowDimensions();
@@ -106,10 +133,15 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
   const me = useSession().person?.id ?? null;
   const now = useNow();
   useOpenFarm(farm);
-  const state = useFarm(farm)?.state ?? null;
+  const held = useFarm(farm);
+  const state = held?.state ?? null;
   const view = useFarmView<FarmView>(farm, now);
+  const link = useFarmLink(farm);
+  const offline = useOffline(link);
+  const loading = useFarmLoading(state !== null);
+  const k = width / 393;
   const send = useSend(farm);
-  const { appearance } = useTheme();
+  const { appearance, palette } = useTheme();
   const visible = useArtVisible();
   const reduce = useReduceMotion();
   const [sheet, setSheet] = useState(0);
@@ -136,7 +168,6 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
   useMoments(farm, me);
   useRhythmMoments(farm, view, me);
   // Turned away by the farm (a removal the phone never saw, or a farm that is gone).
-  const link = useFarmLink(farm);
   const { lost } = useValley();
   const turnedAway =
     link.status === 'blocked' && (link.code === 'not_member' || link.code === 'farm_gone');
@@ -147,42 +178,89 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
   const openCritter = (person: string) =>
     router.push(person === me ? farmRoutes.bubble(farm) : farmRoutes.critter(farm, person));
 
+  // Nothing of the farm on the phone and no way to reach it: the full-screen error. A farm with
+  // anything cached shows that instead, in a fog.
+  const unreachable =
+    held !== null && state === null && (offline || (link.status === 'blocked' && !turnedAway));
+  if (unreachable) {
+    return (
+      <View style={{ flex: 1, backgroundColor: palette.background }}>
+        <FarmLoadFailed
+          {...(link.status === 'blocked' ? { code: `KF-${link.code}` } : {})}
+          onRetry={onRetry}
+        />
+      </View>
+    );
+  }
+
+  // Only you on the farm so far: the sketched cottages wait for friends.
+  const alone = state !== null && state.members.length === 1 && state.former.length === 0;
+  const sceneH = alone ? ALONE.scene * k : height;
+  const restingTop = alone ? ALONE.sheet * k : height - OVERLAP;
+  const farmName = state?.name ?? name ?? '';
+
   return (
-    <View style={{ flex: 1 }}>
-      <FarmScene
-        state={state}
-        view={view}
-        me={me}
-        width={width}
-        height={height}
-        night={appearance === 'night'}
-        // The farm rests while the sheet covers it at full height.
-        running={visible && !reduce && sheet === 0}
-        now={now}
-        fire={fire}
-        targets={{
-          onCritter: openCritter,
-          onHouse: (h) =>
-            h.former ? router.push(farmRoutes.cottage(farm, h.person)) : openCritter(h.person),
-          onFire: () => openFire(farm),
-          onPatch: () => router.navigate(farmRoutes.seedbed()),
-          onPlan: (p) => router.push(farmRoutes.plan(farm, p.seed.seq)),
-        }}
-      />
-      {state && view ? (
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
+      {alone ? (
+        <ArtLoop
+          scene="invite"
+          width={width}
+          height={sceneH}
+          attrs={{
+            ...(view ? { season: view.season.season } : {}),
+            ...(appearance === 'night' ? { night: true } : {}),
+          }}
+          paused={!visible || sheet !== 0}
+        />
+      ) : (
+        <FarmScene
+          state={state}
+          view={view}
+          me={me}
+          width={width}
+          height={height}
+          night={appearance === 'night'}
+          // The farm rests while the sheet covers it at full height.
+          running={visible && !reduce && sheet === 0}
+          now={now}
+          fire={fire}
+          targets={{
+            onCritter: openCritter,
+            onHouse: (h) =>
+              h.former ? router.push(farmRoutes.cottage(farm, h.person)) : openCritter(h.person),
+            onFire: () => openFire(farm),
+            onPatch: () => router.navigate(farmRoutes.seedbed()),
+            onPlan: (p) => router.push(farmRoutes.plan(farm, p.seed.seq)),
+          }}
+        />
+      )}
+      {loading.revealing ? (
+        <FarmReveal width={width} height={sceneH} ready={state !== null} onDone={loading.done} />
+      ) : null}
+      <FarmFog width={width} height={sceneH} on={offline && state !== null} />
+      {loading.loading ? <DrawingLabel top={DRAWING_TOP * k} /> : null}
+      {farmName && (state === null || view) ? (
         <FarmHeader
-          name={state.name ?? ''}
-          season={seasonLabel(t, view.season.season, view.today, state.hemisphere)}
+          name={farmName}
+          season={
+            state && view ? seasonLabel(t, view.season.season, view.today, state.hemisphere) : ''
+          }
           top={insets.top + 1}
           onSwitch={() => router.push(farmRoutes.valley())}
         />
       ) : null}
-      {state && view ? (
+      {offline && state ? <OfflineBanner top={insets.top + 57} /> : null}
+      {state && view && !offline ? (
         <RhythmWeatherChip farm={farm} state={state} view={view} top={insets.top + 53} />
+      ) : null}
+      {loading.loading ? (
+        <Panel top={restingTop}>
+          <PencilRows />
+        </Panel>
       ) : null}
       {state && view ? (
         <Sheet
-          detents={[screen - (height - OVERLAP), screen - insets.top - 60]}
+          detents={[screen - restingTop, screen - insets.top - 60]}
           index={sheet}
           onIndexChange={(i) => setSheet(Math.max(0, i))}
         >
@@ -190,6 +268,12 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
             contentContainerStyle={{ paddingTop: 4, paddingBottom: tabBarClearance(insets.bottom) }}
             showsVerticalScrollIndicator={false}
           >
+            {offline ? <PostBag pending={held?.pending ?? []} farmName={farmName} /> : null}
+            {alone ? (
+              <View style={{ marginBottom: 24 }}>
+                <JustYou onInvite={() => router.push(farmRoutes.invite(farm))} />
+              </View>
+            ) : null}
             {fire.line !== null ? (
               <View style={{ marginBottom: 12 }}>
                 <FireGlowCard farm={farm} />
@@ -267,9 +351,20 @@ export function FarmHome() {
   const { t } = useLocale();
   const { palette } = useTheme();
   const valley = useValley();
+  const [attempt, setAttempt] = useState(0);
   useGoneNote(valley.gone, valley.forget);
 
-  if (valley.current) return <FarmFor key={valley.current} farm={valley.current} />;
+  if (valley.current) {
+    const row = valley.farms.find((f) => f.farm === valley.current);
+    return (
+      <FarmFor
+        key={`${valley.current}:${attempt}`}
+        farm={valley.current}
+        name={row?.name ?? null}
+        onRetry={() => setAttempt((a) => a + 1)}
+      />
+    );
+  }
   if (valley.status === 'loading') {
     return <View style={{ flex: 1, backgroundColor: palette.background }} />;
   }

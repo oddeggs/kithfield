@@ -22,6 +22,7 @@ export function FarmHeader({
   onSwitch,
 }: {
   readonly name: string;
+  /** The season pill; none while the farm is still loading. */
   readonly season: string;
   readonly top: number;
   readonly onSwitch: () => void;
@@ -85,16 +86,18 @@ export function FarmHeader({
           </Txt>
         </Glass>
       </Press>
-      <Glass
-        radius={PILL / 2}
-        fill={glass.fill}
-        border={glass.border}
-        style={{ height: PILL, paddingHorizontal: 14, justifyContent: 'center' }}
-      >
-        <Txt variant="handS" style={typeAt('handS', 17, 17, fontLocale)}>
-          {season}
-        </Txt>
-      </Glass>
+      {season ? (
+        <Glass
+          radius={PILL / 2}
+          fill={glass.fill}
+          border={glass.border}
+          style={{ height: PILL, paddingHorizontal: 14, justifyContent: 'center' }}
+        >
+          <Txt variant="handS" style={typeAt('handS', 17, 17, fontLocale)}>
+            {season}
+          </Txt>
+        </Glass>
+      ) : null}
     </View>
   );
 }
