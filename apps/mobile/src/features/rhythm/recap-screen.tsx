@@ -6,6 +6,7 @@ import { rhythmColours } from '@kithfield/theme';
 
 import { useFarm } from '../../data';
 import { ArtIcon, ArtStill } from '../../ui/art/art-view';
+import { TravelAnchor, travelIds } from '../../ui/travel';
 import { Avatar } from '../../ui/art/avatar';
 import { lookOf } from '../../ui/art/critter-look';
 import { EmptyState, ErrorState } from '../../ui/components/state-shell';
@@ -115,7 +116,14 @@ function RecapCard({
     return (
       <View style={{ flex: 1, justifyContent: 'center' }}>
         <EmptyState
-          art={<ArtStill scene="harvest" width={240} height={140} />}
+          art={
+            <TravelAnchor
+              id={travelIds.harvestBasket(farm)}
+              sprite={{ scene: 'harvest', width: 240, height: 140 }}
+            >
+              <ArtStill scene="harvest" width={240} height={140} />
+            </TravelAnchor>
+          }
           title={t('rhythm.recap.empty.title')}
           body={t('rhythm.recap.restful')}
         />
@@ -131,7 +139,13 @@ function RecapCard({
         showsVerticalScrollIndicator={false}
       >
         <View style={{ borderRadius: 32, backgroundColor: colours.recapCard, overflow: 'hidden' }}>
-          <ArtStill scene="harvest" width={cardW} height={176} />
+          {/* The basket the farm's crops hop into on the way here (signature motion). */}
+          <TravelAnchor
+            id={travelIds.harvestBasket(farm)}
+            sprite={{ scene: 'harvest', width: cardW, height: 176 }}
+          >
+            <ArtStill scene="harvest" width={cardW} height={176} />
+          </TravelAnchor>
           <View style={{ paddingHorizontal: 20, paddingBottom: 20, gap: 12 }}>
             <Txt
               variant="handL"

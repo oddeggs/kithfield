@@ -7,6 +7,8 @@ export const travelIds = {
   farmCritter: (farm: string, person: string) => `farm:critter:${farm}:${person}`,
   /** The step of a friend's cottage on the farm, where a gift waits. */
   farmDoor: (farm: string, person: string) => `farm:door:${farm}:${person}`,
+  /** The basket at the top of a farm's Sunday harvest letter, which its crops hop into. */
+  harvestBasket: (farm: string) => `rhythm:basket:${farm}`,
   /** A critter's face beside a message in a chat. */
   chatFace: (farm: string, seq: number) => `chat:face:${farm}:${seq}`,
   /** A sticker sent in a chat, by its write's op id (the same while sending and once landed). */

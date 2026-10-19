@@ -1,21 +1,12 @@
 import type { DoorstepItem, FarmId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
-import { fireLoop } from '@kithfield/art';
-import { sampleCurves } from '@kithfield/theme';
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { router } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
-import Animated, {
-  Easing,
-  ReduceMotion,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useDataClient, useFarm, useFarmLink, useFarmView, useOpenFarm, useSend } from '../../data';
-import { useArt, whenIdle } from '../../ui/art/art-provider';
 import { ArtStill } from '../../ui/art/art-view';
 import { EmptyState } from '../../ui/components/state-shell';
 import { Sheet, SheetScrollView } from '../../ui/components/sheet';
@@ -26,10 +17,8 @@ import { useSession } from '../../ui/session/session';
 import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
 import { useYouCritter } from '../../ui/tab-bar/tab-activity';
 import { useSunPlace, useTheme } from '../../ui/theme/theme-provider';
-import { timing, useTravel } from '../../ui/travel';
 // The fire on the farm: its glow, who is by it, and the way into the fire room.
-import { FireGlowCard, openFire, useFireOnFarm } from '../fire/fire-glow';
-import { fireFlight, roomFlameSize } from '../fire/fire-travel';
+import { FireGlowCard, useFireOnFarm } from '../fire/fire-glow';
 // A sticker pack given as a gift opens as the stickers' own parcel.
 import { stickerRoutes } from '../stickers';
 import { packOf } from '../stickers/model/catalogue';
@@ -44,81 +33,13 @@ import { FarmSheetContent } from './farm-sheet';
 import { momentFor, visitBefore } from './moments';
 import { removalNote } from './removal-note';
 import { farmRoutes } from './routes';
-import { FLAME as FARM_FLAME } from './farm-fire';
-import { LANDMARKS, sceneHeight } from './scene-layout';
+import { sceneHeight } from './scene-layout';
+import { useFireWay, useHarvestWay } from './scene-ways';
 import { useNow } from './use-now';
 import { useFarmFlags, useValley } from './valley-store';
 
 /** The sheet overlaps the bottom of the farm by this much (the farm is drawn 540 tall, the sheet rests at 500). */
 const OVERLAP = 40;
-
-/** How far the farm zooms toward its fire ring on the way into the fire room. */
-const FIRE_ZOOM = 2.2;
-const fireEase = Easing.bezier(...sampleCurves.fireZoom);
-/** The room opens by then even if the flame never took off. */
-const OPEN_AT_LATEST_MS = 250;
-
-/**
- * The way into the fire room (signature motion): the farm zooms toward its fire ring while its
- * flame, if lit, flies into the room's. Coming back, the farm zooms out again. Under Reduce Motion
- * the room only fades in.
- */
-function useFireWay(
-  farm: FarmId,
-  { width, height, screen }: { width: number; height: number; screen: number },
-  lit: boolean,
-) {
-  const travel = useTravel();
-  const reduce = useReduceMotion();
-  const store = useArt();
-  const zoom = useSharedValue(0);
-  // The flame that flies is drawn ahead, while the farm is idle, so the way in never waits on it.
-  useEffect(() => {
-    if (!lit || reduce) return;
-    return whenIdle(() => void fireLoop(store.art, roomFlameSize(width), store.dpr));
-  }, [lit, reduce, store, width]);
-  const ring = { x: width * LANDMARKS.fire.x, y: height * LANDMARKS.fire.y };
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: ring.x },
-      { translateY: ring.y },
-      { scale: 1 + zoom.get() * FIRE_ZOOM },
-      { translateX: -ring.x },
-      { translateY: -ring.y },
-    ],
-  }));
-  useFocusEffect(
-    useCallback(() => {
-      zoom.set(
-        withTiming(0, {
-          duration: timing('fire', 'out'),
-          easing: fireEase,
-          reduceMotion: ReduceMotion.System,
-        }),
-      );
-    }, [zoom]),
-  );
-  const open = () => {
-    if (reduce) return openFire(farm);
-    const ease = { duration: timing('fire', 'in'), easing: fireEase };
-    zoom.set(withTiming(1, { ...ease, reduceMotion: ReduceMotion.Never }));
-    if (!lit) return openFire(farm);
-    // The room opens once the flame is in the air, so mounting it never holds the flame back.
-    let opened = false;
-    const go = () => {
-      if (opened) return;
-      opened = true;
-      openFire(farm);
-    };
-    travel.fly({
-      ...fireFlight({ ...ring, flame: width * FARM_FLAME }, { width, height: screen }),
-      onStart: go,
-      onReturned: go,
-    });
-    setTimeout(go, OPEN_AT_LATEST_MS);
-  };
-  return { style, open };
-}
 
 /**
  * The welcome-back and move-in moments, decided as the farm opens and again when someone new
@@ -196,6 +117,7 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
   const [sheet, setSheet] = useState(0);
   const fire = useFireOnFarm(farm);
   const fireWay = useFireWay(farm, { width, height, screen }, fire.lit);
+  const harvestWay = useHarvestWay(farm, view, { width, height });
   const client = useDataClient();
   // A gift opens on the step (the shop's 09-05), or, for a sticker pack, as its parcel (08-06).
   const openGift = async (d: DoorstepItem, gift: string) => {
@@ -301,7 +223,7 @@ function FarmFor({ farm }: { readonly farm: FarmId }) {
                 onRose: (person) => router.push(rhythmRoutes.birthday(farm, person)),
               }}
             />
-            <RhythmSheetRows farm={farm} state={state} view={view} />
+            <RhythmSheetRows farm={farm} state={state} view={view} onRecap={harvestWay.open} />
           </SheetScrollView>
         </Sheet>
       ) : null}
