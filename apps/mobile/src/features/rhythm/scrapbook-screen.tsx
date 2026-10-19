@@ -17,11 +17,13 @@ import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Glass } from '../../ui/components/glass';
 import { TravelSpot, timing, useTravel } from '../../ui/travel';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { typeAt } from '../farm/type-at';
 import { useNow } from '../farm/use-now';
+import { LoadingRows } from '../farm/farm-states';
 import { BackButton } from './chrome';
-import { handText } from './copy';
+import { handText, refusalCopy } from './copy';
 import { useRhythmApi } from './rhythm-api';
 import {
   pageTilt,
@@ -34,6 +36,11 @@ import {
 const GAP_X = 12;
 const GAP_Y = 14;
 const CARD_H = 184;
+
+/** A page's height: taller at the accessibility sizes, so its title and date clear the art. */
+function useCardHeight(): number {
+  return useAccessibilitySize() ? Math.round(CARD_H * 1.6) : CARD_H;
+}
 
 /** "24 Oct": a page's day, short, in the reader's language. */
 function shortDate(at: number | LocalDate, language: string, timeZone: string): string {
@@ -62,6 +69,7 @@ function PageCard({
   readonly season: string;
   readonly onHide: (page: ScrapbookPage) => void;
 }) {
+  const cardH = useCardHeight();
   const { t, language, fontLocale } = useLocale();
   const { palette, appearance } = useTheme();
   const colours = rhythmColours[appearance];
@@ -71,7 +79,7 @@ function PageCard({
     <View
       style={{
         width,
-        height: CARD_H,
+        height: cardH,
         borderRadius: 6,
         backgroundColor: colours.page,
         boxShadow: colours.pageShadow,
@@ -83,7 +91,7 @@ function PageCard({
         radius={6}
         accessibilityLabel={t('rhythm.scrapbook.page', { title: page.title, date })}
         accessibilityHint={t('rhythm.scrapbook.hide')}
-        style={{ width, height: CARD_H, borderRadius: 6, overflow: 'hidden' }}
+        style={{ width, height: cardH, borderRadius: 6, overflow: 'hidden' }}
       >
         <ArtStill
           scene="pressed"
@@ -155,6 +163,7 @@ function PressCard({
   readonly width: number;
   readonly onPress: () => void;
 }) {
+  const cardH = useCardHeight();
   const { t, language, fontLocale } = useLocale();
   const { palette } = useTheme();
   const from = t('rhythm.scrapbook.pressFrom', {
@@ -169,7 +178,7 @@ function PressCard({
       accessibilityLabel={`${t('rhythm.scrapbook.press')}. ${from}`}
       style={{
         width,
-        height: CARD_H,
+        height: cardH,
         borderRadius: 6,
         borderWidth: 1.5,
         borderStyle: 'dashed',
@@ -243,7 +252,10 @@ export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
   const [more, setMore] = useState(false);
   const [failed, setFailed] = useState(false);
   const [round, setRound] = useState(0);
-  const cardW = (width - 32 - GAP_X) / 2;
+  // Two pages to a row, or one at the accessibility sizes.
+  const oneColumn = useAccessibilitySize();
+  const perRow = oneColumn ? 1 : 2;
+  const cardW = oneColumn ? width - 32 : (width - 32 - GAP_X) / 2;
   const season = state?.season.season ?? 'spring';
 
   useEffect(() => {
@@ -279,7 +291,10 @@ export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
         style: 'destructive',
         onPress: () =>
           void send('scrapbook_page', { action: 'hidden', target: page.seq }).then((sent) => {
-            if (sent.status !== 'queued') return;
+            if (sent.status !== 'queued') {
+              toast.show(refusalCopy(t, sent.reason));
+              return;
+            }
             setPages((p) => (p ?? []).filter((x) => x.seq !== page.seq));
             toast.show(t('rhythm.scrapbook.hidden'));
           }),
@@ -295,7 +310,10 @@ export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
       items: [...item.items],
       flower: item.flower,
     });
-    if (sent.status !== 'queued') return;
+    if (sent.status !== 'queued') {
+      toast.show(refusalCopy(t, sent.reason));
+      return;
+    }
     const done = () => {
       toast.show(t('rhythm.scrapbook.pressed'));
       setRound((r) => r + 1);
@@ -336,7 +354,7 @@ export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
     ...(pages ?? []).map((page) => ({ key: `page:${page.seq}`, page })),
   ];
   const rows: (typeof cards)[] = [];
-  for (let i = 0; i < cards.length; i += 2) rows.push(cards.slice(i, i + 2));
+  for (let i = 0; i < cards.length; i += perRow) rows.push(cards.slice(i, i + perRow));
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
@@ -389,11 +407,18 @@ export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
             body={t('rhythm.loadFailed')}
             action={{ label: t('rhythm.tryAgain'), onPress: () => setRound((r) => r + 1) }}
           />
-        ) : pages !== null && cards.length === 0 ? (
+        ) : pages === null ? (
+          <LoadingRows />
+        ) : cards.length === 0 ? (
           <EmptyState
-            art={<ArtStill scene="pressed" width={120} height={170} attrs={{ name: 'daisy' }} />}
+            art={<ArtStill scene="spot" width={240} height={172} attrs={{ name: 'media' }} />}
             title={t('rhythm.scrapbook.empty.title')}
             body={t('rhythm.scrapbook.empty.body')}
+            action={{
+              label: t('rhythm.scrapbook.empty.action'),
+              onPress: () => router.navigate('/(tabs)/seedbed'),
+              kind: 'secondary',
+            }}
           />
         ) : (
           <View style={{ paddingHorizontal: 16, marginTop: 22, gap: GAP_Y }}>

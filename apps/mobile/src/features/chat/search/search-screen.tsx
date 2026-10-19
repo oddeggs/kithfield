@@ -330,7 +330,9 @@ export function SearchScreen({ farm: start }: { readonly farm: string | null }) 
             style={{ marginTop: 20 }}
             accessibilityRole="header"
           >
-            {t('chat.search.empty.title', { name: seeker?.name ?? 'Bram' })}
+            {seeker?.name
+              ? t('chat.search.empty.title', { name: seeker.name })
+              : t('chat.search.empty.titleNoName')}
           </Txt>
           <Txt
             variant="sheetBody"

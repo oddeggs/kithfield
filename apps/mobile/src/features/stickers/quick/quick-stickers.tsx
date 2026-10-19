@@ -105,7 +105,7 @@ export function QuickTendStickers({
         radius={16}
         accessibilityLabel={t('stickers.quick.write')}
         style={{
-          height: 32,
+          minHeight: 32,
           paddingHorizontal: 12,
           borderRadius: 16,
           justifyContent: 'center',

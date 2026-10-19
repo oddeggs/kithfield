@@ -197,7 +197,7 @@ function Book({ farm }: { readonly farm: FarmId }) {
           busy={busy}
           disabled={soon}
           onPress={() => void order()}
-          style={{ height: 56, borderRadius: 28 }}
+          style={{ minHeight: 56, borderRadius: 28 }}
         />
       </View>
       <Header title={t('shop.book.title')} />

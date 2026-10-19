@@ -6,10 +6,12 @@ import SwiftUI
 struct ShareSheet: View {
   @ObservedObject var model: ShareModel
   @FocusState private var typing: Bool
+  @Environment(\.colorScheme) private var scheme
 
-  private let ink = SurfacePalette.ink
-  private let ink3 = SurfacePalette.ink3
-  private let rule = SurfacePalette.ink.opacity(0.08)
+  private var colours: SheetColours { scheme == .dark ? .night : .day }
+  private var ink: Color { colours.ink }
+  private var ink3: Color { colours.ink3 }
+  private var rule: Color { colours.ink.opacity(0.08) }
 
   var body: some View {
     VStack(spacing: 0) {
@@ -20,11 +22,11 @@ struct ShareSheet: View {
         header
         if model.farms.isEmpty {
           Text(model.copy.text("share.noFarms"))
-            .font(.system(size: 15)).foregroundStyle(ink3)
+            .scaledFont(15, relativeTo: .subheadline).foregroundStyle(ink3)
             .padding(.vertical, 24)
         } else {
           Text(model.copy.text("share.sendTo").uppercased())
-            .font(.system(size: 12, weight: .bold)).tracking(12 * 0.06)
+            .scaledFont(12, weight: .bold, relativeTo: .caption).tracking(12 * 0.06)
             .foregroundStyle(ink3)
             .padding(.horizontal, 4)
           ScrollView {
@@ -37,7 +39,7 @@ struct ShareSheet: View {
           words
         }
         Text(model.copy.text(model.tooMany ? "share.tooMany" : "share.footer"))
-          .font(.system(size: 12.5)).lineSpacing(12.5 * 0.4 - 4)
+          .scaledFont(12.5, relativeTo: .caption).lineSpacing(12.5 * 0.4 - 4)
           .foregroundStyle(ink3)
           .padding(.bottom, 24)
       }
@@ -45,8 +47,8 @@ struct ShareSheet: View {
       .padding(.horizontal, 20)
       .background(
         UnevenRoundedRectangle(topLeadingRadius: 30, topTrailingRadius: 30)
-          .fill(SurfacePalette.sheet)
-          .shadow(color: Color(hex: 0x28190A, opacity: 0.45), radius: 20, y: -10)
+          .fill(colours.sheet)
+          .shadow(color: colours.shadow, radius: 20, y: -10)
           .ignoresSafeArea(edges: .bottom)
       )
     }
@@ -59,20 +61,21 @@ struct ShareSheet: View {
         if let thumbnail = model.thumbnail {
           Image(uiImage: thumbnail).resizable().scaledToFill()
         } else {
-          SurfacePalette.card
+          colours.card
         }
       }
       .frame(width: 52, height: 52)
       .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
       VStack(alignment: .leading, spacing: 2) {
-        Text(model.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(ink)
+        Text(model.title).scaledFont(15, weight: .semibold, relativeTo: .subheadline)
+          .foregroundStyle(ink)
         Text(model.url ?? model.copy.text("share.subtitle"))
-          .font(.system(size: 13)).foregroundStyle(ink3).lineLimit(1)
+          .scaledFont(13, relativeTo: .footnote).foregroundStyle(ink3).lineLimit(1)
       }
       Spacer(minLength: 8)
       Button(model.copy.text("share.send")) { model.send() }
-        .font(.system(size: 15, weight: .semibold))
-        .foregroundStyle(SurfacePalette.moss.opacity(model.canSend ? 1 : 0.4))
+        .scaledFont(15, weight: .semibold, relativeTo: .subheadline)
+        .foregroundStyle(colours.send.opacity(model.canSend ? 1 : 0.4))
         .disabled(!model.canSend)
     }
   }
@@ -85,14 +88,15 @@ struct ShareSheet: View {
       HStack(spacing: 12) {
         picture(farm)
         VStack(alignment: .leading, spacing: 2) {
-          Text(farm.title).font(.system(size: 15.5, weight: .semibold)).foregroundStyle(ink)
+          Text(farm.title).scaledFont(15.5, weight: .semibold, relativeTo: .subheadline)
+            .foregroundStyle(ink)
             .lineLimit(1)
           Text(
             farm.kind == "visit"
               ? model.copy.text("share.visit")
               : model.copy.text("share.critters", count: farm.critters.count)
           )
-          .font(.system(size: 13)).foregroundStyle(ink3).lineLimit(1)
+          .scaledFont(13, relativeTo: .footnote).foregroundStyle(ink3).lineLimit(1)
         }
         Spacer(minLength: 8)
         ZStack {
@@ -102,7 +106,7 @@ struct ShareSheet: View {
               Image(uiImage: check).resizable().frame(width: 13, height: 13)
             }
           } else {
-            Circle().strokeBorder(ink.opacity(0.3), lineWidth: 1.5)
+            Circle().strokeBorder(colours.pickRing, lineWidth: 1.5)
           }
         }
         .frame(width: 24, height: 24)
@@ -125,10 +129,10 @@ struct ShareSheet: View {
       .frame(width: 44, height: 44)
     } else {
       Group {
-        if let still = SurfaceData.image(farm.images.day) {
+        if let still = SurfaceData.image(scheme == .dark ? farm.images.night : farm.images.day) {
           Image(uiImage: still).resizable().scaledToFill()
         } else {
-          SurfacePalette.card
+          colours.card
         }
       }
       .frame(width: 44, height: 44)
@@ -141,17 +145,17 @@ struct ShareSheet: View {
       if let image = SurfaceData.image(name) {
         Image(uiImage: image).resizable().scaledToFill()
       } else {
-        SurfacePalette.card
+        colours.card
       }
     }
     .frame(width: 30, height: 30)
     .clipShape(Circle())
-    .overlay(Circle().stroke(SurfacePalette.sheet, lineWidth: 2))
+    .overlay(Circle().stroke(colours.sheet, lineWidth: 2))
   }
 
   private var words: some View {
     TextField(model.copy.text("share.placeholder"), text: $model.words, axis: .vertical)
-      .font(.system(size: 15))
+      .scaledFont(15, relativeTo: .subheadline)
       .foregroundStyle(ink)
       .focused($typing)
       .lineLimit(1...4)
@@ -160,10 +164,34 @@ struct ShareSheet: View {
       .frame(minHeight: 54)
       .background(
         RoundedRectangle(cornerRadius: 16, style: .continuous)
-          .fill(SurfacePalette.card)
+          .fill(colours.card)
           .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
               .stroke(ink.opacity(0.1), lineWidth: 1))
       )
   }
+}
+
+/// The sheet's colours by appearance. The design draws the sheet by day; at night it takes the
+/// theme's night roles (`roles` in `packages/theme/src/colour.ts`) and the picker's night ring.
+private struct SheetColours {
+  let sheet: Color
+  let card: Color
+  let ink: Color
+  let ink3: Color
+  /// Send: moss by day, the night's primary (honey) after dark.
+  let send: Color
+  /// A farm not picked yet (`gestureColours.<appearance>.pickRing`).
+  let pickRing: Color
+  let shadow: Color
+
+  static let day = SheetColours(
+    sheet: SurfacePalette.sheet, card: SurfacePalette.card, ink: SurfacePalette.ink,
+    ink3: SurfacePalette.ink3, send: SurfacePalette.moss,
+    pickRing: SurfacePalette.ink.opacity(0.3), shadow: SurfacePalette.Shadow.day)
+
+  static let night = SheetColours(
+    sheet: SurfacePalette.panel, card: SurfacePalette.bubble, ink: SurfacePalette.moon,
+    ink3: SurfacePalette.moon2, send: SurfacePalette.honey,
+    pickRing: SurfacePalette.moon.opacity(0.3), shadow: SurfacePalette.Shadow.night)
 }

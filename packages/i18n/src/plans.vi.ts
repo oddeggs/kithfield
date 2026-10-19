@@ -88,7 +88,8 @@ export const plansVi: ViCatalogue<typeof plansEn> = {
   'plans.bed.onFarm': 'Ở {farm}',
   'plans.bed.empty.title': 'Chưa gieo gì cả',
   'plans.bed.empty.body':
-    'Gieo một hạt giống từ bất kỳ tin nhắn nào, hoặc bắt đầu ở đây. Hạt nảy mầm khi đã có ngày, có chỗ và đủ người đồng ý.',
+    'Khi ai đó nói “mình nên…”, nhấn giữ tin nhắn ấy và gieo nó thành hạt giống. Hạt lớn ở đây, tách khỏi cuộc trò chuyện.',
+  'plans.bed.empty.action': 'Gieo hạt giống đầu tiên',
   'plans.bed.loading': 'Đang xem qua luống hạt…',
 
   'plans.vote.question': '{first} hay {second}?',

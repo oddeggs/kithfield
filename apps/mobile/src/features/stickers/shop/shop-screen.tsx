@@ -218,7 +218,7 @@ export function ShopScreen({ farm }: { readonly farm: string | null }) {
                   {owned ? (
                     <View
                       style={{
-                        height: 32,
+                        minHeight: 32,
                         paddingHorizontal: 13,
                         borderRadius: 16,
                         justifyContent: 'center',
@@ -235,7 +235,7 @@ export function ShopScreen({ farm }: { readonly farm: string | null }) {
                       accessibilityLabel={t('stickers.shop.buy', { pack: name })}
                       {...(price ? { accessibilityValue: { text: price } } : {})}
                       style={{
-                        height: 32,
+                        minHeight: 32,
                         paddingHorizontal: 13,
                         borderRadius: 16,
                         justifyContent: 'center',

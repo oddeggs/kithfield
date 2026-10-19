@@ -6,7 +6,9 @@ import { Glass } from '../../ui/components/glass';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
+import { shortName } from './farm-copy';
 import { typeAt } from './type-at';
 
 const PILL = 44;
@@ -22,6 +24,7 @@ export function FarmHeader({
   onSwitch,
 }: {
   readonly name: string;
+  /** The season pill; none while the farm is still loading. */
   readonly season: string;
   readonly top: number;
   readonly onSwitch: () => void;
@@ -29,6 +32,9 @@ export function FarmHeader({
   const { t, fontLocale } = useLocale();
   const { palette } = useTheme();
   const glass = palette.glassButton;
+  // At the accessibility sizes the name gets the row: the short name, and no season pill (the
+  // farm itself shows the season).
+  const ax = useAccessibilitySize();
   return (
     <View
       pointerEvents="box-none"
@@ -49,6 +55,8 @@ export function FarmHeader({
         radius={PILL / 2}
         accessibilityLabel={t('farm.switch', { name })}
         accessibilityHint={t('farm.switch.hint')}
+        accessibilityShowsLargeContentViewer
+        accessibilityLargeContentTitle={name}
         style={{ flexShrink: 1 }}
       >
         <Glass
@@ -77,24 +85,31 @@ export function FarmHeader({
           >
             <ArtIcon name="farm" size={20} color={palette.primary.fg} />
           </View>
-          <Txt variant="displayS" numberOfLines={1} style={{ flexShrink: 1 }}>
-            {name}
+          <Txt
+            variant="displayS"
+            numberOfLines={1}
+            maxFontSizeMultiplier={2}
+            style={{ flexShrink: 1 }}
+          >
+            {ax ? shortName(name) : name}
           </Txt>
           <Txt variant="bubbleName" color={palette.secondary} importantForAccessibility="no">
             ▾
           </Txt>
         </Glass>
       </Press>
-      <Glass
-        radius={PILL / 2}
-        fill={glass.fill}
-        border={glass.border}
-        style={{ height: PILL, paddingHorizontal: 14, justifyContent: 'center' }}
-      >
-        <Txt variant="handS" style={typeAt('handS', 17, 17, fontLocale)}>
-          {season}
-        </Txt>
-      </Glass>
+      {season && !ax ? (
+        <Glass
+          radius={PILL / 2}
+          fill={glass.fill}
+          border={glass.border}
+          style={{ height: PILL, paddingHorizontal: 14, justifyContent: 'center' }}
+        >
+          <Txt variant="handS" style={typeAt('handS', 17, 17, fontLocale)}>
+            {season}
+          </Txt>
+        </Glass>
+      ) : null}
     </View>
   );
 }

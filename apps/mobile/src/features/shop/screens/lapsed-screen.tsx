@@ -43,6 +43,8 @@ export function LapsedScreen() {
       ...(packs > 0 ? [t('shop.lapsed.packs', { count: packs })] : []),
       ...(wall.name !== null ? [t('shop.lapsed.wallName')] : []),
     ];
+    // While the collection loads nothing is said, rather than "nothing kept".
+    if (shop.collection === null) return '';
     return parts.length > 0 ? parts.join(', ') : t('shop.lapsed.nothing');
   }, [shop.collection, shop.catalog, t, wall.name]);
 

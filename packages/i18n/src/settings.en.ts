@@ -7,6 +7,9 @@ import type { EnCatalogue } from './catalogue-types';
 export const settingsEn = {
   'settings.back': 'Back',
   'settings.failed': 'That didn’t go through. Try again in a moment.',
+  /** A screen whose details couldn't be fetched, with nothing on the phone to show instead. */
+  'settings.loadFailed': 'We couldn’t reach the farm just now. Nothing here has changed.',
+  'settings.tryAgain': 'Try again',
   'settings.saved': 'Saved',
 
   'settings.species.mouse': 'Mouse',

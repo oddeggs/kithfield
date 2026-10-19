@@ -8,6 +8,7 @@ import { CritterStack } from '../../ui/components/card';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { say } from '../farm/farm-copy';
 import { typeAt } from '../farm/type-at';
@@ -39,6 +40,7 @@ export function ScrapbookPage({
   const { palette } = useTheme();
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
+  const ax = useAccessibilitySize();
   const back = (
     <View style={{ position: 'absolute', top: insets.top - 1, left: 16 }}>
       <RoundButton label={t('fieldGuide.back')} onPress={() => router.back()} glass />
@@ -83,7 +85,7 @@ export function ScrapbookPage({
             <View style={{ flex: 1 }}>
               <Txt
                 variant="handS"
-                numberOfLines={1}
+                numberOfLines={ax ? undefined : 1}
                 color={look.found}
                 style={typeAt('handS', 16, 16, fontLocale)}
               >
@@ -92,7 +94,7 @@ export function ScrapbookPage({
               <Txt
                 variant="displayM"
                 accessibilityRole="header"
-                numberOfLines={1}
+                numberOfLines={ax ? undefined : 1}
                 style={typeAt('displayM', 26, 27.3, fontLocale)}
               >
                 {t('fieldGuide.scrapbook.title')}

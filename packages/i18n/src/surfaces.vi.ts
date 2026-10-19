@@ -19,6 +19,12 @@ export const surfacesVi: ViCatalogue<typeof surfacesEn> = {
   'surfaces.native.widget.youByTheFire': 'Bạn đang ngồi bên lửa',
   'surfaces.native.widget.fireLitTitle': 'Lửa đã nhóm',
   'surfaces.native.widget.noPlan': 'Chưa có kế hoạch nào',
+  'surfaces.native.species.rabbit': 'Thỏ',
+  'surfaces.native.species.hedgehog': 'Nhím',
+  'surfaces.native.species.frog': 'Ếch',
+  'surfaces.native.species.mole': 'Chuột chũi',
+  'surfaces.native.species.sheep': 'Cừu',
+  'surfaces.native.species.owl': 'Cú',
 
   'surfaces.native.plan.onTheWay': '{count} người đang đến',
   'surfaces.native.plan.from': 'từ {time}',
@@ -56,6 +62,8 @@ export const surfacesVi: ViCatalogue<typeof surfacesEn> = {
   'surfaces.native.share.visit': 'ghé thăm',
   'surfaces.native.share.noFarms': 'Mở Kithfield một lần, rồi các nông trại của bạn sẽ hiện ở đây.',
   'surfaces.native.share.tooMany': 'Kithfield nhận tối đa 10 thứ mỗi lần.',
+
+  'surfaces.native.stickers.empty': 'Mở Kithfield để làm nhãn dán của bạn',
 
   'surfaces.share.failed': 'Không gửi được nội dung chia sẻ đó.',
 

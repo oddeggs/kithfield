@@ -1,7 +1,7 @@
 import type { FarmState, PersonId } from '@kithfield/contracts';
 import { STATUS_MS, type FarmView, type PlanView } from '@kithfield/farm';
 import { useEffect, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { useLocale } from '../../ui/locale/locale-provider';
@@ -23,6 +23,8 @@ import { headOf, layoutBubbles, type BubbleWish } from './bubble-layout';
 import type { FarmReaction } from './reactions';
 import { SpeechBubble } from './speech-bubble';
 import { useFarmScene } from './use-farm-scene';
+// The first-run tip that points at your own critter.
+import { HintOverlay } from '../hints/hint-overlay';
 
 export interface SceneTargets {
   readonly onCritter: (person: PersonId) => void;
@@ -117,6 +119,7 @@ export function FarmScene({
   coverTop,
   said = null,
   targets,
+  hints = false,
 }: {
   readonly state: FarmState | null;
   readonly view: FarmView | null;
@@ -133,9 +136,12 @@ export function FarmScene({
   /** What a friend just said, popped over their cottage for a moment. */
   readonly said?: FarmReaction | null;
   readonly targets: SceneTargets;
+  /** The farm is in front, loaded and settled: the first tip may point at your critter. */
+  readonly hints?: boolean;
 }) {
   const { t } = useLocale();
   const reduce = useReduceMotion();
+  const { fontScale } = useWindowDimensions();
   const scene = useFarmScene(state, view, { width, height }, night, fire?.lit === true);
   const spotOf = new Map(scene.placement.critters.map((c) => [c.person, c.spot]));
 
@@ -238,7 +244,27 @@ export function FarmScene({
       order: -1,
     });
   }
-  const placed = layoutBubbles(wishes, width, 110);
+  const placed = layoutBubbles(wishes, width, 110, 10, fontScale);
+
+  // A critter's label carries its status, so VoiceOver reads the words with whose they are; the
+  // bubbles themselves stay out of its way.
+  const labelOf = (person: PersonId) => {
+    const name = person === me ? t('farm.crowd.you') : nameOf(t, state, person);
+    const status = view?.critters.find((c) => c.person === person)?.status ?? null;
+    return status
+      ? t('farm.critter.labelStatus', { name, state: stateOf(person), status })
+      : t('farm.critter.label', { name, state: stateOf(person) });
+  };
+
+  // The spotlight of the first tip, round your own critter as the design draws it.
+  const mine = scene.critters.find((c) => c.person === me) ?? null;
+  const spot = mine
+    ? {
+        x: mine.x - mine.poses.open.ox + mine.poses.open.w / 2,
+        y: mine.y - mine.poses.open.oy + mine.poses.open.h / 2,
+        r: (52 * width) / 393,
+      }
+    : null;
 
   return (
     <View style={{ width, height }}>
@@ -331,48 +357,53 @@ export function FarmScene({
             y={height * c.spot.y - s * 0.55}
             w={s * 0.9}
             h={s * 1.1}
-            label={t('farm.critter.label', {
-              name: c.person === me ? t('farm.crowd.you') : nameOf(t, state, c.person),
-              state: stateOf(c.person),
-            })}
+            label={labelOf(c.person)}
             onPress={() => targets.onCritter(c.person)}
           />
         );
       })}
-      {placed.map((p, i) => {
-        const w = wishes.find((x) => x.key === p.key);
-        if (w && w.key.startsWith('said:')) {
-          return (
-            <Popping
+      <View
+        pointerEvents="box-none"
+        importantForAccessibility="no-hide-descendants"
+        accessibilityElementsHidden
+        style={{ position: 'absolute', left: 0, top: 0, width, height }}
+      >
+        {placed.map((p, i) => {
+          const w = wishes.find((x) => x.key === p.key);
+          if (w && w.key.startsWith('said:')) {
+            return (
+              <Popping
+                key={p.key}
+                style={{ left: p.left, top: p.top, width: p.width, height: p.height }}
+              >
+                <SpeechBubble
+                  text={w.text}
+                  tail={p.tail}
+                  maxWidth={Math.max(w.maxWidth, p.width)}
+                  width={p.width}
+                  running={running}
+                  style={{ left: 0, top: 0 }}
+                />
+              </Popping>
+            );
+          }
+          return w ? (
+            <SpeechBubble
               key={p.key}
-              style={{ left: p.left, top: p.top, width: p.width, height: p.height }}
-            >
-              <SpeechBubble
-                text={w.text}
-                tail={p.tail}
-                maxWidth={w.maxWidth}
-                width={p.width}
-                running={running}
-                style={{ left: 0, top: 0 }}
-              />
-            </Popping>
-          );
-        }
-        return w ? (
-          <SpeechBubble
-            key={p.key}
-            text={w.text}
-            {...(w.metaText ? { meta: w.metaText } : {})}
-            mine={w.mine}
-            tail={p.tail}
-            maxWidth={w.maxWidth}
-            width={p.width}
-            running={running}
-            phase={(i * 0.29) % 1}
-            style={{ left: p.left, top: p.top }}
-          />
-        ) : null;
-      })}
+              text={w.text}
+              {...(w.metaText ? { meta: w.metaText } : {})}
+              mine={w.mine}
+              tail={p.tail}
+              maxWidth={Math.max(w.maxWidth, p.width)}
+              width={p.width}
+              running={running}
+              phase={(i * 0.29) % 1}
+              style={{ left: p.left, top: p.top }}
+            />
+          ) : null;
+        })}
+      </View>
+      <HintOverlay hint="critter" show={hints && spot !== null} spot={spot} tabBar />
     </View>
   );
 }

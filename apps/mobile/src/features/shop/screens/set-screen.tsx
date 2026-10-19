@@ -1,4 +1,3 @@
-import { shopInks } from '@kithfield/theme';
 import type { ShopItem } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { useEffect, useMemo } from 'react';
@@ -11,6 +10,7 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { fadeTo, sheetTo } from '../../../ui/motion/motion';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useToast } from '../../../ui/components/toast';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { itemName, setName, setPose } from '../copy';
 import { useKeepItem, useWear } from '../data/flows';
 import { useShop } from '../data/shop-data';
@@ -35,6 +35,7 @@ function PieceRow({ item, owned }: { readonly item: ShopItem; readonly owned: bo
   const shop = useShop();
   const { t } = useLocale();
   const inks = useInks();
+  const ax = useAccessibilitySize();
   const name = itemName(t, item.item);
   const price = item.product === null ? null : shop.priceText(item.product);
   const tag = owned ? (
@@ -69,9 +70,9 @@ function PieceRow({ item, owned }: { readonly item: ShopItem; readonly owned: bo
             : { borderWidth: 1.5, borderColor: inks.checkRing }),
         }}
       >
-        {owned ? <ArtIcon name="check" size={13} color={shopInks.day.onColour} /> : null}
+        {owned ? <ArtIcon name="check" size={13} color={inks.onColour} /> : null}
       </View>
-      <SText s={15} lh={1.2} w={600} style={{ flex: 1 }} numberOfLines={1}>
+      <SText s={15} lh={1.2} w={600} style={{ flex: 1 }} numberOfLines={ax ? undefined : 1}>
         {name}
       </SText>
       {tag}

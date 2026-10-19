@@ -4,9 +4,11 @@ import { useWindowDimensions, View } from 'react-native';
 import { Button } from '../../ui/components/button';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { SceneArt } from './scene-art';
 import {
+  AxFlow,
   BarAction,
   Body,
   BottomBar,
@@ -61,6 +63,7 @@ export function AskScreen({
   const { width } = useWindowDimensions();
   const top = useDesignTop();
   const scene = useSceneAttrs();
+  const ax = useAccessibilitySize();
   const [busy, setBusy] = useState(false);
 
   const yesPressed = async () => {
@@ -73,6 +76,50 @@ export function AskScreen({
     }
   };
 
+  const bar = (
+    <TopBar
+      onBack={onBack}
+      trailing={<BarAction label={t('onboarding.skip')} onPress={onSkip} />}
+    />
+  );
+  const words = (
+    <>
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <Title>{title}</Title>
+      <Body>{body}</Body>
+      <View style={{ height: 6 }} />
+      <View style={{ gap: 10 }}>
+        {promises.map((p) => (
+          <PromiseRow key={p.text} text={p.text} {...(p.never ? { never: true } : {})} />
+        ))}
+      </View>
+    </>
+  );
+  const buttons = (
+    <>
+      {systemAsksNext ? (
+        <Txt
+          variant="caption"
+          align="center"
+          color={palette.secondary}
+          style={{ fontSize: 13, lineHeight: 18.2, marginBottom: 2 }}
+        >
+          {t('onboarding.ask.next')}
+        </Txt>
+      ) : null}
+      <Button label={yes} onPress={() => void yesPressed()} disabled={busy} />
+      <Button label={no} kind="text" onPress={onNo} />
+    </>
+  );
+  if (ax) {
+    return (
+      <AxFlow bar={bar} footer={buttons}>
+        <SceneArt scene="spot" width={width} height={270} attrs={{ ...scene, name: spot }} />
+        <View style={{ paddingHorizontal: 28, gap: 10 }}>{words}</View>
+      </AxFlow>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <SceneArt
@@ -82,35 +129,11 @@ export function AskScreen({
         attrs={{ ...scene, name: spot }}
         style={{ position: 'absolute', top: top(64), left: 0 }}
       />
-      <TopBar
-        onBack={onBack}
-        trailing={<BarAction label={t('onboarding.skip')} onPress={onSkip} />}
-      />
+      {bar}
       <View style={{ position: 'absolute', top: top(350), left: 28, right: 28, gap: 10 }}>
-        <Eyebrow>{eyebrow}</Eyebrow>
-        <Title>{title}</Title>
-        <Body>{body}</Body>
-        <View style={{ height: 6 }} />
-        <View style={{ gap: 10 }}>
-          {promises.map((p) => (
-            <PromiseRow key={p.text} text={p.text} {...(p.never ? { never: true } : {})} />
-          ))}
-        </View>
+        {words}
       </View>
-      <BottomBar>
-        {systemAsksNext ? (
-          <Txt
-            variant="caption"
-            align="center"
-            color={palette.secondary}
-            style={{ fontSize: 13, lineHeight: 18.2, marginBottom: 2 }}
-          >
-            {t('onboarding.ask.next')}
-          </Txt>
-        ) : null}
-        <Button label={yes} onPress={() => void yesPressed()} disabled={busy} />
-        <Button label={no} kind="text" onPress={onNo} />
-      </BottomBar>
+      <BottomBar>{buttons}</BottomBar>
     </View>
   );
 }

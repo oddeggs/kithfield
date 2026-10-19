@@ -25,6 +25,7 @@ import { useDesignTop } from '../kit/layout';
 import { KText } from '../kit/text';
 import { usePhoneZone } from '../time-zone';
 import { useRemote } from '../use-remote';
+import { LoadFailed } from '../kit/remote-state';
 
 /** One sweep of the arriving bar: the design's reveal pace. */
 const SWEEP_MS = 1600;
@@ -161,6 +162,7 @@ export function ArrivingScreen() {
           <KText kind="sheetBody" multiline color={palette.body}>
             {t('settings.arriving.body', { name: me.data?.name ?? '' })}
           </KText>
+          {list.data === null && list.failed ? <LoadFailed onRetry={list.reload} /> : null}
           <View style={{ gap: 10 }}>
             {farms
               .filter((f) => f.kind === 'farm')

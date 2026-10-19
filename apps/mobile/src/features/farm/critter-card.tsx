@@ -54,7 +54,7 @@ function ActionTile({
       accessibilityLabel={label}
       style={{
         flex: 1,
-        height: 76,
+        minHeight: 76,
         borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',

@@ -40,10 +40,12 @@ const SPECIES: Record<string, Critter['species']> = {
   Kit: 'cat',
 };
 
-/** A new anonymous person, with their name and critter set as onboarding sets them. */
+/** A new anonymous person as onboarding leaves them: past the age check, named, with a critter. */
 export const newPerson = async (handle: string): Promise<Person> => {
   const name = `${handle.charAt(0).toUpperCase()}${handle.slice(1)}`;
   const { token, user } = await signInAnonymously();
+  const aged = await call('/v1/me/age', { token, body: { birthYear: 1990, country: 'GB' } });
+  expect(aged.status).toBe(204);
   const look = critter(SPECIES[name] ?? 'fox');
   const set = await call('/v1/me/profile', {
     method: 'PATCH',

@@ -1,6 +1,6 @@
 import { layout, radii, sizes } from '@kithfield/theme';
 import type { ReactNode } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { ScrollView, View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,6 +8,7 @@ import { Glass } from '../../../ui/components/glass';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
 import { useGestureRejections } from '../send';
 import { leave } from './presentation';
@@ -105,6 +106,7 @@ export function SceneScreen({
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const keyboard = useAnimatedKeyboard();
+  const ax = useAccessibilitySize();
   useGestureRejections();
   const lift = useAnimatedStyle(() => ({
     transform: [{ translateY: -Math.max(0, keyboard.height.get() - insets.bottom) }],
@@ -164,7 +166,21 @@ export function SceneScreen({
             alignSelf: 'center',
           }}
         />
-        {children}
+        {ax ? (
+          // At the accessibility sizes the words scroll clear of the button over them.
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              gap: 12,
+              paddingBottom: (footer ? sizes.buttonLarge + layout.buttonBottom : 0) + 24,
+            }}
+            showsVerticalScrollIndicator={false}
+          >
+            {children}
+          </ScrollView>
+        ) : (
+          children
+        )}
       </Animated.View>
       {footer ? (
         <Animated.View

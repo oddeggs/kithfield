@@ -26,6 +26,12 @@ export interface PlacedBubble {
   readonly tail: 'left' | 'right';
 }
 
+/**
+ * Bubbles over the farm grow with the reader's text size up to this many times; past it the
+ * farm itself would be covered, and VoiceOver reads each status with its critter instead.
+ */
+export const BUBBLE_MAX_SCALE = 1.6;
+
 const CHAR = 7.4;
 const PAD_X = 22;
 const LINE = 16.5;
@@ -33,16 +39,20 @@ const PAD_Y = 13;
 const META = 14;
 const GAP = 4;
 
-/** A bubble's likely size: the hand face averages about 7.4 points a character at 15. */
-export function bubbleSize(text: string, maxWidth: number, meta: boolean) {
-  const inner = maxWidth - PAD_X;
+/**
+ * A bubble's likely size: the hand face averages about 7.4 points a character at 15, times the
+ * text size it is drawn at (`scale`, at most `BUBBLE_MAX_SCALE`).
+ */
+export function bubbleSize(text: string, maxWidth: number, meta: boolean, scale = 1) {
+  const s = Math.min(Math.max(scale, 1), BUBBLE_MAX_SCALE);
+  const inner = maxWidth * Math.min(s, 1.25) - PAD_X;
   const words = text.split(/\s+/);
   let lines = 1;
   let line = 0;
   let widest = 0;
   for (const w of words) {
-    const len = w.length * CHAR;
-    const next = line === 0 ? len : line + CHAR + len;
+    const len = w.length * CHAR * s;
+    const next = line === 0 ? len : line + CHAR * s + len;
     if (next > inner && line > 0) {
       lines += 1;
       widest = Math.max(widest, line);
@@ -53,8 +63,8 @@ export function bubbleSize(text: string, maxWidth: number, meta: boolean) {
   }
   widest = Math.max(widest, line);
   return {
-    width: Math.min(maxWidth, Math.ceil(widest + PAD_X)),
-    height: Math.ceil(lines * LINE + PAD_Y + (meta ? META : 0)),
+    width: Math.min(maxWidth * Math.min(s, 1.25), Math.ceil(widest + PAD_X)),
+    height: Math.ceil(lines * LINE * s + PAD_Y + (meta ? META * s : 0)),
   };
 }
 
@@ -76,11 +86,12 @@ export function layoutBubbles(
   width: number,
   ceiling: number,
   margin = 10,
+  scale = 1,
 ): PlacedBubble[] {
   const placed: PlacedBubble[] = [];
   const sorted = [...wishes].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || b.y - a.y);
   for (const w of sorted) {
-    const size = bubbleSize(w.text, w.maxWidth, w.meta);
+    const size = bubbleSize(w.text, w.maxWidth, w.meta, scale);
     const at = (tail: 'left' | 'right', lift: number): PlacedBubble | null => {
       const raw = tail === 'left' ? w.x - 12 : w.x + 12 - size.width;
       const left = Math.min(width - margin - size.width, Math.max(margin, raw));

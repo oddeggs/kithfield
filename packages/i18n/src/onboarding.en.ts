@@ -195,6 +195,9 @@ export const onboardingEn = {
   'onboarding.friends.byText': 'Gets a link by text',
   'onboarding.friends.invite': 'Invite',
   'onboarding.friends.invited': 'Invited',
+  /** VoiceOver, for a friend's Invite chip: who it invites. */
+  'onboarding.friends.inviteNamed': 'Invite {name}',
+  'onboarding.friends.invitedNamed': '{name}, invited',
   'onboarding.friends.done': 'Done',
   'onboarding.friends.doneInvited': {
     one: 'Done · {count} invited',

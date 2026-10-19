@@ -63,9 +63,11 @@ private struct Context {
   }
 }
 
-/// A person's critter, framed as the avatar frames it.
+/// A person's critter, framed as the avatar frames it; VoiceOver reads it by their name ("you"
+/// for the phone's own person), and passes over one whose name is gone.
 private struct Head: View {
   let person: SurfacePerson
+  let name: String?
   let size: CGFloat
   var ring: Color = .black
 
@@ -82,12 +84,17 @@ private struct Head: View {
     .frame(width: size, height: size)
     .clipShape(Circle())
     .overlay(Circle().stroke(ring, lineWidth: 2))
+    .accessibilityElement()
+    .accessibilityLabel(name ?? "")
+    .accessibilityAddTraits(.isImage)
+    .accessibilityHidden(name == nil)
   }
 }
 
 /// Heads in a row, each over the last by 8 points.
 private struct Heads: View {
   let people: [SurfacePerson]
+  let context: Context
   let size: CGFloat
   var ring: Color = .black
   var limit = 6
@@ -95,7 +102,7 @@ private struct Heads: View {
   var body: some View {
     HStack(spacing: -8) {
       ForEach(Array(people.prefix(limit)), id: \.person) { person in
-        Head(person: person, size: size, ring: ring)
+        Head(person: person, name: context.name(person), size: size, ring: ring)
       }
     }
   }
@@ -118,6 +125,7 @@ private struct Art: View {
     }
     .frame(width: width, height: height)
     .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+    .accessibilityHidden(true)
   }
 }
 
@@ -153,6 +161,7 @@ private struct Walk: View {
         }
       }
     }
+    .accessibilityHidden(true)
   }
 
   private struct Placed {
@@ -184,25 +193,38 @@ private struct PlanDayLockScreen: View {
   let attributes: PlanDayAttributes
   let state: PlanDayState
   let context: Context
+  @Environment(\.dynamicTypeSize) private var typeSize
+
+  /// The Lock Screen gives an activity 160 points: the design's 92-point path is drawn at 64, and
+  /// gives way as larger text takes the room.
+  private var walkHeight: CGFloat {
+    switch typeSize {
+    case ...DynamicTypeSize.large: return 64
+    case .xLarge: return 58
+    case .xxLarge: return 50
+    default: return 40
+    }
+  }
 
   var body: some View {
     let copy = context.copy
-    // The Lock Screen gives an activity 160 points: the design's 92-point path is drawn at 64.
     VStack(alignment: .leading, spacing: 8) {
       HStack(spacing: 8) {
         Art(name: "appicon.png", width: 24, height: 24, radius: 7)
-        Text(attributes.title).font(.system(size: 15, weight: .semibold)).lineLimit(1)
+        Text(attributes.title).scaledFont(15, weight: .semibold, relativeTo: .subheadline)
+          .lineLimit(1)
         Spacer(minLength: 4)
         if let from = attributes.from {
           Text(copy.text("plan.from", ["time": PlanTime.hour(from, copy: copy)]))
-            .font(.system(size: 13, weight: .semibold))
+            .scaledFont(13, weight: .semibold, relativeTo: .footnote)
             .foregroundStyle(SurfacePalette.honey)
+            .lineLimit(1)
         }
       }
-      Walk(season: context.season(attributes.farm), state: state).frame(height: 64)
+      Walk(season: context.season(attributes.farm), state: state).frame(height: walkHeight)
       HStack(alignment: .center, spacing: 10) {
         Text(summary)
-          .font(.system(size: 13.5))
+          .scaledFont(13.5, relativeTo: .footnote)
           .foregroundStyle(SurfacePalette.moon2)
           .lineLimit(2)
           .minimumScaleFactor(0.85)
@@ -210,7 +232,7 @@ private struct PlanDayLockScreen: View {
         if let start = PlanTime.start(date: attributes.date, from: attributes.from), start > .now {
           // Counts down on its own between updates, which a Live Activity can't do otherwise.
           Text(timerInterval: Date.now...start, countsDown: true, showsHours: false)
-            .font(.system(size: 22, weight: .bold))
+            .scaledFont(22, weight: .bold, relativeTo: .title2)
             .monospacedDigit()
             .multilineTextAlignment(.trailing)
             .frame(maxWidth: 90, alignment: .trailing)
@@ -220,6 +242,7 @@ private struct PlanDayLockScreen: View {
     .foregroundStyle(SurfacePalette.moon)
     .padding(12)
     .environment(\.locale, copy.locale)
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
   }
 
   private var summary: String {
@@ -249,6 +272,7 @@ private struct Levels: View {
       }
     }
     .frame(height: height, alignment: .bottom)
+    .accessibilityHidden(true)
   }
 }
 
@@ -309,19 +333,23 @@ private struct FireLockScreen: View {
       HStack(spacing: 12) {
         Art(name: SurfaceNames.fireRoom(season: context.season(attributes.farm)), width: 96, height: 64, radius: 14)
         VStack(alignment: .leading, spacing: 2) {
-          Text(title).font(.system(size: 16, weight: .semibold)).lineLimit(1)
-          Text(line).font(.system(size: 13)).foregroundStyle(Color(hex: 0xC8C2D6)).lineLimit(1)
+          Text(title).scaledFont(16, weight: .semibold, relativeTo: .callout).lineLimit(1)
+          Text(line).scaledFont(13, relativeTo: .footnote).foregroundStyle(SurfacePalette.moon2)
+            .lineLimit(1)
         }
       }
       HStack {
-        Heads(people: state.people, size: 28, ring: Color(hex: 0x262636))
+        Heads(people: state.people, context: context, size: 28, ring: SurfacePalette.Fire.ring)
         Spacer()
-        FireButtons(attributes: attributes, state: state, copy: copy, size: 44, well: Color(hex: 0x3A3A4E))
+        FireButtons(
+          attributes: attributes, state: state, copy: copy, size: 44,
+          well: SurfacePalette.Fire.secondary)
       }
     }
     .foregroundStyle(.white)
     .padding(.horizontal, 16)
     .padding(.vertical, 14)
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
   }
 }
 
@@ -345,7 +373,7 @@ struct SurfaceActivityWidget: Widget {
             .widgetURL(URL(string: attributes.link))
         }
       }
-      .activityBackgroundTint(Color(hex: 0x1C1A2C, opacity: 0.74))
+      .activityBackgroundTint(SurfacePalette.Fire.panel)
       .activitySystemActionForegroundColor(SurfacePalette.moon)
     } dynamicIsland: { activity in
       let context = Context.load()
@@ -368,10 +396,13 @@ struct SurfaceActivityWidget: Widget {
     let onTheWay = context.copy.text("plan.onTheWay", count: state.onTheWay.count)
     return DynamicIsland {
       DynamicIslandExpandedRegion(.leading) {
-        if let first { Head(person: first, size: 26) }
+        if let first { Head(person: first, name: context.name(first), size: 26) }
       }
       DynamicIslandExpandedRegion(.trailing) {
-        Text(onTheWay).font(.system(size: 13, weight: .semibold)).foregroundStyle(SurfacePalette.honey)
+        Text(onTheWay).scaledFont(13, weight: .semibold, relativeTo: .footnote)
+          .foregroundStyle(SurfacePalette.honey)
+          .lineLimit(1)
+          .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
       }
       DynamicIslandExpandedRegion(.bottom) {
         if let attributes {
@@ -379,11 +410,11 @@ struct SurfaceActivityWidget: Widget {
         }
       }
     } compactLeading: {
-      if let first { Head(person: first, size: 26) }
+      if let first { Head(person: first, name: context.name(first), size: 26) }
     } compactTrailing: {
       Text(onTheWay).font(.system(size: 13, weight: .semibold)).foregroundStyle(SurfacePalette.honey)
     } minimal: {
-      if let first { Head(person: first, size: 24) }
+      if let first { Head(person: first, name: context.name(first), size: 24) }
     }
     .widgetURL(attributes.flatMap { URL(string: $0.link) })
   }
@@ -403,24 +434,29 @@ struct SurfaceActivityWidget: Widget {
       }
       DynamicIslandExpandedRegion(.center) {
         VStack(alignment: .leading, spacing: 2) {
-          Text(copy.text("fire.title")).font(.system(size: 16, weight: .semibold))
-          Text(subtitle).font(.system(size: 13)).foregroundStyle(Color(hex: 0xA9A3B8)).lineLimit(1)
+          Text(copy.text("fire.title")).scaledFont(16, weight: .semibold, relativeTo: .callout)
+            .lineLimit(1)
+          Text(subtitle).scaledFont(13, relativeTo: .footnote).foregroundStyle(SurfacePalette.dim)
+            .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
       }
       DynamicIslandExpandedRegion(.trailing) {
         Levels(height: 20, on: state.talking != nil)
       }
       DynamicIslandExpandedRegion(.bottom) {
         HStack {
-          Heads(people: state.people, size: 30)
+          Heads(people: state.people, context: context, size: 30)
           Spacer()
-          FireButtons(attributes: attributes, state: state, copy: copy, size: 48, well: Color(hex: 0x2C2C2E))
+          FireButtons(
+            attributes: attributes, state: state, copy: copy, size: 48,
+            well: SurfacePalette.Fire.secondary)
         }
       }
     } compactLeading: {
       if youTalking, let me {
-        Head(person: me, size: 24)
+        Head(person: me, name: context.name(me), size: 24)
       } else {
         Art(name: SurfaceNames.smallFire(season: season), width: 24, height: 24, radius: 12)
       }

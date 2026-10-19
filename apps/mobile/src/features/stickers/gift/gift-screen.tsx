@@ -293,7 +293,7 @@ export function GiftScreen({
             price ? t('stickers.gift.wrap', { price }) : t('stickers.gift.wrapNoPrice')
           }
           style={{
-            height: 56,
+            minHeight: 56,
             borderRadius: 28,
             alignItems: 'center',
             justifyContent: 'center',

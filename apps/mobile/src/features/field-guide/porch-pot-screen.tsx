@@ -1,5 +1,6 @@
 import type { FarmId, FarmState, PersonId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
+import { sizes } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +14,7 @@ import { EmptyState } from '../../ui/components/state-shell';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { numberWord, say } from '../farm/farm-copy';
 import { useNow } from '../farm/use-now';
@@ -63,6 +65,9 @@ export function PorchPotPage({
   const look = useGuideLook();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  // At the accessibility sizes nothing is cut to one line: the pill wraps clear of the back button,
+  // and the stage names under the bar give way to the line above it, which names the stage.
+  const ax = useAccessibilitySize();
   const k = width / W;
   const back = (
     <View style={{ position: 'absolute', top: insets.top - 1, left: 16 }}>
@@ -134,14 +139,21 @@ export function PorchPotPage({
           borderRadius: 22,
           backgroundColor: look.porchPill,
           alignItems: 'center',
+          ...(ax ? { maxWidth: width - 2 * (16 + sizes.circle + 8) } : {}),
         }}
       >
-        <Txt variant="displayS" numberOfLines={1} style={typeAt('displayS', 16, 18.4, fontLocale)}>
+        <Txt
+          variant="displayS"
+          align={ax ? 'center' : undefined}
+          numberOfLines={ax ? undefined : 1}
+          style={typeAt('displayS', 16, 18.4, fontLocale)}
+        >
           {porchNames(t, state, me)}
         </Txt>
         <Txt
           variant="caption"
-          numberOfLines={1}
+          align={ax ? 'center' : undefined}
+          numberOfLines={ax ? undefined : 1}
           color={palette.body}
           style={typeAt('caption', 12, 14.4, fontLocale)}
         >
@@ -192,7 +204,7 @@ export function PorchPotPage({
               <Txt
                 variant="displayM"
                 accessibilityRole="header"
-                numberOfLines={1}
+                numberOfLines={ax ? undefined : 1}
                 style={typeAt('displayM', 26, 28.6, fontLocale)}
               >
                 {plantTitle(t, language, state, pot.plant)}
@@ -221,14 +233,16 @@ export function PorchPotPage({
                     backgroundColor: on ? look.found : look.bar.off,
                   }}
                 />
-                <Txt
-                  variant="caption"
-                  numberOfLines={1}
-                  color={i === pot.stage ? palette.text : look.bar.label}
-                  style={typeAt('rowTitle', 11.5, 11.5, fontLocale)}
-                >
-                  {say(t, `fieldGuide.stageName.${i}`)}
-                </Txt>
+                {ax ? null : (
+                  <Txt
+                    variant="caption"
+                    numberOfLines={1}
+                    color={i === pot.stage ? palette.text : look.bar.label}
+                    style={typeAt('rowTitle', 11.5, 11.5, fontLocale)}
+                  >
+                    {say(t, `fieldGuide.stageName.${i}`)}
+                  </Txt>
+                )}
               </View>
             ))}
           </View>

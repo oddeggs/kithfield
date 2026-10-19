@@ -120,6 +120,12 @@ export const stickersEn = {
   'stickers.picker.together.hint': 'with {farm}',
   'stickers.picker.together.pick': 'Pick friends',
   'stickers.picker.together.empty': 'Nobody here can be drawn in just now',
+  /** The Together tab before anyone can be drawn in: what will grow there, and one way on. */
+  'stickers.picker.together.emptyTitle': 'No together stickers yet',
+  'stickers.picker.together.emptyBody':
+    'Pick a few friends and {name} will pose with them. Each friend is asked once before it can be shared.',
+  'stickers.picker.together.emptyAction': 'Make one with friends',
+  'stickers.picker.together.yourCritter': 'your critter',
   'stickers.picker.gift.hint': 'from {name}, a gift',
   'stickers.picker.bought.hint': 'bought in {season}',
   'stickers.picker.yours.hint': 'yours to keep',

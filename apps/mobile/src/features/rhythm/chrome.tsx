@@ -184,7 +184,7 @@ export function ActionButton({
       {...(hint ? { accessibilityHint: hint } : {})}
       style={[
         {
-          height,
+          minHeight: height,
           minWidth: layout.minHitTarget,
           borderRadius: height / 2,
           backgroundColor: bg,
@@ -233,7 +233,7 @@ export function IconChip({
       accessibilityLabel={label}
       hitSlop={{ top: 5, bottom: 5 }}
       style={{
-        height,
+        minHeight: height,
         paddingHorizontal: 13,
         borderRadius: height / 2,
         backgroundColor: bg,

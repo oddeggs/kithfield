@@ -51,7 +51,8 @@
  * was lost) to tell the person what didn't send.
  *
  * Sockets: `useOpenFarm(farm)` keeps a farm's socket open while a screen shows it (the last one
- * held wins). The cottage socket runs while the app is in the foreground and there is a person.
+ * held wins). `useDataClient().reconnect(farm)` opens the held farm again at once (Try again).
+ * The cottage socket runs while the app is in the foreground and there is a person.
  *
  * Signing in and out: `signIn.withIdToken('apple' | 'google', openSheet)`, `signIn.sendEmailCode`
  * and `signIn.withEmailCode` upgrade the anonymous person (a merge reconnects as the kept one).

@@ -10,9 +10,10 @@ export const chatVi: ViCatalogue<typeof chatEn> = {
   'chat.list.visitsNote':
     'Chỉ hai bạn, trên hiên nhà. Nông trại không bao giờ thấy những cuộc này.',
   'chat.list.dozing': 'Mọi người đang lim dim. Cứ chào khi nào bạn muốn.',
-  'chat.list.empty.title': 'Chưa có cuộc trò chuyện nào',
+  'chat.list.empty.title': 'Chưa có buổi ghé hiên nào',
   'chat.list.empty.body':
-    'Trồng một nông trại rồi mời mọi người. Cuộc trò chuyện mọc ngay bên dưới.',
+    'Một buổi ghé thăm chỉ có hai bạn. Chạm vào bạn thú nào đó trên nông trại để ngồi bên hiên nhà họ.',
+  'chat.list.empty.action': 'Đến nông trại',
   'chat.list.mute': 'Tắt tiếng',
   'chat.list.unmute': 'Bật tiếng',
   'chat.list.pin': 'Ghim lên đầu',
@@ -143,6 +144,7 @@ export const chatVi: ViCatalogue<typeof chatEn> = {
   'chat.typing.many': '{a}, {b} và những bạn khác đang viết thư…',
 
   'chat.composer.placeholder': 'Nói gì đó, hoặc chỉ vẫy tay',
+  'chat.composer.placeholderShort': 'Nói gì đó',
   'chat.composer.tray': 'Thêm cách chăm sóc',
   'chat.composer.dewdrop': 'Để lại một giọt sương',
   'chat.composer.dewdropLeft': 'Đã để lại giọt sương',
@@ -187,6 +189,7 @@ export const chatVi: ViCatalogue<typeof chatEn> = {
   'chat.search.hint': 'Tìm tin nhắn, ảnh, đường dẫn và tin nhắn thoại trên {farm}.',
   'chat.search.looking': 'Đang tìm…',
   'chat.search.empty.title': '{name} đã tìm khắp nơi',
+  'chat.search.empty.titleNoName': 'Đã tìm khắp nơi',
   'chat.search.empty.body':
     'Không có gì trên {farm} khớp với từ đó. Thử bớt vài từ, hoặc tìm trên mọi nông trại của bạn.',
   'chat.search.empty.bodyAll':

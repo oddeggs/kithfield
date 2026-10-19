@@ -3,7 +3,7 @@ import { fonts, SYSTEM_LINE_HEIGHT } from '@kithfield/theme';
 import { PixelRatio, Platform } from 'react-native';
 
 import { fontSizeMultiplier } from './dynamic-type';
-import { leading } from './leading';
+import { leading, roomForMarks } from './leading';
 
 // Young Serif's own line height is 1.412 em: at 60 that is 84.72, 24.72 more than a 60 line,
 // rounded up to whole pairs of pixels at 3× (2/3 of a point): 38 pairs.
@@ -94,5 +94,18 @@ describe('Dynamic Type multiplier', () => {
     expect(fontSizeMultiplier(capped)).toBe(2);
     const off = { fontScale: 3.571, ramp: 'body', allowFontScaling: false } as const;
     expect(fontSizeMultiplier(off)).toBe(1);
+  });
+});
+
+describe('room for Vietnamese marks', () => {
+  it('raises a line set solid to 1.4 times its size in Vietnamese', () => {
+    expect(roomForMarks({ fontSize: 17, lineHeight: 17 }, 'vi').lineHeight).toBe(24);
+    expect(roomForMarks({ fontSize: 28, lineHeight: 30.8 }, 'vi-VN').lineHeight).toBe(39);
+  });
+
+  it('keeps a line already roomy enough, and English as the design sets it', () => {
+    expect(roomForMarks({ fontSize: 15, lineHeight: 22 }, 'vi').lineHeight).toBe(22);
+    expect(roomForMarks({ fontSize: 17, lineHeight: 17 }, 'en').lineHeight).toBe(17);
+    expect(roomForMarks({ fontSize: 17 }, 'vi').lineHeight).toBeUndefined();
   });
 });

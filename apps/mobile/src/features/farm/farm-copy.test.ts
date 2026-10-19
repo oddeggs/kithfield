@@ -10,6 +10,7 @@ import {
   hoursLeft,
   listOf,
   planLine,
+  shortName,
   seasonLabel,
 } from './farm-copy';
 import { DAY, farmLog } from './farm-log.test-data';
@@ -95,5 +96,14 @@ describe('the farm’s words', () => {
   it('says who lives here by kind, most first', () => {
     expect(crowdLine(en, ['rabbit', 'fox', 'rabbit', 'owl'])).toBe('Two rabbits, a fox and an owl');
     expect(crowdLine(en, ['fox', 'owl'])).toBe('A fox and an owl');
+  });
+});
+
+describe('the short name', () => {
+  it('drops a leading article for the largest text sizes', () => {
+    expect(shortName('The Thursday Lot')).toBe('Thursday Lot');
+    expect(shortName('a Book Club')).toBe('Book Club');
+    expect(shortName('Hội Thứ Năm')).toBe('Hội Thứ Năm');
+    expect(shortName('The')).toBe('The');
   });
 });

@@ -42,7 +42,7 @@ function FireButton({
       accessibilityLabel={label}
       style={{
         flex: 1,
-        height: 46,
+        minHeight: 46,
         borderRadius: 23,
         backgroundColor: fireside.button,
         flexDirection: 'row',
@@ -87,8 +87,10 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
   const people = seed && here ? seed.checkins.map((p) => personOn(here.state, p, me, t)) : [];
   const imHere = people.some((p) => p.you);
   const latest = [...people].reverse().find((p) => !p.you);
-  const line =
-    people.length === 0
+  // Nothing is said about who's here until the farm is read, so "nobody yet" never flashes.
+  const line = !here
+    ? ''
+    : people.length === 0
       ? t('plans.hangout.nobody')
       : people.length === 1
         ? imHere
@@ -140,7 +142,7 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
             radius={18}
             fill={fireside.glass}
             border={fireside.glassBorder}
-            style={{ height: 36, paddingHorizontal: 14, justifyContent: 'center', flexShrink: 1, marginLeft: 12 }}
+            style={{ minHeight: 36, paddingHorizontal: 14, justifyContent: 'center', flexShrink: 1, marginLeft: 12 }}
           >
             <Txt variant="buttonSmall" color={fireside.text} numberOfLines={1} style={{ fontSize: 13 }}>
               {t('plans.hangout.pill', { title: seed.title })}
@@ -203,7 +205,7 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
           accessibilityLabel={imHere ? t('plans.hangout.youreHere') : t('plans.hangout.here')}
           testID="plans-checkin"
           style={{
-            height: 56,
+            minHeight: 56,
             borderRadius: 28,
             backgroundColor: fireside.here,
             alignItems: 'center',

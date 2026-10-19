@@ -5,7 +5,15 @@ import { ArtIcon, ArtStill } from '../../ui/art/art-view';
 import { sceneLook } from '../../ui/art/critter-look';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
-import { AskText, CritterStack, FireButton, FirePanel, GlassRound } from './fire-chrome';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
+import {
+  AskText,
+  CritterStack,
+  FIRE_TEXT_MAX_SCALE,
+  FireButton,
+  FirePanel,
+  GlassRound,
+} from './fire-chrome';
 import { FireTxt } from './fire-text';
 import { fireLook, fireSize } from './look';
 import type { DockState } from './room-model';
@@ -197,8 +205,11 @@ function GestureRow({
   readonly onGesture: (kind: GestureKind) => void;
 }) {
   const { t } = useLocale();
+  // At the accessibility sizes a name takes two lines, held to twice its size so the dock doesn't
+  // climb over the scene; the large content viewer shows it whole.
+  const ax = useAccessibilitySize();
   const tile = {
-    height: fireSize.tile,
+    minHeight: fireSize.tile,
     borderRadius: 18,
     backgroundColor: fireLook.tile,
     alignItems: 'center',
@@ -216,14 +227,22 @@ function GestureRow({
           radius={18}
           accessibilityRole="button"
           accessibilityLabel={said(t(g.label))}
-          style={[tile, { flex: 1, minWidth: 0, gap: 3, paddingHorizontal: 4 }]}
+          accessibilityShowsLargeContentViewer
+          accessibilityLargeContentTitle={t(g.label)}
+          style={[
+            tile,
+            { flex: 1, minWidth: 0, gap: 3, paddingHorizontal: 4 },
+            ax ? { paddingVertical: 6 } : null,
+          ]}
           testID={`fire-gesture-${g.kind}`}
         >
           <ArtIcon name={g.icon} size={22} color={fireLook.primaryInk} />
           <FireTxt
             variant="buttonSmall"
             color={fireLook.text}
-            numberOfLines={1}
+            align="center"
+            numberOfLines={ax ? 2 : 1}
+            maxFontSizeMultiplier={FIRE_TEXT_MAX_SCALE}
             style={{ fontSize: 11.5, lineHeight: 13 }}
           >
             {t(g.label)}

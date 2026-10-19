@@ -128,7 +128,11 @@ export function CollectionScreen() {
         inset={16}
       />
       {shop.collection === null ? (
-        <ShopLoading />
+        shop.collectionFailed ? (
+          <ShopFailed onRetry={() => void shop.refreshCollection()} />
+        ) : (
+          <ShopLoading />
+        )
       ) : tab === 'sets' ? (
         <View style={{ gap: 14 }}>
           {(shop.catalog?.sets ?? []).map((set) => (

@@ -21,6 +21,7 @@ import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { componentType } from '../../../ui/type/styles';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
 import {
   draftSegments,
@@ -275,6 +276,112 @@ export function Composer({
   };
   const onSelection = (e: TextInputSelectionChangeEvent) => setCaret(e.nativeEvent.selection.end);
 
+  const ax = useAccessibilitySize();
+  const plus = (
+    <Press
+      onPress={() => go.tray(room.farm)}
+      radius={22}
+      accessibilityLabel={t('chat.composer.tray')}
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: palette.card,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <ArtIcon name="plus" size={20} color={palette.text} />
+    </Press>
+  );
+  const dewdrop =
+    empty && !editing ? (
+      <Press
+        onPress={onDewdrop}
+        haptic="soft"
+        darken={false}
+        hitSlop={8}
+        accessibilityLabel={t('chat.composer.dewdrop')}
+      >
+        <ArtIcon name="dewdrop" size={28} color={palette.text} />
+      </Press>
+    ) : null;
+  const field = (
+    <View
+      style={{
+        flex: 1,
+        minHeight: 44,
+        borderRadius: 22,
+        backgroundColor: palette.card,
+        borderWidth: focused || !empty ? 1.5 : 1,
+        borderColor: focused || !empty ? colours.fieldFocus : colours.fieldBorder,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingLeft: 16,
+        paddingRight: 6,
+        gap: 6,
+      }}
+    >
+      <TextInput
+        ref={input}
+        testID="chat-composer-field"
+        multiline
+        onChangeText={change}
+        onSelectionChange={onSelection}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder={t(ax ? 'chat.composer.placeholderShort' : 'chat.composer.placeholder')}
+        placeholderTextColor={palette.placeholder}
+        selectionColor={palette.go.bg}
+        editable={!disabled}
+        accessibilityLabel={t('chat.composer.placeholder')}
+        style={[
+          font,
+          { flex: 1, color: palette.text, paddingTop: 10, paddingBottom: 10, maxHeight: 132 },
+        ]}
+      >
+        {draftSegments(text, names, caret).map((s, i) =>
+          s.mention ? (
+            <Txt
+              key={i}
+              variant="fieldText"
+              color={colours.mentionFg}
+              style={{ fontWeight: '600', backgroundColor: colours.mentionBg }}
+            >
+              {s.text}
+            </Txt>
+          ) : (
+            s.text
+          ),
+        )}
+      </TextInput>
+      {ax ? null : dewdrop}
+    </View>
+  );
+  const action =
+    empty && !editing ? (
+      mic
+    ) : (
+      <Press
+        onPress={send}
+        haptic="tap"
+        radius={22}
+        accessibilityLabel={editing ? t('chat.composer.saveEdit') : t('chat.composer.send')}
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: palette.go.bg,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Txt variant="body" color={palette.go.fg} style={{ fontSize: 20, fontWeight: '700' }}>
+          ↑
+        </Txt>
+      </Press>
+    );
+
   return (
     <View style={{ gap: 8 }}>
       {matches.length > 0 ? (
@@ -301,105 +408,39 @@ export function Composer({
           onClose={onCancel}
         />
       ) : null}
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
-        <Press
-          onPress={() => go.tray(room.farm)}
-          radius={22}
-          accessibilityLabel={t('chat.composer.tray')}
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: palette.card,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <ArtIcon name="plus" size={20} color={palette.text} />
-        </Press>
-        <View
-          style={{
-            flex: 1,
-            minHeight: 44,
-            borderRadius: 22,
-            backgroundColor: palette.card,
-            borderWidth: focused || !empty ? 1.5 : 1,
-            borderColor: focused || !empty ? colours.fieldFocus : colours.fieldBorder,
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingLeft: 16,
-            paddingRight: 6,
-            gap: 6,
-          }}
-        >
-          <TextInput
-            ref={input}
-            testID="chat-composer-field"
-            multiline
-            onChangeText={change}
-            onSelectionChange={onSelection}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            placeholder={t('chat.composer.placeholder')}
-            placeholderTextColor={palette.placeholder}
-            selectionColor={palette.go.bg}
-            editable={!disabled}
-            accessibilityLabel={t('chat.composer.placeholder')}
-            style={[
-              font,
-              { flex: 1, color: palette.text, paddingTop: 10, paddingBottom: 10, maxHeight: 132 },
-            ]}
+      {ax ? (
+        // At the accessibility sizes the field takes the whole row, and its buttons sit under it
+        // (`12 States`, AX5).
+        <>
+          <View style={{ flexDirection: 'row' }}>{field}</View>
+          <View
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
           >
-            {draftSegments(text, names, caret).map((s, i) =>
-              s.mention ? (
-                <Txt
-                  key={i}
-                  variant="fieldText"
-                  color={colours.mentionFg}
-                  style={{ fontWeight: '600', backgroundColor: colours.mentionBg }}
-                >
-                  {s.text}
-                </Txt>
-              ) : (
-                s.text
-              ),
-            )}
-          </TextInput>
-          {empty && !editing ? (
-            <Press
-              onPress={onDewdrop}
-              haptic="soft"
-              darken={false}
-              hitSlop={8}
-              accessibilityLabel={t('chat.composer.dewdrop')}
-            >
-              <ArtIcon name="dewdrop" size={28} color={palette.text} />
-            </Press>
-          ) : null}
+            {plus}
+            {dewdrop ? (
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: palette.card,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {dewdrop}
+              </View>
+            ) : null}
+            {action}
+          </View>
+        </>
+      ) : (
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+          {plus}
+          {field}
+          {action}
         </View>
-        {empty && !editing ? (
-          mic
-        ) : (
-          <Press
-            onPress={send}
-            haptic="tap"
-            radius={22}
-            accessibilityLabel={editing ? t('chat.composer.saveEdit') : t('chat.composer.send')}
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: palette.go.bg,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Txt variant="body" color={palette.go.fg} style={{ fontSize: 20, fontWeight: '700' }}>
-              ↑
-            </Txt>
-          </Press>
-        )}
-      </View>
+      )}
     </View>
   );
 }

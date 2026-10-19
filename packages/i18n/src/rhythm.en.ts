@@ -206,9 +206,10 @@ export const rhythmEn = {
     'It leaves the scrapbook for everyone on the farm. Anyone can hide a page.',
   'rhythm.scrapbook.hideCancel': 'Keep it',
   'rhythm.scrapbook.hidden': 'Page hidden',
-  'rhythm.scrapbook.empty.title': 'Nothing pressed yet',
+  'rhythm.scrapbook.empty.title': 'The first page is waiting',
   'rhythm.scrapbook.empty.body':
-    'After a hangout, press a page to keep it: its photos, its notes and a flower.',
+    'After your first hangout, the photos press into a page here like a flower in a book.',
+  'rhythm.scrapbook.empty.action': 'See the seed bed',
   'rhythm.scrapbook.press': 'Press a page',
   'rhythm.scrapbook.pressFrom': 'From {title}, {date}',
   'rhythm.scrapbook.pressed': 'Pressed into the scrapbook',

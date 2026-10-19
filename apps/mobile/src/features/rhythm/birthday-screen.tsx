@@ -10,6 +10,7 @@ import { rhythmColours } from '@kithfield/theme';
 import { useFarm, useFarmView, useOpenFarm, useSend } from '../../data';
 import { LayeredScene } from '../../ui/art/layered-scene';
 import { TextField } from '../../ui/components/text-field';
+import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics } from '../../ui/motion/haptics';
 import { useSession } from '../../ui/session/session';
@@ -20,6 +21,7 @@ import { NightVeil, Panel } from '../farm/panel';
 import { useNow } from '../farm/use-now';
 import { birthdayBloom } from './birthday';
 import { ActionButton, Faces, TitlePill, TopBar } from './chrome';
+import { refusalCopy } from './copy';
 
 const W = 393;
 
@@ -61,6 +63,7 @@ export function BirthdayScreen({
   const view = useFarmView<FarmView>(farm, now);
   const me = useSession().person?.id ?? null;
   const send = useSend(farm);
+  const toast = useToast();
   const falling = usePetalsFalling();
   const [writing, setWriting] = useState(false);
   const [words, setWords] = useState('');
@@ -75,7 +78,8 @@ export function BirthdayScreen({
 
   const water = async () => {
     haptics.soft();
-    await send('dewdrop', { to: person });
+    const sent = await send('dewdrop', { to: person });
+    if (sent.status === 'refused') toast.show(refusalCopy(t, sent.reason));
   };
   const sign = async () => {
     const text = words.trim();
@@ -85,7 +89,7 @@ export function BirthdayScreen({
     if (sent.status === 'queued') {
       setWriting(false);
       setWords('');
-    }
+    } else toast.show(refusalCopy(t, sent.reason));
   };
 
   return (
@@ -147,11 +151,11 @@ export function BirthdayScreen({
               </View>
             )}
           </>
-        ) : (
+        ) : state && view ? (
           <Txt variant="sheetBody" multiline color={palette.body}>
             {t('rhythm.birthday.over')}
           </Txt>
-        )}
+        ) : null}
       </Panel>
       {bloom && !bloom.you ? (
         <KeyboardStickyView

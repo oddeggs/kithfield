@@ -10,6 +10,8 @@ import { useShop } from '../data/shop-data';
 import { dayMonthYear } from '../format';
 import { InfoNote } from '../kit/bits';
 import { useInks } from '../kit/inks';
+import { ShopFailed } from '../kit/states';
+import { ScreenLoading } from '../kit/screen-loading';
 import { Header, useDesignTop } from '../kit/layout';
 import { BigPill, CapsLabel, GroupCard, GroupRow, Tick } from '../kit/patron-bits';
 import { SText } from '../kit/text';
@@ -48,6 +50,10 @@ export function ManageScreen() {
   const switchTo = async (product: Parameters<typeof subscribe>[0]) => {
     if (await subscribe(product)) router.back();
   };
+
+  // Nothing about your patronage is guessed: a quiet line while it comes, Try again if it can't.
+  if (shop.failed) return <ShopFailed onRetry={shop.reload} />;
+  if (shop.loading || shop.entitlements === null) return <ScreenLoading />;
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>

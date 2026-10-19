@@ -44,3 +44,15 @@ export const requireSession = createMiddleware<SessionEnv>(async (c, next) => {
   c.set('session', session.session.id);
   await next();
 });
+
+/**
+ * After `requireSession`, for writes that put a person among others: answers 403 `forbidden`
+ * until they have passed the age check (`POST /v1/me/age`).
+ */
+export const requireAgeCheck = createMiddleware<SessionEnv>(async (c, next) => {
+  const row = await c.env.DB.prepare('SELECT age_ok FROM people WHERE id = ?')
+    .bind(c.var.person)
+    .first<{ age_ok: number | null }>();
+  if (row?.age_ok !== 1) return errorResponse(c, 403, 'forbidden');
+  await next();
+});

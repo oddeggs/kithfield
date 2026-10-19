@@ -1,5 +1,5 @@
 import type { FarmersWall } from '@kithfield/contracts';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useShop } from './shop-data';
 
@@ -23,22 +23,29 @@ export interface MyWallName {
   /** The names either side of it, on this page. */
   readonly before: string | null;
   readonly after: string | null;
+  /** The wall couldn't be read and none is held. */
+  readonly failed: boolean;
+  readonly retry: () => void;
 }
 
 /** The person's place on the wall, from the wall's first page. */
 export function useMyWallName(): MyWallName {
   const shop = useShop();
   const [wall, setWall] = useState<FarmersWall | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [round, setRound] = useState(0);
   useEffect(() => {
     let live = true;
+    setFailed(false);
     shop.api.wall().then(
       (w) => live && setWall(w),
-      () => undefined,
+      () => live && setFailed(true),
     );
     return () => {
       live = false;
     };
-  }, [shop.api]);
+  }, [shop.api, round]);
+  const retry = useCallback(() => setRound((r) => r + 1), []);
   const known = putUp?.person === shop.person ? putUp.name : undefined;
   const name = known === undefined ? (shop.entitlements?.wallName ?? null) : known;
   const names = (wall?.names ?? []).map((n) => n.name);
@@ -48,5 +55,7 @@ export function useMyWallName(): MyWallName {
     name,
     before: at > 0 ? (names[at - 1] ?? null) : null,
     after: at >= 0 ? (names[at + 1] ?? null) : null,
+    failed: failed && wall === null,
+    retry,
   };
 }

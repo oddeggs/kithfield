@@ -25,6 +25,7 @@ export const farmVi: ViCatalogue<typeof farmEn> = {
   'farm.switch.hint': 'Mở thung lũng các nông trại của bạn',
   'farm.dozing': '{name} đang ngủ gà ngủ gật',
   'farm.critter.label': '{name}, {state}',
+  'farm.critter.labelStatus': '{name}, {state}: “{status}”',
   'farm.state.out': 'đang dạo quanh',
   'farm.state.dozing': 'đang ngủ gật',
   'farm.state.hibernating': 'đang ngủ đông',
@@ -313,6 +314,7 @@ export const farmVi: ViCatalogue<typeof farmEn> = {
 export const farmSameInBoth = [
   'farm.list.comma',
   'farm.critter.label',
+  'farm.critter.labelStatus',
   'farm.plan.flag',
   'farm.card.kind',
 ];

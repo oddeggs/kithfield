@@ -16,6 +16,7 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { nameOf } from '../farm/farm-copy';
 import { typeAt } from '../farm/type-at';
+import { LoadingRows } from '../farm/farm-states';
 import { ActionButton, BackButton, Faces } from './chrome';
 import { handText, inSentence } from './copy';
 import { recapCopy } from './recap-copy';
@@ -75,7 +76,9 @@ export function RecapScreen({ farm, week }: { readonly farm: FarmId; readonly we
             action={{ label: t('rhythm.tryAgain'), onPress: recap.reload }}
           />
         </View>
-      ) : null}
+      ) : (
+        <LoadingRows />
+      )}
     </View>
   );
 }

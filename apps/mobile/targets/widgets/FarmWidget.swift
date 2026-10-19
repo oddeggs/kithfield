@@ -59,13 +59,15 @@ struct FarmWidgetView: View {
         }
       } else {
         Text(entry.copy.text("widget.empty"))
-          .font(.system(size: 13, weight: .medium))
+          .scaledFont(13, weight: .medium, relativeTo: .footnote)
           .foregroundStyle(paper)
           .multilineTextAlignment(.center)
           .padding(16)
       }
     }
     .environment(\.locale, entry.copy.locale)
+    // The widget's box is fixed: text grows with the person's size, up to where it still fits.
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     .containerBackground(for: .widget) { SurfacePalette.panel }
     .widgetURL(entry.farm.flatMap { URL(string: $0.fire == nil ? $0.link : fireLink($0)) })
   }
@@ -82,6 +84,7 @@ struct Still: View {
   var body: some View {
     if let image = SurfaceData.image(name) ?? fallback.flatMap(SurfaceData.image) {
       Image(uiImage: image).resizable().desaturatedWhenTinted().scaledToFill()
+        .accessibilityHidden(true)
     } else {
       SurfacePalette.panel
     }
@@ -96,7 +99,7 @@ private struct Kicker: View {
 
   var body: some View {
     Text(text.uppercased())
-      .font(.system(size: size, weight: .semibold))
+      .scaledFont(size, weight: .semibold, relativeTo: .caption)
       .tracking(size * 0.02)
       .foregroundStyle(paper.opacity(opacity))
       .lineLimit(1)
@@ -114,10 +117,11 @@ struct SmallFarm: View {
       VStack(alignment: .leading, spacing: 4) {
         Kicker(text: kicker, size: 11, opacity: 0.75)
         Text(title)
-          .font(SurfaceFonts.gaegu(17))
+          .font(SurfaceFonts.gaegu(17, relativeTo: .headline))
           .lineSpacing(17 * 0.05)
           .foregroundStyle(paper)
           .lineLimit(2)
+          .minimumScaleFactor(0.8)
       }
       .padding(12)
     }
@@ -215,7 +219,7 @@ struct MediumFarm: View {
           Still(name: SurfaceNames.mediumFire(farm: farm.farm), fallback: farm.images.night)
         } else {
           Still(name: SurfaceNames.medium(farm: farm.farm, lit: lit), fallback: farm.images.night)
-          Windows(farm: farm, size: size.size, top: 0.48)
+          Windows(farm: farm, copy: copy, size: size.size, top: 0.48)
         }
         Kicker(text: farm.title).padding(.leading, 14).padding(.top, 12)
         if farm.fire != nil {
@@ -249,7 +253,7 @@ struct LargeFarm: View {
     GeometryReader { size in
       ZStack(alignment: .topLeading) {
         Still(name: SurfaceNames.large(farm: farm.farm, lit: lit), fallback: farm.images.night)
-        Windows(farm: farm, size: size.size, top: 0.48)
+        Windows(farm: farm, copy: copy, size: size.size, top: 0.48)
         Kicker(text: farm.title).padding(.leading, 14).padding(.top, 12)
         if farm.fire != nil {
           FireChip(copy: copy)
@@ -260,11 +264,12 @@ struct LargeFarm: View {
           Caption(lines: upAndAsleep(farm, now: now, copy: copy))
           if let fire = farm.fire {
             Text(FireNames.line(fire, copy: copy))
-              .font(.system(size: 12))
+              .scaledFont(12, relativeTo: .caption)
               .foregroundStyle(SurfacePalette.honey)
+              .lineLimit(1)
           } else if let plan = farm.nextPlan {
             Text("\(PlanTime.label(date: plan.date, from: plan.from, copy: copy)) · \(plan.title)")
-              .font(.system(size: 12))
+              .scaledFont(12, relativeTo: .caption)
               .foregroundStyle(paper.opacity(0.75))
               .lineLimit(1)
           }
@@ -282,10 +287,11 @@ private struct Caption: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 2) {
-      Text(lines.0).font(SurfaceFonts.gaegu(19)).foregroundStyle(paper).lineLimit(1)
-        .minimumScaleFactor(0.8)
+      Text(lines.0).font(SurfaceFonts.gaegu(19, relativeTo: .title3)).foregroundStyle(paper)
+        .lineLimit(1).minimumScaleFactor(0.8)
       if let second = lines.1 {
-        Text(second).font(.system(size: 12)).foregroundStyle(paper.opacity(0.75)).lineLimit(1)
+        Text(second).scaledFont(12, relativeTo: .caption).foregroundStyle(paper.opacity(0.75))
+          .lineLimit(1)
       }
     }
   }
@@ -299,21 +305,25 @@ private struct FireChip: View {
     HStack(spacing: 6) {
       if let lantern = SurfaceData.image("icon-lantern.png") {
         Image(uiImage: lantern).resizable().frame(width: 16, height: 16)
+          .accessibilityHidden(true)
       }
       Text(copy.text("widget.firesLit"))
-        .font(.system(size: 12, weight: .semibold))
-        .foregroundStyle(Color(hex: 0xFFD98A))
+        .scaledFont(12, weight: .semibold, relativeTo: .caption)
+        .foregroundStyle(SurfacePalette.Fire.glyph)
+        .lineLimit(1)
     }
     .padding(.horizontal, 10)
-    .frame(height: 26)
-    .background(Capsule().fill(Color.black.opacity(0.35)))
+    .frame(minHeight: 26)
+    .background(Capsule().fill(SurfacePalette.sky.opacity(0.35)))
   }
 }
 
 /// Each friend's window opens their critter card. Where the widget scene puts each home, as
-/// fractions of its width (`S.widget` in the art), and the owl's hollow in the tree.
+/// fractions of its width (`S.widget` in the art), and the owl's hollow in the tree. VoiceOver
+/// reads each window by its friend's name, or by the critter's kind when the name is gone.
 private struct Windows: View {
   let farm: SurfaceFarm
+  let copy: SurfaceCopy
   let size: CGSize
   let top: CGFloat
 
@@ -322,25 +332,34 @@ private struct Windows: View {
   ]
 
   var body: some View {
-    ForEach(targets, id: \.0) { species, link, x in
-      if let url = URL(string: link) {
+    ForEach(targets, id: \.species) { target in
+      if let url = URL(string: target.link) {
         Link(destination: url) {
           Color.clear.contentShape(Rectangle())
         }
         .frame(width: size.width * 0.14, height: size.height * 0.36)
-        .position(x: size.width * x, y: size.height * top)
+        .position(x: size.width * target.x, y: size.height * top)
+        .accessibilityLabel(target.label)
       }
     }
   }
 
+  private struct Target {
+    let species: String
+    let label: String
+    let link: String
+    let x: CGFloat
+  }
+
   /// The first critter of each kind that has a home in the scene.
-  private var targets: [(String, String, CGFloat)] {
+  private var targets: [Target] {
     var seen = Set<String>()
     return farm.critters.compactMap { critter in
       let species = critter.critter.species
       guard let x = Self.homes[species], !seen.contains(species) else { return nil }
       seen.insert(species)
-      return (species, critter.link, x)
+      let label = critter.name ?? copy.text("species.\(species)")
+      return Target(species: species, label: label, link: critter.link, x: x)
     }
   }
 }

@@ -38,6 +38,8 @@ import { Noticeboard, PinBar, usePinned } from './noticeboard';
 import { RoomProvider, type RoomValue } from './room-context';
 import { TimelineList, type JumpRequest } from './timeline-list';
 import { travelIds } from '../../../ui/travel';
+// The first-run tip about pressing and holding a message.
+import { HintOverlay } from '../../hints/hint-overlay';
 import { useRoomData } from './use-room-data';
 import { MicButton, RecorderPanel, useVoiceRecorder } from './voice-recorder';
 import { noteSeen } from '../ui/seen-store';
@@ -249,6 +251,7 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
               height={size.full}
               collapsed={collapsed}
               sproutId={travelIds.chatSprout(farm)}
+              night={palette.appearance === 'night'}
             />
           )}
         </HeaderArtFrame>
@@ -390,6 +393,11 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
           bottomInset={insets.bottom}
         />
         <Noticeboard open={board} pinned={pinned} onClose={() => setBoard(false)} />
+        <HintOverlay
+          hint="message"
+          show={showing && bubbles.size > 0 && !board && replyTo === null && editing === null}
+          spot={null}
+        />
       </View>
     </RoomProvider>
   );

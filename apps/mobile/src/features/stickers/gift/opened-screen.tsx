@@ -262,7 +262,7 @@ export function OpenedScreen({ farm, seq }: { readonly farm: string; readonly se
           accessibilityLabel={t('stickers.opened.open')}
           style={{
             flex: 1,
-            height: 56,
+            minHeight: 56,
             borderRadius: 28,
             alignItems: 'center',
             justifyContent: 'center',

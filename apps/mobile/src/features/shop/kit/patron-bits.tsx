@@ -18,6 +18,7 @@ import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import type { ViewStyleProp } from '../../../ui/style';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { useRestore } from '../data/flows';
 import { openShopPage } from '../site';
 import { useInks } from './inks';
@@ -89,11 +90,12 @@ export function LegalLinks() {
   const { t, language } = useLocale();
   const inks = useInks();
   const restore = useRestore();
-  const link = (label: string, onPress: () => void) => (
+  // Terms and Privacy open pages; Restore does something here, so it is a button.
+  const link = (label: string, onPress: () => void, role: 'link' | 'button' = 'link') => (
     <Press
       onPress={onPress}
       darken={false}
-      accessibilityRole="link"
+      accessibilityRole={role}
       accessibilityLabel={label}
       hitSlop={10}
     >
@@ -120,7 +122,7 @@ export function LegalLinks() {
     >
       {link(t('shop.legal.terms'), () => openShopPage('terms', language))}
       {link(t('shop.legal.privacy'), () => openShopPage('privacy', language))}
-      {link(t('shop.legal.restore'), () => void restore())}
+      {link(t('shop.legal.restore'), () => void restore(), 'button')}
     </View>
   );
 }
@@ -143,6 +145,7 @@ export function BigPill({
   readonly busy?: boolean;
 }) {
   const inks = useInks();
+  const ax = useAccessibilitySize();
   const c = tone === 'honey' ? inks.honeyButton : inks.danger;
   return (
     <Press
@@ -154,21 +157,23 @@ export function BigPill({
       accessibilityLabel={sub ? `${label}, ${sub}` : label}
       accessibilityState={{ busy }}
       style={{
-        height: 54,
+        minHeight: 54,
         borderRadius: 27,
         backgroundColor: c.bg,
         paddingHorizontal: 16,
+        // The lines wrap at the accessibility sizes; the pill grows around them.
+        paddingVertical: ax ? 10 : 0,
         alignItems: 'center',
         justifyContent: 'center',
         gap: 3,
         opacity: busy ? 0.7 : 1,
       }}
     >
-      <SText s={16} w={600} color={c.fg} numberOfLines={1} align="center">
+      <SText s={16} w={600} color={c.fg} numberOfLines={ax ? undefined : 1} align="center">
         {label}
       </SText>
       {sub ? (
-        <SText s={12} w={500} color={c.fg} numberOfLines={1} align="center">
+        <SText s={12} w={500} color={c.fg} numberOfLines={ax ? undefined : 1} align="center">
           {sub}
         </SText>
       ) : null}
@@ -282,19 +287,32 @@ export function GroupRow({
   readonly onPress?: () => void;
 }) {
   const inks = useInks();
+  // At the accessibility sizes both wrap, and the value moves under the label when it must.
+  const ax = useAccessibilitySize();
   const body = (
     <View
       style={{
         flexDirection: 'row',
+        flexWrap: ax ? 'wrap' : 'nowrap',
         justifyContent: 'space-between',
         gap: 12,
         paddingVertical: 13,
       }}
     >
-      <SText s={15.5} w={600} numberOfLines={1}>
+      <SText
+        s={15.5}
+        w={600}
+        numberOfLines={ax ? undefined : 1}
+        style={ax ? { flexShrink: 1 } : undefined}
+      >
         {label}
       </SText>
-      <SText s={15.5} color={inks.body} numberOfLines={1} style={{ flexShrink: 1 }}>
+      <SText
+        s={15.5}
+        color={inks.body}
+        numberOfLines={ax ? undefined : 1}
+        style={{ flexShrink: 1 }}
+      >
         {value ?? '›'}
       </SText>
     </View>

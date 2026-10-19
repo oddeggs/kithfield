@@ -9,6 +9,7 @@ import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import type { ViewStyleProp } from '../../../ui/style';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { useInks } from './inks';
 import { SText } from './text';
 
@@ -45,6 +46,8 @@ export function Pill({
   readonly style?: ViewStyleProp;
 }) {
   const inks = useInks();
+  // The lines wrap at the accessibility sizes; the pill grows around them.
+  const ax = useAccessibilitySize();
   const colours =
     kind === 'go'
       ? inks.go
@@ -69,10 +72,11 @@ export function Pill({
       accessibilityState={{ disabled: off, busy }}
       style={[
         {
-          height: sub ? 64 : 54,
+          minHeight: sub ? 64 : 54,
           borderRadius: sub ? 32 : 27,
           backgroundColor: colours.bg,
           paddingHorizontal: 16,
+          paddingVertical: ax ? 10 : 0,
           alignItems: 'center',
           justifyContent: 'center',
           opacity: disabled ? 0.45 : busy ? 0.7 : 1,
@@ -84,12 +88,19 @@ export function Pill({
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         {icon ? <ArtIcon name={icon} size={20} color={colours.fg} /> : null}
-        <SText s={size} w={600} color={colours.fg} numberOfLines={1} align="center">
+        <SText
+          s={size}
+          w={600}
+          color={colours.fg}
+          numberOfLines={ax ? undefined : 1}
+          align="center"
+          style={ax ? { flexShrink: 1 } : undefined}
+        >
           {label}
         </SText>
       </View>
       {sub ? (
-        <SText s={13} lh={1.2} color={colours.fg} numberOfLines={1} align="center">
+        <SText s={13} lh={1.2} color={colours.fg} numberOfLines={ax ? undefined : 1} align="center">
           {sub}
         </SText>
       ) : null}
@@ -196,7 +207,7 @@ export function Tabs<T extends string>({
             accessibilityState={{ selected: on }}
             accessibilityLabel={tab.label}
             style={{
-              height: 32,
+              minHeight: 32,
               paddingHorizontal: 12,
               borderRadius: 16,
               justifyContent: 'center',

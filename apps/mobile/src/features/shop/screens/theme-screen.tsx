@@ -18,6 +18,7 @@ import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { fadeTo } from '../../../ui/motion/motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { People } from '../chip/people';
 import { TierPicker } from '../chip/tier-picker';
 import { useChipIns } from '../chip/use-chip-ins';
@@ -86,6 +87,7 @@ function ThemeThumb({
 }) {
   const { t } = useLocale();
   const inks = useInks();
+  const ax = useAccessibilitySize();
   const name = itemName(t, theme);
   return (
     <Press
@@ -111,7 +113,7 @@ function ThemeThumb({
           t={1.2}
         />
       </View>
-      <SText s={11} lh={1.2} w={600} align="center" numberOfLines={1}>
+      <SText s={11} lh={1.2} w={600} align="center" numberOfLines={ax ? undefined : 1}>
         {name}
       </SText>
     </Press>

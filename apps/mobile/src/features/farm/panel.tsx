@@ -1,7 +1,7 @@
 import { farm, radii, sizes } from '@kithfield/theme';
 import { Canvas, Image } from '@shopify/react-native-skia';
 import { useEffect, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useDerivedValue, useFrameCallback, useSharedValue } from 'react-native-reanimated';
 
 import { useArtLoop } from '../../ui/art/art-provider';
@@ -11,6 +11,7 @@ import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useArtVisible } from '../../ui/motion/visibility';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import type { ViewStyleProp } from '../../ui/style';
 import { withAlpha } from './over-art';
@@ -29,6 +30,7 @@ export function Panel({
   readonly style?: ViewStyleProp;
 }) {
   const { palette } = useTheme();
+  const ax = useAccessibilitySize();
   return (
     <View
       style={[
@@ -58,7 +60,18 @@ export function Panel({
           backgroundColor: palette.grabber,
         }}
       />
-      {children}
+      {ax ? (
+        // At the accessibility sizes the words outgrow the resting sheet: they scroll.
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ gap: 12, flexGrow: 1, paddingBottom: 24 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {children}
+        </ScrollView>
+      ) : (
+        children
+      )}
     </View>
   );
 }

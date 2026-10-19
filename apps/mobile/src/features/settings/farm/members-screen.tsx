@@ -225,6 +225,7 @@ export function MembersScreen({ farm }: { readonly farm: FarmId }) {
         <View style={StyleSheet.absoluteFill}>
           <Pressable
             style={StyleSheet.absoluteFill}
+            accessibilityRole="button"
             accessibilityLabel={t('shell.sheet.close')}
             onPress={() => setMenu(null)}
           />

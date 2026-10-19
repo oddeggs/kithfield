@@ -15,6 +15,7 @@ import { go } from '../go';
 import { BackButton, Group, Label, useDesignTop } from '../kit/layout';
 import { SettingRow } from '../kit/setting-row';
 import { useRemote } from '../use-remote';
+import { LoadFailed } from '../kit/remote-state';
 import { useMeSettings } from './use-me-settings';
 
 function Section({ label, children }: { readonly label: string; readonly children: ReactNode }) {
@@ -36,7 +37,7 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const top = useDesignTop();
   const api = useSettingsApi();
-  const { settings, change } = useMeSettings();
+  const { me, settings, change } = useMeSettings();
   const [catchUp, setCatchUp] = useDevicePref('aiCatchUp');
   const consents = useRemote(() => api.consents());
   const catchUpOn = catchUp === 'on';
@@ -76,6 +77,8 @@ export function SettingsScreen() {
         >
           {t('settings.title')}
         </Txt>
+        {/* Your settings couldn't be read: say so over the rows, which wait switched off. */}
+        {me.data === null && me.failed ? <LoadFailed onRetry={me.reload} /> : null}
         <Section label={t('settings.privacy')}>
           <SettingRow
             icon="lock"

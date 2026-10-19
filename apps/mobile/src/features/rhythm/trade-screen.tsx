@@ -15,6 +15,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics } from '../../ui/motion/haptics';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { say } from '../farm/farm-copy';
 import { NightVeil, Panel } from '../farm/panel';
@@ -56,6 +57,7 @@ function CropCard({
 }) {
   const { palette, appearance } = useTheme();
   const { fontLocale } = useLocale();
+  const ax = useAccessibilitySize();
   const colours = rhythmColours[appearance];
   const body = (
     <>
@@ -69,7 +71,7 @@ function CropCard({
             : { name: 'clover', stage: 0, color: colours.cropCard }
         }
       />
-      <Txt variant="buttonSmall" align="center" numberOfLines={1}>
+      <Txt variant="buttonSmall" align="center" numberOfLines={ax ? undefined : 1}>
         {title}
       </Txt>
       <Txt

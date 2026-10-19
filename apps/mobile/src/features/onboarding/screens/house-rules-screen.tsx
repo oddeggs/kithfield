@@ -8,6 +8,7 @@ import { ArtIcon } from '../../../ui/art/art-view';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
 import { useFlow } from '../flow-state';
 import { BarAction, ErrorLine, Title, TopBar, useDesignTop, useInks } from '../kit';
@@ -115,6 +116,7 @@ export function HouseRulesScreen() {
   const { t, language } = useLocale();
   const { palette } = useTheme();
   const top = useDesignTop();
+  const ax = useAccessibilitySize();
   const insets = useSafeAreaInsets();
   const { api } = useFlow();
   const progress = useProgress();
@@ -152,14 +154,19 @@ export function HouseRulesScreen() {
       <TopBar
         {...(accepting ? {} : { onBack: () => router.back() })}
         center={
-          <Txt variant="rowTitle" style={{ fontSize: 17, lineHeight: 20.4 }}>
+          <Txt
+            variant="rowTitle"
+            {...(ax ? { align: 'center' as const } : {})}
+            style={{ fontSize: 17, lineHeight: 20.4 }}
+          >
             {t('onboarding.rules.title')}
           </Txt>
         }
         trailing={<BarAction label={t('onboarding.done')} tone="go" onPress={() => void done()} />}
       />
       <ScrollView
-        style={{ flex: 1, marginTop: top(112) }}
+        // At the accessibility sizes the top bar is in the column, and the rules follow it.
+        style={{ flex: 1, marginTop: ax ? 12 : top(112) }}
         contentContainerStyle={{
           paddingHorizontal: 20,
           gap: 12,

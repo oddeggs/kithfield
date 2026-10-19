@@ -91,7 +91,7 @@ describe('a plan between two friends', () => {
     ] as const) {
       const me = await phone.session.ensure();
       api.sql(
-        `UPDATE people SET display_name = '${phone.name}', critter = '${JSON.stringify(critter(species))}' WHERE id = '${me.person}'`,
+        `UPDATE people SET display_name = '${phone.name}', critter = '${JSON.stringify(critter(species))}', age_ok = 1 WHERE id = '${me.person}'`,
       );
       await phone.launch();
     }
@@ -185,7 +185,7 @@ describe('a plan between two friends', () => {
     ] as const) {
       const me = await phone.session.ensure();
       api.sql(
-        `UPDATE people SET display_name = '${phone.name}', critter = '${JSON.stringify(critter(species))}' WHERE id = '${me.person}'`,
+        `UPDATE people SET display_name = '${phone.name}', critter = '${JSON.stringify(critter(species))}', age_ok = 1 WHERE id = '${me.person}'`,
       );
       await phone.launch();
       const invite = await bea.call<{ code: string }>('POST', `/v1/farms/${farm}/invites`, {

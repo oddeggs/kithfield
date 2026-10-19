@@ -73,7 +73,7 @@ describe('two friends on a farm', () => {
       expect(me.anonymous).toBe(true);
       // No endpoint sets a name and critter yet: the harness writes them as onboarding would.
       api.sql(
-        `UPDATE people SET display_name = '${phone.name}', critter = '${JSON.stringify(critter)}' WHERE id = '${me.person}'`,
+        `UPDATE people SET display_name = '${phone.name}', critter = '${JSON.stringify(critter)}', age_ok = 1 WHERE id = '${me.person}'`,
       );
       await phone.launch();
     }

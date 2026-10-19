@@ -31,6 +31,8 @@ export const farmEn = {
   'farm.switch.hint': 'Opens your valley of farms',
   'farm.dozing': '{name} is dozing',
   'farm.critter.label': '{name}, {state}',
+  /** VoiceOver, for a critter with a status over it: their 24-hour words come with them. */
+  'farm.critter.labelStatus': '{name}, {state}: “{status}”',
   'farm.state.out': 'out and about',
   'farm.state.dozing': 'dozing',
   'farm.state.hibernating': 'hibernating',

@@ -1,6 +1,7 @@
 import { radii, sizes } from '@kithfield/theme';
 import { useEffect, useRef, type ReactNode } from 'react';
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedKeyboard,
@@ -14,6 +15,7 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { fadeTo, sheetTo } from '../../../ui/motion/motion';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { useGestureRejections } from '../send';
 import { useGestureColours } from './colours';
 
@@ -48,6 +50,8 @@ export function OverlaySheet({
   const { t } = useLocale();
   const reduce = useReduceMotion();
   const screen = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const ax = useAccessibilitySize();
   const keyboard = useAnimatedKeyboard();
   useGestureRejections();
   const measured = useSharedValue(height ?? 0);
@@ -129,6 +133,7 @@ export function OverlaySheet({
               right: inset,
               bottom: inset,
               ...(height === undefined ? {} : { height }),
+              ...(ax ? { maxHeight: screen.height - insets.top - 24 } : {}),
               borderRadius: radius,
               ...(inset === 0 ? { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 } : {}),
               backgroundColor: palette.sheet,
@@ -150,7 +155,18 @@ export function OverlaySheet({
               alignSelf: 'center',
             }}
           />
-          {children}
+          {ax ? (
+            // At the accessibility sizes the sheet stops below the status bar and scrolls.
+            <ScrollView
+              style={{ flexGrow: 0, flexShrink: 1 }}
+              contentContainerStyle={{ gap: 14 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {children}
+            </ScrollView>
+          ) : (
+            children
+          )}
         </Animated.View>
       </GestureDetector>
     </View>

@@ -17,6 +17,7 @@ import { useKitColors } from '../kit/colors';
 import { Badge, NavBar, Note, Page, Pill, Row } from '../kit/layout';
 import { KText } from '../kit/text';
 import { useRemote } from '../use-remote';
+import { useRemoteGate } from '../kit/remote-state';
 
 type Device = DeviceList['devices'][number];
 
@@ -39,6 +40,7 @@ export function DevicesScreen() {
   const toast = useToast();
   const api = useSettingsApi();
   const devices = useRemote(() => api.devices());
+  const gate = useRemoteGate([devices]);
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
   useFocusEffect(
     useCallback(() => {
@@ -84,86 +86,90 @@ export function DevicesScreen() {
 
   return (
     <Page header={<NavBar title={t('settings.devices')} />} inset={20} gap={12}>
-      {list.length > 0 ? (
-        <View
-          style={{
-            borderRadius: 22,
-            backgroundColor: palette.card,
-            paddingVertical: 2,
-            paddingHorizontal: 14,
-          }}
-        >
-          {list.map((d, i) => (
-            <Animated.View
-              key={d.device}
-              layout={LinearTransition.duration(motion.fade.durationMs)}
-              exiting={FadeOut.duration(motion.fade.durationMs)}
-              style={i === 0 ? null : { borderTopWidth: 1, borderTopColor: palette.hairline }}
-            >
-              <Row
-                small
-                icon={ICONS[d.platform]}
-                title={d.name}
-                subtitle={meta(d)}
-                {...(d.current
-                  ? { badge: <Badge text={t('settings.devices.thisPhone')} tone="helper" /> }
-                  : {})}
-                {...(d.current
-                  ? {}
-                  : {
-                      trailing: (
-                        <Press
-                          onPress={() => signOut(d)}
-                          darken={false}
-                          hitSlop={12}
-                          accessibilityRole="button"
-                          accessibilityLabel={`${t('settings.devices.signOut')}, ${d.name}`}
-                        >
-                          <KText
-                            kind="pill"
-                            color={kit.danger}
-                            style={{ fontSize: 14, lineHeight: 17 }}
-                          >
-                            {t('settings.devices.signOut')}
-                          </KText>
-                        </Press>
-                      ),
-                    })}
-              />
-            </Animated.View>
-          ))}
-        </View>
-      ) : null}
-      {unserved ? (
-        <Note text={t('settings.devices.unavailable')} />
-      ) : (
+      {gate ?? (
         <>
-          <Pill
-            label={t('settings.devices.link')}
-            icon="plus"
-            height={56}
-            onPress={() => go('/(cover)/settings-link')}
-          />
-          <Note text={t('settings.devices.note')} />
+          {list.length > 0 ? (
+            <View
+              style={{
+                borderRadius: 22,
+                backgroundColor: palette.card,
+                paddingVertical: 2,
+                paddingHorizontal: 14,
+              }}
+            >
+              {list.map((d, i) => (
+                <Animated.View
+                  key={d.device}
+                  layout={LinearTransition.duration(motion.fade.durationMs)}
+                  exiting={FadeOut.duration(motion.fade.durationMs)}
+                  style={i === 0 ? null : { borderTopWidth: 1, borderTopColor: palette.hairline }}
+                >
+                  <Row
+                    small
+                    icon={ICONS[d.platform]}
+                    title={d.name}
+                    subtitle={meta(d)}
+                    {...(d.current
+                      ? { badge: <Badge text={t('settings.devices.thisPhone')} tone="helper" /> }
+                      : {})}
+                    {...(d.current
+                      ? {}
+                      : {
+                          trailing: (
+                            <Press
+                              onPress={() => signOut(d)}
+                              darken={false}
+                              hitSlop={12}
+                              accessibilityRole="button"
+                              accessibilityLabel={`${t('settings.devices.signOut')}, ${d.name}`}
+                            >
+                              <KText
+                                kind="pill"
+                                color={kit.danger}
+                                style={{ fontSize: 14, lineHeight: 17 }}
+                              >
+                                {t('settings.devices.signOut')}
+                              </KText>
+                            </Press>
+                          ),
+                        })}
+                  />
+                </Animated.View>
+              ))}
+            </View>
+          ) : null}
+          {unserved ? (
+            <Note text={t('settings.devices.unavailable')} />
+          ) : (
+            <>
+              <Pill
+                label={t('settings.devices.link')}
+                icon="plus"
+                height={56}
+                onPress={() => go('/(cover)/settings-link')}
+              />
+              <Note text={t('settings.devices.note')} />
+            </>
+          )}
+          <View
+            style={{
+              borderRadius: 22,
+              backgroundColor: palette.card,
+              paddingVertical: 2,
+              paddingHorizontal: 14,
+            }}
+          >
+            <Row
+              small
+              icon="door"
+              title={t('settings.devices.signOutHere')}
+              danger
+              chevron={false}
+              onPress={() => go('/(modal)/settings-sign-out')}
+            />
+          </View>
         </>
       )}
-      <View
-        style={{
-          borderRadius: 22,
-          backgroundColor: palette.card,
-          paddingVertical: 2,
-          paddingHorizontal: 14,
-        }}
-      >
-        <Row
-          small
-          icon="door"
-          title={t('settings.devices.signOutHere')}
-          danger
-          chevron={false}
-          onPress={() => go('/(modal)/settings-sign-out')}
-        />
-      </View>
     </Page>
   );
 }

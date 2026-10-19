@@ -10,6 +10,7 @@ import { Avatar } from '../../../ui/art/avatar';
 import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { TierPicker } from '../chip/tier-picker';
 import { useChipIns } from '../chip/use-chip-ins';
 import { itemName } from '../copy';
@@ -54,6 +55,7 @@ function ChipInSheet({
   const inks = useInks();
   const toast = useToast();
   const { width } = useWindowDimensions();
+  const ax = useAccessibilitySize();
   const state = useFarmState(farm);
   const pledge = usePledge();
   const { chipIns, tiers, put } = useChipIns(farm);
@@ -246,7 +248,7 @@ function ChipInSheet({
                 }}
               >
                 <Avatar kind={m.critter.species} look={lookOf(m.critter)} size={28} />
-                <SText s={14.5} w={600} style={{ flex: 1 }} numberOfLines={1}>
+                <SText s={14.5} w={600} style={{ flex: 1 }} numberOfLines={ax ? undefined : 1}>
                   {m.name ?? ''}
                 </SText>
                 <SText s={13} color={palette.secondary}>

@@ -14,6 +14,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { AX_FONT_SCALE } from '../../ui/type/accessibility-size';
 import { componentType } from '../../ui/type/styles';
 import { Txt } from '../../ui/type/text';
 import { useInks } from './kit';
@@ -92,7 +93,7 @@ export const CodeBoxes = forwardRef<
               key={i}
               style={{
                 flex: 1,
-                height: 60,
+                minHeight: 60,
                 borderRadius: 14,
                 backgroundColor: palette.card,
                 borderWidth: focused ? 2 : 1,
@@ -102,7 +103,12 @@ export const CodeBoxes = forwardRef<
               }}
             >
               {value[i] ? (
-                <Txt variant="fieldValue" style={[digitFont, { color: palette.text }]}>
+                // A digit sits in its box: it grows with the text up to where the accessibility sizes begin.
+                <Txt
+                  variant="fieldValue"
+                  maxFontSizeMultiplier={AX_FONT_SCALE}
+                  style={[digitFont, { color: palette.text }]}
+                >
                   {value[i]}
                 </Txt>
               ) : focused ? (

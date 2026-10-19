@@ -18,7 +18,7 @@ import { Hono } from 'hono';
 
 import { isKnownTimeZone } from '@kithfield/farm';
 
-import { eitherBlocked, type SessionEnv } from '../auth';
+import { eitherBlocked, requireAgeCheck, type SessionEnv } from '../auth';
 import type { Bindings } from '../env';
 import { profileOf } from './adapters/identity';
 import {
@@ -56,7 +56,7 @@ const newInvite = async (
 export const joiningRoutes = (): Hono<SessionEnv> => {
   const app = new Hono<SessionEnv>();
 
-  app.post('/farms', signedIn, async (c) => {
+  app.post('/farms', signedIn, requireAgeCheck, async (c) => {
     const person = c.get('person');
     const req = await body(c, CreateFarmRequest);
     if (req instanceof Response) return req;
@@ -189,7 +189,7 @@ export const joiningRoutes = (): Hono<SessionEnv> => {
     return c.json(preview);
   });
 
-  app.post('/invites/:code/join', signedIn, async (c) => {
+  app.post('/invites/:code/join', signedIn, requireAgeCheck, async (c) => {
     const person = c.get('person');
     const req = await body(c, JoinRequest);
     if (req instanceof Response) return req;

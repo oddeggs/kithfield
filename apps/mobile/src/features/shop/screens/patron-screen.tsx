@@ -15,6 +15,8 @@ import { useMyWallName } from '../data/wall-name';
 import { monthName, orList } from '../format';
 import { Eyebrow, Title } from '../kit/bits';
 import { useInks } from '../kit/inks';
+import { ShopFailed } from '../kit/states';
+import { ScreenLoading } from '../kit/screen-loading';
 import { Header, HeroSheet, useDesignTop } from '../kit/layout';
 import { LanternGlow, PerkRow, patronHero } from '../kit/patron-bits';
 import { currentSeason } from '../kit/season';
@@ -75,6 +77,10 @@ export function PatronScreen() {
         : wall.before === null && wall.after !== null
           ? t('shop.member.wallFirst')
           : t('shop.member.wallOn', { name: wall.name });
+
+  // Nothing about your patronage is guessed: a quiet line while it comes, Try again if it can't.
+  if (shop.failed) return <ShopFailed onRetry={shop.reload} />;
+  if (shop.loading) return <ScreenLoading />;
 
   return (
     <HeroSheet

@@ -1,4 +1,4 @@
-import { naturalLineHeight } from '@kithfield/theme';
+import { isVietnamese, naturalLineHeight, vietnamese } from '@kithfield/theme';
 import { PixelRatio, Platform, type TextStyle } from 'react-native';
 
 type Edge = 'Top' | 'Bottom';
@@ -45,4 +45,17 @@ export function leading(style: TextStyle, oneLine = false, scale = 1): TextStyle
   // A top padding that is not in points cannot take the room; leave the text as it was.
   if (padding === null) return style;
   return { ...style, ...box, paddingTop: padding + lost };
+}
+
+/**
+ * `style` with room for Vietnamese's stacked marks: in Vietnamese no line is set shorter than
+ * `vietnamese.minLineHeightRatio` times its size, whatever line height a screen gives it (a label
+ * set solid in English, `lineHeight` equal to its size, would clip the marks). Other languages,
+ * and text with no line height of its own, are left as they are.
+ */
+export function roomForMarks(style: TextStyle, fontLocale: string): TextStyle {
+  const { fontSize, lineHeight } = style;
+  if (!isVietnamese(fontLocale) || fontSize === undefined || lineHeight === undefined) return style;
+  const least = Math.round(fontSize * vietnamese.minLineHeightRatio);
+  return lineHeight >= least ? style : { ...style, lineHeight: least };
 }

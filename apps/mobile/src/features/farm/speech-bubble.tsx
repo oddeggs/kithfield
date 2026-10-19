@@ -16,6 +16,7 @@ import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import type { ViewStyleProp } from '../../ui/style';
+import { BUBBLE_MAX_SCALE } from './bubble-layout';
 import { overArt } from './over-art';
 import { typeAt } from './type-at';
 
@@ -106,13 +107,20 @@ export function SpeechBubble({
           boxShadow: farm.shadows.bubble,
         }}
       >
-        <Txt variant="handS" multiline color={fg} style={typeAt('handS', 15, 16.5, fontLocale)}>
+        <Txt
+          variant="handS"
+          multiline
+          color={fg}
+          maxFontSizeMultiplier={BUBBLE_MAX_SCALE}
+          style={typeAt('handS', 15, 16.5, fontLocale)}
+        >
           {text}
         </Txt>
         {meta ? (
           <Txt
             variant="bubbleState"
             color={fg}
+            maxFontSizeMultiplier={BUBBLE_MAX_SCALE}
             style={{ opacity: 0.7, marginTop: 4, fontSize: 10 }}
           >
             {meta}

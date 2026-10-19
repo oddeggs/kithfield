@@ -49,6 +49,8 @@ import { shopEn } from './shop.en';
 import { shopSameInBoth, shopVi } from './shop.vi';
 import { signInCodeEn } from './sign-in-code.en';
 import { signInCodeVi } from './sign-in-code.vi';
+import { statesEn } from './states.en';
+import { statesSameInBoth, statesVi } from './states.vi';
 import { stickersEn } from './stickers.en';
 import { stickersSameInBoth, stickersVi } from './stickers.vi';
 import { surfacesEn } from './surfaces.en';
@@ -90,6 +92,7 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'shell', file: 'shell', en: shellEn, vi: shellVi, sameInBoth: shellSameInBoth },
   { name: 'shop', file: 'shop', en: shopEn, vi: shopVi, sameInBoth: shopSameInBoth },
   { name: 'signInCode', file: 'sign-in-code', en: signInCodeEn, vi: signInCodeVi, sameInBoth: [] },
+  { name: 'states', file: 'states', en: statesEn, vi: statesVi, sameInBoth: statesSameInBoth },
   { name: 'stickers', file: 'stickers', en: stickersEn, vi: stickersVi, sameInBoth: stickersSameInBoth },
   { name: 'surfaces', file: 'surfaces', en: surfacesEn, vi: surfacesVi, sameInBoth: surfacesSameInBoth },
   { name: 'syncLab', file: 'sync-lab', en: syncLabEn, vi: syncLabVi, sameInBoth: [] },
@@ -125,6 +128,7 @@ export const en = {
   ...shellEn,
   ...shopEn,
   ...signInCodeEn,
+  ...statesEn,
   ...stickersEn,
   ...surfacesEn,
   ...syncLabEn,
@@ -160,6 +164,7 @@ export const vi = {
   ...shellVi,
   ...shopVi,
   ...signInCodeVi,
+  ...statesVi,
   ...stickersVi,
   ...surfacesVi,
   ...syncLabVi,
