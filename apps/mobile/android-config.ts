@@ -24,10 +24,6 @@ export const ANDROID_PERMISSIONS = [
   'RECORD_AUDIO',
   'READ_CONTACTS',
   'ACCESS_COARSE_LOCATION',
-  'ACCESS_FINE_LOCATION',
-  'READ_MEDIA_IMAGES',
-  'READ_MEDIA_VIDEO',
-  'READ_MEDIA_VISUAL_USER_SELECTED',
   'POST_NOTIFICATIONS',
   'USE_BIOMETRIC',
   'VIBRATE',
@@ -36,13 +32,19 @@ export const ANDROID_PERMISSIONS = [
 
 /**
  * Taken out of the merged manifest: calendar access (adding a plan opens the calendar app's own
- * screen), writing contacts, music, the old fingerprint API, and every launcher's badge counter
- * (the house rules: no counts).
+ * screen), writing contacts, precise location (the lantern only needs the neighbourhood, and the
+ * app never reads where the phone is), reading the photo library (photos come through the
+ * system's photo picker, which needs no access, and saving needs none on Android 13+), music,
+ * the old fingerprint API, and every launcher's badge counter (the house rules: no counts).
  */
 export const ANDROID_BLOCKED = [
   'android.permission.READ_CALENDAR',
   'android.permission.WRITE_CALENDAR',
   'android.permission.WRITE_CONTACTS',
+  'android.permission.ACCESS_FINE_LOCATION',
+  'android.permission.READ_MEDIA_IMAGES',
+  'android.permission.READ_MEDIA_VIDEO',
+  'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
   'android.permission.READ_MEDIA_AUDIO',
   'android.permission.USE_FINGERPRINT',
   'android.permission.READ_APP_BADGE',
@@ -188,3 +190,4 @@ export const withWidgetLabels: ConfigPlugin = (config) =>
 
 /** The notification look: the critter's small white icon, tinted with the farm's moss. */
 export const NOTIFICATION_ICON = './assets/icon/android-notification.png';
+
