@@ -7,7 +7,13 @@ import {
 import { env, exports } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { readSignIn, sendCode, signInWithCode, watchLetters } from '../src/auth/testing/client';
+import {
+  call,
+  readSignIn,
+  sendCode,
+  signInWithCode,
+  watchLetters,
+} from '../src/auth/testing/client';
 import { TestSocket } from './farm/support/client';
 import { api, type Person, useTestPorts } from './farm/support/doubles';
 import { emailPerson } from './support/deletion';
@@ -142,5 +148,38 @@ describe('the person’s devices', () => {
       rulesVersion: 1,
     });
     expect(await socket.next('error')).toEqual({ type: 'error', code: 'unauthorized' });
+  });
+
+  it('ends the device when a phone signs itself out: sockets, action key and the list', async () => {
+    const { phone, tablet, kitchen } = await onTwoPhones();
+    const cottage = await cottageSocket(tablet);
+    const signedOut = await call('/auth/sign-out', { body: {}, token: tablet.token });
+    expect(signedOut.status).toBe(200);
+    expect(await cottage.wait(() => cottage.closed() === 'session_ended')).toBe(true);
+    expect((await api(tablet, 'GET', '/v1/me')).status).toBe(401);
+    const keys = await env.DB.prepare(
+      'SELECT COUNT(*) AS n FROM device_action_keys WHERE device_id = ?',
+    )
+      .bind(kitchen)
+      .first<{ n: number }>();
+    expect(keys?.n).toBe(0);
+    expect((await devicesOf(phone)).map((d) => d.device)).not.toContain(kitchen);
+    // The other phone stays signed in.
+    expect((await api(phone, 'GET', '/v1/me')).status).toBe(200);
+  });
+
+  it("doesn't serve Better Auth's own session list or revocations", async () => {
+    const { phone } = await onTwoPhones();
+    for (const path of ['/auth/list-sessions']) {
+      expect((await call(path, { token: phone.token })).status).toBe(404);
+    }
+    for (const path of [
+      '/auth/revoke-session',
+      '/auth/revoke-sessions',
+      '/auth/revoke-other-sessions',
+    ]) {
+      expect((await call(path, { body: { token: 'x' }, token: phone.token })).status).toBe(404);
+    }
+    expect((await api(phone, 'GET', '/v1/me')).status).toBe(200);
   });
 });

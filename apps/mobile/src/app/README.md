@@ -64,7 +64,7 @@ screens there without editing a shared file.
   `KeyboardAvoidingView`, `KeyboardStickyView`) directly and never mounts a provider of its own.
 - **Night.** A farm screen hands its town to `useSunPlace(place)` (`ui/theme/theme-provider`) so the
   app turns to night after the farm's sunset, not only in dark appearance.
-- **Data.** `DataSlot` (`ui/session/data-slot`) starts the data layer once (`startData`) under
+- **Data.** `DataSlot` (`ui/session/data-slot`) starts the data layer once (`startAppData`) under
   the theme and the art, keeps the splash up while it starts, then puts `<DataProvider>` and the
   session around the screens. A fresh install becomes an anonymous person and counts as signed in;
   a session the server ended counts as signed out. A first launch that can't reach the server

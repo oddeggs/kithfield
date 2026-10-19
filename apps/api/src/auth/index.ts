@@ -17,6 +17,7 @@ export {
 export { registerMergeStep, type MergeStep, type PersonMerge } from './merge-steps';
 export { CURRENT_TERMS_VERSION } from './terms';
 export {
+  mayWear,
   registerProfileFanOut,
   registerWardrobeCheck,
   type ProfileFanOut,
@@ -51,3 +52,4 @@ export async function verifyRtToken(
     .first();
   return live === null ? null : person;
 }
+export { registerSignOutStep, type SignOutStep } from './sign-out';

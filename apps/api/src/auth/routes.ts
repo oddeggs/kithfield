@@ -4,7 +4,9 @@ import type { Context } from 'hono';
 import { Hono } from 'hono';
 import type { z } from 'zod';
 
+import { clientKey } from '../web/waitlist-store';
 import { accountDeletionRoutes } from './account-deletion';
+import { appleTokenRoutes } from './apple-tokens';
 import { checkAge } from './age';
 import { blockRoutes } from './blocks';
 import { consentRoutes } from './consents';
@@ -15,6 +17,7 @@ import { AuthNotConfigured, authSecret, handleAuthRequest } from './instance';
 import { deletePerson, findPerson, recordAgeOk, recordTerms } from './people';
 import { issueSignInNonce } from './nonce';
 import { signRtToken } from './rt-token';
+import { beforeSignOut } from './sign-out';
 import { errorResponse, requireSession, type SessionEnv } from './session';
 import { CURRENT_TERMS_VERSION } from './terms';
 
@@ -45,6 +48,7 @@ async function parseBody<T>(c: Context, schema: z.ZodType<T>): Promise<Parsed<T>
  * - `POST /v1/me/delete`, `/v1/deletion-requests`: deleting an account (`account-deletion.ts`).
  * - `/v1/me/consents`: consent for the AI features, and forgetting what was sent (`consents.ts`).
  * - `/v1/desktop-link`: signing in on a computer by scanning its QR code (`desktop-link.ts`).
+ * - `POST /v1/me/apple-authorization`: an Apple sign-in's code, for revoking later (`apple-tokens.ts`).
  */
 export function authRoutes(): Hono<SessionEnv> {
   const routes = new Hono<SessionEnv>();
@@ -53,6 +57,14 @@ export function authRoutes(): Hono<SessionEnv> {
   routes.route('/', accountDeletionRoutes());
   routes.route('/', consentRoutes());
   routes.route('/', desktopLinkRoutes());
+  routes.route('/', appleTokenRoutes());
+
+  // A phone signing itself out ends its device too (push, action key, sockets), then Better Auth
+  // ends the session.
+  routes.post('/auth/sign-out', async (c, next) => {
+    await beforeSignOut(c.env, c.req.raw.headers);
+    await next();
+  });
 
   routes.on(['GET', 'POST'], '/auth/*', async (c) => {
     try {
@@ -65,7 +77,8 @@ export function authRoutes(): Hono<SessionEnv> {
 
   // Before Apple's or Google's sheet opens; no session needed, as a signed-out phone signs in too.
   routes.post('/v1/sign-in-nonce', async (c) => {
-    const address = c.req.header('cf-connecting-ip') ?? 'unknown';
+    // An IPv6 /64 is one household's, so it is counted as one address.
+    const address = clientKey(c.req.header('cf-connecting-ip') ?? 'unknown');
     const { success } = await c.env.SIGN_IN_NONCE_LIMIT.limit({ key: address });
     if (!success) return errorResponse(c, 429, 'rate_limited');
     const issued = await issueSignInNonce(c.env.DB, Date.now());

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { cottageOf } from '../cottage/stub';
 import { registerDeletionJob } from '../deletion';
 import type { Bindings } from '../env';
+import { revokeAppleTokens } from './apple-tokens';
 import { addressHash } from './email-code';
 import { forgetExports } from './export';
 import { DELETION_GRACE_MS } from './me';
@@ -33,17 +34,16 @@ export type AccountDeletedJob = z.infer<typeof AccountDeletedJob>;
 export type AccountDeletionStep = (env: Bindings, person: string) => Promise<void>;
 
 /**
- * Where Sign in with Apple's tokens are revoked. Apple's revoke endpoint needs a client secret
- * signed with the team's `.p8` key and a token from exchanging the sign-in's authorization code,
- * neither of which exists yet (the app signs in with the identity token only). Until they do this
- * does nothing; then it is replaced here with one that revokes the person's Apple tokens.
+ * Where Sign in with Apple's tokens are revoked: the refresh tokens kept from each Apple sign-in's
+ * authorization code (`apple-tokens.ts`), revoked with a client secret signed by the Sign in with
+ * Apple key. Without that key there is nothing kept and nothing to revoke.
  */
 export interface AppleRevocation {
   revoke(env: Bindings, input: { person: string; appleAccounts: readonly string[] }): Promise<void>;
 }
 
 export const appleRevocation: { current: AppleRevocation } = {
-  current: { revoke: () => Promise.resolve() },
+  current: { revoke: (env, { person }) => revokeAppleTokens(env, person) },
 };
 
 /**

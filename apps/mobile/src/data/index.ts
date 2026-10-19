@@ -2,9 +2,10 @@
  * The app's data layer: the phone's encrypted copy of each farm, the outbox, the sockets and the
  * session. Features read and write through the hooks; nothing here draws.
  *
- * Starting it (once, at app start, by the shell):
+ * Starting it (once, at app start, by the shell; `startAppData` shares one start across remounts
+ * and `forgetAppData()` lets the next call start again):
  *
- *   const { client, session, signIn, network } = await startData(kithfieldRules, report, {
+ *   const { client, session, signIn, network } = await startAppData(kithfieldRules, report, {
  *     heldElsewhere, // what the person keeps outside the data layer (the media queue)
  *   });
  *   <DataProvider client={client} rules={kithfieldRules} network={network}>…</DataProvider>
@@ -58,9 +59,16 @@
  * and `signIn.withEmailCode` upgrade the anonymous person (a merge reconnects as the kept one).
  * `client.signOut({force})` answers how many writes would be lost (messages still uploading
  * included) before it wipes anything, the media queue with the tables; then
- * `session.signOut()` and start again with `startData`.
+ * `session.signOut()` and start again with `startAppData` after `forgetAppData()`.
  */
-export { startData, takeUnsentNotice, type DataRuntime, type StartOptions } from './native';
+export {
+  forgetAppData,
+  startAppData,
+  startData,
+  takeUnsentNotice,
+  type DataRuntime,
+  type StartOptions,
+} from './native';
 export type { UnsentNotice, UnsentReason } from './unsent-notice';
 export { kithfieldRules } from './farm-rules';
 export type { NetworkSwitch } from './dev-network';

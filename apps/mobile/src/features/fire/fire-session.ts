@@ -297,6 +297,9 @@ export class FireSession {
 
   private data(payload: Uint8Array, from: RemoteParticipant | undefined, topic?: string): void {
     if (topic === FIRE_CAPTION_TOPIC) {
+      // Captions come from the server alone (no participant); one sent by a phone could put
+      // words in someone else's mouth.
+      if (from !== undefined) return;
       const line = lineFrom(payload);
       if (line === null) return;
       this.state = { ...this.state, captions: addRow(this.state.captions, { kind: 'line', line }) };

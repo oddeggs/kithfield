@@ -2,7 +2,7 @@ import { readExpiry, signedReadUrl } from '@kithfield/api/src/media/signature';
 import { env, exports } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
 
-import { PHOTO_CACHE_CONTROL } from './serve';
+import { PHOTO_CACHE_CONTROL, PRIVATE_CACHE_CONTROL } from './serve';
 
 const ORIGIN = 'https://media-dev.kithfield.com';
 const secret = () => env.MEDIA_SIGNING_KEY ?? '';
@@ -33,12 +33,18 @@ describe('signed reads', () => {
     expect(res.status).toBe(200);
     expect(await res.text()).toBe('jpeg bytes');
     expect(res.headers.get('content-type')).toBe('image/jpeg');
-    expect(res.headers.get('cache-control')).toBe(PHOTO_CACHE_CONTROL);
+    // Public on the zone's copy only: the phone is told private.
+    expect(res.headers.get('cache-control')).toBe(PRIVATE_CACHE_CONTROL);
     expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+    const cache = (caches as unknown as { readonly default: Cache }).default;
+    const zone = await cache.match(new Request(`${ORIGIN}/${key}`));
+    expect(zone?.headers.get('cache-control')).toBe(PHOTO_CACHE_CONTROL);
+    await zone?.arrayBuffer();
 
     // Cached by object, not by signature: another valid URL for it hits the cache.
     const again = await get(await urlFor(key, readExpiry(Date.now()) + 30 * 60_000));
     expect(again.status).toBe(200);
+    expect(again.headers.get('cache-control')).toBe(PRIVATE_CACHE_CONTROL);
     expect(await again.text()).toBe('jpeg bytes');
   });
 

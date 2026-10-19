@@ -84,9 +84,12 @@ export function BackButton({
 }) {
   const { palette } = useTheme();
   const { t } = useLocale();
+  // The chevron is the button's icon, not text: it keeps its size in the 44-point circle at every
+  // Dynamic Type size, or the accessibility sizes push it out of the circle.
   const glyph = (
     <Txt
       variant="body"
+      allowFontScaling={false}
       style={{ fontSize: 26, lineHeight: 26, marginTop: -3 }}
       importantForAccessibility="no"
     >

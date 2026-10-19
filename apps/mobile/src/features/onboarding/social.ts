@@ -1,6 +1,9 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
 import Constants from 'expo-constants';
+import { z } from 'zod';
+
+import type { ApiClient } from '../../data';
 
 /** Someone closed the sheet: not a failure, nothing to say. */
 export class SheetCancelled extends Error {
@@ -14,6 +17,19 @@ export class SheetCancelled extends Error {
 export interface SheetAnswer {
   readonly token: string;
   readonly givenName: string | null;
+  /**
+   * Apple's one-time authorization code, handed to the server after signing in so it can revoke
+   * the person's Apple tokens when they delete their account (`handOverAppleCode`).
+   */
+  readonly appleCode?: string;
+}
+
+/** The answer to `POST /v1/me/apple-authorization`: nothing (204). */
+const NoContent = z.null();
+
+/** Gives the server an Apple sign-in's authorization code; a failure only means less to revoke. */
+export async function handOverAppleCode(api: Pick<ApiClient, 'request'>, code: string) {
+  await api.request(NoContent, 'POST', '/v1/me/apple-authorization', { code }).catch(() => null);
 }
 
 /**
@@ -31,7 +47,11 @@ export async function appleSheet(hashedNonce: string): Promise<SheetAnswer> {
       nonce: hashedNonce,
     });
     if (!credential.identityToken) throw new Error('Apple gave no identity token');
-    return { token: credential.identityToken, givenName: credential.fullName?.givenName ?? null };
+    return {
+      token: credential.identityToken,
+      givenName: credential.fullName?.givenName ?? null,
+      ...(credential.authorizationCode ? { appleCode: credential.authorizationCode } : {}),
+    };
   } catch (error) {
     if ((error as { code?: string }).code === 'ERR_REQUEST_CANCELED') throw new SheetCancelled();
     throw error;

@@ -1,6 +1,7 @@
 import { RegisterDeviceResponse } from '@kithfield/contracts';
 import type { MiddlewareHandler } from 'hono';
 
+import { isBanned } from '../auth/bans';
 import type { Bindings } from '../env';
 
 /**
@@ -103,7 +104,8 @@ const keyShape = RegisterDeviceResponse.shape.actionKey;
 
 /**
  * Lets a request through only with a live action key, and names its person and device in
- * `actionPerson` and `actionDevice`. Anything else is `401 unauthorized`.
+ * `actionPerson` and `actionDevice`. Anything else is `401 unauthorized`; a banned person's key
+ * is `403 banned`.
  */
 export function requireActionKey(): MiddlewareHandler<{
   Bindings: Bindings;
@@ -120,6 +122,10 @@ export function requireActionKey(): MiddlewareHandler<{
             .first<{ person: string; device: string }>()
         : null;
     if (found === null) return c.json({ error: { code: 'unauthorized' } }, 401);
+    // A ban outranks a key a device still holds, as it does a session.
+    if (await isBanned(c.env.DB, found.person, Date.now())) {
+      return c.json({ error: { code: 'banned' } }, 403);
+    }
     c.set('actionPerson', found.person);
     c.set('actionDevice', found.device);
     await next();

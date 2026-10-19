@@ -17,6 +17,7 @@ import { SessionEnded, createSession, type Session, type SessionStorage } from '
 import { sessionRecheck } from './session-check';
 import { createSignIn, type SignIn } from './sign-in';
 import type { OpenSocket, WebSocketLike } from './socket';
+import { createStartOnce } from './start-once';
 import { createUnsentNotices, type UnsentNotice } from './unsent-notice';
 
 // Readable after first unlock, so a background wake can still reach the API. It travels with
@@ -179,3 +180,26 @@ export async function startData<View>(
     },
   };
 }
+
+type AppRuntime = DataRuntime<unknown>;
+
+let beginApp: () => Promise<AppRuntime> = () => Promise.reject(new Error('no start asked'));
+const appData = createStartOnce<AppRuntime>(() => beginApp());
+
+/**
+ * The app's one data layer: `startData` held for the whole process, so a remounted shell gets the
+ * runtime already running instead of a second store, client and set of sockets. Callers while a
+ * start is under way or done share it (the first caller's options win); a failed start is
+ * forgotten, so the next call tries again.
+ */
+export function startAppData(
+  rules: FarmRules<unknown>,
+  report?: (report: SyncReport) => void,
+  options: StartOptions = {},
+): Promise<AppRuntime> {
+  beginApp = () => startData(rules, report, options);
+  return appData.start();
+}
+
+/** Forgets the app's data layer, so the next `startAppData` starts again (signed out, Try again). */
+export const forgetAppData = (): void => appData.reset();

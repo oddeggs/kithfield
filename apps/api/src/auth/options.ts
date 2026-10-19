@@ -103,6 +103,12 @@ const disabledPaths = [
   '/account-info',
   '/verify-password',
   '/delete-user/callback',
+  // Sessions are listed and ended through Kithfield's devices (`/v1/devices`), which also end the
+  // device's pushes, key and sockets; Better Auth's list hands out every session's token.
+  '/list-sessions',
+  '/revoke-session',
+  '/revoke-sessions',
+  '/revoke-other-sessions',
 ];
 
 export interface AuthOptionsInput {
@@ -119,6 +125,8 @@ export interface AuthOptionsInput {
   /** Every Google OAuth client id an identity token may be issued for (iOS and web). */
   readonly googleClientIds: readonly string[];
   readonly sendCode: (input: { email: string; code: string }) => Promise<void>;
+  /** The fixed sign-in code for an App Review address (`review-account.ts`); undefined otherwise. */
+  readonly reviewCode?: (email: string) => string | undefined;
   readonly databaseHooks?: BetterAuthOptions['databaseHooks'];
   readonly hooks?: BetterAuthOptions['hooks'];
 }
@@ -182,6 +190,13 @@ export function buildAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
         expiresIn: CODE_LIFETIME_SECONDS,
         allowedAttempts: CODE_ATTEMPTS,
         storeOTP: 'hashed',
+        // A review address gets its fixed code; everyone else (undefined) a random one.
+        ...(input.reviewCode
+          ? {
+              generateOTP: ({ email, type }: { email: string; type: string }) =>
+                type === 'sign-in' ? input.reviewCode?.(email) : undefined,
+            }
+          : {}),
         sendVerificationOTP: async ({ email, otp }) => {
           await input.sendCode({ email, code: otp });
         },
@@ -208,5 +223,14 @@ export function buildAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
     ...(input.databaseHooks ? { databaseHooks: input.databaseHooks } : {}),
     ...(input.hooks ? { hooks: input.hooks } : {}),
     telemetry: { enabled: false },
+    // Better Auth's own words only: what it logs alongside them (a letter's failure, a request's
+    // details) can carry an address.
+    logger: {
+      level: 'warn',
+      log: (level, message) => {
+        if (level === 'error') console.error(`auth: ${message}`);
+        else console.warn(`auth: ${message}`);
+      },
+    },
   };
 }

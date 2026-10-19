@@ -37,6 +37,12 @@ export default defineConfig(async () => {
             APNS_HOST: 'apns.test',
             LIVEKIT_API_KEY: 'APItest',
             LIVEKIT_API_SECRET: `${randomUUID()}${randomUUID()}`,
+            // App Review's sign-in: these addresses take this code and are never mailed.
+            REVIEW_ACCOUNT: JSON.stringify({
+              email: 'review@kithfield.test',
+              code: '274913',
+              companion: 'review.friend@kithfield.test',
+            }),
           },
         },
       }),

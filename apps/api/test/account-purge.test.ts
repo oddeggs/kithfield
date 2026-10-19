@@ -12,9 +12,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DELETION_GRACE_MS } from '../src/auth/me';
 import { type AccountDeletedJob, registerAccountDeletionStep } from '../src/auth/purge';
 import { cottageOf } from '../src/cottage/stub';
+import { deleteFromFarms } from '../src/farm/account-deletion';
 import worker from '../src/index';
 import { op } from './farm/support/client';
-import { api, cast, pageOf, plantFarm, useTestPorts } from './farm/support/doubles';
+import {
+  api,
+  cast,
+  farmStub,
+  pageOf,
+  plantFarm,
+  profile,
+  useTestPorts,
+} from './farm/support/doubles';
 
 beforeEach(() => {
   useTestPorts();
@@ -153,6 +162,82 @@ describe('the purge after 30 days', () => {
     expect(await consume([job])).toMatchObject({ explicitAcks: ['m0'] });
     expect((await pageOf(home.stub, { limit: 50 })).events).toHaveLength(heads[0] ?? 0);
     expect((await pageOf(next.stub, { limit: 50 })).events).toHaveLength(heads[1] ?? 0);
+  });
+
+  it('takes away a farm nobody lives on once its last member is purged', async () => {
+    const { pip, kit } = await cast('pip', 'kit');
+    const solo = await plantFarm(pip);
+    const shared = await plantFarm(kit, [pip]);
+    await solo.stub.command(pip.id, { opId: op(1), kind: 'message', payload: { text: 'mine' } });
+    const photo = `farm/${solo.farm}/${crypto.randomUUID()}`;
+    await env.MEDIA.put(photo, 'jpeg');
+    await env.DB.prepare(
+      `INSERT INTO media_objects (key, farm_id, person_id, kind, mime, bytes, created_at)
+       VALUES (?, ?, ?, 'photo', 'image/jpeg', 4, 0)`,
+    )
+      .bind(photo, solo.farm, kit.id)
+      .run();
+    await askedDaysAgo(pip.id, 31);
+    expect(await consume([{ kind: 'account_deleted', person: pip.id, at: 0 }])).toMatchObject({
+      explicitAcks: ['m0'],
+      retryMessages: [],
+    });
+
+    // The object was reset as it went: a new stub finds it empty.
+    const gone = farmStub(solo.farm);
+    expect(await gone.state()).toBeNull();
+    expect(await gone.answered(op(1))).toBeNull();
+    expect(await count('SELECT count(*) AS n FROM farms WHERE id = ?', solo.farm)).toBe(0);
+    expect(await count('SELECT count(*) AS n FROM memberships WHERE farm_id = ?', solo.farm)).toBe(
+      0,
+    );
+    expect(await env.MEDIA.head(photo)).toBeNull();
+    expect(await count('SELECT count(*) AS n FROM media_objects WHERE key = ?', photo)).toBe(0);
+    // A farm someone still lives on stays.
+    expect((await shared.stub.state())?.members.map((m) => m.person)).toEqual([kit.id]);
+    expect(await count('SELECT count(*) AS n FROM farms WHERE id = ?', shared.farm)).toBe(1);
+    // And again is harmless.
+    expect(await consume([{ kind: 'account_deleted', person: pip.id, at: 0 }])).toMatchObject({
+      explicitAcks: ['m0'],
+    });
+  });
+
+  it('keeps a farm, its media and its row when someone joins as its last member is purged', async () => {
+    const { pip, kit } = await cast('pip', 'kit');
+    const { farm, stub } = await plantFarm(pip);
+    const photo = `farm/${farm}/${crypto.randomUUID()}`;
+    await env.MEDIA.put(photo, 'jpeg');
+    await env.DB.prepare(
+      `INSERT INTO media_objects (key, farm_id, person_id, kind, mime, bytes, created_at)
+       VALUES (?, ?, ?, 'photo', 'image/jpeg', 4, 0)`,
+    )
+      .bind(photo, farm, kit.id)
+      .run();
+    // Kit's invite lands after Pip's farm forgets Pip, just before the farm is taken away.
+    const racing = {
+      ...env,
+      FARM: {
+        idFromName: (name: string) => env.FARM.idFromName(name),
+        get: (id: DurableObjectId) => {
+          const real = env.FARM.get(id);
+          return new Proxy(real, {
+            get: (target, key): unknown =>
+              key === 'teardown'
+                ? async () => {
+                    await real.join(kit.id, profile(kit), true);
+                    return real.teardown();
+                  }
+                : Reflect.get(target, key),
+          });
+        },
+      },
+    } as unknown as typeof env;
+    await deleteFromFarms(racing, pip.id);
+
+    expect((await stub.state())?.members.map((m) => m.person)).toEqual([kit.id]);
+    expect(await count('SELECT count(*) AS n FROM farms WHERE id = ?', farm)).toBe(1);
+    expect(await env.MEDIA.head(photo)).not.toBeNull();
+    expect(await count('SELECT count(*) AS n FROM media_objects WHERE key = ?', photo)).toBe(1);
   });
 
   it('leaves alone someone who signed in again before the purge ran', async () => {

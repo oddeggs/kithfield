@@ -18,7 +18,7 @@ import {
   PONG,
   type RuleRef,
   type SearchResults,
-  type TradedPayload,
+  TradedPayload,
 } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
 import { DurableObject } from 'cloudflare:workers';
@@ -37,7 +37,7 @@ import { FarmHost } from './host';
 import type { Profile } from './ports';
 import { onMessage, refreshPresence } from './protocol';
 import * as safety from './safety';
-import { attach, fresh, who } from './sockets';
+import { attach, fresh, refuse, who } from './sockets';
 import { farmPorts } from './wiring';
 
 /**
@@ -247,6 +247,19 @@ export class FarmDO extends DurableObject<Bindings> {
     return actions.recordTrade(this.host, opId, actor, payload, half, options);
   }
 
+  /**
+   * The trade this farm wrote for an op id it answered, so a retry finishes that trade and no
+   * other: null when the op id went to anything but a trade.
+   */
+  tradeFor(opId: OpId): { actor: PersonId; payload: TradedPayload } | null {
+    const prior = this.host.store.outcome(opId);
+    if (prior === null || !('seq' in prior)) return null;
+    const event = this.host.store.event(prior.seq);
+    if (event?.kind !== 'traded' || event.actor === null) return null;
+    const payload = TradedPayload.safeParse(event.payload);
+    return payload.success ? { actor: event.actor, payload: payload.data } : null;
+  }
+
   /** The visitor's farm wrote its half of a trade: nothing is owed any more. */
   tradeHalfDone(opId: OpId): void {
     this.host.store.tradeHalfDone(opId);
@@ -285,5 +298,19 @@ export class FarmDO extends DurableObject<Bindings> {
 
   deleteAccount(person: PersonId): Promise<void> {
     return safety.deleteAccount(this.host, person);
+  }
+
+  /**
+   * Forgets a farm nobody lives on any more (its last member's account was deleted): every socket
+   * closes and the object's storage and alarm go. False, touching nothing, while anyone lives here.
+   */
+  async teardown(): Promise<boolean> {
+    if ((this.host.farm.state?.members.length ?? 0) > 0) return false;
+    for (const ws of this.ctx.getWebSockets()) refuse(ws, 'farm_gone');
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    // What this instance still holds in memory goes too, once this answer is on its way.
+    setTimeout(() => this.ctx.abort('farm_gone'), 0);
+    return true;
   }
 }
