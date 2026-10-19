@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  // The web app (and the desktop app, which opens it): Expo's web export served as static assets
+  // at `<host>/app`, beside the site (`<host>/*`, apps/web) and the API (`<host>/api/*`) on one
+  // origin, so the session, the sockets and Better Auth's origin check need nothing cross-origin.
+  // `pnpm web:build` writes `dist-web/app/…` (built for `/app`), and `dist-web/index.html`, which
+  // every route of the router falls back to. No script runs per request.
+  "name": "kithfield-app",
+  "compatibility_date": "2026-08-01",
+  "assets": {
+    "directory": "../dist-web",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "single-page-application",
+  },
+  "env": {
+    "dev": {
+      "name": "kithfield-app-dev",
+      "routes": [{ "pattern": "dev.kithfield.com/app*", "zone_name": "kithfield.com" }],
+    },
+    "prd": {
+      "name": "kithfield-app",
+      "routes": [{ "pattern": "kithfield.com/app*", "zone_name": "kithfield.com" }],
+    },
+  },
+}

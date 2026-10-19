@@ -8,6 +8,8 @@
     "ios": "expo run:ios",
     "web": "node web/copy-assets.mjs && expo start --web",
     "web:proxy": "node web/dev-proxy.mjs",
+    "web:build": "node web/build.mjs",
+    "web:deploy:dry": "node web/build.mjs dev && wrangler deploy --dry-run --env dev -c web/wrangler.jsonc",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:e2e": "vitest run --config vitest.e2e.config.mts"
@@ -99,7 +101,8 @@
     "jest-expo": "catalog:",
     "react-test-renderer": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
   },
   "expo": {
     "autolinking": {
