@@ -41,6 +41,7 @@ import { RoomProvider, type RoomValue } from './room-context';
 import { TimelineList, type JumpRequest } from './timeline-list';
 import { travelIds } from '../../../ui/travel';
 // The first-run tip about pressing and holding a message.
+import { BackPreview } from '../../android/back-preview';
 import { HintOverlay } from '../../hints/hint-overlay';
 import { useRoomData } from './use-room-data';
 import { MicButton, RecorderPanel, useVoiceRecorder } from './voice-recorder';
@@ -438,6 +439,10 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
           bottomInset={insets.bottom}
         />
         <Noticeboard open={board} pinned={pinned} onClose={() => setBoard(false)} />
+        {/* Android 14's back preview over the chat (`14 Platforms`, 14-06). */}
+        {pane.back ? (
+          <BackPreview onBack={() => (router.canGoBack() ? router.back() : go.chatList())} />
+        ) : null}
         <HintOverlay
           hint="message"
           show={showing && bubbles.size > 0 && !board && replyTo === null && editing === null}
