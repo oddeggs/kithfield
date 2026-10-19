@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { Art } from '../art';
 import { loadNodeSkia, nodeFaces } from '../node';
-import { parseFont } from './font';
+import { parseFont, type ParsedFont } from './font';
 
 async function newArt(): Promise<Art> {
   const skia = await loadNodeSkia();
@@ -48,5 +48,34 @@ describe('words the listed faces cannot write', () => {
     );
     expect(image).not.toBeNull();
     expect(art.env.fonts.missingGlyphs).toBe(0);
+  });
+
+  it('leaves the Vietnamese sticker caption to the art, which sets it in Patrick Hand', async () => {
+    const art = await newArt();
+    const fonts = art.env.fonts;
+    const shaped: { text: string; font: ParsedFont; size: number | undefined }[] = [];
+    const shape = fonts.shape.bind(fonts);
+    vi.spyOn(fonts, 'shape').mockImplementation((text, font) => {
+      const runs = shape(text, font);
+      shaped.push({ text, font, size: runs[0]?.font.getSize() });
+      return runs;
+    });
+    art.image(
+      {
+        scene: 'sticker',
+        width: 200,
+        height: 200,
+        dpr: 1,
+        attrs: { kind: 'rabbit', pose: 'miss', caption: 'nhớ ghê', lang: 'vi' },
+      },
+      1.2,
+    );
+    const caption = shaped.filter((s) => s.text === 'nhớ ghê');
+    expect(caption.length).toBeGreaterThan(0);
+    for (const s of caption) {
+      expect(s.font.families[0]).toBe('Patrick Hand');
+      // Drawn at the size the art asked for: the fallback's own shrinking never steps in.
+      expect(s.size).toBe(s.font.size);
+    }
   });
 });

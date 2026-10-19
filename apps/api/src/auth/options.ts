@@ -111,8 +111,11 @@ export interface AuthOptionsInput {
   readonly baseURL: string;
   /** The app's URL schemes (`kithfield://`), for a cookie-carrying client. */
   readonly trustedOrigins: readonly string[];
-  /** The bundle id Apple puts in the identity token's audience, per environment. */
-  readonly appleBundleId: string;
+  /**
+   * Every bundle id Apple may put in the identity token's audience: the environment's own app first,
+   * then any other app allowed to sign in here (the store app's beta talks to the dev server).
+   */
+  readonly appleBundleIds: readonly [string, ...string[]];
   /** Every Google OAuth client id an identity token may be issued for (iOS and web). */
   readonly googleClientIds: readonly string[];
   readonly sendCode: (input: { email: string; code: string }) => Promise<void>;
@@ -157,8 +160,9 @@ export function buildAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
     verification: verificationSchema,
     socialProviders: {
       apple: {
-        clientId: input.appleBundleId,
-        appBundleIdentifier: input.appleBundleId,
+        clientId: input.appleBundleIds[0],
+        appBundleIdentifier: input.appleBundleIds[0],
+        audience: [...input.appleBundleIds],
         // Read only by the redirect flow, which the app never takes.
         clientSecret: 'unused-identity-token-sign-in-only',
       },

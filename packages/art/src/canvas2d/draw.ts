@@ -78,26 +78,28 @@ export function drawImageOn(ctx: ArtContext2D, source: ArtCanvas, args: ImageArg
   });
 }
 
-/** How far below `y` the alphabetic baseline sits for the context's `textBaseline`. */
+/**
+ * How far below `y` the alphabetic baseline sits for the context's `textBaseline`. As in Blink,
+ * `top`, `middle` and `bottom` come from the em box; `hanging` and `ideographic` from the
+ * ascent and descent.
+ */
 function baselineShift(ctx: ArtContext2D): number {
-  const f = ctx.env.fonts.primary(ctx.s.parsedFont);
+  const { fonts } = ctx.env;
+  const font = ctx.s.parsedFont;
+  const baseline = ctx.s.textBaseline;
+  if (baseline === 'top' || baseline === 'middle' || baseline === 'bottom') {
+    const em = fonts.emBox(font);
+    if (!em) return 0;
+    if (baseline === 'top') return em.ascent;
+    if (baseline === 'bottom') return -em.descent;
+    return (em.ascent - em.descent) / 2;
+  }
+  const f = fonts.primary(font);
   if (!f) return 0;
   const metrics = f.getMetrics();
-  const ascent = Math.round(-metrics.ascent);
-  const descent = Math.round(metrics.descent);
-  switch (ctx.s.textBaseline) {
-    case 'top':
-      return ascent;
-    case 'hanging':
-      return ascent * 0.8;
-    case 'middle':
-      return (ascent - descent) / 2;
-    case 'bottom':
-    case 'ideographic':
-      return -descent;
-    default:
-      return 0;
-  }
+  if (baseline === 'hanging') return Math.round(-metrics.ascent) * 0.8;
+  if (baseline === 'ideographic') return -Math.round(metrics.descent);
+  return 0;
 }
 
 export function drawTextOn(

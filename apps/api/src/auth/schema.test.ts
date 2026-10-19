@@ -11,7 +11,7 @@ describe('the D1 schema', () => {
       secret: 'schema-check-secret-schema-check-secret',
       baseURL: 'https://dev.kithfield.com',
       trustedOrigins: [],
-      appleBundleId: 'com.kithfield.app.dev',
+      appleBundleIds: ['com.kithfield.app.dev', 'com.kithfield.app'],
       googleClientIds: ['google-client'],
       sendCode: () => Promise.resolve(),
     });

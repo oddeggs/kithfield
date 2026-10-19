@@ -27,6 +27,26 @@ describe('reading tweaks', () => {
     ]);
   });
 
+  it('takes a side-by-side default one option at a time', () => {
+    const together = {
+      time: { editor: 'enum', options: ['both', 'day', 'night'], default: 'both' },
+      language: { editor: 'enum', options: ['both', 'en', 'vi'], default: 'en' },
+    };
+    const tweaks = readTweaks(source(together));
+    expect(tweaks).toEqual([
+      { name: 'time', values: ['day', 'night'], default: 'day', pinned: true },
+      { name: 'language', values: ['both', 'en', 'vi'], default: 'en' },
+    ]);
+    expect(tweakVariants(tweaks).map((v) => v.suffix)).toEqual([
+      '',
+      'both',
+      'vi',
+      'night',
+      'night.both',
+      'night.vi',
+    ]);
+  });
+
   it('finds nothing in a file without props', () => {
     expect(readTweaks('<script type="text/x-dc" data-dc-script>class C {}</script>')).toEqual([]);
     expect(readTweaks(source({}))).toEqual([]);

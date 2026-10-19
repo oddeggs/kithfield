@@ -59,6 +59,10 @@ export type Bindings = Secrets & {
   readonly SITE_ORIGIN: string;
   /** The bundle id Apple issues identity tokens for (`com.kithfield.app[.dev]`). */
   readonly APPLE_BUNDLE_ID: string;
+  /** Other apps' bundle ids allowed to sign in with Apple here, comma-separated (dev only). */
+  readonly APPLE_EXTRA_BUNDLE_IDS?: string;
+  /** Other Google OAuth client ids allowed to sign in here, comma-separated (dev only). */
+  readonly GOOGLE_EXTRA_CLIENT_IDS?: string;
   /** Google OAuth client ids an identity token may name: the iOS app's and the web/server one. */
   readonly GOOGLE_IOS_CLIENT_ID: string;
   readonly GOOGLE_WEB_CLIENT_ID: string;

@@ -32,6 +32,14 @@ export function authSecret(env: Bindings): string {
   return secret;
 }
 
+/** A comma-separated list from an optional variable. */
+function listOf(value: string | undefined): string[] {
+  return (value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
 function createAuth(env: Bindings) {
   return betterAuth(
     buildAuthOptions({
@@ -39,8 +47,12 @@ function createAuth(env: Bindings) {
       secret: authSecret(env),
       baseURL: baseURLs[env.ENVIRONMENT],
       trustedOrigins: [appSchemes[env.ENVIRONMENT]],
-      appleBundleId: env.APPLE_BUNDLE_ID,
-      googleClientIds: [env.GOOGLE_IOS_CLIENT_ID, env.GOOGLE_WEB_CLIENT_ID],
+      appleBundleIds: [env.APPLE_BUNDLE_ID, ...listOf(env.APPLE_EXTRA_BUNDLE_IDS)],
+      googleClientIds: [
+        env.GOOGLE_IOS_CLIENT_ID,
+        env.GOOGLE_WEB_CLIENT_ID,
+        ...listOf(env.GOOGLE_EXTRA_CLIENT_IDS),
+      ],
       sendCode: async ({ email, code }) => {
         try {
           await sendCodeLetter(
