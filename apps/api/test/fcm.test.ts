@@ -324,6 +324,24 @@ describe('pushes to Android phones', () => {
     );
   });
 
+  it('say who a push is from, so the app draws it as their message with their critter', async () => {
+    recordPushQueue();
+    const { person } = await personWithPhones();
+    const google = fakeGoogle(sent);
+    const job = jobFor(person, {
+      copy: { key: 'push.doorstep.firefly', params: { name: 'Otis', from: 'otis' } },
+    });
+    await consume([job], google.fetch, { FCM_SERVICE_ACCOUNT: serviceAccount() });
+    const [fcm] = google.calls.filter((c) => c.url === fcmSendUrl(PROJECT));
+    const { data } = (JSON.parse(fcm!.body) as { message: { data: Record<string, string> } })
+      .message;
+    expect(data).toMatchObject({
+      senderPerson: 'otis',
+      senderName: 'Otis',
+      message: 'Otis left a firefly on your step. No reply needed.',
+    });
+  });
+
   it('wake the widgets with a data-only message that shows nothing', () => {
     expect(
       fcmSilentMessage({
@@ -343,7 +361,7 @@ describe('pushes to Android phones', () => {
     });
   });
 
-  it('arrive in the channel their kind belongs to', () => {
+  it('arrive in one of the two channels, the roundup in Plans & doorstep', () => {
     const at = 0;
     const base = { person: 'p', farm: 'f', seq: 1, collapseKey: 'k', forYou: false, at };
     expect(
@@ -359,6 +377,6 @@ describe('pushes to Android phones', () => {
     ).toBe('plans');
     expect(
       androidChannelOf({ ...base, kind: 'gift', copy: { key: 'push.doorstep.few', params: {} } }),
-    ).toBe('quiet');
+    ).toBe('plans');
   });
 });

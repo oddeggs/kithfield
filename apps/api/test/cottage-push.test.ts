@@ -355,7 +355,7 @@ describe('the chat list and Quick Tend', () => {
       with: { person: 'otis', name: 'Otis', critter },
     });
     await cottage.deliver(delivery({ farm: 'visit-1', seq: 2, kind: 'firefly', forYou: true }));
-    expect(queue.jobs()[0]!.copy.params).toEqual({ name: 'Otis' });
+    expect(queue.jobs()[0]!.copy.params).toEqual({ name: 'Otis', from: 'otis' });
     expect(await cottage.waiting()).toEqual([
       { farm: 'visit-1', seq: 2, kind: 'firefly', actor: 'otis', at: expect.any(Number) as number },
     ]);

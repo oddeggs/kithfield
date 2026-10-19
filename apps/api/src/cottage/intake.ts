@@ -17,6 +17,7 @@ import { type LedgerRow, writeLedger } from '../push/ledger';
 import { displayNameOf } from '../push/names';
 import { DAY_MS, type Decision, decide, localClock } from '../push/policy';
 import { enqueuePush } from '../push/queue';
+import { FROM_PARAM } from '../push/render';
 import { isMuted, knockForOf, peerName } from './chats';
 import { quietOf, readProfile, updateProfile, zoneOf } from './profile';
 import { restsNow } from './resting';
@@ -39,7 +40,11 @@ export async function considerDelivery(intake: Intake, delivery: CottageDelivery
     const name =
       peerName(intake.sql, delivery.farm, delivery.actor) ??
       (await displayNameOf(intake.env.DB, delivery.actor));
-    if (name !== null) params['name'] = name;
+    if (name !== null) {
+      params['name'] = name;
+      // Android draws the push as a message from them, with their critter.
+      params[FROM_PARAM] = delivery.actor;
+    }
   }
   if (candidate.category === 'mention' && delivery.preview !== null) {
     params['preview'] = delivery.preview;
