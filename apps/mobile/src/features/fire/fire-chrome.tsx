@@ -9,6 +9,7 @@ import { Avatar } from '../../ui/art/avatar';
 import { Glass } from '../../ui/components/glass';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
+import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import type { ViewStyleProp } from '../../ui/style';
 import { FireTxt } from './fire-text';
 import { fireLook, fireSize } from './look';
@@ -289,10 +290,12 @@ export function LevelBars({
   readonly color: string;
 }) {
   const rest = [6, 11, 8, 12];
+  // With Reduce Motion the bars hold their resting shape; the honey chip still says who talks.
+  const reduce = useReduceMotion();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 12 }}>
       {rest.map((h, i) => (
-        <Bar key={i} rest={h} i={i} level={level} color={color} />
+        <Bar key={i} rest={h} i={i} level={level} color={color} still={reduce} />
       ))}
     </View>
   );
@@ -303,14 +306,16 @@ function Bar({
   i,
   level,
   color,
+  still,
 }: {
   readonly rest: number;
   readonly i: number;
   readonly level: SharedValue<number>;
   readonly color: string;
+  readonly still: boolean;
 }) {
   const style = useAnimatedStyle(() => {
-    const l = level.get();
+    const l = still ? 0 : level.get();
     const k = l <= 0 ? 1 : 0.55 + Math.min(1, l * (1.4 + ((i * 37) % 5) * 0.12)) * 0.45;
     return { height: Math.max(3, rest * k) };
   });
