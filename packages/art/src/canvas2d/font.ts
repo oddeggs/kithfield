@@ -64,9 +64,9 @@ export function defaultFont(): ParsedFont {
 const needsSyntheticBold = (want: number, face: number) => want >= 600 && face < 600;
 
 /**
- * The hand face that writes Vietnamese. Text a scene sets in a face without its letters (a sticker
- * caption in Gaegu) is written wholly in it, a little smaller to sit in the same space, until the
- * renderer picks the face by language itself.
+ * The hand face that writes Vietnamese. The renderer sets Vietnamese captions in it itself (`cap`
+ * with `lang: 'vi'`); text a scene still sets in a face without its letters (a caption drawn
+ * without its language) is written wholly in it here, a little smaller to sit in the same space.
  */
 const HAND_FALLBACK = 'Patrick Hand';
 const HAND_FALLBACK_SCALE = 0.9;

@@ -122,6 +122,21 @@ export const GOLDEN_SCENES: readonly GoldenScene[] = [
     ...scene('sticker-wave', 'sticker', 200, 200, { pose: 'wave', kind: 'rabbit', caption: 'hi!' }),
     text: true,
   },
+  {
+    ...scene('sticker-miss-vi', 'sticker', 200, 200, {
+      pose: 'miss',
+      kind: 'rabbit',
+      caption: 'nhớ ghê',
+      lang: 'vi',
+    }),
+    text: true,
+  },
+  scene('invite-fox', 'invite', 393, 244, { kind: 'fox', coat: 'arctic', season: 'autumn' }),
+  scene('movein-empty', 'movein', 393, 540, {
+    kind: 'duck',
+    state: 'empty',
+    cast: 'rabbit/////,hedgehog/////,frog/////,sheep/////',
+  }),
   scene('icon-tinted', 'icon2', 180, 180, { kind: 'fox', state: 'tinted' }),
   scene('icon-mono', 'icon2', 180, 180, { kind: 'cat', state: 'mono' }),
   { ...scene('evening-en', 'evening', 360, 480, { progress: 0.85 }), text: true },
