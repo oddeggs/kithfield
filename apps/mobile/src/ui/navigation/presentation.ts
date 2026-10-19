@@ -29,8 +29,8 @@ export type SheetSpec =
   | { readonly kind: 'fit' }
   /** Transparent over the screen below, which stays drawn: the screen draws its own scrim. */
   | { readonly kind: 'overlay' }
-  /** Full screen, rising from the bottom. */
-  | { readonly kind: 'cover' };
+  /** Full screen, rising from the bottom, or fading in over a screen that leads into it. */
+  | { readonly kind: 'cover'; readonly fade?: boolean };
 
 /** The design's standard sheet: 30 radius and a grabber (`01 Foundations`, Sheets). */
 const fit: SheetSpec = { kind: 'fit' };
@@ -66,6 +66,8 @@ export const SHEETS: Readonly<Record<string, SheetSpec>> = {
   '(modal)/surfaces-mic': { kind: 'detents', tops: [190], grabber: true },
   '(modal)/surfaces-camera': { kind: 'detents', tops: [190], grabber: true },
   '(modal)/surfaces-sound': fit,
+  // The fire room fades in as the farm zooms into its fire ring.
+  '(cover)/fire-room': { kind: 'cover', fade: true },
   // The sticker picker over a chat, the chat still lit and touchable above it at its first height.
   '(modal)/stickers-picker': { kind: 'detents', tops: [494, 110], grabber: true, undimmedUpTo: 0 },
   ...(__DEV__ ? { '(dev)/sheet-lab': fit } : {}),
@@ -76,7 +78,7 @@ export interface RootScreenOptions {
   readonly headerShown: false;
   readonly presentation: Presentation;
   readonly contentStyle: { readonly backgroundColor: string };
-  readonly animation?: 'none' | 'slide_from_bottom';
+  readonly animation?: 'none' | 'slide_from_bottom' | 'fade';
   readonly gestureEnabled?: boolean;
   readonly sheetAllowedDetents?: number[] | 'fitToContents';
   readonly sheetGrabberVisible?: boolean;
@@ -161,6 +163,10 @@ export function screenOptionsFor(routeName: string, ctx: ScreenContext): RootScr
         contentStyle: { backgroundColor: 'transparent' },
       };
     case 'cover':
-      return { ...base, presentation: 'fullScreenModal', animation: 'slide_from_bottom' };
+      return {
+        ...base,
+        presentation: 'fullScreenModal',
+        animation: spec.fade ? 'fade' : 'slide_from_bottom',
+      };
   }
 }

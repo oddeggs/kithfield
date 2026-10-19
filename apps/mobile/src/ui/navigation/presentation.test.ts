@@ -55,6 +55,13 @@ describe('sheet routes', () => {
     expect(detentFor(10, 852, insets)).toBe(1);
   });
 
+  it('fades the fire room in over the farm that zooms into it', () => {
+    expect(screenOptionsFor('(cover)/fire-room', ctx)).toMatchObject({
+      presentation: 'fullScreenModal',
+      animation: 'fade',
+    });
+  });
+
   it('keeps a sheet’s tops where the design puts them on any screen height', () => {
     const se = { top: 20, bottom: 0 };
     const small = screenOptionsFor('(modal)/plans-remember', { ...ctx, screenH: 667, insets: se });
@@ -102,7 +109,7 @@ describe('sheet routes', () => {
     }
   });
 
-  it('names only routes in the modal group, or development screens', () => {
-    for (const route of Object.keys(SHEETS)) expect(route).toMatch(/^\((modal|dev)\)\//);
+  it('names only routes in the modal and cover groups, or development screens', () => {
+    for (const route of Object.keys(SHEETS)) expect(route).toMatch(/^\((modal|cover|dev)\)\//);
   });
 });

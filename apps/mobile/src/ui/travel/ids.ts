@@ -15,6 +15,8 @@ export const travelIds = {
   /** A critter's tile in the onboarding picker, and the stage it carries to. */
   pickerTile: (species: string) => `onboarding:tile:${species}`,
   pickerStage: 'onboarding:stage',
+  /** The flame in a farm's fire room, which the farm's own flame flies into. */
+  fireFlame: (farm: string) => `fire:flame:${farm}`,
   /** The seed on the planting sheet, which drops into the Seed bed once it is planted. */
   plantingSeed: 'plans:planting-seed',
 } as const;

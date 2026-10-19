@@ -19,6 +19,7 @@ import { useArt, useArtStill, whenIdle } from '../../ui/art/art-provider';
 import { fadeTo, sheetTo } from '../../ui/motion/motion';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useArtVisible } from '../../ui/motion/visibility';
+import { TravelSpot, useTravelShown } from '../../ui/travel';
 import { STILL_T } from '../farm/farm-bake';
 import { breathOf, isBlinking, tick } from '../farm/farm-clock';
 import {
@@ -31,6 +32,7 @@ import {
   type FireState,
   type SeatPoses,
 } from './fire-art';
+import { roomFlameBox } from './fire-travel';
 import { FIRE_AT, PATH_END, PATH_FOOT, PATH_HOME, SLOTS } from './seats';
 
 /*
@@ -245,6 +247,7 @@ export function FireScene({
   levelOf,
   loudest,
   onGone,
+  flameId,
   children,
 }: {
   readonly width: number;
@@ -260,6 +263,8 @@ export function FireScene({
   /** The loudest voice by the fire now, 0 to 1: laughter lifts the flame. */
   readonly loudest: SharedValue<number>;
   readonly onGone: (id: string) => void;
+  /** The travel id of the flame: the farm's flame flies into it as the room opens. */
+  readonly flameId: string;
   /** Drawn over the scene and lifted with it: name chips, gestures. */
   readonly children?: ReactNode;
 }) {
@@ -311,7 +316,9 @@ export function FireScene({
     const k = flame.get() * lift.get();
     return [{ translateX: fx }, { translateY: fy }, { scale: k }];
   });
-  const fireOpacity = useDerivedValue(() => Math.min(1, flame.get() * 4));
+  // Hidden while the farm's flame is still flying in to take its place.
+  const flameShown = useTravelShown(flameId);
+  const fireOpacity = useDerivedValue(() => Math.min(1, flame.get() * 4) * flameShown.get());
 
   // Each critter's poses, baked once per critter and seat.
   // Baked again only when someone sits on a different log or changes how they look, never as
@@ -377,6 +384,7 @@ export function FireScene({
             ) : null}
           </Canvas>
         </View>
+        <TravelSpot id={flameId} box={roomFlameBox(width, height)} />
         {children}
       </Animated.View>
     </View>

@@ -8,6 +8,7 @@ import { useFarm, useFarmEvents, useOpenFarm, useSend } from '../../data';
 import { announcePolitely } from '../../ui/announce';
 import { ArtIcon } from '../../ui/art/art-view';
 import { lookOf } from '../../ui/art/critter-look';
+import { travelIds } from '../../ui/travel';
 import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics } from '../../ui/motion/haptics';
@@ -430,6 +431,7 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
         levelOf={(id) => session.levelOf(id)}
         loudest={session.loudest}
         onGone={onGone}
+        flameId={travelIds.fireFlame(farm)}
       >
         <CircleOverlay
           width={width}
