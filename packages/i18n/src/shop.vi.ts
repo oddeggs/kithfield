@@ -175,7 +175,8 @@ export const shopVi: ViCatalogue<typeof shopEn> = {
   'shop.collection.setOne': 'Bộ {set}: {have} trên {total}. Còn thiếu {item}.',
   'shop.collection.setMany': 'Bộ {set}: {have} trên {total}.',
   'shop.collection.setDone': 'Bộ {set}: đã đủ. Bạn thú của bạn {pose}.',
-  'shop.collection.keep': 'Mọi thứ ở đây là của bạn mãi mãi, kể cả khi bạn thôi làm người đỡ đầu.',
+  'shop.collection.keep':
+    'Món bạn mua và quà bạn bè tặng là của bạn. Món bạn chọn khi là người đỡ đầu sẽ tạm nghỉ nếu bạn dừng, và trở lại khi bạn quay về.',
   'shop.collection.empty.title': 'Chưa có gì ở đây',
   'shop.collection.empty.body':
     'Những gì bạn giữ từ xe hàng của Rocco, và quà bạn bè tặng, sẽ chờ bạn ở đây.',
@@ -385,7 +386,7 @@ export const shopVi: ViCatalogue<typeof shopEn> = {
     'Người đỡ đầu trọn đời, chỉ có trong mùa ra mắt. Tên bạn trên cổng của những người sáng lập.',
   'shop.tiers.foundingNote': 'chỉ trong mùa ra mắt, sau đó ngừng',
   'shop.tiers.honest':
-    'Không có dùng thử rồi tự trừ tiền. Huỷ chỉ với hai lần chạm. Món bạn giữ là của bạn mãi mãi.',
+    'Không có dùng thử rồi tự trừ tiền. Huỷ chỉ với hai lần chạm. Món bạn mua là của bạn mãi; món chọn khi đỡ đầu tạm nghỉ khi bạn vắng.',
   'shop.tiers.disclosureLead': 'Người đỡ đầu tự động gia hạn',
   'shop.tiers.disclosure':
     ' với giá {month} một tháng, hoặc {year} một năm, cho đến khi bạn huỷ. Farm Plus gia hạn với giá {plus} một tháng. Tiền được trừ vào Tài khoản Apple khi bạn xác nhận. Gói tự gia hạn trừ khi bạn tắt ít nhất 24 giờ trước khi kỳ hiện tại kết thúc, và phí gia hạn được trừ trong 24 giờ đó. Quản lý hoặc huỷ bất cứ lúc nào trong Cài đặt › tên bạn › Đăng ký.',
@@ -411,7 +412,7 @@ export const shopVi: ViCatalogue<typeof shopEn> = {
   'shop.member.wallOn': 'Đã ở trên đó với tên {name}',
   'shop.member.wallAdd': 'Thêm tên của bạn',
   'shop.member.wardrobe': 'Cả tủ đồ',
-  'shop.member.wardrobeBody': 'Thử và giữ bất cứ món nào',
+  'shop.member.wardrobeBody': 'Thử bất cứ món nào, và giữ chúng khi còn là người đỡ đầu',
   'shop.member.farmPlus': 'Farm Plus của bạn dành cho',
   'shop.member.farmPlusPick': 'Chọn nông trại được hưởng',
   'shop.member.farmPlusCovered': 'Mọi người cùng nông trại đều có quyền lợi.',
@@ -441,19 +442,21 @@ export const shopVi: ViCatalogue<typeof shopEn> = {
   'shop.manage.toYearly': 'Chuyển sang theo năm',
   'shop.manage.ifStop': 'Nếu bạn dừng',
   'shop.manage.stayOn': 'Quyền lợi giữ đến {date}',
-  'shop.manage.kept': 'Mọi thứ bạn giữ là của bạn mãi mãi',
+  'shop.manage.kept':
+    'Món bạn mua hoặc được tặng vẫn là của bạn; món chọn khi đỡ đầu tạm nghỉ đến khi bạn quay lại',
   'shop.manage.wall': 'Tên bạn vẫn ở trên bức tường nông dân',
   'shop.manage.friends': 'Bạn bè không thấy gì thay đổi cả',
   'shop.manage.cancel': 'Huỷ trong App Store',
   'shop.manage.lifetime': 'Người sáng lập là trọn đời. Không có gì để huỷ.',
 
   'shop.lapsed.eyebrow': 'gói đỡ đầu của bạn đã kết thúc',
-  'shop.lapsed.title': 'Mọi thứ bạn giữ vẫn là của bạn',
+  'shop.lapsed.title': 'Món bạn mua hoặc được tặng vẫn là của bạn',
   'shop.lapsed.body':
-    'Mọi thứ bạn giữ vẫn ở lại. Ánh đèn và bưu kiện tạm nghỉ cho đến khi bạn quay lại. Cảm ơn bạn vì quãng thời gian đã giúp đỡ.',
-  'shop.lapsed.kept': 'Giữ mãi mãi',
+    'Món bạn mua và quà bạn bè tặng vẫn ở lại với bạn. Món chọn khi đỡ đầu, ánh đèn và bưu kiện tạm nghỉ cho đến khi bạn quay lại. Cảm ơn bạn vì quãng thời gian đã giúp đỡ.',
+  'shop.lapsed.kept': 'Vẫn là của bạn',
   'shop.lapsed.resting': 'Tạm nghỉ',
-  'shop.lapsed.restingList': 'Ánh đèn, bưu kiện, bầu chọn, bản beta, thử đồ của người đỡ đầu',
+  'shop.lapsed.restingList':
+    'Món chọn khi đỡ đầu, ánh đèn, bưu kiện, bầu chọn, bản beta, thử đồ của người đỡ đầu',
   'shop.lapsed.wallName': 'tên bạn trên bức tường',
   'shop.lapsed.packs': { other: '{count} gói nhãn dán' },
   'shop.lapsed.nothing': 'tên bạn trên bức tường, và lời cảm ơn',

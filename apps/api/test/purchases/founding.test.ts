@@ -24,7 +24,7 @@ describe('Founding Farmer', () => {
     expect(patronageOf(row, Date.now() + 50 * 365 * 86_400_000)?.state).toBe('active');
   });
 
-  it('follows its row: an Apple refund lapses it, and what was kept stays', async () => {
+  it('follows its row: an Apple refund lapses it, and what was kept rests with it', async () => {
     const { pip } = await cast('pip');
     const bought = rcEvent(pip.id, 'NON_RENEWING_PURCHASE', 'kf.founding', {
       expiration_at_ms: null,
@@ -41,6 +41,6 @@ describe('Founding Farmer', () => {
     const e = await entitlements(pip);
     expect(e.perks).toBe(false);
     expect(e.patronage).toMatchObject({ tier: 'founding', state: 'lapsed' });
-    expect(e.owned).toContain('houseboat');
+    expect(e.owned).not.toContain('houseboat');
   });
 });

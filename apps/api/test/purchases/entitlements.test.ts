@@ -14,7 +14,7 @@ describe('RevenueCat webhook', () => {
     expect((await entitlements(pip)).perks).toBe(false);
   });
 
-  it('turns perks on, keeps them while ending, and rests them on expiry; owned items stay', async () => {
+  it('turns perks on, keeps them while ending, and rests them and what was kept on expiry', async () => {
     const { pip } = await cast('pip');
     const start = rcEvent(pip.id, 'INITIAL_PURCHASE', 'kf.patron.yearly');
     expect((await tell(start)).outcome).toBe('applied');
@@ -46,7 +46,9 @@ describe('RevenueCat webhook', () => {
     e = await entitlements(pip);
     expect(e.perks).toBe(false);
     expect(e.patronage).toMatchObject({ state: 'lapsed', until: null });
-    expect(e.owned).toContain('lighthouse');
+    // What was kept as a patron rests with the perks; the month's parcel stays.
+    expect(e.owned).not.toContain('lighthouse');
+    expect(e.owned.length).toBe(1);
     expect((await api(pip, 'POST', '/v1/shop/items/windmill/keep')).status).toBe(403);
   });
 

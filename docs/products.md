@@ -134,9 +134,20 @@ chip in for them, worth £9.99 between them (`THEME_VALUE`).
   theme stays open until it is paid for. Only Apple refunds, through its own process; such a
   refund is recorded against the share. A gift friends chipped in for is delivered by the server
   on behalf of whoever started it (or the next friend who paid, if they left the farm).
-- Care is never paywalled; patron perks are cosmetic; owned items stay when patronage lapses.
+- Care is never paywalled; patron perks are cosmetic; bought items, gifts and parcels stay when
+  patronage lapses, and what was kept as a patron rests until patronage resumes (§6).
 
-## 6. Chip-in payments (decided)
+## 6. Decided
+
+### What a patron keeps
+
+A patron keeps anything from the wardrobe while their perks are on. When patronage lapses, what
+they kept as a patron rests with the perks and comes back when patronage resumes; it is never
+deleted. Bought items, gifts and parcels always stay. A one-month patron doesn't keep the whole
+wardrobe for good. The founder decided this on 19 October 2026; the switch is `PATRON_KEEP_ALL =
+false` in `apps/api/src/purchases/config.ts`, and the shop's copy says so plainly in en and vi.
+
+### Chip-in payments
 
 Nobody is charged until a chip-in is covered; then each pledger pays their own share. A share paid
 for a birthday chip-in that closes before everyone paid, or a second or late payment, becomes the
@@ -148,7 +159,6 @@ Apple refunds a share. Every valid payment is kept in `chip_in_payments`.
 
 | Decision | Switch | Default now |
 |---|---|---|
-| Whether what a patron keeps outlasts the perks | `PATRON_KEEP_ALL` in `apps/api/src/purchases/config.ts` | `true`: anything kept as a patron is theirs for good. `false`: it rests with the perks after a lapse and comes back with them; bought items, gifts and parcels always stay |
 | What Farm Plus "up to 8 critters" means on a farm of up to 24 | `FARM_PLUS_MODE` and `FARM_PLUS_COVERS` in `apps/api/src/purchases/config.ts` | The payer picks one farm (`PUT /v1/me/farm-plus`); its first 8 members by joining time, the payer always included, get the perks |
 | How the printed book is paid (Stripe isn't offered to a Vietnamese business) | `bookCheckoutProvider` in `apps/api/src/purchases/book.ts` | No provider: ordering answers 503 `unavailable` ("not available yet"); quotes, order reads and the Stripe-shaped webhook are ready |
 | When Founding Farmer stops being sold | `FOUNDING_ON_SALE_UNTIL` in `apps/api/src/purchases/config.ts` | 20 March 2027, 00:00 UTC |
