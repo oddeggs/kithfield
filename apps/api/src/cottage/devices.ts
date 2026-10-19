@@ -12,10 +12,14 @@ export interface CottageDevice {
   readonly registeredAt: number;
 }
 
-/** Where a push goes: one device's Expo push token. */
+/**
+ * Where a push goes: one device's push token, an Expo push token (iOS) or the device's own FCM
+ * token (Android), which the platform tells apart.
+ */
 export interface PushTarget {
   readonly device: string;
   readonly token: string;
+  readonly platform: Platform;
 }
 
 /**
@@ -92,8 +96,8 @@ export function dropPushToken(sql: SqlStorage, device: string, token: string): b
 
 export function pushTargets(sql: SqlStorage): PushTarget[] {
   return sql
-    .exec<{ device: string; token: string }>(
-      'SELECT device, push_token AS token FROM devices WHERE push_token IS NOT NULL',
+    .exec<{ device: string; token: string; platform: Platform }>(
+      'SELECT device, push_token AS token, platform FROM devices WHERE push_token IS NOT NULL',
     )
     .toArray();
 }

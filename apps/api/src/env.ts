@@ -36,6 +36,10 @@ export const secretNames = [
   // The team's APNs key (the `.p8` file's contents), for Live Activity pushes sent straight to
   // Apple. Unset, Live Activities only move while the app runs.
   'APNS_KEY_P8',
+  // Firebase Cloud Messaging, for Android phones: the project's service-account key (its whole
+  // JSON) and the Firebase project id (else the key's own). Unset, Android gets no pushes.
+  'FCM_SERVICE_ACCOUNT',
+  'FCM_PROJECT_ID',
   // LiveKit, for the fire room: the project's API key and secret. They mint room tokens and check
   // LiveKit's webhook signatures (`livekit-server --dev` uses devkey / secret locally).
   'LIVEKIT_API_KEY',

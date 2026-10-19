@@ -10,6 +10,7 @@ import {
   RETRYABLE_ERRORS,
   sendToExpo,
 } from './expo';
+import { fcmConfig, fcmSilentMessage, isExpoToken, sendToFcm } from './fcm';
 import type { SurfaceRefreshJob } from './queue';
 
 /** A widget refresh is stale after this long: the app redraws on its next launch anyway. */
@@ -41,11 +42,13 @@ export async function sendRefreshes(
   deps: PushDeps,
 ): Promise<void> {
   const out: { item: Item; expo: ExpoSilentMessage }[] = [];
+  const android: { item: Item; expo: ExpoSilentMessage }[] = [];
   for (const { message, job } of refreshes) {
     const { person, farm } = job.surfaceRefresh;
     const targets = await cottageOf(env, person).refreshTargets(farm);
     for (const target of targets) {
-      out.push({
+      const fcm = target.platform === 'android' && !isExpoToken(target.token);
+      (fcm ? android : out).push({
         item: { message, person, device: target.device },
         expo: silentMessage(job, target.token),
       });
@@ -53,6 +56,17 @@ export async function sendRefreshes(
   }
   const retry = new Set<Message>();
   const dropped: { person: string; device: string; token: string }[] = [];
+  // Android phones redraw their widgets from FCM's data message; without FCM there are none.
+  const fcm = fcmConfig(env);
+  if (fcm !== null) {
+    for (const { item, expo } of android) {
+      const result = await sendToFcm(deps.fetch, fcm, fcmSilentMessage(expo), deps.now());
+      if (result.kind === 'retry') retry.add(item.message);
+      if (result.kind === 'gone') {
+        dropped.push({ person: item.person, device: item.device, token: expo.to });
+      }
+    }
+  }
   for (let i = 0; i < out.length; i += EXPO_MESSAGES_PER_REQUEST) {
     const chunk = out.slice(i, i + EXPO_MESSAGES_PER_REQUEST);
     const result = await sendToExpo(

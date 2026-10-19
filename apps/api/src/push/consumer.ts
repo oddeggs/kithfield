@@ -12,11 +12,19 @@ import {
   RETRYABLE_ERRORS,
   sendToExpo,
 } from './expo';
+import {
+  type AndroidChannel,
+  fcmConfig,
+  fcmMessage,
+  type FcmResult,
+  isExpoToken,
+  sendToFcm,
+} from './fcm';
 import { type LedgerRow, writeLedger } from './ledger';
 import { enqueuePush, RECEIPT_DELAY_SECONDS, ReceiptCheck, SurfaceRefreshJob } from './queue';
 import { sendRefreshes } from './refresh';
 import { checkReceipts } from './receipts';
-import { expoMessage, renderPush } from './render';
+import { androidChannelOf, expoMessage, renderPush } from './render';
 
 /** What the consumer reaches the outside world through; tests pass a double for Expo. */
 export interface PushDeps {
@@ -93,7 +101,13 @@ function lastOf<T>(items: readonly T[]): T {
   return last;
 }
 
-type Send = { readonly device: string; readonly token: string; readonly expo: ExpoMessage };
+type Send = {
+  readonly device: string;
+  readonly token: string;
+  /** Set for an Android phone with its own FCM token: the push goes to FCM, not Expo. */
+  readonly android: AndroidChannel | null;
+  readonly expo: ExpoMessage;
+};
 type Item = { readonly out: Outgoing; readonly send: Send };
 
 /** Ledger rows for the jobs a group folded into its push, once the push is settled. */
@@ -135,7 +149,9 @@ async function sendJobs(groups: readonly Queued[][], env: Bindings, deps: PushDe
       group,
       job,
       sends: claim.targets.map((t) => ({
-        ...t,
+        device: t.device,
+        token: t.token,
+        android: t.platform === 'android' && !isExpoToken(t.token) ? androidChannelOf(job) : null,
         expo: expoMessage(job, push, t.token, claim.push),
       })),
       ok: 0,
@@ -143,8 +159,15 @@ async function sendJobs(groups: readonly Queued[][], env: Bindings, deps: PushDe
     });
   }
 
-  const flat: Item[] = outgoing.flatMap((out) => out.sends.map((send) => ({ out, send })));
+  const all: Item[] = outgoing.flatMap((out) => out.sends.map((send) => ({ out, send })));
   const settled: Settled = { rows, receipts: [], dropped: [] };
+  await sendAndroid(
+    all.filter((item) => item.send.android !== null),
+    env,
+    deps,
+    settled,
+  );
+  const flat = all.filter((item) => item.send.android === null);
   for (let i = 0; i < flat.length; i += EXPO_MESSAGES_PER_REQUEST) {
     const chunk = flat.slice(i, i + EXPO_MESSAGES_PER_REQUEST);
     const result = await sendToExpo(
@@ -187,6 +210,48 @@ async function sendJobs(groups: readonly Queued[][], env: Bindings, deps: PushDe
       { receipts: settled.receipts.slice(i, i + 1000) },
       RECEIPT_DELAY_SECONDS,
     );
+  }
+}
+
+/**
+ * Sends to Android phones through FCM, one message each (FCM v1 has no batches). Without the
+ * service account there is nowhere to send them: each is booked as failed, not retried.
+ */
+async function sendAndroid(
+  items: readonly Item[],
+  env: Bindings,
+  deps: PushDeps,
+  settled: Settled,
+): Promise<void> {
+  if (items.length === 0) return;
+  const config = fcmConfig(env);
+  for (const item of items) {
+    const { send } = item;
+    const result: FcmResult =
+      config === null || send.android === null
+        ? { kind: 'refused', why: 'fcm_unset' }
+        : await sendToFcm(deps.fetch, config, fcmMessage(send.expo, send.android), deps.now());
+    const { out } = item;
+    const row = {
+      person: out.job.person,
+      kind: out.job.kind,
+      farm: out.job.farm,
+      seq: out.job.seq,
+      collapseKey: out.job.collapseKey,
+      collapsed: out.group.length - 1,
+      device: send.device,
+      at: deps.now(),
+    };
+    if (result.kind === 'ok') {
+      out.ok += 1;
+      settled.rows.push({ ...row, decision: 'sent', ticket: result.id });
+      continue;
+    }
+    out.retry ||= result.kind === 'retry';
+    settled.rows.push({ ...row, decision: 'failed', reason: result.why });
+    if (result.kind === 'gone') {
+      settled.dropped.push({ person: out.job.person, device: send.device, token: send.token });
+    }
   }
 }
 
