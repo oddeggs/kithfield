@@ -15,6 +15,7 @@ import {
 } from 'react-native-reanimated';
 
 import { ArtStill } from '../../../ui/art/art-view';
+import { TravelSpot } from '../../../ui/travel';
 import { useArt, useArtStill } from '../../../ui/art/art-provider';
 import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
@@ -95,13 +96,25 @@ export function placeCritters(critters: readonly HeaderCritter[], w: number, h: 
  * from their own cached layers, so the farm shows who really lives there. When the header has
  * shrunk all the way, the critters settle in two drawings.
  */
+/** The sprout a dewdrop brings up in the header: its size, and where on the strip's ground. */
+export const SPROUT = 90;
+export const sproutBox = (width: number, height: number) => ({
+  x: width * 0.42 - SPROUT / 2,
+  y: height * 0.62 - SPROUT,
+  width: SPROUT,
+  height: SPROUT,
+});
+
 export function FarmHeaderArt({
   season,
   critters,
   width,
   height,
   collapsed,
+  sproutId,
 }: {
+  /** The travel id where a dewdrop's sprout pops up (signature motion). */
+  readonly sproutId?: string;
   readonly season: string;
   readonly critters: readonly HeaderCritter[];
   readonly width: number;
@@ -160,6 +173,7 @@ export function FarmHeaderArt({
           </SettlingLayer>
         ))}
       </Canvas>
+      {sproutId ? <TravelSpot id={sproutId} box={sproutBox(width, height)} /> : null}
     </View>
   );
 }

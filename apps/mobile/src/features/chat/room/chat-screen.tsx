@@ -37,6 +37,7 @@ import { RoomNotice, useRoomNotice } from './room-notice';
 import { Noticeboard, PinBar, usePinned } from './noticeboard';
 import { RoomProvider, type RoomValue } from './room-context';
 import { TimelineList, type JumpRequest } from './timeline-list';
+import { travelIds } from '../../../ui/travel';
 import { useRoomData } from './use-room-data';
 import { MicButton, RecorderPanel, useVoiceRecorder } from './voice-recorder';
 import { noteSeen } from '../ui/seen-store';
@@ -246,6 +247,7 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
               width={screenW}
               height={size.full}
               collapsed={collapsed}
+              sproutId={travelIds.chatSprout(farm)}
             />
           )}
         </HeaderArtFrame>
