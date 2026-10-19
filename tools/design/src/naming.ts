@@ -16,6 +16,39 @@ export function parseLabel(label: string): ScreenLabel | null {
   return { id: match[1], title: (match[2] ?? '').replace(/\s+/g, ' ').trim() };
 }
 
+/** A screen id as the design writes it: `NN-NN`. */
+const SCREEN_ID = /^\d{2}-\d{2}$/;
+
+/**
+ * The labels of one file's frames, in order, each with an id no other frame of the file shares.
+ * A label that does not start with a screen id (`Plan link card 1200×630`) takes the file's slug.
+ * A repeated id keeps its first frame; each later one adds the words its title has that the
+ * first's lacks (`20-02 The plan on the web, AX5` → `20-02-ax5`), or a counter.
+ */
+export function screenLabels(fileSlug: string, labels: readonly string[]): (ScreenLabel | null)[] {
+  const first = new Map<string, string[]>();
+  const taken = new Set<string>();
+  return labels.map((raw) => {
+    const parsed = parseLabel(raw);
+    if (!parsed) return null;
+    const label = SCREEN_ID.test(parsed.id)
+      ? parsed
+      : { id: fileSlug, title: raw.replace(/\s+/g, ' ').trim() };
+    const words = slugify(label.title).split('-').filter(Boolean);
+    const seen = first.get(label.id);
+    if (!seen) {
+      first.set(label.id, words);
+      taken.add(label.id);
+      return label;
+    }
+    const extra = words.filter((w) => !seen.includes(w)).slice(0, 6);
+    let id = extra.length > 0 ? `${label.id}-${extra.join('-')}` : `${label.id}-2`;
+    for (let n = 2; taken.has(id); n++) id = `${label.id}-${n}`;
+    taken.add(id);
+    return { id, title: label.title };
+  });
+}
+
 /** Lower-case ASCII slug: diacritics dropped (`đ` → `d`), runs of anything else become one dash. */
 export function slugify(text: string): string {
   return text

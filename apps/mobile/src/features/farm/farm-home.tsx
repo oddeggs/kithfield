@@ -16,6 +16,7 @@ import {
   useSend,
 } from '../../data';
 import { ArtLoop, ArtStill } from '../../ui/art/art-view';
+import { sceneLook } from '../../ui/art/critter-look';
 import { EmptyState } from '../../ui/components/state-shell';
 import { Sheet, SheetScrollView } from '../../ui/components/sheet';
 import { useLocale } from '../../ui/locale/locale-provider';
@@ -248,6 +249,7 @@ function FarmFor({
           width={width}
           height={sceneH}
           attrs={{
+            ...(self ? sceneLook(self.critter) : {}),
             ...(view ? { season: view.season.season } : {}),
             ...(appearance === 'night' ? { night: true } : {}),
           }}

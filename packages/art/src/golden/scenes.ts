@@ -122,9 +122,57 @@ export const GOLDEN_SCENES: readonly GoldenScene[] = [
     ...scene('sticker-wave', 'sticker', 200, 200, { pose: 'wave', kind: 'rabbit', caption: 'hi!' }),
     text: true,
   },
+  {
+    ...scene('sticker-miss-vi', 'sticker', 200, 200, {
+      pose: 'miss',
+      kind: 'rabbit',
+      caption: 'nhớ ghê',
+      lang: 'vi',
+    }),
+    text: true,
+  },
+  scene('invite-fox', 'invite', 393, 244, { kind: 'fox', coat: 'arctic', season: 'autumn' }),
+  scene('movein-empty', 'movein', 393, 540, {
+    kind: 'duck',
+    state: 'empty',
+    cast: 'rabbit/////,hedgehog/////,frog/////,sheep/////',
+  }),
   scene('icon-tinted', 'icon2', 180, 180, { kind: 'fox', state: 'tinted' }),
   scene('icon-mono', 'icon2', 180, 180, { kind: 'cat', state: 'mono' }),
   { ...scene('evening-en', 'evening', 360, 480, { progress: 0.85 }), text: true },
   { ...scene('evening-vi', 'evening', 360, 480, { progress: 0.85, lang: 'vi' }), text: true },
   scene('widget-night', 'widget', 340, 160, { season: 'winter', lit: 'rabbit,frog,owl' }),
+  {
+    ...scene('weekpage-en', 'weekpage', 360, 640, {
+      items: 'rabbit,hedgehog,frog,sheep',
+      caption: 'our week',
+    }),
+    text: true,
+  },
+  {
+    ...scene('weekpage-vi', 'weekpage', 360, 640, {
+      items: 'rabbit,hedgehog,frog,sheep',
+      caption: 'tuần của mình',
+      lang: 'vi',
+    }),
+    text: true,
+  },
+  scene('homewidget-night', 'homewidget', 340, 160, {
+    night: true,
+    lit: 'rabbit,hedgehog,sheep',
+    items: 'lantern:sheep',
+  }),
+  scene('festfarm-moon', 'festfarm', 360, 640, {
+    name: 'trungthu',
+    season: 'autumn',
+    night: true,
+  }),
+  scene('build-bridge', 'build', 360, 480, { name: 'bridge', progress: 0.55, season: 'autumn' }),
+  scene('lantern-cottage', 'lantern', 360, 480, {
+    name: 'cottage',
+    kind: 'sheep',
+    state: 'lit',
+    night: true,
+  }),
+  scene('lixi-open', 'lixi', 160, 200, { state: 'open' }),
 ];

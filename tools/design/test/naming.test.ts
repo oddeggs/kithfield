@@ -5,6 +5,7 @@ import {
   parseLabel,
   renderFileName,
   scaleForWidth,
+  screenLabels,
   slugify,
   titleSlug,
   uniqueSlugs,
@@ -29,6 +30,23 @@ describe('screen labels', () => {
 
   it('rejects an empty label', () => {
     expect(parseLabel('   ')).toBeNull();
+  });
+
+  it('gives a repeated id the words its title adds, or a counter', () => {
+    const ids = screenLabels('20-together', [
+      '20-02 The plan on the web',
+      '20-08 Lock screen',
+      '20-08 StandBy',
+      '20-02 The plan on the web, AX5',
+      '20-02 The plan on the web',
+    ]).map((l) => l?.id);
+    expect(ids).toEqual(['20-02', '20-08', '20-08-standby', '20-02-ax5', '20-02-2']);
+  });
+
+  it('names a frame without a screen id after its file', () => {
+    expect(screenLabels('plan-link-card', ['Plan link card 1200×630'])).toEqual([
+      { id: 'plan-link-card', title: 'Plan link card 1200×630' },
+    ]);
   });
 
   it('reads labels from a source as written', () => {

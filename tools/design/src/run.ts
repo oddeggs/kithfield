@@ -3,7 +3,7 @@ import { basename, dirname, join } from 'node:path';
 
 import { type DesignFile, listDesignFiles } from './design-file';
 import { type RenderEntry, type RenderIndex, buildIndex, mergeIndex } from './manifest';
-import { parseLabel } from './naming';
+import { screenLabels } from './naming';
 import { type RenderJob, renderCanvasFile } from './render-canvas';
 import { renderScrollingPage } from './render-page';
 import { fileSelected, idSelected } from './select';
@@ -32,7 +32,7 @@ function selectedFiles(files: DesignFile[], tokens: string[]): DesignFile[] {
   return files.filter(
     (f) =>
       fileSelected(f.slug, tokens) ||
-      f.labels.some((l) => idSelected(parseLabel(l)?.id ?? '', tokens)),
+      screenLabels(f.slug, f.labels).some((l) => idSelected(l?.id ?? '', tokens)),
   );
 }
 
@@ -122,8 +122,8 @@ export async function renderDesign(options: RunOptions): Promise<RunSummary> {
   const sourceIds = [
     ...new Set(
       files.flatMap((f) =>
-        f.labels
-          .map((l) => parseLabel(l)?.id ?? '')
+        screenLabels(f.slug, f.labels)
+          .map((l) => l?.id ?? '')
           .filter(
             (id) => id && (fileSelected(f.slug, options.tokens) || idSelected(id, options.tokens)),
           ),

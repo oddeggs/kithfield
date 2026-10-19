@@ -8,7 +8,18 @@ export interface FaceEntry {
   family: string;
   weight: number;
   typeface: SkTypeface;
+  /** The OS/2 typo ascender and descender, in font units (both positive). */
+  typo?: readonly [ascender: number, descender: number];
 }
+
+/** The em box a canvas `top`, `middle` or `bottom` baseline is measured from, in pixels. */
+export interface EmBox {
+  ascent: number;
+  descent: number;
+}
+
+/** Blink's layout unit: 1/64 px. */
+const layoutUnit = (v: number) => Math.round(v * 64) / 64;
 
 export interface ParsedFont {
   weight: number;
@@ -53,9 +64,9 @@ export function defaultFont(): ParsedFont {
 const needsSyntheticBold = (want: number, face: number) => want >= 600 && face < 600;
 
 /**
- * The hand face that writes Vietnamese. Text a scene sets in a face without its letters (a sticker
- * caption in Gaegu) is written wholly in it, a little smaller to sit in the same space, until the
- * renderer picks the face by language itself.
+ * The hand face that writes Vietnamese. The renderer sets Vietnamese captions in it itself (`cap`
+ * with `lang: 'vi'`); text a scene still sets in a face without its letters (a caption drawn
+ * without its language) is written wholly in it here, a little smaller to sit in the same space.
  */
 const HAND_FALLBACK = 'Patrick Hand';
 const HAND_FALLBACK_SCALE = 0.9;
@@ -118,6 +129,26 @@ export class FontBook {
   primary(font: ParsedFont): SkFont | null {
     const face = this.facesFor(font.families, font.weight)[0];
     return face ? this.skFont(face, font.size, font.weight) : null;
+  }
+
+  /**
+   * The primary face's em box as Blink measures it for the canvas baselines: the typo ascender
+   * and descender scaled to sum to the font size, the ascent rounded to a layout unit. A face
+   * without typo metrics uses its ascent and descent instead.
+   */
+  emBox(font: ParsedFont): EmBox | null {
+    const face = this.facesFor(font.families, font.weight)[0];
+    if (!face) return null;
+    let [ascender, descender] = face.typo ?? [0, 0];
+    if (!(ascender > 0)) {
+      const metrics = this.skFont(face, font.size, font.weight).getMetrics();
+      ascender = Math.round(-metrics.ascent);
+      descender = Math.round(metrics.descent);
+    }
+    const height = ascender + descender;
+    if (!(height > 0) || ascender < 0 || ascender > height) return null;
+    const ascent = layoutUnit((ascender * font.size) / height);
+    return { ascent, descent: layoutUnit(font.size) - ascent };
   }
 
   /**

@@ -36,6 +36,8 @@ If `playwright install` stalls while unpacking (seen with Node 26), unzip the ar
 | What | File | Scale |
 |---|---|---|
 | A frame with `data-screen-label="04-01 Farm home"` | `04-01.png` | @3x up to 500 CSS px wide (phones), @2x wider (web, iPad, desktop frames such as `17-01`) |
+| A second frame with an id already used in its file (`20-02 The plan on the web, AX5`) | `20-02-ax5.png`: the id plus the words its title adds to the first's (or `-2`) | as above |
+| A frame whose label has no screen id (`Plan link card 1200×630`) | `<file-slug>.png` (`plan-link-card.png`) | as above |
 | The same frame under tweaks | `04-01.night.png`, `04-01.winter.png`, `04-01.winter.night.png` | as above |
 | A section of a canvas file with no screen labels (`00 Cover`, `01 Foundations`, `02 Cast`) | `01-foundations/<section>.png`, `<section>.<variant>.png` | @2x |
 | A scrolling page (`17 Landing`, `17 Landing VI`), one viewport per stop | `17-landing/<width>/<section>[-NN].png` | 390×844 @3x, 834×1194 @2x, 1440×900 @2x |
@@ -60,7 +62,10 @@ renderer reads them from the file (nothing is listed by hand), renders every com
 the runtime's own `__dcSetProps`, and keeps a variant only when its pixels differ from the
 defaults and from each combination it builds on. So a screen with no seasonal art gets no season
 variants, and although eight files declare `night`, only the screens whose template uses it get
-`.night` files. `index.json` lists what each screen actually has. `motion` is skipped because
+`.night` files. `index.json` lists what each screen actually has. An enum whose default is `both`
+(`20`'s `time` and `language`, which lay day and night, English and Vietnamese side by side) is
+rendered one option at a time: its first other option is the default (`day`, `en`) and the rest
+are variants (`20-12.night.vi.png`). `motion` is skipped because
 renders already freeze animation.
 
 ## Determinism
