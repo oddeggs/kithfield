@@ -26,18 +26,18 @@ export const closeFarmSockets = async (env: Bindings, person: string): Promise<v
 };
 
 /**
- * Every farm the person touched forgets them, and one left empty goes. One farm failing fails the
- * step, for a retry: the D1 row goes last, so a retry finds the farm again.
+ * Every farm the person touched forgets them, and one left empty goes. Only the farm's object can
+ * say nobody lives there, in the same step that empties it, so someone joining meanwhile keeps the
+ * farm and everything on it; the rest goes only after that. One farm failing fails the step, for a
+ * retry: the D1 row goes last, so a retry finds the farm again.
  */
 export const deleteFromFarms = async (env: Bindings, person: string): Promise<void> => {
   for (const farm of await farmsTouchedBy(env.DB, person)) {
     const stub = farmStub(env, farm);
     await stub.deleteAccount(person);
-    const state = await stub.state();
-    if (state !== null && state.members.length > 0) continue;
+    if (!(await stub.teardown())) continue;
     await deleteFarmMedia(env, farm);
     await dropFarm(env, farm);
-    await stub.teardown();
     await env.DB.prepare('DELETE FROM farms WHERE id = ?').bind(farm).run();
   }
 };
