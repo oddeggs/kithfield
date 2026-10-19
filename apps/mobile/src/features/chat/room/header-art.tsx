@@ -101,6 +101,7 @@ export function FarmHeaderArt({
   width,
   height,
   collapsed,
+  night = false,
 }: {
   readonly season: string;
   readonly critters: readonly HeaderCritter[];
@@ -108,12 +109,26 @@ export function FarmHeaderArt({
   readonly height: number;
   /** 1 once the header is as small as it gets. */
   readonly collapsed: SharedValue<number>;
+  /**
+   * After dark the critters are home (`12 States`, the chat at night): the cottages under the
+   * stars, a lamp in the window of each friend still up.
+   */
+  readonly night?: boolean;
 }) {
   const store = useArt();
   const reduce = useReduceMotion();
-  const land = useArtStill({ scene: 'strip', width, height, attrs: { season, state: 'nocast' } });
+  const lit = critters
+    .filter((c) => !c.sleeping)
+    .map((c) => c.critter.species)
+    .join(',');
+  const land = useArtStill(
+    night
+      ? { scene: 'widget', width, height, attrs: { season, lit: lit || 'none' } }
+      : { scene: 'strip', width, height, attrs: { season, state: 'nocast' } },
+  );
   const key = JSON.stringify(critters);
   const layers = useMemo(() => {
+    if (night) return [];
     return placeCritters(critters, width, height).flatMap((p, i) =>
       critterLayers(store.art, p.kind, p.look, {
         size: p.size,
@@ -131,7 +146,7 @@ export function FarmHeaderArt({
       })),
     );
     // The layers are keyed by the critters' looks and places.
-  }, [store, key, width, height]);
+  }, [store, key, width, height, night]);
   const squash = useSharedValue(0);
   useAnimatedReaction(
     () => collapsed.get() >= 1,

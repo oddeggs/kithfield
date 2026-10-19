@@ -215,7 +215,9 @@ export function MicButton({ voice }: { readonly voice: VoiceRecorder }) {
             width: 44,
             height: 44,
             borderRadius: 22,
-            backgroundColor: palette.primary.bg,
+            // Ink by day, moonlight by night (`12 States`, the chat at night): never the honey of
+            // a primary button, which would call louder than sending.
+            backgroundColor: palette.text,
             alignItems: 'center',
             justifyContent: 'center',
           },

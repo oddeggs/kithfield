@@ -248,6 +248,7 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
               width={screenW}
               height={size.full}
               collapsed={collapsed}
+              night={palette.appearance === 'night'}
             />
           )}
         </HeaderArtFrame>
