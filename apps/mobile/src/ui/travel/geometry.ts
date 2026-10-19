@@ -48,13 +48,10 @@ export function defaultArc(from: Point, to: Point): number {
  * down onto `to`. A negative `arc` dips below the lower end instead. With `loop` (0 to 1) its
  * inner points cross, so it runs on ahead, swings back and comes round again: a loop on its way.
  */
-export function arcPath(
-  from: Point,
-  to: Point,
-  arc: number = defaultArc(from, to),
-  loop = 0,
-): Path {
+export function arcPath(from: Point, to: Point, arcOrDefault?: number, loop = 0): Path {
   'worklet';
+  // Defaulted in the body: a worklet doesn't carry what its parameters' defaults call.
+  const arc = arcOrDefault ?? defaultArc(from, to);
   const dx = to.x - from.x;
   // A cubic whose two inner points share a height peaks three quarters of the way to them.
   const top = arc >= 0 ? Math.min(from.y, to.y) - arc : Math.max(from.y, to.y) - arc;
@@ -153,9 +150,10 @@ export function retargetPath(
   velocity: Point,
   to: Point,
   seconds: number,
-  arc: number = defaultArc(at, to) / 2,
+  arcOrDefault?: number,
 ): { readonly path: Path; readonly rate: number } {
   'worklet';
+  const arc = arcOrDefault ?? defaultArc(at, to) / 2;
   const speed = Math.hypot(velocity.x, velocity.y);
   // The first inner point lies along the way it moves; the path leaves at 3× that distance per
   // unit of progress, so the starting rate turns that back into the speed it had.
