@@ -1,0 +1,37 @@
+Kithfield Hand — FONTLOG
+
+Kithfield Hand is a modified version of Gaegu Bold (Copyright 2018 The Gaegu
+Project Authors, JIKJI SOFT), released under the SIL Open Font License 1.1
+(see OFL.txt). Renamed as the licence asks for modified versions.
+
+1.002 (2026-10-19)
+- Made the marks consistent: every mark is now solved to a shared stroke
+  weight (lowercase and capitals each have one) and matching widths, so
+  the breve, circumflex and tilde are the same size and weight, and tones
+  no longer vary between heavy and hairline.
+- Grave now sits to the right of the circumflex, like acute and hook.
+- Hook above is heavier, with its curl kept open.
+
+1.001 (2026-10-19)
+- Redrew the horn (ơ ư Ơ Ư): a thickened, curved stroke growing from the
+  shoulder, replacing the rotated comma. ơ/ư are now bases with their own
+  tone position, so tone marks clear the horn.
+- Tilde is now the same stroke weight as the letters.
+
+1.000 (2026-10-19) — OddEggs (Vit Lon Studio)
+- Added all 134 Vietnamese letters (upper and lower case) as composites.
+- Added combining marks U+0300 U+0301 U+0302 U+0303 U+0306 U+0309 U+031B
+  U+0323, with capital (.case) variants and stacked circumflex/breve + tone
+  combinations.
+- Marks were derived from Gaegu's own glyphs so they share its hand:
+  acute/grave from the apostrophe, circumflex from ^, tilde from ~, hook above
+  from the hook of ?, dot below from the period, breve from (, horn from the
+  comma, the Đ/đ bar from the hyphen. Middle dot (U+00B7) from the period.
+- Added dotless i (U+0131).
+- OpenType: ccmp (dotless i, Vietnamese mark stacking, capital marks),
+  mark and mkmk positioning so decomposed (NFD) text renders the same as
+  precomposed. Existing fwid feature kept unchanged.
+- Vertical metrics unchanged from Gaegu Bold; every Vietnamese letter fits
+  inside the line box (tallest: Ẳ at 751 of 760).
+- All original Gaegu glyphs, including Hangul, are unchanged.
+- New glyphs are unhinted.
