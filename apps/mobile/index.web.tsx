@@ -6,7 +6,9 @@
 import '@expo/metro-runtime';
 import { LoadSkiaWeb } from '@shopify/react-native-skia/lib/module/web';
 import { renderRootComponent } from 'expo-router/build/renderRootComponent';
+import { day, night } from '@kithfield/theme';
 import { useEffect, useState, type ComponentType } from 'react';
+import { View } from 'react-native';
 
 import { webAsset } from './src/web/base-url';
 import type { loadWebFonts } from './src/web/fonts';
@@ -29,7 +31,10 @@ function Root() {
         setApp(() => entry.App);
       });
   }, []);
-  return App ? <App /> : null;
+  if (App) return <App />;
+  // The paper (or the night sky) while CanvasKit and the fonts load, never a white page.
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return <View style={{ flex: 1, backgroundColor: dark ? night.sky : day.paper }} />;
 }
 
 renderRootComponent(Root);
