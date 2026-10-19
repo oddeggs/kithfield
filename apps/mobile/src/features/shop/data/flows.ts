@@ -9,6 +9,7 @@ import {
   type StoreProductId,
 } from '@kithfield/contracts';
 import { useCallback, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { ApiError } from '../../../data';
 import { useDataClient } from '../../../data/react';
@@ -19,6 +20,10 @@ import { payGate } from '../chip/pay-gate';
 import { leaveGift, type PendingGift } from './pending-gifts';
 import { dropPendingGift, keepPendingGift } from './pending-gifts-store';
 import { useShop } from './shop-data';
+
+/** The store this phone buys through, by name: the App Store, or Google Play on Android. */
+const STORE_UNAVAILABLE =
+  Platform.OS === 'android' ? 'android.store.unavailable' : 'shop.store.unavailable';
 
 /*
  * The shop's flows from tap to done: keeping an item, giving one, chipping in and becoming a
@@ -41,7 +46,7 @@ function useStoreNotice(): (result: BuyResult) => void {
   const { t } = useLocale();
   return useCallback(
     (result: BuyResult) => {
-      if (result.kind === 'unavailable') toast.show(t('shop.store.unavailable'));
+      if (result.kind === 'unavailable') toast.show(t(STORE_UNAVAILABLE));
       else if (result.kind === 'pending') toast.show(t('shop.store.waiting'));
       else if (result.kind === 'failed') toast.show(t('shop.failed'));
     },
@@ -321,7 +326,7 @@ export function useRestore(): () => Promise<void> {
   return useCallback(async () => {
     const reached = await shop.store.restore();
     if (!reached) {
-      toast.show(t('shop.store.unavailable'));
+      toast.show(t(STORE_UNAVAILABLE));
       return;
     }
     try {

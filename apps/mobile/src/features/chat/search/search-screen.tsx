@@ -2,10 +2,11 @@ import type { FarmState, MediaRef, PersonId } from '@kithfield/contracts';
 import { fontFor } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActionSheetIOS, ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, TextInput, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { showChoices } from '../../../../modules/android-system';
 import { useCottage } from '../../../data';
 import { ArtIcon, ArtStill } from '../../../ui/art/art-view';
 import { Avatar } from '../../../ui/art/avatar';
@@ -135,7 +136,7 @@ function Tile({
 
 /** Search: messages, photos, links and voice notes, by person and farm and an empty state when nothing matches. */
 export function SearchScreen({ farm: start }: { readonly farm: string | null }) {
-  const { palette } = useTheme();
+  const { palette, appearance } = useTheme();
   const colours = useChatColours();
   const { t, language, fontLocale } = useLocale();
   const insets = useSafeAreaInsets();
@@ -199,11 +200,12 @@ export function SearchScreen({ farm: start }: { readonly farm: string | null }) 
       t('chat.search.fromAnyone'),
       ...people.map((m) => (m.person === me.person ? t('chat.you') : (m.name ?? ''))),
     ];
-    ActionSheetIOS.showActionSheetWithOptions(
+    showChoices(
       {
         title: t('chat.search.pickPerson'),
         options: [...options, t('chat.search.cancel')],
         cancelButtonIndex: options.length,
+        dark: appearance === 'night',
       },
       (i) => {
         if (i === 0) setPerson(null);
@@ -213,11 +215,12 @@ export function SearchScreen({ farm: start }: { readonly farm: string | null }) 
   };
   const pickFarm = () => {
     const options = [t('chat.search.allFarms'), ...chats.map((c) => titleOf(c.farm))];
-    ActionSheetIOS.showActionSheetWithOptions(
+    showChoices(
       {
         title: t('chat.search.pickFarm'),
         options: [...options, t('chat.search.cancel')],
         cancelButtonIndex: options.length,
+        dark: appearance === 'night',
       },
       (i) => {
         if (i === 0) setWhere(ALL);

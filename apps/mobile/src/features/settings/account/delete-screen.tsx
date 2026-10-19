@@ -3,7 +3,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArtIcon, ArtStill } from '../../../ui/art/art-view';
@@ -122,7 +122,7 @@ export function DeleteAccountScreen() {
   const items = [
     ['trash', 'settings.delete.critter'],
     ['door', 'settings.delete.cottages'],
-    ['lock', 'settings.delete.purchases'],
+    ['lock', Platform.OS === 'android' ? 'android.delete.purchases' : 'settings.delete.purchases'],
     ['clock', anonymous ? 'settings.delete.waitAnonymous' : 'settings.delete.wait'],
   ] as const;
   const exportLine = preparing
@@ -181,7 +181,11 @@ export function DeleteAccountScreen() {
         }}
       >
         <KText kind="note" align="center" color={palette.secondary}>
-          {face ? t('settings.delete.faceId') : t('settings.delete.passcode')}
+          {Platform.OS === 'android'
+            ? t('android.delete.biometric')
+            : face
+              ? t('settings.delete.faceId')
+              : t('settings.delete.passcode')}
         </KText>
         <Button
           label={t('settings.delete.confirm')}

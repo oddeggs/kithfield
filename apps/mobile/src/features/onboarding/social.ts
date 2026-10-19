@@ -1,6 +1,7 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { z } from 'zod';
 
 import type { ApiClient } from '../../data';
@@ -63,6 +64,27 @@ const google = {
   tokenEndpoint: 'https://oauth2.googleapis.com/token',
 } as const;
 
+interface GoogleExtra {
+  readonly googleIosClientId: string;
+  readonly googleAndroidClientId?: string;
+}
+
+/**
+ * This platform's Google OAuth client: the iOS one, or on Android the Android one (package name and
+ * signing SHA-1), which may not exist yet. Null means Google sign-in isn't offered here.
+ */
+export function googleClient(): { id: string; redirectUri: string } | null {
+  const extra = Constants.expoConfig?.extra as GoogleExtra | undefined;
+  if (Platform.OS === 'android') {
+    const id = extra?.googleAndroidClientId;
+    const pkg = Constants.expoConfig?.android?.package;
+    // An Android client returns to the app's package name, a scheme the app claims.
+    return id && pkg ? { id, redirectUri: `${pkg}:/oauthredirect` } : null;
+  }
+  const id = extra?.googleIosClientId;
+  return id ? { id, redirectUri: googleRedirect(id) } : null;
+}
+
 /** Google sends its sheet back to the client id's reversed form, a scheme the app claims. */
 export function googleRedirect(clientId: string): string {
   const id = clientId.replace(/\.apps\.googleusercontent\.com$/, '');
@@ -88,8 +110,9 @@ export function givenNameIn(idToken: string): string | null {
  * server's raw nonce, which Google puts in the ID token the code is exchanged for.
  */
 export async function googleSheet(nonce: string): Promise<SheetAnswer> {
-  const clientId = (Constants.expoConfig?.extra as { googleIosClientId: string }).googleIosClientId;
-  const redirectUri = googleRedirect(clientId);
+  const client = googleClient();
+  if (client === null) throw new Error('No Google client on this platform');
+  const { id: clientId, redirectUri } = client;
   const request = new AuthSession.AuthRequest({
     clientId,
     redirectUri,

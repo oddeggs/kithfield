@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { Platform, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '../../ui/components/button';
 import { useLocale } from '../../ui/locale/locale-provider';
@@ -104,7 +104,7 @@ export function AskScreen({
           color={palette.secondary}
           style={{ fontSize: 13, lineHeight: 18.2, marginBottom: 2 }}
         >
-          {t('onboarding.ask.next')}
+          {t(Platform.OS === 'android' ? 'android.ask.next' : 'onboarding.ask.next')}
         </Txt>
       ) : null}
       <Button label={yes} onPress={() => void yesPressed()} disabled={busy} />

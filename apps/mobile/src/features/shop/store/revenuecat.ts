@@ -9,11 +9,20 @@ import Purchases, {
 
 import { isSubscription, noStore, type BuyResult, type Store } from './store';
 
-/** The variant's public RevenueCat key, from `REVENUECAT_IOS_KEY` when Metro started. */
+/**
+ * The variant's public RevenueCat key for this platform's store: `REVENUECAT_IOS_KEY` for the App
+ * Store, `REVENUECAT_ANDROID_KEY` for Google Play, as Metro started.
+ */
 const sdkKey = (): string | null => {
-  const extra = Constants.expoConfig?.extra as { revenueCatIosKey?: unknown } | undefined;
-  const key = extra?.revenueCatIosKey;
-  return Platform.OS === 'ios' && typeof key === 'string' && key !== '' ? key : null;
+  const extra = Constants.expoConfig?.extra as
+    { revenueCatIosKey?: unknown; revenueCatAndroidKey?: unknown } | undefined;
+  const key =
+    Platform.OS === 'ios'
+      ? extra?.revenueCatIosKey
+      : Platform.OS === 'android'
+        ? extra?.revenueCatAndroidKey
+        : undefined;
+  return typeof key === 'string' && key !== '' ? key : null;
 };
 
 const errorCode = (error: unknown): string | null =>

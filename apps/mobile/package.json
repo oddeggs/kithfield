@@ -70,6 +70,7 @@
     "livekit-client": "catalog:",
     "react": "catalog:",
     "react-native": "catalog:",
+    "react-native-android-widget": "catalog:",
     "react-native-gesture-handler": "catalog:",
     "react-native-keyboard-controller": "catalog:",
     "react-native-purchases": "catalog:",

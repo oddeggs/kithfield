@@ -99,7 +99,10 @@ describe('app variants', () => {
       expect(config.ios?.usesAppleSignIn).toBe(true);
       expect(config.plugins).toContainEqual([
         'expo-notifications',
-        { enableRemoteNotifications: true, enableBackgroundRemoteNotifications: true },
+        expect.objectContaining({
+          enableRemoteNotifications: true,
+          enableBackgroundRemoteNotifications: true,
+        }),
       ]);
     }
   });
