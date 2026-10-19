@@ -190,7 +190,10 @@ export function useGiveGift(farm: FarmId): {
           toast.show(t('shop.store.waiting'));
           return 'stopped';
         }
-        const left = await leaveGift(pending, { send: client.send, atGate: shop.api.atGate });
+        const left = await leaveGift(pending, {
+          send: (...args) => client.send(...args),
+          atGate: shop.api.atGate,
+        });
         if (!left) {
           toast.show(t('shop.gift.cant'));
           return 'unavailable';
