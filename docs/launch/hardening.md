@@ -34,7 +34,7 @@ Reviewed on 19 October 2026 against `integrate/core` with the fixes on `feat/har
 | Medium | `GET /api/auth/list-sessions` returned the raw bearer token of every session (a fresh desktop session could copy the phone's 365-day token); Better Auth's revoke endpoints bypassed Kithfield's device cleanup | `fix(api): stop serving Better Auth's session list, which hands out every session's token` |
 | Medium | A phone signing itself out left its device's action key working, its push token registered and its sockets open, and dropped it from the device list | `fix(api): end a phone's device when it signs itself out` |
 | Medium | A visitor could reuse any op id the visited farm had answered (a gate gesture) to write a one-sided `traded` event, skipping the 90-day limit | `fix(api): finish a retried trade only from the trade its op id wrote` |
-| Medium | Farm and cottage socket upgrades had no limit and no session, so anyone could create Durable Objects and hold sockets | `fix(api): limit farm and cottage socket upgrades per client address` (120 a minute per address, an IPv6 /64 as one) |
+| Medium | Farm and cottage socket upgrades had no limit and no session, so anyone could create Durable Objects and hold sockets | `fix(api): limit farm and cottage socket upgrades per client address` (600 a minute per address, an IPv6 /64 as one, so phones behind a carrier NAT still reconnect) |
 | Medium | No body-size limit: bodies were read whole before any schema check, including unauthenticated routes and webhooks | `fix(api): refuse request bodies over 256 KB before any route reads them` (the dev upload proxy and caption audio check their own length) |
 | Medium | Safety-held originals (kept 180 days for an appeal) survived the author's purge | `fix(api): drop what a safety removal held back when its author's account is purged` |
 | Medium | RevenueCat kept the customer and its purchase history after deletion | `fix(api): delete the person's RevenueCat customer when their account is purged` |
@@ -137,7 +137,7 @@ the invite preview, keepsakes download links (HMAC, 15 minutes), and the webhook
 | Reports and appeals | `REPORT_LIMIT` | person | 10/min each |
 | Gate gestures; gate list | `GATE_LIMIT`; `GATES_LIMIT` | person | 10/min; 30/min |
 | Shop writes | `SHOP_LIMIT` | person | 10/min |
-| Farm and cottage sockets | `SOCKET_LIMIT` (new) | IP /64 | 120/min |
+| Farm and cottage sockets | `SOCKET_LIMIT` (new) | IP /64 | 600/min |
 | Farm commands (socket and HTTP) | none (§2.2) | | |
 
 RateLimit bindings count per Cloudflare location and are eventually consistent, so a spread-out
