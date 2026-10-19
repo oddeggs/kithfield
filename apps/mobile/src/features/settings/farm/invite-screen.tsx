@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Share, View, useWindowDimensions } from 'react-native';
 
 import { ArtIcon, ArtStill } from '../../../ui/art/art-view';
+import { sceneLook } from '../../../ui/art/critter-look';
 import { useToast } from '../../../ui/components/toast';
 import { Toggle } from '../../../ui/components/toggle';
 import { useLocale } from '../../../ui/locale/locale-provider';
@@ -30,7 +31,7 @@ export function InviteScreen({ farm }: { readonly farm: FarmId }) {
   const toast = useToast();
   const api = useSettingsApi();
   const { width } = useWindowDimensions();
-  const { state, isKeeper, write } = useFarmSettings(farm);
+  const { state, me, isKeeper, write } = useFarmSettings(farm);
   const current = useRemote(() => api.currentInvite(farm), farm);
   const [made, setMade] = useState<Invite | null>(null);
   // A link made here counts as the answer; otherwise wait for the current one before saying none.
@@ -99,7 +100,10 @@ export function InviteScreen({ farm }: { readonly farm: FarmId }) {
                 scene="invite"
                 width={cardWidth}
                 height={150}
-                attrs={{ season: state?.season.season ?? 'spring' }}
+                attrs={{
+                  ...(me ? sceneLook(me.critter) : {}),
+                  season: state?.season.season ?? 'spring',
+                }}
                 t={STILL_T}
               />
             </View>

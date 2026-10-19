@@ -19,7 +19,7 @@ import { useTheme } from '../../../ui/theme/theme-provider';
 import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
 import { hemisphereOf } from '../calendar';
-import { critterOf, lookOf } from '../critters';
+import { critterOf, lookAttrs, lookOf } from '../critters';
 import { routes } from '../flow';
 import { plantFirstFarm } from '../move-in';
 import { useProgress } from '../progress';
@@ -62,11 +62,13 @@ export function PlantScreen() {
   const { palette } = useTheme();
   const { width, height: screenHeight } = useWindowDimensions();
   const top = useDesignTop();
-  const scene = useSceneAttrs();
+  const sceneAttrs = useSceneAttrs();
   const ax = useAccessibilitySize();
   const toast = useToast();
   const progress = useProgress();
   const { state, update } = useFlow();
+  // The meadow waits with the critter just picked.
+  const scene = { ...sceneAttrs, ...lookAttrs(state.choice) };
   const [farmName, setFarmName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
