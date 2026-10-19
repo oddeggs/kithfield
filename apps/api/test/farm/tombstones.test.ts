@@ -36,6 +36,21 @@ const eventAt = async (stub: Stub, seq: number) =>
 const tail = async (stub: Stub, count: number) =>
   (await pageOf(stub, { limit: count })).events.map((e) => FarmEvent.parse(e));
 
+describe('a deleted account and what safety held back', () => {
+  it('drops the held original and its media, so nothing of theirs waits for an appeal', async () => {
+    const { pip, fig } = await cast('pip', 'fig');
+    const { farm, stub } = await plantFarm(pip, [fig]);
+    const pic = await photo(farm, 'cccc');
+    await stub.command(fig.id, { opId: op(1), ...pic, kind: 'media' });
+    expect(await stub.removeEvent(4, 3)).toMatchObject({ ok: true });
+    expect(await env.MEDIA.head(pic.key)).not.toBeNull();
+    await stub.deleteAccount(fig.id);
+    expect(await hostOf(stub, (host) => host.store.release(4))).toBeUndefined();
+    expect(await env.MEDIA.head(pic.key)).toBeNull();
+    expect(await stub.restoreEvent(4)).toMatchObject({ ok: false });
+  });
+});
+
 describe('unsend', () => {
   it('turns the target into a tombstone that keeps its facts, with its edits and media', async () => {
     const { pip, fig } = await cast('pip', 'fig');
