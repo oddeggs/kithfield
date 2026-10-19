@@ -18,7 +18,11 @@ const handleWidget: WidgetTaskHandler = async ({
   if (widgetAction === 'WIDGET_DELETED') return;
   if (widgetAction === 'WIDGET_CLICK' && clickAction === 'DEWDROP') {
     const farm = FarmId.safeParse(clickActionData?.['farm']);
-    if (farm.success && (await sendDewdrop(farm.data))) markDewdropLeft(farm.data);
+    if (farm.success) {
+      // The phone's keystore can refuse the session (a restored backup): the widget still redraws.
+      const left = await sendDewdrop(farm.data).catch(() => false);
+      if (left) markDewdropLeft(farm.data);
+    }
   }
   draw(renderWidget(widgetInfo));
 };
