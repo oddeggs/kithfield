@@ -130,8 +130,30 @@ struct SmallFarm: View {
   }
 
   private var title: String {
-    if let fire = farm.fire { return copy.list(fire.people.prefix(2).compactMap(\.name)) }
+    if let fire = farm.fire {
+      let names = FireNames.of(fire, copy: copy)
+      return names.isEmpty ? copy.text("widget.fireLitTitle") : copy.list(names)
+    }
     return farm.nextPlan?.title ?? copy.text("widget.noPlan")
+  }
+}
+
+/// Who is by the fire, as the widgets name them: the first two, friends by name and the phone's
+/// own person as "you" (the app lists them last).
+enum FireNames {
+  static func of(_ fire: SurfaceFarm.Fire, copy: SurfaceCopy) -> [String] {
+    let me = SurfaceData.me()
+    return Array(fire.people.compactMap { $0.person == me ? copy.text("you") : $0.name }.prefix(2))
+  }
+
+  /// "Pip and Bea are by the fire", "You're by the fire", or the fire alone when nobody is known.
+  static func line(_ fire: SurfaceFarm.Fire, copy: SurfaceCopy) -> String {
+    let names = of(fire, copy: copy)
+    if names.isEmpty { return copy.text("widget.fireLitTitle") }
+    if fire.people.count == 1, fire.people.first?.person == SurfaceData.me() {
+      return copy.text("widget.youByTheFire")
+    }
+    return copy.people("widget.byTheFire", names)
   }
 }
 
@@ -210,8 +232,7 @@ struct MediumFarm: View {
 
   private var lines: (String, String?) {
     if let fire = farm.fire {
-      let names = fire.people.compactMap(\.name)
-      return (copy.people("widget.byTheFire", Array(names.prefix(2))), copy.text("widget.comeSit"))
+      return (FireNames.line(fire, copy: copy), copy.text("widget.comeSit"))
     }
     return upAndAsleep(farm, now: now, copy: copy)
   }
@@ -238,7 +259,7 @@ struct LargeFarm: View {
         VStack(alignment: .leading, spacing: 8) {
           Caption(lines: upAndAsleep(farm, now: now, copy: copy))
           if let fire = farm.fire {
-            Text(copy.people("widget.byTheFire", Array(fire.people.compactMap(\.name).prefix(2))))
+            Text(FireNames.line(fire, copy: copy))
               .font(.system(size: 12))
               .foregroundStyle(SurfacePalette.honey)
           } else if let plan = farm.nextPlan {

@@ -36,6 +36,8 @@ export interface FarmSource {
   readonly state: FarmState | null;
   /** The newest cached events, oldest first. */
   readonly events: readonly CachedEvent[];
+  /** Who is by the fire now as far as the phone knows (`fireNow`); null when it can't know. */
+  readonly fire: readonly PersonId[] | null;
 }
 
 export interface SurfaceInput {
@@ -61,30 +63,53 @@ function seasonFor(state: FarmState | null, now: number): SeasonRef {
   return state?.season ?? seasonOf(localDay(now, 'UTC'), 'north');
 }
 
-/** Who sat down by the fire since it was lit: the people of its `lit` and `sat` events. */
+/**
+ * Who is by the fire now, from the farm's presence (`fire`): its members in the order they sat,
+ * friends first and the person themselves last (the widget calls them "you"). Someone who sat down
+ * and went home is never named. Nobody is named when the phone doesn't know (`fire` null). Null
+ * while the fire is out.
+ */
 export function firePeople(
   state: FarmState,
-  events: readonly CachedEvent[],
+  fire: readonly PersonId[] | null,
+  me: PersonId,
 ): SurfacePerson[] | null {
-  const litAt = state.fireLitAt;
-  if (litAt === null) return null;
-  const seen = new Set<string>();
+  if (state.fireLitAt === null) return null;
   const people: SurfacePerson[] = [];
-  for (const event of events) {
-    if (event.kind !== 'fire' || event.at < litAt || event.actor === null) continue;
-    const fire = (event.payload as { state?: string } | null)?.state;
-    if (fire === 'out') {
-      people.length = 0;
-      seen.clear();
-      continue;
-    }
-    if (seen.has(event.actor)) continue;
-    const member = state.members.find((m) => m.person === event.actor);
+  let you: SurfacePerson | null = null;
+  for (const id of new Set((fire ?? []).map((p) => state.aliases[p] ?? p))) {
+    const member = state.members.find((m) => m.person === id);
     if (!member) continue;
-    seen.add(event.actor);
-    people.push(person(member.person, member.name));
+    if (member.person === me) you = person(member.person, member.name);
+    else people.push(person(member.person, member.name));
   }
+  if (you) people.push(you);
   return people.slice(0, LIMITS.fireVoices);
+}
+
+/** Who the phone last saw by a farm's fire while its socket was open, and which fire it was. */
+export interface SeenFire {
+  readonly litAt: number;
+  readonly people: readonly PersonId[];
+}
+
+/** What is remembered of a farm's fire after a presence frame: nothing once it is out. */
+export function fireSeen(litAt: number | null, people: readonly PersonId[]): SeenFire | undefined {
+  return litAt === null ? undefined : { litAt, people };
+}
+
+/**
+ * Who is by the fire as far as the phone knows: the presence frame's list while the farm's
+ * socket is open (`live`), else what it last saw by this same fire. Null when it can't know.
+ */
+export function fireNow(
+  seen: SeenFire | undefined,
+  litAt: number | null,
+  live: readonly PersonId[] | null,
+): readonly PersonId[] | null {
+  if (litAt === null) return null;
+  if (live !== null) return live;
+  return seen !== undefined && seen.litAt === litAt ? seen.people : null;
 }
 
 /** The next sprouted plan on or after today (farm time): its day, start and place. */
@@ -111,7 +136,7 @@ export function nextPlan(state: FarmState, now: number): SurfaceFarm['nextPlan']
 }
 
 export function surfaceFarm(source: FarmSource, input: SurfaceInput): SurfaceFarm {
-  const { row, state, events } = source;
+  const { row, state, events, fire: byTheFire } = source;
   const visit = row.kind === 'visit';
   const link = surfaceLink(input.scheme, { to: 'farm', farm: row.farm });
   const members = state?.members ?? [];
@@ -138,7 +163,10 @@ export function surfaceFarm(source: FarmSource, input: SurfaceInput): SurfaceFar
     season: seasonFor(state, input.now),
     images: { day: imageNames.farmDay(row.farm), night: imageNames.farmNight(row.farm) },
     critters: critters.slice(0, LIMITS.members),
-    fire: state && fire !== null ? { litAt: fire, people: firePeople(state, events) ?? [] } : null,
+    fire:
+      state && fire !== null
+        ? { litAt: fire, people: firePeople(state, byTheFire, input.me) ?? [] }
+        : null,
     nextPlan: state ? nextPlan(state, input.now) : null,
     knocks: [],
     weather: null,

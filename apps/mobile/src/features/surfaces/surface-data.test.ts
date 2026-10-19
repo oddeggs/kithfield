@@ -1,11 +1,19 @@
 import { describe, expect, it } from '@jest/globals';
-import { FarmState, SurfaceData } from '@kithfield/contracts';
+import { FarmState, SurfaceData, type PersonId } from '@kithfield/contracts';
 
 import { at, bea, farm, fig, pip } from '../../../../../packages/contracts/src/samples.test-data';
 import { farmState } from '../../../../../packages/contracts/src/state-samples.test-data';
 import { targetOf } from './links';
 import { tag } from './names';
-import { firePeople, nextPlan, surfaceData, type CachedEvent, type FarmRow } from './surface-data';
+import {
+  fireNow,
+  firePeople,
+  fireSeen,
+  nextPlan,
+  surfaceData,
+  type CachedEvent,
+  type FarmRow,
+} from './surface-data';
 
 const state = FarmState.parse(farmState);
 
@@ -29,8 +37,15 @@ const visit: FarmRow = {
   joinedAt: at - 86_400_000,
 };
 
-const input = (farms: { row: FarmRow; state: FarmState | null; events?: CachedEvent[] }[]) => ({
-  farms: farms.map((f) => ({ ...f, events: f.events ?? [] })),
+const input = (
+  farms: {
+    row: FarmRow;
+    state: FarmState | null;
+    events?: CachedEvent[];
+    fire?: readonly PersonId[] | null;
+  }[],
+) => ({
+  farms: farms.map((f) => ({ ...f, events: f.events ?? [], fire: f.fire ?? null })),
   me: bea,
   lang: 'en' as const,
   scheme: 'kithfield-dev',
@@ -85,25 +100,28 @@ describe('the surfaces’ data', () => {
     expect(nextPlan(sprouted, Date.UTC(2026, 9, 26))).toBeNull();
   });
 
-  it('puts by the fire whoever lit it or sat down since, until it goes out', () => {
+  it('names who is by the fire now, from the farm’s presence, friends first and you last', () => {
     const lit = { ...state, fireLitAt: at - 60_000 };
-    const fire = (actor: string, s: string, when: number): CachedEvent => ({
-      at: when,
-      actor,
-      kind: 'fire',
-      payload: { state: s },
-    });
-    const events = [
-      fire(fig, 'sat', at - 120_000),
-      fire(pip, 'lit', at - 60_000),
-      fire(bea, 'sat', at - 30_000),
-      fire(pip, 'sat', at - 20_000),
-    ];
-    expect(firePeople(lit, events)?.map((p) => p.person)).toEqual([pip, bea]);
-    expect(firePeople(state, events)).toBeNull();
-    const [surface] = surfaceData(input([{ row, state: lit, events }])).farms;
+    expect(firePeople(lit, [bea, pip], bea)?.map((p) => p.person)).toEqual([pip, bea]);
+    // Pip sat down and went home: only who is there now is named.
+    expect(firePeople(lit, [fig], bea)?.map((p) => p.person)).toEqual([fig]);
+    expect(firePeople(lit, ['p_stranger'], bea)).toEqual([]);
+    // Not known (the farm's socket isn't open and this fire was never seen): nobody is named.
+    expect(firePeople(lit, null, bea)).toEqual([]);
+    expect(firePeople(state, [pip], bea)).toBeNull();
+    const [surface] = surfaceData(input([{ row, state: lit, fire: [bea, fig] }])).farms;
     expect(surface?.fire).toEqual({ litAt: at - 60_000, people: expect.any(Array) });
-    expect(surface?.fire?.people.map((p) => p.name)).toEqual(['pip', 'bea']);
+    expect(surface?.fire?.people.map((p) => p.person)).toEqual([fig, bea]);
+  });
+
+  it('keeps who it last saw by the same fire while the farm’s socket is closed', () => {
+    const seen = fireSeen(at - 60_000, [pip, bea]);
+    expect(fireNow(seen, at - 60_000, null)).toEqual([pip, bea]);
+    expect(fireNow(seen, at - 60_000, [bea])).toEqual([bea]);
+    // A fire lit again later is a new fire: what was seen by the last one doesn't carry over.
+    expect(fireNow(seen, at - 5_000, null)).toBeNull();
+    expect(fireNow(seen, null, null)).toBeNull();
+    expect(fireSeen(null, [])).toBeUndefined();
   });
 
   it('takes the season from the farm, or the phone’s clock before it has synced', () => {

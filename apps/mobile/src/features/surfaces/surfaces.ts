@@ -20,7 +20,14 @@ import { readResponse, responseOpId } from './notification-actions';
 import { planDayActivities, planDayChanges, type PlanDayInput } from './plan-day';
 import { writeImages } from './render';
 import { drainShares, type ShareSender } from './share-outbox';
-import { surfaceData, type FarmRow, type FarmSource } from './surface-data';
+import {
+  fireNow,
+  fireSeen,
+  surfaceData,
+  type FarmRow,
+  type FarmSource,
+  type SeenFire,
+} from './surface-data';
 
 /*
  * Keeps the native surfaces in step with the farms: writes `SurfaceData` and its images into the
@@ -62,6 +69,31 @@ export function createSurfaces(deps: SurfacesDeps) {
   let again = false;
   let stopped = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  /** Who was last seen by each farm's fire, and the presence each farm is watched through. */
+  const seen = new Map<FarmId, SeenFire>();
+  const watching = new Map<FarmId, () => void>();
+
+  /** The farm's socket is open: its presence frame says who is by the fire now. */
+  const connected = (farm: FarmId) => {
+    const status = deps.client.link(farm).status;
+    return status === 'live' || status === 'catching_up';
+  };
+
+  /** Rewrites the widgets at once whenever someone sits down by a farm's fire or leaves it. */
+  function watch(farm: FarmId, replica: Awaited<ReturnType<DataClient['replica']>>): void {
+    if (watching.has(farm)) return;
+    let last = replica.presence.getState().fire.join();
+    watching.set(
+      farm,
+      replica.presence.subscribe(() => {
+        const fire = replica.presence.getState().fire;
+        // A closing socket clears presence; that says nothing about the fire.
+        if (!connected(farm) || fire.join() === last) return;
+        last = fire.join();
+        void refresh({ force: true });
+      }),
+    );
+  }
 
   async function farmRows(fresh: boolean): Promise<readonly FarmRow[]> {
     if (!fresh && rows !== null && now() - rows.at < LIST_MS) return rows.rows;
@@ -79,7 +111,15 @@ export function createSurfaces(deps: SurfacesDeps) {
         }
         const replica = await deps.client.replica(row.farm);
         const events = await deps.client.events(row.farm, { limit: EVENTS });
-        return { row, state: replica.getState().state, events };
+        const state = replica.getState().state;
+        watch(row.farm, replica);
+        const litAt = state?.fireLitAt ?? null;
+        const live = connected(row.farm) ? replica.presence.getState().fire : null;
+        const fire = fireNow(seen.get(row.farm), litAt, live);
+        const known = live === null ? seen.get(row.farm) : fireSeen(litAt, live);
+        if (known === undefined || litAt === null) seen.delete(row.farm);
+        else seen.set(row.farm, known);
+        return { row, state, events, fire };
       }),
     );
   }
@@ -214,6 +254,8 @@ export function createSurfaces(deps: SurfacesDeps) {
     stop() {
       stopped = true;
       clearTimeout(timer);
+      for (const unsubscribe of watching.values()) unsubscribe();
+      watching.clear();
     },
   };
 }
