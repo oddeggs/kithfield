@@ -1,5 +1,5 @@
-import { ChatListScreen } from '../../../features/chat/list/chat-list-screen';
+import { ChatHome as Home } from '../../../features/chat/list/chat-home';
 
 export default function ChatHome() {
-  return <ChatListScreen />;
+  return <Home />;
 }

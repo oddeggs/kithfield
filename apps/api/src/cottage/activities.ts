@@ -12,6 +12,8 @@ export interface ActivityToken {
   readonly farm: string;
   readonly seed: number | null;
   readonly token: string;
+  /** The app the token is for; null when neither the token nor its device said. */
+  readonly bundleId: string | null;
 }
 
 /** Which activity, without its token: what `DELETE …/activities` names. */
@@ -22,20 +24,41 @@ export type ActivityKey =
 /** The fire has no seed; the key column holds 0 for it, as SQLite primary keys can't be null. */
 const seedColumn = (key: ActivityKey) => (key.activity === 'plan_day' ? key.seed : 0);
 
-export function setStartToken(sql: SqlStorage, device: string, token: string, now: number): void {
+/** The app a token is for: the one it names, else the one its device registered with. */
+const bundleOf = (sql: SqlStorage, device: string, named: string | undefined): string | null =>
+  named ??
+  sql
+    .exec<{ bundle_id: string | null }>('SELECT bundle_id FROM devices WHERE device = ?', device)
+    .toArray()[0]?.bundle_id ??
+  null;
+
+export function setStartToken(
+  sql: SqlStorage,
+  device: string,
+  token: string,
+  bundleId: string | undefined,
+  now: number,
+): void {
   sql.exec(
-    `INSERT INTO activity_start_tokens (device, token, at) VALUES (?, ?, ?)
-     ON CONFLICT (device) DO UPDATE SET token = excluded.token, at = excluded.at`,
+    `INSERT INTO activity_start_tokens (device, token, bundle_id, at) VALUES (?, ?, ?, ?)
+     ON CONFLICT (device) DO UPDATE SET token = excluded.token, bundle_id = excluded.bundle_id,
+       at = excluded.at`,
     device,
     token,
+    bundleOf(sql, device, bundleId),
     now,
   );
 }
 
-export function startTokens(sql: SqlStorage): { device: string; token: string }[] {
+export function startTokens(
+  sql: SqlStorage,
+): { device: string; token: string; bundleId: string | null }[] {
   return sql
-    .exec<{ device: string; token: string }>('SELECT device, token FROM activity_start_tokens')
-    .toArray();
+    .exec<{ device: string; token: string; bundle_id: string | null }>(
+      'SELECT device, token, bundle_id FROM activity_start_tokens',
+    )
+    .toArray()
+    .map(({ device, token, bundle_id }) => ({ device, token, bundleId: bundle_id }));
 }
 
 export function setActivityToken(
@@ -45,13 +68,16 @@ export function setActivityToken(
   now: number,
 ): void {
   sql.exec(
-    `INSERT INTO activity_tokens (device, activity, farm, seed, token, at) VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT (device, activity, farm, seed) DO UPDATE SET token = excluded.token, at = excluded.at`,
+    `INSERT INTO activity_tokens (device, activity, farm, seed, token, bundle_id, at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (device, activity, farm, seed) DO UPDATE SET token = excluded.token,
+       bundle_id = excluded.bundle_id, at = excluded.at`,
     device,
     request.activity,
     request.farm,
     seedColumn(request),
     request.token,
+    bundleOf(sql, device, request.bundleId),
     now,
   );
 }
@@ -71,19 +97,20 @@ export function dropActivityToken(sql: SqlStorage, device: string, key: Activity
 /** Every device's token for one activity: a plan's day on a farm, or the farm's fire. */
 export function activityTokens(sql: SqlStorage, key: ActivityKey): ActivityToken[] {
   return sql
-    .exec<{ device: string; token: string }>(
-      'SELECT device, token FROM activity_tokens WHERE activity = ? AND farm = ? AND seed = ?',
+    .exec<{ device: string; token: string; bundle_id: string | null }>(
+      'SELECT device, token, bundle_id FROM activity_tokens WHERE activity = ? AND farm = ? AND seed = ?',
       key.activity,
       key.farm,
       seedColumn(key),
     )
     .toArray()
-    .map(({ device, token }) => ({
+    .map(({ device, token, bundle_id }) => ({
       device,
       activity: key.activity,
       farm: key.farm,
       seed: key.activity === 'plan_day' ? key.seed : null,
       token,
+      bundleId: bundle_id,
     }));
 }
 

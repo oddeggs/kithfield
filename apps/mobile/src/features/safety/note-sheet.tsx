@@ -2,7 +2,7 @@ import type { SafetyNote } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence } from 'react-native-reanimated';
 
 import { ArtIcon } from '../../ui/art/art-view';
@@ -187,10 +187,34 @@ function AnsweredBody({ note }: { readonly note: Answered }) {
       <KText kind="sheetBody" multiline color={palette.creditText} style={{ lineHeight: 22.5 }}>
         {removed ? t('safety.answered.removedBody') : t('safety.answered.keptBody')}
       </KText>
-      <KText kind="card" multiline color={palette.secondary}>
-        {t('safety.answered.unsafe', { email: SAFETY_EMAIL })}
-      </KText>
+      <UnsafeLine text={t('safety.answered.unsafe', { email: SAFETY_EMAIL })} />
     </SheetPage>
+  );
+}
+
+/**
+ * "Still feel unsafe?" with the safety address as a link VoiceOver finds (and a tap writes to),
+ * drawn as the design draws it.
+ */
+function UnsafeLine({ text }: { readonly text: string }) {
+  const { palette } = useTheme();
+  const at = text.indexOf(SAFETY_EMAIL);
+  const write = () => void Linking.openURL(`mailto:${SAFETY_EMAIL}`);
+  if (at < 0) {
+    return (
+      <KText kind="card" multiline color={palette.secondary}>
+        {text}
+      </KText>
+    );
+  }
+  return (
+    <KText kind="card" multiline color={palette.secondary}>
+      {text.slice(0, at)}
+      <KText kind="card" color={palette.secondary} onPress={write} accessibilityRole="link">
+        {SAFETY_EMAIL}
+      </KText>
+      {text.slice(at + SAFETY_EMAIL.length)}
+    </KText>
   );
 }
 

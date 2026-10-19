@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { DataClient } from '../../data';
 import type { RunningActivity } from '../../../modules/surfaces';
 import { surfaces } from '../../../modules/surfaces';
-import { deviceId } from '../../ui/session/push-registration';
+import { appBundleId, deviceId } from '../../ui/session/push-registration';
 
 /*
  * Hands the server the tokens it moves Live Activities with: the device's push-to-start token
@@ -34,12 +34,14 @@ export function followActivityTokens(client: DataClient, report: (e: unknown) =>
       .catch(report);
   const subs = [
     surfaces.addListener('onPushToStartToken', ({ token }) => {
-      const body = ActivityStartTokenRequest.safeParse({ token });
+      const body = ActivityStartTokenRequest.safeParse({ token, ...appBundleId() });
       if (body.success) void send('PUT', 'activity-start', body.data);
     }),
     surfaces.addListener('onActivityToken', (event) => {
       const target = tokenTarget(event);
-      const body = target && ActivityTokenRequest.safeParse({ ...target, token: event.token });
+      const body =
+        target &&
+        ActivityTokenRequest.safeParse({ ...target, token: event.token, ...appBundleId() });
       if (body?.success) void send('PUT', 'activities', body.data);
     }),
     surfaces.addListener('onActivityEnded', (event) => {

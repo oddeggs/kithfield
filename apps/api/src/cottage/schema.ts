@@ -136,6 +136,11 @@ const ADDED_COLUMNS = [
   ['farms', 'knock_for', 'TEXT'],
   // The waiting item's short line, for Quick Tend's cards.
   ['doorstep', 'preview', 'TEXT'],
+  // The bundle id of the app on the device, and of the app each Live Activity token is for: the
+  // store app and a development build can reach the same server, each on its own APNs topic.
+  ['devices', 'bundle_id', 'TEXT'],
+  ['activity_start_tokens', 'bundle_id', 'TEXT'],
+  ['activity_tokens', 'bundle_id', 'TEXT'],
 ] as const;
 
 /** Makes the tables; `purged` also marks the cottage as its person's purged one. */

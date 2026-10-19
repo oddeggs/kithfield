@@ -13,6 +13,9 @@ export function leave(): void {
   else router.replace('/');
 }
 
+/** Where the header ends, below the safe area's top: its 44-point row starts a point above it. */
+export const HEADER_BOTTOM = 43;
+
 /**
  * The top of a sticker screen: the round back button, and the title centred over the screen.
  * `glass` is the frosted button over art; otherwise a soft ink circle on paper.

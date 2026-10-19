@@ -52,6 +52,20 @@ export const pledgesOf = async (db: D1Database, id: string) =>
       .all<Pledge>()
   ).results;
 
+/** Who paid their share, in the order they paid (then by person id, so a tie always reads the same). */
+const payersOf = async (db: D1Database, id: string) =>
+  (
+    await db
+      .prepare(
+        `SELECT p.person_id FROM pledges p
+           LEFT JOIN chip_in_payments c ON c.transaction_id = p.transaction_id
+         WHERE p.chip_in_id = ? AND p.state = 'paid'
+         ORDER BY coalesce(c.at, p.at), p.person_id`,
+      )
+      .bind(id)
+      .all<{ person_id: string }>()
+  ).results.map((p) => p.person_id);
+
 export const whatOf = (row: Row): ChipInFor => ChipInFor.parse(JSON.parse(row.what_json));
 
 export const sum = (pledges: readonly Pledge[], states: readonly PledgeState[]) =>
@@ -140,8 +154,8 @@ const opIdFor = (row: Row, what: string) => opIdFrom(row.created_at, `chip-in:${
 
 /**
  * The farm write a completed chip-in owes. The gift is written on behalf of whoever started it; if
- * they no longer live on the farm, by the next paying pledger who does (each tried once, by its own
- * op id). Settled when the farm takes it or refuses it for good; a write that failed on the way is
+ * they no longer live on the farm, by the next paying pledger who does, in the order they paid
+ * (each tried once, by its own op id). Settled when the farm takes it or refuses it for good; a write that failed on the way is
  * tried again on the next read or sweep.
  */
 export const deliver = async (env: Bindings, row: Row, now: number): Promise<void> => {
@@ -154,9 +168,7 @@ export const deliver = async (env: Bindings, row: Row, now: number): Promise<voi
       console.warn('chip-in theme left for a keeper to switch on', { reason: result.reason });
     }
   } else {
-    const paid = (await pledgesOf(db, row.id))
-      .filter((p) => p.state === 'paid')
-      .map((p) => p.person_id);
+    const paid = await payersOf(db, row.id);
     const candidates = [row.by_id, ...paid].filter(
       (p, i, all) => p !== GONE && all.indexOf(p) === i,
     );

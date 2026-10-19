@@ -1,5 +1,6 @@
 import type { DoorstepItem, FarmId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
+import { screens } from '@kithfield/theme';
 import { router, useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
@@ -22,7 +23,9 @@ import { Sheet, SheetScrollView } from '../../ui/components/sheet';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useArtVisible } from '../../ui/motion/visibility';
+import { useScreenLayout, useWindowed } from '../../ui/layout/pane';
 import { useSession } from '../../ui/session/session';
+import { useSplashHold } from '../../ui/session/splash';
 import { tabBarClearance } from '../../ui/tab-bar/tab-bar';
 import { useYouCritter } from '../../ui/tab-bar/tab-activity';
 import { useSunPlace, useTheme } from '../../ui/theme/theme-provider';
@@ -44,21 +47,22 @@ import {
   FarmLoadFailed,
   FarmReveal,
   PencilRows,
-  useFarmLoading,
   useOffline,
 } from './farm-states';
+import { useFarmLoading } from './farm-loading';
 import { JustYou } from './just-you';
+import { LargeFarmChrome, LargeFarmInvite } from './large-farm';
 import { Panel } from './panel';
 import { OfflineBanner, PostBag } from './post-bag';
 import { FarmSheetContent } from './farm-sheet';
-import { momentFor, visitBefore } from './moments';
 import { removalNote } from './removal-note';
 import { farmRoutes } from './routes';
 import { sceneHeight } from './scene-layout';
 import { useFireWay, useHarvestWay } from './scene-ways';
 import { reactionTo, SAID_MS, type FarmReaction } from './reactions';
 import { useNow } from './use-now';
-import { useFarmFlags, useValley } from './valley-store';
+import { useOpenMoments } from './use-open-moments';
+import { useValley } from './valley-store';
 
 /** The sheet overlaps the bottom of the farm by this much (the farm is drawn 540 tall, the sheet rests at 500). */
 const OVERLAP = 40;
@@ -67,7 +71,7 @@ const OVERLAP = 40;
  * The farm reacting to a friend's message while it is open (signature motion): their words pop
  * over their cottage for a moment, one burst every four seconds at most.
  */
-function useFarmReaction(farm: FarmId, me: string | null): FarmReaction | null {
+export function useFarmReaction(farm: FarmId, me: string | null): FarmReaction | null {
   const events = useFarmEvents(farm, 10);
   const focused = useIsFocused();
   const so = useRef<{ afterSeq: number; lastAt: number | null } | null>(null);
@@ -93,65 +97,6 @@ function useFarmReaction(farm: FarmId, me: string | null): FarmReaction | null {
   return said;
 }
 
-/**
- * The welcome-back and move-in moments, decided as the farm opens and again when someone new
- * moves in while it is open. Each shows once (see `moments.ts`).
- */
-function useMoments(farm: FarmId, me: string | null) {
-  const client = useDataClient();
-  const held = useFarm(farm);
-  const state = held?.state ?? null;
-  const flags = useFarmFlags(farm);
-  const latestJoin = state?.members.reduce((a, m) => Math.max(a, m.joinedAt), 0) ?? null;
-  const handled = useRef<number | null>(null);
-  const openedAt = useRef(Date.now());
-  const heldRef = useRef(held);
-  heldRef.current = held;
-  useEffect(() => {
-    const current = heldRef.current;
-    if (!current?.state || !me || latestJoin === null || handled.current === latestJoin) return;
-    const first = handled.current === null;
-    handled.current = latestJoin;
-    const farmState = current.state;
-    let live = true;
-    void (async () => {
-      const [welcomed, joins] = await Promise.all([
-        flags.read('welcomed'),
-        flags.read('joinsSeen'),
-      ]);
-      // A farm first read from the server (a fresh install) already counts this visit as the
-      // last one: the visit before it is looked up in the log instead.
-      const self = farmState.members.find((m) => m.person === me);
-      const thisVisit = openedAt.current - 60_000;
-      let lastVisit: number | null | undefined;
-      if (first && self?.lastOpenedAt != null && self.lastOpenedAt >= thisVisit) {
-        // The log's newest page, if the server answers soon; what the phone holds otherwise.
-        await Promise.race([
-          client.pageHistory(farm, current.lastSeq + 1, 200).catch(() => false),
-          new Promise((resolve) => setTimeout(resolve, 3000)),
-        ]);
-        lastVisit = visitBefore(await client.events(farm, { limit: 200 }), me, thisVisit);
-      }
-      if (!live) return;
-      const moment = momentFor(farmState, me, Date.now(), {
-        welcomed: welcomed === null ? null : Number(welcomed),
-        joinsSeen: joins === null ? null : Number(joins),
-        ...(lastVisit === undefined ? {} : { lastVisit }),
-      });
-      if (moment.kind === 'welcome') {
-        await flags.write('welcomed', String(moment.since));
-        router.push(farmRoutes.welcome(farm));
-        return;
-      }
-      if (moment.upTo !== null) await flags.write('joinsSeen', String(moment.upTo));
-      if (moment.kind === 'moveIn') router.push(farmRoutes.moveIn(farm, moment.person));
-    })();
-    return () => {
-      live = false;
-    };
-  }, [client, farm, me, latestJoin, flags]);
-}
-
 /** Where the scene is drawn for a farm with only you on it, at the design's 393 points wide. */
 const ALONE = { scene: 470, sheet: 440 } as const;
 /** Where "drawing the farm…" sits over the scene, at the design's 393 points wide. */
@@ -168,7 +113,11 @@ function FarmFor({
   const { t } = useLocale();
   const insets = useSafeAreaInsets();
   const { width, height: screen } = useWindowDimensions();
-  const height = sceneHeight(width);
+  // A large screen draws the farm across the whole window, with the chat floating at its side
+  // instead of the farm's sheet under it.
+  const large = useScreenLayout() !== 'phone';
+  const windowed = useWindowed();
+  const height = large ? screen : sceneHeight(width);
   const me = useSession().person?.id ?? null;
   const now = useNow();
   useOpenFarm(farm);
@@ -177,7 +126,14 @@ function FarmFor({
   const view = useFarmView<FarmView>(farm, now);
   const link = useFarmLink(farm);
   const offline = useOffline(link);
-  const loading = useFarmLoading(state !== null);
+  const alone = state !== null && state.members.length === 1 && state.former.length === 0;
+  // The farm is revealed once it is on the phone and drawn (a farm with only you on it draws at once).
+  const [drawn, setDrawn] = useState(false);
+  const loading = useFarmLoading(state !== null, alone || drawn);
+  // At launch the splash waits for the reveal's first frame (a cold start), or for the farm
+  // itself when it is in before the reveal would start (a warm start: no draw-in).
+  const [revealDrawn, setRevealDrawn] = useState(false);
+  useSplashHold(loading.covered && !(loading.revealing && revealDrawn));
   const k = width / 393;
   const send = useSend(farm);
   const { appearance, palette } = useTheme();
@@ -207,7 +163,7 @@ function FarmFor({
 
   useSunPlace(state?.place ? { lat: state.place.lat, lng: state.place.lng } : null);
   useYouCritter(self ? { kind: self.critter.species, look: lookOf(self.critter) } : null);
-  useMoments(farm, me);
+  useOpenMoments(farm, me);
   useRhythmMoments(farm, view, me);
   // Turned away by the farm (a removal the phone never saw, or a farm that is gone).
   const { lost } = useValley();
@@ -236,8 +192,7 @@ function FarmFor({
   }
 
   // Only you on the farm so far: the sketched cottages wait for friends.
-  const alone = state !== null && state.members.length === 1 && state.former.length === 0;
-  const sceneH = alone ? ALONE.scene * k : height;
+  const sceneH = alone && !large ? ALONE.scene * k : height;
   const restingTop = alone ? ALONE.sheet * k : height - OVERLAP;
   const farmName = state?.name ?? name ?? '';
 
@@ -269,9 +224,10 @@ function FarmFor({
             // The farm rests while the sheet covers it at full height.
             running={visible && !reduce && sheet === 0}
             hints={visible && sheet === 0 && !offline && !loading.revealing && state !== null}
+            onDrawn={() => setDrawn(true)}
             now={now}
             fire={fire}
-            coverTop={height - OVERLAP}
+            coverTop={large ? height : height - OVERLAP}
             said={said}
             targets={{
               onCritter: openCritter,
@@ -284,18 +240,26 @@ function FarmFor({
           />
         </Animated.View>
       )}
-      {loading.revealing ? (
-        <FarmReveal width={width} height={sceneH} ready={state !== null} onDone={loading.done} />
+      {loading.covered ? (
+        <FarmReveal
+          width={width}
+          height={sceneH}
+          ready={loading.revealing && loading.ready}
+          onDrawn={() => setRevealDrawn(true)}
+          onDone={loading.done}
+        />
       ) : null}
       <FarmFog width={width} height={sceneH} on={offline && state !== null} />
-      {loading.loading ? <DrawingLabel top={DRAWING_TOP * k} /> : null}
+      {loading.revealing && !loading.ready ? <DrawingLabel top={DRAWING_TOP * k} /> : null}
       {farmName && (state === null || view) ? (
         <FarmHeader
           name={farmName}
           season={
             state && view ? seasonLabel(t, view.season.season, view.today, state.hemisphere) : ''
           }
-          top={insets.top + 1}
+          top={
+            large ? screens.farmPillTop + (windowed ? screens.windowControls : 0) : insets.top + 1
+          }
           onSwitch={() => router.push(farmRoutes.valley())}
         />
       ) : null}
@@ -303,12 +267,18 @@ function FarmFor({
       {state && view && !offline ? (
         <RhythmWeatherChip farm={farm} state={state} view={view} top={insets.top + 53} />
       ) : null}
-      {loading.loading ? (
+      {loading.loading && !large ? (
         <Panel top={restingTop}>
           <PencilRows />
         </Panel>
       ) : null}
-      {state && view ? (
+      {large && state ? (
+        <>
+          {alone ? <LargeFarmInvite onInvite={() => router.push(farmRoutes.invite(farm))} /> : null}
+          <LargeFarmChrome farm={farm} onFire={fireWay.open} />
+        </>
+      ) : null}
+      {state && view && !large ? (
         <Sheet
           detents={[screen - restingTop, screen - insets.top - 60]}
           index={sheet}
@@ -402,6 +372,8 @@ export function FarmHome() {
   const { palette } = useTheme();
   const valley = useValley();
   useGoneNote(valley.gone, valley.forget);
+  // The splash stays up while the farm to open is looked up; the farm then holds it itself.
+  useSplashHold(valley.status === 'loading' && !valley.current);
 
   if (valley.current) {
     const row = valley.farms.find((f) => f.farm === valley.current);

@@ -118,6 +118,30 @@ describe('sending a Live Activity push', () => {
     expect(apns.sent[0]!.body).toEqual(push.payload);
   });
 
+  it('posts to the topic of the app the token is for, when the server serves that app', async () => {
+    const apns = fakeApns(() => new Response(null, { status: 200 }));
+    const both = { ...config, extraBundleIds: ['com.kithfield.app'] };
+    await sendLiveActivity(apns.fetch, both, { ...push, bundleId: 'com.kithfield.app' }, 0);
+    await sendLiveActivity(apns.fetch, both, { ...push, bundleId: 'com.someone.else' }, 0);
+    await sendLiveActivity(apns.fetch, both, { ...push, bundleId: null }, 0);
+    await sendLiveActivity(apns.fetch, config, { ...push, bundleId: 'com.kithfield.app' }, 0);
+    expect(apns.sent.map((s) => s.headers['apns-topic'])).toEqual([
+      'com.kithfield.app.push-type.liveactivity',
+      'com.kithfield.app.dev.push-type.liveactivity',
+      'com.kithfield.app.dev.push-type.liveactivity',
+      'com.kithfield.app.dev.push-type.liveactivity',
+    ]);
+  });
+
+  it('serves the bundle ids the environment lists besides its own', () => {
+    const base = { APPLE_BUNDLE_ID: 'com.kithfield.app.dev', APNS_KEY_P8: 'k', APNS_KEY_ID: 'K' };
+    expect(
+      apnsConfig({ ...base, APPLE_EXTRA_BUNDLE_IDS: ' com.kithfield.app , ' } as never)
+        ?.extraBundleIds,
+    ).toEqual(['com.kithfield.app']);
+    expect(apnsConfig(base as never)?.extraBundleIds).toEqual([]);
+  });
+
   it('tries the sandbox for a development build’s token', async () => {
     const apns = fakeApns((url) =>
       url.includes('sandbox')

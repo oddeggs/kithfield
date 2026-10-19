@@ -1,4 +1,4 @@
-import type { SqlDatabase } from './sql';
+import { writeTransaction, type SqlDatabase } from './sql';
 
 /** One schema change. Its name is its file name, which is also the order it runs in. */
 export interface Migration {
@@ -25,7 +25,7 @@ export async function runMigrations(
     .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 
   for (const migration of pending) {
-    await db.withTransactionAsync(async () => {
+    await writeTransaction(db, async () => {
       await db.execAsync(migration.sql);
       await db.runAsync('INSERT INTO _migrations (name, applied_at) VALUES (?, ?)', [
         migration.name,

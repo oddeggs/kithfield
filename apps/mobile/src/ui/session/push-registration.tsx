@@ -4,6 +4,7 @@ import * as Device from 'expo-device';
 import { getCalendars } from 'expo-localization';
 import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
+import { AppBundleId } from '@kithfield/contracts';
 import { useEffect } from 'react';
 import { z } from 'zod';
 
@@ -39,6 +40,15 @@ export async function deviceId(): Promise<string> {
 }
 
 /**
+ * This build's bundle id (the store app or a development build), so the server pushes its Live
+ * Activities on this app's own APNs topic. Absent when the build doesn't say.
+ */
+export function appBundleId(): { bundleId: string } | Record<string, never> {
+  const id = AppBundleId.safeParse(Constants.expoConfig?.ios?.bundleIdentifier);
+  return id.success ? { bundleId: id.data } : {};
+}
+
+/**
  * The phone's side of `syncPush`: Expo's permission and token, and the data layer's own requests
  * with its session.
  */
@@ -67,6 +77,7 @@ export function pushDeps(runtime: DataRuntime<unknown>): PushDeps {
       platform: 'ios',
       name: (Device.deviceName ?? Device.modelName ?? 'iPhone').slice(0, 64),
       appVersion: Constants.expoConfig?.version ?? '0.0.0',
+      ...appBundleId(),
     },
     registerDevice: (device, body) =>
       send('PUT', `/v1/devices/${encodeURIComponent(device)}`, body),

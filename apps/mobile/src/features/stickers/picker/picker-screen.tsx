@@ -8,6 +8,8 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useDataClient, useFarm } from '../../../data';
+// The chat draws a sticker's bubble from the tap, so its flight lands where the bubble is.
+import { outgoing } from '../../chat/model/outgoing';
 import { createOpIdMaker } from '../../../data/op-id';
 import { ArtStill } from '../../../ui/art/art-view';
 import { Chip } from '../../../ui/components/chip';
@@ -50,6 +52,8 @@ const recentAnchor = (key: string) => `stickers:picker:recent:${key}`;
 const gridAnchor = (key: string) => `stickers:picker:${key}`;
 /** The picker closes by then even if the sticker never took off. */
 const CLOSE_AT_LATEST_MS = 250;
+/** A sticker's bubble is drawn from the tap until its flight lands, or this long at most. */
+const LET_GO_AT_LATEST_MS = 5000;
 
 const keyOf = (s: RecentSticker) => `${s.pack}/${s.sticker}/${(s.with ?? []).join(',')}`;
 
@@ -189,6 +193,10 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
     // tilts and grows along an arc into its message, which shows it once it lands, while the
     // picker drops away (signature motion).
     const opId = newOpId();
+    // Its bubble is drawn in the chat from now, before the write is queued, so the flight knows
+    // where it lands from the start instead of turning to it on its way down.
+    outgoing.add({ farm, opId, kind: 'sticker', payload, createdAt: Date.now() });
+    const letGo = () => outgoing.drop(opId);
     const flight = from
       ? travel.fly({
           from,
@@ -199,13 +207,18 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
           hideSource: false,
           durationMs: timing('sticker', 'total'),
           onStart: close,
+          onLanded: letGo,
+          onReturned: letGo,
         })
       : null;
     void client.send(farm, 'sticker', payload, opId).then((result) => {
       if (result.status === 'queued') {
         if (flight) setTimeout(close, CLOSE_AT_LATEST_MS);
         else close();
+        // By now the outbox draws it; a flight that never lands lets it go too.
+        setTimeout(letGo, flight ? LET_GO_AT_LATEST_MS : 0);
       } else {
+        letGo();
         flight?.cancel();
         toast.show(t('stickers.picker.refused'));
       }

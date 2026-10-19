@@ -1,6 +1,6 @@
 import type { FarmState, PersonId } from '@kithfield/contracts';
 import { STATUS_MS, type FarmView, type PlanView } from '@kithfield/farm';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
@@ -120,6 +120,7 @@ export function FarmScene({
   said = null,
   targets,
   hints = false,
+  onDrawn,
 }: {
   readonly state: FarmState | null;
   readonly view: FarmView | null;
@@ -138,11 +139,18 @@ export function FarmScene({
   readonly targets: SceneTargets;
   /** The farm is in front, loaded and settled: the first tip may point at your critter. */
   readonly hints?: boolean;
+  /** Told once the still and its critters are drawn, so the farm can be revealed. */
+  readonly onDrawn?: () => void;
 }) {
   const { t } = useLocale();
   const reduce = useReduceMotion();
   const { fontScale } = useWindowDimensions();
   const scene = useFarmScene(state, view, { width, height }, night, fire?.lit === true);
+  const drawnRef = useRef(onDrawn);
+  drawnRef.current = onDrawn;
+  useEffect(() => {
+    if (scene.drawn) drawnRef.current?.();
+  }, [scene.drawn]);
   const spotOf = new Map(scene.placement.critters.map((c) => [c.person, c.spot]));
 
   const stateOf = (person: PersonId) => {

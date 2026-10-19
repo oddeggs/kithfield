@@ -1,7 +1,7 @@
 import type { PersonId } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, useWindowDimensions, View } from 'react-native';
+import { Keyboard, View } from 'react-native';
 import {
   KeyboardStickyView,
   useReanimatedKeyboardAnimation,
@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArtIcon } from '../../../ui/art/art-view';
 import { useToast } from '../../../ui/components/toast';
+import { usePane } from '../../../ui/layout/pane';
+import { PaneHeader, usePaneHeaderHeight } from '../../../ui/layout/pane-header';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { Txt } from '../../../ui/type/text';
@@ -75,11 +77,17 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
   const { t } = useLocale();
   const toast = useToast();
   const insets = useSafeAreaInsets();
-  const { height: screenH, width: screenW } = useWindowDimensions();
+  // In a pane of a large screen the chat sizes to the pane; beside a farm of its own, it wears a
+  // flat header instead of drawing the farm over itself.
+  const pane = usePane();
+  const { height: screenH, width: screenW } = pane;
   const me = useMe();
   const { state, timeline, people, bubbles, presence, actions } = data;
   const visit = state?.kind === 'visit';
-  const size = visit ? PORCH_HEADER : FARM_HEADER;
+  const flat = pane.chrome === 'flat' && !visit;
+  const flatHeight = usePaneHeaderHeight();
+  const size = flat ? { full: flatHeight, min: flatHeight } : visit ? PORCH_HEADER : FARM_HEADER;
+  const overlap = flat ? 0 : SHEET_OVERLAP;
   const scrollY = useSharedValue(0);
   const height = useHeaderHeight(scrollY, size);
   const collapsed = useDerivedValue<number>(() => (height.get() <= size.min + 0.5 ? 1 : 0));
@@ -206,13 +214,15 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
     .slice(0, 2);
   const typing = presence.typing.filter((p) => p !== data.me);
 
-  const sheetTop = useAnimatedStyle(() => ({ top: height.get() - SHEET_OVERLAP }));
+  const sheetTop = useAnimatedStyle(() => ({ top: height.get() - overlap }));
   // The chat lifts with the keyboard, as the composer does (translated, never resized).
   const listOffset = useAnimatedStyle(() => ({
-    top: -(height.get() - SHEET_OVERLAP),
+    top: -(height.get() - overlap),
     transform: [{ translateY: keyboard.height.get() + keyboard.progress.get() * COMPOSER_LIFT }],
   }));
-  const pinTop = pinned.length > 0 ? PIN_BAR : 0;
+  // A flat header carries the noticeboard's pin itself, so the pinned strip gives way to it.
+  const pinBar = pinned.length > 0 && !flat;
+  const pinTop = pinBar ? PIN_BAR : 0;
   const composerBottom = insets.bottom > 0 ? COMPOSER_BOTTOM : 12;
 
   const title = visit ? (peer?.name ?? t('chat.friendWhoLeft')) : (state?.name ?? '');
@@ -225,36 +235,38 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
   return (
     <RoomProvider value={room}>
       <View style={{ flex: 1, backgroundColor: palette.background }}>
-        <HeaderArtFrame height={height} size={size}>
-          {visit ? (
-            <PorchArt
-              cast={porchCast.map((m) => castOf(m.critter)).join(',')}
-              seats={porchCast.map((m) => travelIds.porchSeat(farm, m.person))}
-              pot={state.pot ? { plant: state.pot.plant, stage: state.pot.stage } : null}
-              width={screenW}
-              height={size.full}
-              night={palette.appearance === 'night'}
-              onPot={{
-                label: t('chat.room.porchPot'),
-                open: () => router.push(fieldGuideRoutes.porchPot(farm)),
-              }}
-            />
-          ) : (
-            <FarmHeaderArt
-              season={state?.season.season ?? 'spring'}
-              critters={(state?.members ?? []).map((m) => ({
-                person: m.person,
-                critter: m.critter,
-                sleeping: m.hibernating || (m.pausedUntil ?? 0) > data.now,
-              }))}
-              width={screenW}
-              height={size.full}
-              collapsed={collapsed}
-              sproutId={travelIds.chatSprout(farm)}
-              night={palette.appearance === 'night'}
-            />
-          )}
-        </HeaderArtFrame>
+        {flat ? null : (
+          <HeaderArtFrame height={height} size={size}>
+            {visit ? (
+              <PorchArt
+                cast={porchCast.map((m) => castOf(m.critter)).join(',')}
+                seats={porchCast.map((m) => travelIds.porchSeat(farm, m.person))}
+                pot={state.pot ? { plant: state.pot.plant, stage: state.pot.stage } : null}
+                width={screenW}
+                height={size.full}
+                night={palette.appearance === 'night'}
+                onPot={{
+                  label: t('chat.room.porchPot'),
+                  open: () => router.push(fieldGuideRoutes.porchPot(farm)),
+                }}
+              />
+            ) : (
+              <FarmHeaderArt
+                season={state?.season.season ?? 'spring'}
+                critters={(state?.members ?? []).map((m) => ({
+                  person: m.person,
+                  critter: m.critter,
+                  sleeping: m.hibernating || (m.pausedUntil ?? 0) > data.now,
+                }))}
+                width={screenW}
+                height={size.full}
+                collapsed={collapsed}
+                sproutId={travelIds.chatSprout(farm)}
+                night={palette.appearance === 'night'}
+              />
+            )}
+          </HeaderArtFrame>
+        )}
         <Animated.View
           style={[
             {
@@ -263,11 +275,15 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
               right: 0,
               bottom: 0,
               backgroundColor: palette.background,
-              borderTopLeftRadius: 26,
-              borderTopRightRadius: 26,
-              boxShadow: colours.sheetShadow,
               overflow: 'hidden',
             },
+            flat
+              ? null
+              : {
+                  borderTopLeftRadius: 26,
+                  borderTopRightRadius: 26,
+                  boxShadow: colours.sheetShadow,
+                },
             sheetTop,
           ]}
         >
@@ -279,7 +295,7 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
               now={data.now}
               older={data.older}
               loadOlder={() => void data.loadOlder()}
-              topSpace={size.full - SHEET_OVERLAP + 14 + pinTop}
+              topSpace={size.full - overlap + 14 + pinTop}
               topFold={size.full - size.min}
               bottomSpace={composerH + 8}
               scrollY={scrollY}
@@ -308,7 +324,7 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
               }
             />
           </Animated.View>
-          {pinned.length > 0 ? (
+          {pinBar ? (
             <View
               style={{
                 position: 'absolute',
@@ -328,23 +344,52 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
             </View>
           ) : null}
         </Animated.View>
-        <HeaderBar
-          title={title}
-          subtitle={subtitle}
-          onBack={() => (router.canGoBack() ? router.back() : go.chatList())}
-          backLabel={t('chat.room.back')}
-          onTitle={() => go.media(farm)}
-          titleLabel={`${title}, ${subtitle}. ${t('chat.room.media')}`}
-          right={
-            visit && peer
-              ? {
-                  icon: 'more',
-                  label: t('chat.room.more'),
-                  onPress: () => go.critter(farm, peer.person),
-                }
-              : { icon: 'seeds', label: t('chat.room.seedBed'), onPress: go.seedBed }
-          }
-        />
+        {flat ? (
+          <PaneHeader
+            title={title}
+            subtitle={subtitle}
+            onTitle={pane.expand?.onPress ?? (() => go.media(farm))}
+            titleLabel={`${title}, ${subtitle}. ${pane.expand?.label ?? t('chat.room.media')}`}
+            back={
+              pane.back
+                ? {
+                    label: t('chat.room.back'),
+                    onPress: () => (router.canGoBack() ? router.back() : go.chatList()),
+                  }
+                : null
+            }
+            actions={[
+              {
+                icon: 'pin',
+                label: t('layout.chat.noticeboard'),
+                onPress: () => {
+                  Keyboard.dismiss();
+                  setBoard(true);
+                },
+              },
+              { icon: 'seeds', label: t('layout.chat.seedBed'), onPress: go.seedBed },
+              { icon: 'more', label: t('layout.chat.more'), onPress: () => go.media(farm) },
+            ]}
+          />
+        ) : (
+          <HeaderBar
+            title={title}
+            subtitle={subtitle}
+            onBack={pane.back ? () => (router.canGoBack() ? router.back() : go.chatList()) : null}
+            backLabel={t('chat.room.back')}
+            onTitle={() => go.media(farm)}
+            titleLabel={`${title}, ${subtitle}. ${t('chat.room.media')}`}
+            right={
+              visit && peer
+                ? {
+                    icon: 'more',
+                    label: t('chat.room.more'),
+                    onPress: () => go.critter(farm, peer.person),
+                  }
+                : { icon: 'seeds', label: t('chat.room.seedBed'), onPress: go.seedBed }
+            }
+          />
+        )}
         <KeyboardStickyView
           offset={{ opened: COMPOSER_LIFT }}
           style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}

@@ -71,6 +71,9 @@ export const fireVi: ViCatalogue<typeof fireEn> = {
   'fire.chip.talking': '{name}, đang nói',
   'fire.chip.mutedA11y': '{name}, đang tắt mic',
   'fire.chip.listeningA11y': '{name}, chỉ đang nghe',
+  'fire.frame.a11y': '{who}; {lantern}',
+  'fire.frame.lit': 'đèn lồng đang sáng',
+  'fire.frame.cameraOff': 'tắt camera',
 
   'fire.weak.title': 'Kết nối của {name} đang yếu.',
   'fire.weak.body': 'Bạn thú của bạn ấy ngủ gật và tiếng tạm dừng tới khi kết nối trở lại.',

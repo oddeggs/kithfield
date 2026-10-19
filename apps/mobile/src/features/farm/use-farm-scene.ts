@@ -18,6 +18,8 @@ export interface FarmScene {
   readonly fire: FarmFire | null;
   /** Who is asleep now, by person. */
   readonly asleep: ReadonlySet<string>;
+  /** The still and every critter are drawn: the farm can be shown. */
+  readonly drawn: boolean;
 }
 
 /** Critters drawn per idle moment. */
@@ -151,5 +153,8 @@ export function useFarmScene(
     // `crittersKey` stands for the placement, the members' critters and who sleeps.
   }, [store, crittersKey, width, height]);
 
-  return { placement, backdrop, critters, fire, asleep };
+  const standing = placement.critters.filter((p) => members.some((m) => m.person === p.person));
+  const drawn =
+    backdrop !== null && standing.every((p) => critters.some((c) => c.person === p.person));
+  return { placement, backdrop, critters, fire, asleep, drawn };
 }

@@ -113,6 +113,8 @@ export const plansEn = {
   'plans.vote.leadOpen': 'Tap a bud to lean on it.',
   'plans.vote.settle': 'Let it sprout on {weekday}',
   'plans.vote.lean': 'Lean on {day}',
+  'plans.vote.leaning': 'Leaning on it: {names}',
+  'plans.vote.nobody': 'Nobody leaning on it yet',
   'plans.sun.title': 'Sun patch',
   'plans.sun.eyebrow': 'the week of {day}',
   'plans.sun.leading': '{day} has the most yeses so far.',

@@ -1,8 +1,8 @@
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { useState } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,15 +20,15 @@ import { ReduceMotionProvider } from '../ui/motion/reduce-motion';
 import { screenOptionsFor } from '../ui/navigation/presentation';
 import { DataSlot } from '../ui/session/data-slot';
 import { useSession } from '../ui/session/session';
+import { SplashGate } from '../ui/session/splash';
 import { TabActivityProvider } from '../ui/tab-bar/tab-activity';
 import { ThemeProvider, useTheme } from '../ui/theme/theme-provider';
 import { TravelHost } from '../ui/travel';
 
 // The splash stays up until the first frame can be drawn whole: the theme fonts are embedded
-// natively (expo-font's config plugin), so what is waited for is the session, the art and the
-// first layout.
+// natively (expo-font's config plugin), so what is waited for is the session, the first layout
+// and, on the farm home, the reveal's first frame (`SplashGate`).
 void SplashScreen.preventAutoHideAsync();
-SplashScreen.setOptions({ duration: 200, fade: true });
 
 /**
  * The media queue, counted before signing out; it, the native surfaces (widgets, Live
@@ -82,21 +82,6 @@ function Screens() {
         <Stack.Screen name="+not-found" />
       </Stack>
     </>
-  );
-}
-
-/** Hides the splash once the session is known and the first frame has laid out. */
-function SplashGate({ children }: { readonly children: ReactNode }) {
-  const { status } = useSession();
-  const [laidOut, setLaidOut] = useState(false);
-  const onLayout = useCallback(() => setLaidOut(true), []);
-  useEffect(() => {
-    if (laidOut && status !== 'loading') void SplashScreen.hideAsync();
-  }, [laidOut, status]);
-  return (
-    <View style={{ flex: 1 }} onLayout={onLayout}>
-      {children}
-    </View>
   );
 }
 

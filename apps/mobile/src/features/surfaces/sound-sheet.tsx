@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { surfaces, type AudioRoute } from '../../../modules/surfaces';
@@ -8,6 +8,7 @@ import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { headsetGone, routeRows, type RouteRow } from './audio-route';
 
@@ -33,6 +34,8 @@ export function SoundSheet() {
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
   const route = useAudioRoute();
+  const ax = useAccessibilitySize();
+  const { height: screen } = useWindowDimensions();
   const rows = route ? routeRows(route) : [];
 
   const subtitle = (row: RouteRow) => {
@@ -56,15 +59,14 @@ export function SoundSheet() {
     void (row.kind === 'airplay' ? surfaces.showAirPlayPicker() : surfaces.setAudioRoute(row.id));
   };
 
-  return (
-    <View
-      style={{
-        paddingHorizontal: 20,
-        paddingTop: 12,
-        paddingBottom: Math.max(34, insets.bottom),
-        gap: 6,
-      }}
-    >
+  const column = {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Math.max(34, insets.bottom),
+    gap: 6,
+  } as const;
+  const body = (
+    <>
       <Txt variant="displayM" style={{ fontSize: 24, lineHeight: 26.4 }} accessibilityRole="header">
         {t('surfaces.route.title')}
       </Txt>
@@ -123,7 +125,16 @@ export function SoundSheet() {
       >
         {t('surfaces.route.footer')}
       </Txt>
-    </View>
+    </>
+  );
+  // At the accessibility sizes the routes outgrow the screen: the sheet stops below the top and
+  // its rows scroll.
+  return ax ? (
+    <ScrollView style={{ maxHeight: screen - insets.top - 24 }} contentContainerStyle={column}>
+      {body}
+    </ScrollView>
+  ) : (
+    <View style={column}>{body}</View>
   );
 }
 

@@ -1,6 +1,6 @@
 import { FarmState, type FarmId } from '@kithfield/contracts';
 
-import { createSerialQueue, type SqlDatabase, type SqlValue } from '../db/sql';
+import { writeTransaction, type SqlDatabase, type SqlValue } from '../db/sql';
 import { json, localTables, parse, type OutboxEntry, type Row } from './local-tables';
 
 export type { OutboxEntry, StoredRejection } from './local-tables';
@@ -51,22 +51,16 @@ const EVENT_COLUMNS = 'seq, op_id, at, day, actor, kind, payload, rules_version,
 
 /**
  * The phone's sync tables. Reads go straight to SQLite; every write runs inside `transaction`,
- * one at a time, so a batch of events, the farm's new state and the outbox change commit together.
+ * one at a time across the app (`writeTransaction`), so a batch of events, the farm's new state
+ * and the outbox change commit together.
  */
 export function createSyncStore(db: SqlDatabase) {
-  const serial = createSerialQueue();
   const all = (source: string, params: SqlValue[]) => db.getAllAsync<Row>(source, params);
   const run = (source: string, params: SqlValue[]) => db.runAsync(source, params);
 
   return {
     transaction<T>(task: () => Promise<T>): Promise<T> {
-      return serial(async () => {
-        let result: T | undefined;
-        await db.withTransactionAsync(async () => {
-          result = await task();
-        });
-        return result as T;
-      });
+      return writeTransaction(db, task);
     },
 
     /* Farms */

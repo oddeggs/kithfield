@@ -66,8 +66,18 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         pushToken: 'ExponentPushToken[abc]',
         appVersion: '1.0.0 (412)',
       },
+      {
+        platform: 'ios',
+        name: "June's iPhone",
+        pushToken: null,
+        appVersion: '1.0.0',
+        bundleId: 'com.kithfield.app',
+      },
     ],
-    [{ platform: 'ios', name: 'x', pushToken: null, appVersion: 'one' }],
+    [
+      { platform: 'ios', name: 'x', pushToken: null, appVersion: 'one' },
+      { platform: 'ios', name: 'x', pushToken: null, appVersion: '1.0.0', bundleId: 'kithfield' },
+    ],
   ],
   DeviceList: [
     [{ devices: [device, { ...device, city: null, current: false }] }],

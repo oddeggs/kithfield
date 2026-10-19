@@ -213,13 +213,18 @@ pnpm --filter @kithfield/mobile test  # the app (Jest)
 ### Run the API locally
 
 ```sh
-cp apps/api/.dev.vars.example apps/api/.dev.vars
-pnpm --filter @kithfield/api dev      # wrangler dev --env dev
+pnpm --filter @kithfield/api dev      # fills apps/api/.dev.vars, then wrangler dev --env dev
 curl http://localhost:8787/api/health
 # {"status":"ok","environment":"dev","commit":"local"}
 ```
 
 [`apps/api/.dev.vars.example`](apps/api/.dev.vars.example) lists the names of the local secrets. Values never go in git.
+The local API needs five of them, each at least 32 characters: `BETTER_AUTH_SECRET`,
+`WAITLIST_EMAIL_KEY`, `INVITE_CODE_KEY` (the farm's invite link), `EXPORT_URL_KEY` (the keepsakes
+export) and `MEDIA_SIGNING_KEY` (media, shared with `apps/media-worker`). Without one, its routes
+answer 503. `pnpm --filter @kithfield/api dev:vars` (which `dev` runs first) writes random values
+for any that are missing into `apps/api/.dev.vars`, and the same `MEDIA_SIGNING_KEY` into
+`apps/media-worker/.dev.vars`; it prints names only.
 
 ### Run the app on the simulator
 

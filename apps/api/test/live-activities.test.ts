@@ -107,7 +107,7 @@ describe('a plan’s day', () => {
 
 /* The cottage moving the person's activities over APNs. */
 
-type Sent = { token: string; body: { aps: Record<string, unknown> } };
+type Sent = { token: string; topic: string; body: { aps: Record<string, unknown> } };
 let sent: Sent[];
 let farm: FarmState;
 const saved = { ...activityPorts };
@@ -122,13 +122,15 @@ beforeEach(async () => {
     keyId: 'KEY1234567',
     teamId: 'YFND2EEW8S',
     bundleId: 'com.kithfield.app.dev',
+    extraBundleIds: ['com.kithfield.app'],
     hosts: ['api.push.apple.com'],
   };
   activityPorts.config = () => config;
   activityPorts.farmState = () => Promise.resolve(farm);
   activityPorts.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
     const { url, body } = readRequest(input, init);
-    sent.push({ token: url.split('/').pop() ?? '', body: body as Sent['body'] });
+    const topic = (init?.headers as Record<string, string> | undefined)?.['apns-topic'] ?? '';
+    sent.push({ token: url.split('/').pop() ?? '', topic, body: body as Sent['body'] });
     return Promise.resolve(new Response(null, { status: 200 }));
   };
 });
@@ -186,6 +188,41 @@ describe('Live Activities from the server', () => {
       here: [{ person: 'pip', name: 'pip', image: critterImageOf('pip') }],
       onTheWay: [{ person, name: person, image: critterImageOf(person) }],
     });
+  });
+
+  it('sends each phone’s pushes to the topic of its own app', async () => {
+    const { person, cottage } = await personOnPhone();
+    await cottage.registerDevice('phone-2', {
+      platform: 'ios',
+      name: 'iPad',
+      pushToken: null,
+      appVersion: '1.0.0 (1)',
+      bundleId: 'com.kithfield.app',
+    });
+    const plan = { activity: 'plan_day', farm: 'farm-a', seed: 20 } as const;
+    // The development build says nothing; the store app's tablet said so when it registered.
+    await cottage.setActivityToken('phone-1', { ...plan, token: PHONE_PLAN });
+    await cottage.setActivityToken('phone-2', { ...plan, token: PHONE_FIRE });
+    await cottage.setActivityStartToken('phone-2', PHONE_START, 'com.kithfield.app');
+    farm = farmWith(
+      [seed({ rsvps: [{ person, answer: 'in' }], checkins: ['pip'] })],
+      ['pip', person],
+    );
+    await cottage.deliver(delivery(30, 'checkin'));
+    expect(sent.map((s) => [s.token, s.topic]).sort()).toEqual(
+      [
+        [PHONE_PLAN, 'com.kithfield.app.dev.push-type.liveactivity'],
+        [PHONE_FIRE, 'com.kithfield.app.push-type.liveactivity'],
+      ].sort(),
+    );
+
+    const stub = env.COTTAGE.get(env.COTTAGE.idFromName(person));
+    sent = [];
+    useTestClock('2026-10-18T14:01:00Z');
+    await runInDurableObject(stub, (instance) => instance.alarm());
+    expect(sent.map((s) => [s.token, s.topic])).toEqual([
+      [PHONE_START, 'com.kithfield.app.push-type.liveactivity'],
+    ]);
   });
 
   it('starts the plan’s day on the person’s phones two hours before, then ends it', async () => {

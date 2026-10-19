@@ -21,6 +21,10 @@ import { gesturesEn } from './gestures.en';
 import { gesturesSameInBoth, gesturesVi } from './gestures.vi';
 import { glossaryEn } from './glossary.en';
 import { glossarySameInBoth, glossaryVi } from './glossary.vi';
+import { launchEn } from './launch.en';
+import { launchVi } from './launch.vi';
+import { layoutEn } from './layout.en';
+import { layoutVi } from './layout.vi';
 import { mediaEn } from './media.en';
 import { mediaVi } from './media.vi';
 import { moderationEn } from './moderation.en';
@@ -78,6 +82,8 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'gallery', file: 'gallery', en: galleryEn, vi: galleryVi, sameInBoth: gallerySameInBoth },
   { name: 'gestures', file: 'gestures', en: gesturesEn, vi: gesturesVi, sameInBoth: gesturesSameInBoth },
   { name: 'glossary', file: 'glossary', en: glossaryEn, vi: glossaryVi, sameInBoth: glossarySameInBoth },
+  { name: 'launch', file: 'launch', en: launchEn, vi: launchVi, sameInBoth: [] },
+  { name: 'layout', file: 'layout', en: layoutEn, vi: layoutVi, sameInBoth: [] },
   { name: 'media', file: 'media', en: mediaEn, vi: mediaVi, sameInBoth: [] },
   { name: 'moderation', file: 'moderation', en: moderationEn, vi: moderationVi, sameInBoth: moderationSameInBoth },
   { name: 'motionLab', file: 'motion-lab', en: motionLabEn, vi: motionLabVi, sameInBoth: [] },
@@ -114,6 +120,8 @@ export const en = {
   ...galleryEn,
   ...gesturesEn,
   ...glossaryEn,
+  ...launchEn,
+  ...layoutEn,
   ...mediaEn,
   ...moderationEn,
   ...motionLabEn,
@@ -150,6 +158,8 @@ export const vi = {
   ...galleryVi,
   ...gesturesVi,
   ...glossaryVi,
+  ...launchVi,
+  ...layoutVi,
   ...mediaVi,
   ...moderationVi,
   ...motionLabVi,

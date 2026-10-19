@@ -1,0 +1,8 @@
+# Baked by `pnpm --filter @kithfield/launch bake` from the art and the design export, and
+# regenerated rather than kept: only the manifest and the copy are committed.
+*
+!.gitignore
+!manifest.json
+!listing.en.md
+!listing.vi.md
+!launch-kit.en.md

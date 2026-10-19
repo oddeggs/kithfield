@@ -1,0 +1,28 @@
+{
+  "name": "@kithfield/launch",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bakes the app icon, the splash, the store screenshots, the listing art and the launch media from the art and the design export",
+  "scripts": {
+    "bake": "tsx src/bake.ts",
+    "check": "tsx src/check.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@kithfield/art": "workspace:*",
+    "@kithfield/design": "workspace:*",
+    "@kithfield/i18n": "workspace:*",
+    "@kithfield/theme": "workspace:*",
+    "playwright": "catalog:",
+    "sharp": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "prettier": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

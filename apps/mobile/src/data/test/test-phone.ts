@@ -42,13 +42,21 @@ export function openFileDb(path: string): FileDb {
     getAllAsync: <T>(source: string, params: SqlValue[]) =>
       Promise.resolve(sqlite.prepare(source).all(...params) as T[]),
     runAsync: (source, params) => Promise.resolve(sqlite.prepare(source).run(...params)),
+    // As expo-sqlite does it: a BEGIN that fails (another transaction is open on the connection)
+    // still runs ROLLBACK, which ends that other transaction.
     withTransactionAsync: async (task) => {
-      sqlite.exec('BEGIN');
       try {
+        await Promise.resolve();
+        sqlite.exec('BEGIN');
         await task();
+        await Promise.resolve();
         sqlite.exec('COMMIT');
       } catch (error) {
-        sqlite.exec('ROLLBACK');
+        try {
+          sqlite.exec('ROLLBACK');
+        } catch {
+          // Already rolled back.
+        }
         throw error;
       }
     },

@@ -4,6 +4,52 @@ import { type ConfigPlugin, withInfoPlist } from 'expo/config-plugins';
 // The catalogue files themselves: the config runs in Node, outside Metro, so the path names the file.
 import { systemPermissionsEn } from '../../packages/i18n/src/system-permissions.en.ts';
 import { systemPermissionsVi } from '../../packages/i18n/src/system-permissions.vi.ts';
+import { day } from '../../packages/theme/src/colour.ts';
+
+/**
+ * The launch background (`13 Launch`): the farm's paper by day, and at night a warm dark that is
+ * never navy, so the first app frame (the farm drawing in on the same paper) takes over unseen.
+ */
+export const LAUNCH_BACKGROUND = { day: day.paper, night: '#241E26' } as const;
+
+/** Baked from the art by `tools/launch` (`pnpm --filter @kithfield/launch bake -- --only icons`). */
+const ICON_DIR = './assets/icon';
+const SPLASH_DIR = './assets/splash';
+
+/**
+ * The launch screen is the first frame of the farm drawing in: one faint pencil horizon on the
+ * paper, full screen (iOS), and on Android 12+ the icon's lit window on the same paper. The app
+ * holds it until the farm's first frame has drawn (`SplashScreen.preventAutoHideAsync`).
+ */
+export const SPLASH_PLUGIN: [string, Record<string, unknown>] = [
+  'expo-splash-screen',
+  {
+    backgroundColor: LAUNCH_BACKGROUND.day,
+    ios: {
+      // The horizon fills the screen, so it is the storyboard's full-screen image.
+      enableFullScreenImage_legacy: true,
+      resizeMode: 'cover',
+      backgroundColor: LAUNCH_BACKGROUND.day,
+      image: `${SPLASH_DIR}/horizon-day.png`,
+      tabletImage: `${SPLASH_DIR}/horizon-day-tablet.png`,
+      dark: {
+        backgroundColor: LAUNCH_BACKGROUND.night,
+        image: `${SPLASH_DIR}/horizon-night.png`,
+        tabletImage: `${SPLASH_DIR}/horizon-night-tablet.png`,
+      },
+    },
+    android: {
+      resizeMode: 'contain',
+      imageWidth: 200,
+      backgroundColor: LAUNCH_BACKGROUND.day,
+      image: `${SPLASH_DIR}/icon-window.png`,
+      dark: {
+        backgroundColor: LAUNCH_BACKGROUND.night,
+        image: `${SPLASH_DIR}/icon-window.png`,
+      },
+    },
+  },
+];
 
 /** Two environments, dev and prd, installed side by side. */
 export type AppVariant = 'dev' | 'prd';
@@ -213,12 +259,17 @@ export function buildConfig(
     slug: 'kithfield',
     scheme: variant.scheme,
     version: '0.1.0',
+    // The flat icon, for the web and Android's legacy launchers.
+    icon: `${ICON_DIR}/app-icon.png`,
     orientation: 'portrait',
     userInterfaceStyle: 'automatic',
     // A build only takes updates made from the same native code.
     runtimeVersion: { policy: 'fingerprint' },
     updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
     ios: {
+      // iOS 26 layers from Icon Composer (sky, hill and cottage, glow, critter, with dark
+      // overrides); Xcode renders the classic sizes for older iOS from the same document.
+      icon: `${ICON_DIR}/Kithfield.icon`,
       bundleIdentifier: variant.bundleIdentifier,
       appleTeamId: APPLE_TEAM_ID,
       deploymentTarget: IOS_DEPLOYMENT_TARGET,
@@ -240,6 +291,13 @@ export function buildConfig(
     },
     android: {
       package: variant.bundleIdentifier,
+      // The composite's view is the launcher's middle 72 dp of the 108 dp canvas.
+      adaptiveIcon: {
+        foregroundImage: `${ICON_DIR}/android-foreground.png`,
+        backgroundImage: `${ICON_DIR}/android-background.png`,
+        monochromeImage: `${ICON_DIR}/android-monochrome.png`,
+        backgroundColor: LAUNCH_BACKGROUND.day,
+      },
     },
     locales: { vi: { ios: usageStrings(systemPermissionsVi) } },
     plugins: [
@@ -248,6 +306,7 @@ export function buildConfig(
       ['expo-sqlite', { useSQLCipher: true }],
       // Fonts are embedded natively so the first frame already has them.
       ['expo-font', { fonts: FONTS }],
+      SPLASH_PLUGIN,
       ...PERMISSION_PLUGINS,
       // Links each folder in `targets/` as an extension, signed by the same team.
       '@bacons/apple-targets',

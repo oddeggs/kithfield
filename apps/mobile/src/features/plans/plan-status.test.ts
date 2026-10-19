@@ -3,7 +3,15 @@ import type { SeedState } from '@kithfield/contracts';
 import { translator } from '@kithfield/i18n';
 import { isHangoutDay, leadingOptions, planConditions, planDay } from '@kithfield/farm';
 
-import { canPlant, draftStage, joinNames, placeSuggestions, plantPayload, titleFrom } from './draft';
+import {
+  canPlant,
+  draftStage,
+  joinNames,
+  leaningOn,
+  placeSuggestions,
+  plantPayload,
+  titleFrom,
+} from './draft';
 import {
   answerSeenBy,
   bedKindOf,
@@ -199,5 +207,16 @@ describe('the organiser’s hat', () => {
     expect(answerSeenBy('in', false)).toBe('in');
     expect(answerSeenBy('maybe', false)).toBe('maybe');
     expect(answerSeenBy(null, true)).toBeNull();
+  });
+});
+
+describe('what VoiceOver says of a day bud', () => {
+  it('names who leans on it, you last, and never counts them', () => {
+    const en = translator('en');
+    const fig = { name: 'Fig', you: false };
+    const me = { name: 'Pip', you: true };
+    expect(leaningOn(en, [me, fig])).toBe('Leaning on it: Fig and you');
+    expect(leaningOn(en, [])).toBe('Nobody leaning on it yet');
+    expect(leaningOn(en, [fig, me, { name: 'Bea', you: false }])).not.toMatch(/\d/);
   });
 });

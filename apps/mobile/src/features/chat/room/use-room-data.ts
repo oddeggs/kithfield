@@ -1,5 +1,5 @@
 import type { PersonId } from '@kithfield/contracts';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import {
   useDataClient,
@@ -19,6 +19,7 @@ import { fetchPreview, firstUrl } from '../model/link-preview';
 import { mentionsIn, type Mentionable } from '../model/mentions';
 import { refusalOf, retryRefused } from '../model/refusals';
 import { peopleOf } from '../model/people';
+import { outgoing, outgoingDrafts } from '../model/outgoing';
 import { buildTimeline, type BubbleItem, type TimelineItem } from '../model/timeline';
 import { uploadDrafts, uploadOf } from '../model/uploads';
 import { useBlockedIds } from '../ui/blocked';
@@ -67,18 +68,25 @@ export function useRoomData(farm: string) {
     [uploads, replica?.pending],
   );
 
+  // A sticker flying in from the picker, drawn from the tap until the outbox has it.
+  const onTheWay = useSyncExternalStore(outgoing.subscribe, outgoing.list);
+  const flying = useMemo(
+    () => outgoingDrafts(onTheWay, farm, new Set((replica?.pending ?? []).map((w) => w.opId))),
+    [onTheWay, farm, replica?.pending],
+  );
+
   const timeline: TimelineItem[] = useMemo(
     () =>
       buildTimeline({
         events,
-        unsent: [...(replica?.pending ?? []), ...going.unsent],
+        unsent: [...(replica?.pending ?? []), ...going.unsent, ...flying],
         refused: [...refused, ...going.refused],
         me,
         state,
         now,
         blocked,
       }),
-    [events, replica?.pending, going, refused, me, state, now, blocked],
+    [events, replica?.pending, going, flying, refused, me, state, now, blocked],
   );
   // Who's who changes far less often than the farm: rows re-render only when it does.
   const cast = JSON.stringify([

@@ -25,3 +25,26 @@ export function createSerialQueue() {
 }
 
 export type SerialQueue = ReturnType<typeof createSerialQueue>;
+
+/*
+ * The phone has one database, and every handle expo-sqlite opens on it shares one native
+ * connection. Its `withTransactionAsync` is not exclusive: a second BEGIN fails, and that caller's
+ * ROLLBACK ends the first one's transaction, whose COMMIT then finds none. So every write
+ * transaction in the app takes its turn in this one queue, whichever store or handle starts it
+ * (a data layer started again after a sign-out or a remount holds a second store).
+ */
+const writes = createSerialQueue();
+
+/**
+ * Runs `task` in a transaction on `db`, after every write transaction queued before it. A task
+ * must not start another transaction: it would wait for itself.
+ */
+export function writeTransaction<T>(db: SqlDatabase, task: () => Promise<T>): Promise<T> {
+  return writes(async () => {
+    let result: T | undefined;
+    await db.withTransactionAsync(async () => {
+      result = await task();
+    });
+    return result as T;
+  });
+}
