@@ -21,6 +21,7 @@ import { SheetPage } from '../settings/kit/sheet-page';
 import { KText } from '../settings/kit/text';
 import { SAFETY_EMAIL } from '../settings/links';
 import { useRemote } from '../settings/use-remote';
+import { useRemoteGate } from '../settings/kit/remote-state';
 import { useSomeone } from './member';
 import { ruleKey } from './rules';
 import { swap } from '../settings/go';
@@ -332,7 +333,8 @@ export function NoteSheet({ id }: { readonly id: string }) {
   const api = useSafetyApi();
   const notes = useRemote(() => api.notes());
   const note = notes.data?.notes.find((n) => n.id === id) ?? null;
-  if (note === null) return <SheetPage>{null}</SheetPage>;
+  const gate = useRemoteGate([notes]);
+  if (note === null) return <SheetPage>{gate}</SheetPage>;
   switch (note.note) {
     case 'report_answered':
       return <AnsweredBody note={note} />;

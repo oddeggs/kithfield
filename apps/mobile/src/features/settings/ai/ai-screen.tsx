@@ -19,6 +19,7 @@ import { SettingRow } from '../kit/setting-row';
 import { KText } from '../kit/text';
 import { openPage, siteUrl } from '../links';
 import { useRemote } from '../use-remote';
+import { LoadFailed } from '../kit/remote-state';
 import { AI_FEATURES, allowedIn, answerConsent } from './consent';
 
 function Section({ label, children }: { readonly label: string; readonly children: ReactNode }) {
@@ -77,7 +78,8 @@ export function AiScreen() {
   const captions = allowedIn(consents.data, 'captions');
   const voiceNotes = allowedIn(consents.data, 'voice_notes');
   const recap = allowedIn(consents.data, 'recap');
-  const waiting = consents.data === null && !consents.failed;
+  // Until the answers are in (or after they failed) the switches wait, never reading "off".
+  const waiting = consents.data === null;
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
@@ -108,6 +110,9 @@ export function AiScreen() {
             {t('settings.ai.lead')}
           </KText>
         </View>
+        {consents.data === null && consents.failed ? (
+          <LoadFailed onRetry={consents.reload} />
+        ) : null}
         <Section label={t('settings.ai.onPhone')}>
           <SettingRow
             icon="sparkle"

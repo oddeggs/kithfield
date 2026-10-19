@@ -4,6 +4,8 @@ import type { settingsEn } from './settings.en';
 export const settingsVi: ViCatalogue<typeof settingsEn> = {
   'settings.back': 'Quay lại',
   'settings.failed': 'Chưa gửi được. Thử lại sau một chút nhé.',
+  'settings.loadFailed': 'Chưa kết nối được tới nông trại. Ở đây chưa có gì thay đổi.',
+  'settings.tryAgain': 'Thử lại',
   'settings.saved': 'Đã lưu',
 
   'settings.species.mouse': 'Chuột',
