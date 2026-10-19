@@ -1,11 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The web app's window and the critter's popover, on Kithfield's own hosts (and the dev server in development): the tray, menus, windows, events and notifications it drives.",
+  "description": "The web app's window and the critter's popover, on the build's own app address only (frontendDist, or devUrl in development, which Tauri treats as the app's own): the tray, menus, windows, events and notifications it drives. No other address gets these.",
   "windows": ["main", "popover"],
-  "remote": {
-    "urls": ["https://kithfield.com/*", "https://dev.kithfield.com/*", "http://localhost:*/*"]
-  },
   "permissions": [
     "core:default",
     "core:tray:default",
