@@ -334,9 +334,14 @@ export function ScrapbookScreen({ farm }: { readonly farm: FarmId }) {
           />
         ) : pages !== null && cards.length === 0 ? (
           <EmptyState
-            art={<ArtStill scene="pressed" width={120} height={170} attrs={{ name: 'daisy' }} />}
+            art={<ArtStill scene="spot" width={240} height={172} attrs={{ name: 'media' }} />}
             title={t('rhythm.scrapbook.empty.title')}
             body={t('rhythm.scrapbook.empty.body')}
+            action={{
+              label: t('rhythm.scrapbook.empty.action'),
+              onPress: () => router.navigate('/(tabs)/seedbed'),
+              kind: 'secondary',
+            }}
           />
         ) : (
           <View style={{ paddingHorizontal: 16, marginTop: 22, gap: GAP_Y }}>

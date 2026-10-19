@@ -15,8 +15,10 @@ export const chatEn = {
   'chat.list.visitsNote': 'Just the two of you, on a porch. The farm never sees these.',
   /** A farm nobody has opened for a while, in plain words. Never "inactive". */
   'chat.list.dozing': 'Everyone’s dozing. Say hi whenever.',
-  'chat.list.empty.title': 'No chats yet',
-  'chat.list.empty.body': 'Plant a farm and invite your people. The chat grows under it.',
+  'chat.list.empty.title': 'No porch visits yet',
+  'chat.list.empty.body':
+    'A visit is just the two of you. Tap any critter on a farm to sit on their porch.',
+  'chat.list.empty.action': 'Go to the farm',
   'chat.list.mute': 'Mute',
   'chat.list.unmute': 'Unmute',
   'chat.list.pin': 'Pin to top',

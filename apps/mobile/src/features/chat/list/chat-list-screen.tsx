@@ -1,5 +1,6 @@
 import type { ChatListItem } from '@kithfield/contracts';
 import { layout } from '@kithfield/theme';
+import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -142,10 +143,14 @@ export function ChatListScreen() {
       ) : rows.length === 0 ? (
         <View style={{ flex: 1, paddingBottom: tabBarClearance(insets.bottom) }}>
           <EmptyState
-            art={<ArtStill scene="spot" width={300} height={200} attrs={{ name: 'empty' }} />}
+            art={<ArtStill scene="spot" width={300} height={200} attrs={{ name: 'letter' }} />}
             title={t('chat.list.empty.title')}
             body={t('chat.list.empty.body')}
-            action={{ label: t('chat.list.newFarm'), onPress: go.newFarm }}
+            action={{
+              label: t('chat.list.empty.action'),
+              onPress: () => router.navigate('/(tabs)/farm'),
+              kind: 'secondary',
+            }}
           />
         </View>
       ) : (

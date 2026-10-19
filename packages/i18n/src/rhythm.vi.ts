@@ -191,9 +191,10 @@ export const rhythmVi: ViCatalogue<typeof rhythmEn> = {
     'Trang sẽ rời khỏi sổ lưu niệm với mọi người trong nông trại. Ai cũng có thể ẩn một trang.',
   'rhythm.scrapbook.hideCancel': 'Giữ lại',
   'rhythm.scrapbook.hidden': 'Đã ẩn trang',
-  'rhythm.scrapbook.empty.title': 'Chưa ép trang nào',
+  'rhythm.scrapbook.empty.title': 'Trang đầu tiên đang chờ',
   'rhythm.scrapbook.empty.body':
-    'Sau một buổi tụ họp, hãy ép một trang để giữ lại: ảnh, lời nhắn và một bông hoa.',
+    'Sau buổi gặp đầu tiên, ảnh sẽ được ép thành một trang ở đây, như ép hoa trong sách.',
+  'rhythm.scrapbook.empty.action': 'Xem luống hạt',
   'rhythm.scrapbook.press': 'Ép một trang',
   'rhythm.scrapbook.pressFrom': 'Từ {title}, {date}',
   'rhythm.scrapbook.pressed': 'Đã ép vào sổ lưu niệm',

@@ -130,10 +130,10 @@ export function SeedBed() {
           </Txt>
         ) : (
           <EmptyState
-            art={<SeedArt stage={1} size={160} />}
+            art={<SeedArt stage={0} size={160} />}
             title={t('plans.bed.empty.title')}
             body={t('plans.bed.empty.body')}
-            action={{ label: t('plans.bed.plant'), onPress: plant }}
+            action={{ label: t('plans.bed.empty.action'), onPress: plant, icon: 'seeds' }}
           />
         )}
       </ScrollView>
