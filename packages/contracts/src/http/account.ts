@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import {
+  AppBundleId,
   CountryCode,
   Critter,
   DisplayName,
@@ -51,6 +52,8 @@ export const RegisterDeviceRequest = z.object({
   /** Expo push token; null until notifications are allowed. */
   pushToken: z.string().min(1).max(256).nullable(),
   appVersion: z.string().regex(/^\d+\.\d+\.\d+( \(\d+\))?$/),
+  /** The app's own bundle id: the store app and a development build reach the same server. */
+  bundleId: AppBundleId.optional(),
 });
 export type RegisterDeviceRequest = z.infer<typeof RegisterDeviceRequest>;
 

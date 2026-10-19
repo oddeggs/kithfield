@@ -130,7 +130,7 @@ async function fireChanged(intake: Intake, config: ApnsConfig, farm: string): Pr
   await sendAll(
     intake,
     config,
-    tokens.map(({ token }) => ({ token, payload, priority: 10 })),
+    tokens.map(({ token, bundleId }) => ({ token, bundleId, payload, priority: 10 })),
   );
   for (const { device } of tokens) {
     activities.dropActivityToken(intake.sql, device, { activity: 'fire', farm });
@@ -182,7 +182,7 @@ async function plansChanged(intake: Intake, config: ApnsConfig, farm: string): P
     await sendAll(
       intake,
       config,
-      tokens.map(({ token }) => ({ token, payload, priority: 10 })),
+      tokens.map(({ token, bundleId }) => ({ token, bundleId, payload, priority: 10 })),
     );
     sql.exec('UPDATE plan_days SET last_json = ? WHERE farm = ? AND seed = ?', json, farm, seq);
   }
@@ -243,7 +243,9 @@ async function startPlanDay(intake: Intake, config: ApnsConfig, row: PlanDayRow)
   await sendAll(
     intake,
     config,
-    activities.startTokens(sql).map(({ token }) => ({ token, payload, priority: 10 })),
+    activities
+      .startTokens(sql)
+      .map(({ token, bundleId }) => ({ token, bundleId, payload, priority: 10 })),
   );
   sql.exec(
     'UPDATE plan_days SET last_json = ? WHERE farm = ? AND seed = ?',
@@ -301,7 +303,7 @@ async function endPlanDay(intake: Intake, config: ApnsConfig | null, row: PlanDa
     await sendAll(
       intake,
       config,
-      tokens.map(({ token }) => ({ token, payload, priority: 5 })),
+      tokens.map(({ token, bundleId }) => ({ token, bundleId, payload, priority: 5 })),
     );
   }
   for (const { device } of tokens) activities.dropActivityToken(sql, device, key);

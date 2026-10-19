@@ -118,7 +118,11 @@ export function cottageRoutes(): Hono<RouteEnv> {
     const body = await bodyOf(c, ActivityStartTokenRequest);
     if (!body.ok) return body.response;
     const cottage = cottageOf(c.env, c.get('person'));
-    const kept = await cottage.setActivityStartToken(device.data, body.value.token);
+    const kept = await cottage.setActivityStartToken(
+      device.data,
+      body.value.token,
+      body.value.bundleId,
+    );
     return kept ? c.body(null, 204) : fail(c, 404, 'not_found');
   });
 

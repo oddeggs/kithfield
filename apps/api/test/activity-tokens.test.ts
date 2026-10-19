@@ -63,6 +63,33 @@ describe('Live Activity tokens', () => {
     ]);
   });
 
+  it('keeps the app each token is for: the one it names, else the one its device named', async () => {
+    const person = await newPerson('wren');
+    const device = crypto.randomUUID();
+    await api(person, 'PUT', `/v1/devices/${device}`, {
+      platform: 'ios',
+      name: 'Wren’s iPhone',
+      pushToken: null,
+      appVersion: '1.0.0',
+      bundleId: 'com.kithfield.app',
+    });
+    const base = `/v1/devices/${device}`;
+    await api(person, 'PUT', `${base}/activity-start`, { token: TOKEN });
+    const fire = { activity: 'fire', farm: 'farm-a', token: OTHER };
+    await api(person, 'PUT', `${base}/activities`, { ...fire, bundleId: 'com.kithfield.app.dev' });
+    expect(
+      await runInCottage(person.id, (sql) => ({
+        start: sql.exec('SELECT bundle_id FROM activity_start_tokens').toArray(),
+        running: sql.exec('SELECT bundle_id FROM activity_tokens').toArray(),
+      })),
+    ).toEqual({
+      start: [{ bundle_id: 'com.kithfield.app' }],
+      running: [{ bundle_id: 'com.kithfield.app.dev' }],
+    });
+    const odd = { token: TOKEN, bundleId: 'not a bundle' };
+    expect((await api(person, 'PUT', `${base}/activity-start`, odd)).status).toBe(400);
+  });
+
   it('refuses a device that isn’t the person’s, and a token that isn’t hex', async () => {
     const { person, device } = await personWithPhone();
     const stranger = crypto.randomUUID();

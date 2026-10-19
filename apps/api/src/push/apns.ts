@@ -22,7 +22,13 @@ export interface ApnsConfig {
   readonly keyP8: string;
   readonly keyId: string;
   readonly teamId: string;
+  /** The server's own app (`APPLE_BUNDLE_ID`): the topic for a token that names no other. */
   readonly bundleId: string;
+  /**
+   * The other apps this server serves (`APPLE_EXTRA_BUNDLE_IDS`), such as the store app's beta
+   * on the development server. A token from one of them is pushed on its own topic.
+   */
+  readonly extraBundleIds?: readonly string[];
   /**
    * The hosts to send to, in order; the next is tried only for a token the last called a bad
    * device token (a development build's token lives on the sandbox).
@@ -30,19 +36,34 @@ export interface ApnsConfig {
   readonly hosts: readonly string[];
 }
 
+const listOf = (value: string | undefined): string[] =>
+  (value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item !== '');
+
+/**
+ * The app a push goes to: the one its token was registered for when this server serves that app,
+ * else the server's own.
+ */
+export function bundleFor(config: ApnsConfig, bundleId: string | null | undefined): string {
+  if (bundleId === null || bundleId === undefined) return config.bundleId;
+  return bundleId === config.bundleId || (config.extraBundleIds ?? []).includes(bundleId)
+    ? bundleId
+    : config.bundleId;
+}
+
 export function apnsConfig(env: Bindings): ApnsConfig | null {
   const keyP8 = env.APNS_KEY_P8;
   const keyId = env.APNS_KEY_ID;
   if (keyP8 === undefined || keyP8 === '' || keyId === undefined || keyId === '') return null;
-  const hosts = (env.APNS_HOST ?? '')
-    .split(',')
-    .map((h) => h.trim())
-    .filter((h) => h !== '');
+  const hosts = listOf(env.APNS_HOST);
   return {
     keyP8,
     keyId,
     teamId: env.APNS_TEAM_ID ?? DEFAULT_TEAM,
     bundleId: env.APPLE_BUNDLE_ID,
+    extraBundleIds: listOf(env.APPLE_EXTRA_BUNDLE_IDS),
     hosts: hosts.length > 0 ? hosts : [APNS_PRODUCTION, APNS_SANDBOX],
   };
 }
@@ -190,6 +211,8 @@ export interface LiveActivityPush {
   readonly payload: unknown;
   /** 10 for what should show now (a start, an end), 5 for the rest, which iOS may pace. */
   readonly priority: 5 | 10;
+  /** The bundle id of the app the token was registered for; absent or null is the server's. */
+  readonly bundleId?: string | null;
 }
 
 async function post(
@@ -205,7 +228,7 @@ async function post(
     headers: {
       authorization: `bearer ${jwt}`,
       'apns-push-type': 'liveactivity',
-      'apns-topic': `${config.bundleId}.push-type.liveactivity`,
+      'apns-topic': `${bundleFor(config, push.bundleId)}.push-type.liveactivity`,
       'apns-priority': String(push.priority),
       // An update an hour late is worse than none.
       'apns-expiration': String(Math.floor(now / 1000) + 60 * 60),

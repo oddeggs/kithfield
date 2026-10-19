@@ -1,5 +1,5 @@
 import {
-  ActivityPushToken,
+  ActivityStartTokenRequest,
   ActivityTokenRequest,
   type ChatListItem,
   CottageDelivery,
@@ -214,9 +214,11 @@ export class CottageDO extends DurableObject<Bindings> {
   /* Live Activity tokens (`PUT /v1/devices/:id/activity-start`, `…/activities`). */
 
   /** False when the device isn't one of the person's. */
-  setActivityStartToken(device: string, token: string): boolean {
+  /** `bundleId` is the app the token is for, when it said (else its device's). */
+  setActivityStartToken(device: string, token: string, bundleId?: string): boolean {
     if (!activities.hasDevice(this.sql, device)) return false;
-    activities.setStartToken(this.sql, device, ActivityPushToken.parse(token), this.now);
+    const request = ActivityStartTokenRequest.parse({ token, bundleId });
+    activities.setStartToken(this.sql, device, request.token, request.bundleId, this.now);
     return true;
   }
 

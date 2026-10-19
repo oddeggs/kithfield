@@ -115,15 +115,19 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
     [token, 'f'.repeat(160)],
     ['A'.repeat(64), 'abc', ''],
   ],
-  ActivityStartTokenRequest: [[{ token }], [{ token: 'nope' }]],
+  ActivityStartTokenRequest: [
+    [{ token }, { token, bundleId: 'com.kithfield.app.dev' }],
+    [{ token: 'nope' }, { token, bundleId: 'com kithfield app' }],
+  ],
   ActivityTokenRequest: [
     [
       { activity: 'plan_day', farm, seed: 20, token },
-      { activity: 'fire', farm, token },
+      { activity: 'fire', farm, token, bundleId: 'com.kithfield.app' },
     ],
     [
       { activity: 'plan_day', farm, token },
       { activity: 'call', farm, token },
+      { activity: 'fire', farm, token, bundleId: '' },
     ],
   ],
   SurfaceRefreshData: [

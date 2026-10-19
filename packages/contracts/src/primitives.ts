@@ -90,6 +90,12 @@ export type TimeZone = z.infer<typeof TimeZone>;
 
 export const CountryCode = z.string().regex(/^[A-Z]{2}$/);
 
+/** An app's bundle id (reverse DNS, as Apple has it): which build of the app is asking. */
+export const AppBundleId = z
+  .string()
+  .max(155)
+  .regex(/^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/);
+
 /** An ISO 4217 currency code. */
 export const CurrencyCode = z.string().regex(/^[A-Z]{3}$/);
 

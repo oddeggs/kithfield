@@ -36,16 +36,17 @@ export function registerDevice(
     );
   }
   sql.exec(
-    `INSERT INTO devices (device, platform, name, push_token, app_version, registered_at)
-     VALUES (?, ?, ?, ?, ?, ?)
+    `INSERT INTO devices (device, platform, name, push_token, app_version, bundle_id, registered_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (device) DO UPDATE SET platform = excluded.platform, name = excluded.name,
        push_token = excluded.push_token, app_version = excluded.app_version,
-       registered_at = excluded.registered_at`,
+       bundle_id = excluded.bundle_id, registered_at = excluded.registered_at`,
     device,
     request.platform,
     request.name,
     request.pushToken,
     request.appVersion,
+    request.bundleId ?? null,
     now,
   );
 }

@@ -4,6 +4,7 @@ import { type FarmCommand } from './commands';
 import { type NotificationCategory, type PlanPushData, type PushData } from './cottage';
 import { SeasonRef, WeatherSource } from './payloads/farm';
 import {
+  AppBundleId,
   Critter,
   DisplayName,
   EpochMs,
@@ -167,7 +168,11 @@ export const ActivityPushToken = z.string().regex(/^[0-9a-f]{64,256}$/);
  * `PUT /v1/devices/:deviceId/activity-start`: the device's push-to-start token, so the server can
  * start the plan-day activity 2 hours before a plan. 204.
  */
-export const ActivityStartTokenRequest = z.object({ token: ActivityPushToken });
+export const ActivityStartTokenRequest = z.object({
+  token: ActivityPushToken,
+  /** The bundle id of the app the token is for: its pushes go to that app's APNs topic. */
+  bundleId: AppBundleId.optional(),
+});
 export type ActivityStartTokenRequest = z.infer<typeof ActivityStartTokenRequest>;
 
 /**
@@ -175,8 +180,19 @@ export type ActivityStartTokenRequest = z.infer<typeof ActivityStartTokenRequest
  * move it along; `DELETE` the same path with the same body (without `token`) when it ends. 204.
  */
 export const ActivityTokenRequest = z.discriminatedUnion('activity', [
-  z.object({ activity: z.literal('plan_day'), farm: FarmId, seed: Seq, token: ActivityPushToken }),
-  z.object({ activity: z.literal('fire'), farm: FarmId, token: ActivityPushToken }),
+  z.object({
+    activity: z.literal('plan_day'),
+    farm: FarmId,
+    seed: Seq,
+    token: ActivityPushToken,
+    bundleId: AppBundleId.optional(),
+  }),
+  z.object({
+    activity: z.literal('fire'),
+    farm: FarmId,
+    token: ActivityPushToken,
+    bundleId: AppBundleId.optional(),
+  }),
 ]);
 export type ActivityTokenRequest = z.infer<typeof ActivityTokenRequest>;
 
