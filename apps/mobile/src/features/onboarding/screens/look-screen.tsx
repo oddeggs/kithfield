@@ -9,13 +9,16 @@ import { Button } from '../../../ui/components/button';
 import { Segmented } from '../../../ui/components/segmented';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
+import type { ViewStyleProp } from '../../../ui/style';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
 import { critterOf, farmmateCheck, kindOf, lookAttrs, lookOf, type Farmmate } from '../critters';
 import { routes } from '../flow';
 import { useFlow } from '../flow-state';
 import { SceneArt } from '../scene-art';
 import {
+  AxFlow,
   BarAction,
   BottomBar,
   ErrorLine,
@@ -42,6 +45,7 @@ export function LookScreen() {
   const { width } = useWindowDimensions();
   const top = useDesignTop();
   const scene = useSceneAttrs();
+  const ax = useAccessibilitySize();
   const progress = useProgress();
   const { state, update } = useFlow();
   const [tab, setTab] = useState<Tab>('accessory');
@@ -124,36 +128,150 @@ export function LookScreen() {
         ? t('onboarding.look.alikeNamed', { name: check.farmmate.name, critter: critterName })
         : t('onboarding.look.alike', { critter: critterName });
 
+  const bar = (
+    <TopBar
+      onBack={() => router.back()}
+      inset={20}
+      designTop={56}
+      center={
+        <Txt variant="button" {...(ax ? { align: 'center' as const } : {})}>
+          {t('onboarding.look.title')}
+        </Txt>
+      }
+      trailing={<BarAction label={t('onboarding.done')} tone="go" size={17} onPress={go} />}
+    />
+  );
+  const stageShape = {
+    height: 232,
+    borderTopLeftRadius: 116,
+    borderTopRightRadius: 116,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    backgroundColor: kindOf(choice.species).tint,
+    overflow: 'hidden',
+  } as const;
+  const stage = (
+    <SceneArt
+      scene="stage"
+      width={width - 56}
+      height={232}
+      attrs={{ ...scene, ...lookAttrs(choice) }}
+    />
+  );
+  const yours = (
+    <>
+      <Txt variant="displayM" style={{ fontSize: 22, lineHeight: 24.2 }}>
+        {t('onboarding.look.your', { critter: critterName })}
+      </Txt>
+      <Press onPress={() => askName()} darken={false} hitSlop={12}>
+        <Txt variant="chip" color={palette.secondary}>
+          {t('onboarding.look.name')}{' '}
+          <Text style={{ fontWeight: '600', color: name ? palette.text : inks.mossText }}>
+            {name || t('onboarding.look.nameAdd')}
+          </Text>
+        </Txt>
+      </Press>
+    </>
+  );
+  const tabs = (
+    <Segmented<Tab>
+      label={t('onboarding.look.title')}
+      value={tab}
+      onChange={setTab}
+      segments={[
+        { value: 'coat', label: t('onboarding.look.coat') },
+        { value: 'mark', label: t('onboarding.look.markings') },
+        { value: 'accessory', label: t('onboarding.look.accessory') },
+      ]}
+    />
+  );
+  const options = (
+    <>
+      {tab === 'coat' ? (
+        <CoatOptions choice={choice} onChange={(c) => update({ choice: c })} />
+      ) : null}
+      {tab === 'mark' ? (
+        <MarkOptions choice={choice} onChange={(c) => update({ choice: c })} />
+      ) : null}
+      {tab === 'accessory' ? (
+        <AccessoryOptions
+          choice={choice}
+          onChange={(c) => update({ choice: c })}
+          width={width - 40}
+        />
+      ) : null}
+    </>
+  );
+  const farmmateCard = (place: ViewStyleProp) =>
+    check && farmmateText ? (
+      <View
+        accessible
+        style={[
+          place,
+          {
+            borderRadius: 20,
+            backgroundColor: check.kind === 'twin' ? inks.twin.bg : palette.card,
+            borderWidth: 1,
+            borderColor: palette.cardBorder,
+            paddingVertical: 10,
+            paddingHorizontal: 14,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+          },
+        ]}
+      >
+        <View style={{ flexDirection: 'row' }}>
+          <Avatar
+            kind={check.farmmate.critter.species}
+            look={lookOf(check.farmmate.critter)}
+            size={38}
+          />
+          <Avatar
+            kind={choice.species}
+            look={lookOf(critterOf(choice))}
+            size={38}
+            ring={palette.card}
+            style={{ marginLeft: -16 }}
+          />
+        </View>
+        <Txt
+          variant="caption"
+          multiline
+          color={check.kind === 'twin' ? inks.twin.fg : inks.list}
+          style={{ flex: 1, fontSize: 14, lineHeight: 18.9 }}
+        >
+          {farmmateText}
+        </Txt>
+      </View>
+    ) : null;
+  const footer = (
+    <>
+      <ErrorLine text={error} />
+      <Button label={t('onboarding.look.moveIn')} onPress={go} disabled={busy} haptic="success" />
+    </>
+  );
+
+  if (ax) {
+    // The name sits under the heading, the options take the room they need, all in one column.
+    return (
+      <AxFlow bar={bar} footer={footer}>
+        <View style={[{ marginHorizontal: 28 }, stageShape]}>{stage}</View>
+        <View style={{ paddingHorizontal: 24, gap: 8, alignItems: 'flex-start' }}>{yours}</View>
+        <View style={{ paddingHorizontal: 20, gap: 16 }}>
+          {tabs}
+          <View>{options}</View>
+        </View>
+        {farmmateCard({ marginHorizontal: 20 })}
+      </AxFlow>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <TopBar
-        onBack={() => router.back()}
-        inset={20}
-        designTop={56}
-        center={<Txt variant="button">{t('onboarding.look.title')}</Txt>}
-        trailing={<BarAction label={t('onboarding.done')} tone="go" size={17} onPress={go} />}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          top: top(108),
-          left: 28,
-          right: 28,
-          height: 232,
-          borderTopLeftRadius: 116,
-          borderTopRightRadius: 116,
-          borderBottomLeftRadius: 30,
-          borderBottomRightRadius: 30,
-          backgroundColor: kindOf(choice.species).tint,
-          overflow: 'hidden',
-        }}
-      >
-        <SceneArt
-          scene="stage"
-          width={width - 56}
-          height={232}
-          attrs={{ ...scene, ...lookAttrs(choice) }}
-        />
+      {bar}
+      <View style={[{ position: 'absolute', top: top(108), left: 28, right: 28 }, stageShape]}>
+        {stage}
       </View>
       <View
         style={{
@@ -166,92 +284,14 @@ export function LookScreen() {
           alignItems: 'baseline',
         }}
       >
-        <Txt variant="displayM" style={{ fontSize: 22, lineHeight: 24.2 }}>
-          {t('onboarding.look.your', { critter: critterName })}
-        </Txt>
-        <Press onPress={() => askName()} darken={false} hitSlop={12}>
-          <Txt variant="chip" color={palette.secondary}>
-            {t('onboarding.look.name')}{' '}
-            <Text style={{ fontWeight: '600', color: name ? palette.text : inks.mossText }}>
-              {name || t('onboarding.look.nameAdd')}
-            </Text>
-          </Txt>
-        </Press>
+        {yours}
       </View>
-      <View style={{ position: 'absolute', top: top(394), left: 20, right: 20 }}>
-        <Segmented<Tab>
-          label={t('onboarding.look.title')}
-          value={tab}
-          onChange={setTab}
-          segments={[
-            { value: 'coat', label: t('onboarding.look.coat') },
-            { value: 'mark', label: t('onboarding.look.markings') },
-            { value: 'accessory', label: t('onboarding.look.accessory') },
-          ]}
-        />
-      </View>
+      <View style={{ position: 'absolute', top: top(394), left: 20, right: 20 }}>{tabs}</View>
       <View style={{ position: 'absolute', top: top(448), left: 20, right: 20, height: 172 }}>
-        {tab === 'coat' ? (
-          <CoatOptions choice={choice} onChange={(c) => update({ choice: c })} />
-        ) : null}
-        {tab === 'mark' ? (
-          <MarkOptions choice={choice} onChange={(c) => update({ choice: c })} />
-        ) : null}
-        {tab === 'accessory' ? (
-          <AccessoryOptions
-            choice={choice}
-            onChange={(c) => update({ choice: c })}
-            width={width - 40}
-          />
-        ) : null}
+        {options}
       </View>
-      {check && farmmateText ? (
-        <View
-          accessible
-          style={{
-            position: 'absolute',
-            top: top(640),
-            left: 20,
-            right: 20,
-            borderRadius: 20,
-            backgroundColor: check.kind === 'twin' ? '#F8E2C8' : palette.card,
-            borderWidth: 1,
-            borderColor: palette.cardBorder,
-            paddingVertical: 10,
-            paddingHorizontal: 14,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
-          <View style={{ flexDirection: 'row' }}>
-            <Avatar
-              kind={check.farmmate.critter.species}
-              look={lookOf(check.farmmate.critter)}
-              size={38}
-            />
-            <Avatar
-              kind={choice.species}
-              look={lookOf(critterOf(choice))}
-              size={38}
-              ring={palette.card}
-              style={{ marginLeft: -16 }}
-            />
-          </View>
-          <Txt
-            variant="caption"
-            multiline
-            color={check.kind === 'twin' ? '#4a3f37' : inks.list}
-            style={{ flex: 1, fontSize: 14, lineHeight: 18.9 }}
-          >
-            {farmmateText}
-          </Txt>
-        </View>
-      ) : null}
-      <BottomBar>
-        <ErrorLine text={error} />
-        <Button label={t('onboarding.look.moveIn')} onPress={go} disabled={busy} haptic="success" />
-      </BottomBar>
+      {farmmateCard({ position: 'absolute', top: top(640), left: 20, right: 20 })}
+      <BottomBar>{footer}</BottomBar>
     </View>
   );
 }

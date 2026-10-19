@@ -1,4 +1,4 @@
-import { fontFor, motion } from '@kithfield/theme';
+import { day, fontFor, motion } from '@kithfield/theme';
 import { Fields, getContactsAsync, getPermissionsAsync, SortTypes } from 'expo-contacts/legacy';
 import { useRouter } from 'expo-router';
 import * as SMS from 'expo-sms';
@@ -13,6 +13,7 @@ import { EmptyState } from '../../../ui/components/state-shell';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { AX_FONT_SCALE, useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { componentType } from '../../../ui/type/styles';
 import { Txt } from '../../../ui/type/text';
 import { friendsIn, matching, tintFor, type Friend } from '../contacts';
@@ -59,7 +60,14 @@ function FriendRow({
           justifyContent: 'center',
         }}
       >
-        <Txt variant="fieldValue" color="#2a221d" style={letter}>
+        {/* The friend's tint is always light, so the letter keeps day ink in both appearances; it
+            grows with the text only as far as its circle holds. */}
+        <Txt
+          variant="fieldValue"
+          color={day.ink}
+          maxFontSizeMultiplier={AX_FONT_SCALE}
+          style={letter}
+        >
           {friend.initial}
         </Txt>
       </View>
@@ -104,6 +112,7 @@ export function FriendsScreen() {
   const { palette } = useTheme();
   const top = useDesignTop();
   const bottom = useBottom();
+  const ax = useAccessibilitySize();
   const progress = useProgress();
   const message = useFarmMessage();
   const [book, setBook] = useState<Book>({ kind: 'loading' });
@@ -168,13 +177,22 @@ export function FriendsScreen() {
       <TopBar
         onBack={() => router.back()}
         center={
-          <Txt variant="rowTitle" style={{ fontSize: 17, lineHeight: 19.55 }}>
+          <Txt
+            variant="rowTitle"
+            {...(ax ? { align: 'center' as const } : {})}
+            style={{ fontSize: 17, lineHeight: 19.55 }}
+          >
             {t('onboarding.friends.title')}
           </Txt>
         }
       />
       <View
-        style={{ position: 'absolute', top: top(114), left: 16, right: 16, bottom: 0, gap: 10 }}
+        style={
+          // At the accessibility sizes the top bar is in the column, and the list follows it.
+          ax
+            ? { flex: 1, marginTop: 12, marginHorizontal: 16, gap: 10 }
+            : { position: 'absolute', top: top(114), left: 16, right: 16, bottom: 0, gap: 10 }
+        }
       >
         {empty ?? (
           <>
