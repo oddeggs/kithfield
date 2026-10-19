@@ -141,9 +141,21 @@ describe('identity tokens per environment', () => {
     expect(signedIn.user.isAnonymous).toBe(false);
   });
 
-  it('refuses an Apple token for the production app in the dev environment', async () => {
-    const identity = await idp.sheet('apple', freshSubject(), { aud: 'com.kithfield.app' });
+  it('refuses an Apple token for an app it doesn’t know', async () => {
+    const identity = await idp.sheet('apple', freshSubject(), { aud: 'com.example.other' });
     expect((await signInWithIdToken('apple', identity)).status).toBe(401);
+  });
+
+  it('takes a Google token from the store app’s iOS client, for the beta on the dev server', async () => {
+    const identity = await idp.sheet('google', freshSubject(), {
+      aud: '564934268570-jr7d94ci3jtb88sm4uqio1pjoatb3l31.apps.googleusercontent.com',
+    });
+    expect((await signInWithIdToken('google', identity)).status).toBe(200);
+  });
+
+  it('takes an Apple token from the store app’s beta, which talks to the dev server', async () => {
+    const identity = await idp.sheet('apple', freshSubject(), { aud: 'com.kithfield.app' });
+    expect((await signInWithIdToken('apple', identity)).status).toBe(200);
   });
 
   it('accepts an Apple private relay address as the verified email Apple says it is', async () => {
