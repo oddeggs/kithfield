@@ -11,7 +11,7 @@ import {
 import { useLocale } from '../locale/locale-provider';
 import { useTheme } from '../theme/theme-provider';
 import { fontSizeMultiplier } from './dynamic-type';
-import { leading } from './leading';
+import { leading, roomForMarks } from './leading';
 import { typeStyleOf, type TypeVariant } from './styles';
 
 export interface TxtProps extends TextProps {
@@ -70,12 +70,16 @@ export function Txt({
   // grows with the text when Dynamic Type scales it. Text nested in a Txt is laid out by its
   // parent's lines, so only the outermost one takes it.
   // Expo's web typings widen text styles past what `flatten` takes; the native shape is the same.
-  const own = StyleSheet.flatten([
-    font,
-    { color: color ?? palette.text },
-    align ? { textAlign: align } : null,
-    style,
-  ] as never) as TextStyle;
+  // A screen's own line height still leaves Vietnamese room for its stacked marks.
+  const own = roomForMarks(
+    StyleSheet.flatten([
+      font,
+      { color: color ?? palette.text },
+      align ? { textAlign: align } : null,
+      style,
+    ] as never) as TextStyle,
+    fontLocale,
+  );
   const scale = fontSizeMultiplier({
     fontScale,
     ramp: rest.dynamicTypeRamp ?? s.ramp,
