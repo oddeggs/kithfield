@@ -1,5 +1,5 @@
 import type { SurfaceFarm, SurfacePerson } from '@kithfield/contracts';
-import { day, fonts, fireRoom, night } from '@kithfield/theme';
+import { day, fonts, fireRoom, material, night } from '@kithfield/theme';
 import { FlexWidget, ImageWidget, OverlapWidget, TextWidget } from 'react-native-android-widget';
 
 import { imageNames, litMask } from '../../surfaces/names';
@@ -354,7 +354,7 @@ export function DewdropWidget({
     <Frame
       uri={null}
       label={copy.t('android.widget.dewdrop.title')}
-      background={dark ? night.panel : '#FBF6EE'}
+      background={dark ? night.panel : material.widgetPaper}
     >
       <FlexWidget
         style={{

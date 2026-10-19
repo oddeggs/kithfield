@@ -1,14 +1,14 @@
-import { day, night, type Appearance } from '@kithfield/theme';
+import { day, material, night, type Appearance } from '@kithfield/theme';
 
 /*
- * The Material surfaces `14 Platforms` draws for Android (14-05 to 14-08) that the shared palette
- * has no token for: the navigation bar, its active pill, and the widget's paper. Night follows
- * `12 States`: the night panel, a lifted bubble for the pill, moonlight on it.
+ * The Material surfaces `14 Platforms` draws for Android (14-05 to 14-08), by appearance: the
+ * navigation bar and its active pill (the theme's `material` tokens by day) and the dewdrop FAB.
+ * Night follows `12 States`: the night panel, a lifted bubble for the pill, moonlight on it.
  */
 export const androidColours = {
   day: {
-    navBar: '#F1EADD',
-    navPill: '#DCE6C9',
+    navBar: material.navBar,
+    navPill: material.navPill,
     navActive: day.ink,
     navInactive: day.ink3,
     fab: day.moss,
