@@ -68,3 +68,13 @@ export function momentFor(state: FarmState, me: PersonId, now: number, flags: Mo
     ? { kind: 'moveIn', person: newcomer.person, upTo: latestJoin }
     : { kind: 'none', upTo: latestJoin > seen ? latestJoin : null };
 }
+
+/**
+ * A wave from a farm moment ("say hi", "wave hello"): on to the chat once it is queued. A wave
+ * the farm's rules refuse stays on the moment, where `send` has said why.
+ */
+export async function waveThenGo(send: () => Promise<boolean>, go: () => void): Promise<boolean> {
+  const sent = await send();
+  if (sent) go();
+  return sent;
+}

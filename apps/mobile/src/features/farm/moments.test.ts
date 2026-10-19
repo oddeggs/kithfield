@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { DAY, farmLog } from './farm-log.test-data';
-import { momentFor, visitBefore } from './moments';
+import { momentFor, visitBefore, waveThenGo } from './moments';
 
 describe('the moments a farm shows as it opens', () => {
   it('celebrates your own fresh move-in on a farm this phone has never opened', () => {
@@ -88,5 +88,27 @@ describe('the moments a farm shows as it opens', () => {
     const events = [opened('p_june', 1000), opened('p_bea', 3000), opened('p_june', 9000)];
     expect(visitBefore(events, 'p_june', 5000)).toBe(1000);
     expect(visitBefore(events, 'p_june', 500)).toBeNull();
+  });
+});
+
+describe('waving from a farm moment', () => {
+  it('goes on to the chat once the wave is queued', async () => {
+    const went: string[] = [];
+    const sent = await waveThenGo(
+      () => Promise.resolve(true),
+      () => went.push('chat'),
+    );
+    expect(sent).toBe(true);
+    expect(went).toEqual(['chat']);
+  });
+
+  it('stays on the moment when the wave is refused, so its reason can be read there', async () => {
+    const went: string[] = [];
+    const sent = await waveThenGo(
+      () => Promise.resolve(false),
+      () => went.push('chat'),
+    );
+    expect(sent).toBe(false);
+    expect(went).toEqual([]);
   });
 });

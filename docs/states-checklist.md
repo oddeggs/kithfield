@@ -83,10 +83,10 @@ What is still open (each row's note has the detail):
 | 04-13 | Photo and video viewer | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 04-14 | Shared on the farm: photos, videos, links, voice | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 04-15 | Message states, link previews and typing | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
-| 04-16 | Welcome back: hugs, never a list | ✓ | – | ✓ | ✗ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | error: "say hi" ignores a refused wave; fixed here: the resting sheet scrolls at AX5 |
+| 04-16 | Welcome back: hugs, never a list | ✓ | – | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: a refused "say hi" says why in a toast and stays on the moment; the resting sheet scrolls at AX5 |
 | 04-17 | A little valley of farms (switcher) | ✓ | – | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 04-18 | Plant a new farm | – | – | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | AX5: the plant sheet does not scroll |
-| 04-19 | Move-in day: a new critter arrives | ✓ | – | ✓ | ✗ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | error: the wave ignores a refusal; fixed here: sheet scrolls at AX5 |
+| 04-19 | Move-in day: a new critter arrives | ✓ | – | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: a refused wave says why in a toast and stays on the moment; your own move-in opens after onboarding; sheet scrolls at AX5 |
 | 04-20 | Leaving a farm quietly | – | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: sheet scrolls at AX5 |
 | 04-21 | What you see if you're removed from a farm | – | – | ✓ | – | ✓ | ✓ | ✗ | ✓ | ✓ | AX5: absolutely placed text runs under the buttons |
 | 04-22 | A sleeping cottage for someone who left | – | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: sheet scrolls at AX5 |
