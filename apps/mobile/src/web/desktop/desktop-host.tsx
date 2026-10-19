@@ -1,3 +1,4 @@
+import { platformMotion } from '@kithfield/theme';
 import type { ChatListItem } from '@kithfield/contracts';
 import { emitTo, listen } from '@tauri-apps/api/event';
 import { TrayIcon, type TrayIconEvent } from '@tauri-apps/api/tray';
@@ -20,7 +21,6 @@ import { routes as gestureRoutes } from '../../features/gestures/routes';
 import { useArt } from '../../ui/art/art-provider';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { openChat, useDesk } from '../desk/desk-context';
-import { platformLook } from '../look';
 import { setAppMenu, trayMenu } from './desktop-menu';
 import { softNotes } from './notify-model';
 import { EVENTS, POPOVER, POPOVER_SURFACE, type TrayAction, type TrayCard } from './tauri';
@@ -202,7 +202,7 @@ export function DesktopHost() {
     const timer = setInterval(() => {
       frame += 1;
       show();
-    }, platformLook.trayBreathMs / GLOW_FRAMES);
+    }, platformMotion.trayBreathMs / GLOW_FRAMES);
     return () => clearInterval(timer);
   }, [frames]);
 

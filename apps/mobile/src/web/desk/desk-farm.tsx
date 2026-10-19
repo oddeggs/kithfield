@@ -1,3 +1,4 @@
+import { platformColour } from '@kithfield/theme';
 import type { FarmId } from '@kithfield/contracts';
 import type { FarmView } from '@kithfield/farm';
 import { router } from 'expo-router';
@@ -15,7 +16,6 @@ import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
-import { platformLook } from '../look';
 import { useDesk } from './desk-context';
 import { useNowMinute } from './use-now-minute';
 
@@ -114,7 +114,7 @@ export function DeskFarm({ farm }: { readonly farm: FarmId }) {
           gap: 8,
         }}
       >
-        <ArtIcon name="sparkle" size={18} color={platformLook.dropEdge} />
+        <ArtIcon name="sparkle" size={18} color={platformColour.dropEdge} />
         <Txt variant="caption" style={{ flex: 1, fontSize: 12.5, lineHeight: 16.9 }}>
           {saidBy ? t('platforms.desk.reacts', { name: saidBy }) : t('platforms.desk.reactsQuiet')}
         </Txt>

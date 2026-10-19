@@ -1,3 +1,4 @@
+import { platformColour, platformMotion } from '@kithfield/theme';
 import type { Critter } from '@kithfield/contracts';
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
@@ -16,7 +17,6 @@ import { phaseOf } from '../../features/farm/use-farm-scene';
 import { whenIdle } from '../../features/farm/use-now';
 import { useArt } from '../../ui/art/art-provider';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
-import { platformLook } from '../look';
 
 /** The newcomer's place in the placement, apart from every resident's. */
 export const NEWCOMER = 'newcomer';
@@ -132,7 +132,7 @@ function SavedGlow({
     pulse.set(
       withRepeat(
         withTiming(1, {
-          duration: platformLook.savedPulseMs / 2,
+          duration: platformMotion.savedPulseMs / 2,
           easing: Easing.inOut(Easing.sin),
         }),
         -1,
@@ -156,8 +156,8 @@ function SavedGlow({
           height: r * 2,
           borderRadius: r,
           borderWidth: 3,
-          borderColor: platformLook.glowRing,
-          boxShadow: `0 0 40px ${platformLook.glowLight}`,
+          borderColor: platformColour.glowRing,
+          boxShadow: `0 0 40px ${platformColour.glowLight}`,
         },
         glow,
       ]}

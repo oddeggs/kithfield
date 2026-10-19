@@ -9,6 +9,7 @@ export * from './hand';
 export * from './gestures';
 export * from './motion';
 export * from './plans';
+export * from './platforms';
 export * from './rhythm';
 export * from './screens';
 export * from './settings';

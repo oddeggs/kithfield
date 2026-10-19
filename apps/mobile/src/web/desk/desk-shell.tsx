@@ -1,3 +1,4 @@
+import { platformMotion } from '@kithfield/theme';
 import { useGlobalSearchParams, usePathname } from 'expo-router';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
@@ -80,8 +81,8 @@ export function DeskShell({
               {...(reduce
                 ? {}
                 : {
-                    entering: FadeIn.duration(platformLook.paneSwapMs),
-                    exiting: FadeOut.duration(platformLook.paneSwapMs),
+                    entering: FadeIn.duration(platformMotion.paneSwapMs),
+                    exiting: FadeOut.duration(platformMotion.paneSwapMs),
                   })}
             >
               {fireFarm ? <DeskFire farm={fireFarm} /> : <DeskFarm farm={farm} />}

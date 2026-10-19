@@ -1,5 +1,5 @@
 import type { FarmState, StickerPayload } from '@kithfield/contracts';
-import { day } from '@kithfield/theme';
+import { day, platformMotion } from '@kithfield/theme';
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState, type ReactNode } from 'react';
 import { TextInput, View, type TextInputInstance } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
@@ -22,7 +22,6 @@ import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
-import { platformLook } from '../look';
 import { KeyCap } from './key-cap';
 import { colonQuery, matchStickers, withoutQuery, type StickerOption } from './sticker-match';
 
@@ -174,9 +173,9 @@ export const DeskComposer = forwardRef<
           {...(reduce
             ? {}
             : {
-                entering: FadeIn.duration(platformLook.quickFadeMs),
-                exiting: FadeOut.duration(platformLook.quickFadeMs),
-                layout: LinearTransition.duration(platformLook.quickFadeMs),
+                entering: FadeIn.duration(platformMotion.quickFadeMs),
+                exiting: FadeOut.duration(platformMotion.quickFadeMs),
+                layout: LinearTransition.duration(platformMotion.quickFadeMs),
               })}
           style={{
             borderRadius: 22,
@@ -214,7 +213,7 @@ export const DeskComposer = forwardRef<
           ) : (
             <Animated.View
               key={query.query}
-              {...(reduce ? {} : { entering: FadeIn.duration(platformLook.quickFadeMs) })}
+              {...(reduce ? {} : { entering: FadeIn.duration(platformMotion.quickFadeMs) })}
               style={{ flexDirection: 'row', gap: 4 }}
             >
               {matches.map((option, i) => (

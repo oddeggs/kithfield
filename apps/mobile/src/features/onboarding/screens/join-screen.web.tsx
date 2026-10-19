@@ -1,3 +1,4 @@
+import { platformColour } from '@kithfield/theme';
 import type { Critter, InvitePreview, Species } from '@kithfield/contracts';
 import { getLocales } from 'expo-localization';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -260,7 +261,7 @@ export function JoinScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             gap: 10,
-            backgroundColor: platformLook.chipOverArt,
+            backgroundColor: platformColour.chipOverArt,
           }}
         >
           <View style={{ width: 32, height: 32, borderRadius: 9, overflow: 'hidden' }}>

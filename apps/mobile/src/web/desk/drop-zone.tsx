@@ -1,4 +1,4 @@
-import { day } from '@kithfield/theme';
+import { day, platformColour, platformMotion } from '@kithfield/theme';
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { View } from 'react-native';
 import Animated, {
@@ -12,7 +12,6 @@ import { ArtStill } from '../../ui/art/art-view';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { Txt } from '../../ui/type/text';
-import { platformLook } from '../look';
 import { isMedia } from './dropped-media';
 
 /** How many of what's being dragged are photos or videos (the browser shows types, not files). */
@@ -88,7 +87,7 @@ export function DropZone({
   useEffect(() => {
     shown.set(
       withTiming(count > 0 ? 1 : 0, {
-        duration: reduce ? 0 : platformLook.quickFadeMs,
+        duration: reduce ? 0 : platformMotion.quickFadeMs,
         easing: Easing.linear,
       }),
     );
@@ -110,8 +109,8 @@ export function DropZone({
             borderRadius: 20,
             borderWidth: 2.5,
             borderStyle: 'dashed',
-            borderColor: platformLook.dropEdge,
-            backgroundColor: platformLook.dropWash,
+            borderColor: platformColour.dropEdge,
+            backgroundColor: platformColour.dropWash,
             alignItems: 'center',
             justifyContent: 'center',
             gap: 10,
