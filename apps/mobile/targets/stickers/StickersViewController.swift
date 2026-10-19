@@ -9,6 +9,8 @@ private let log = Logger(subsystem: "com.kithfield.stickers", category: "drawer"
 /// time the drawer opens, so a new outfit shows up without the extension changing.
 final class StickersViewController: MSMessagesAppViewController {
   private let browser = StickerBrowser(stickerSize: .small)
+  /// Before the app has made any stickers: where they come from.
+  private let empty = UILabel()
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -17,12 +19,32 @@ final class StickersViewController: MSMessagesAppViewController {
     browser.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     view.addSubview(browser.view)
     browser.didMove(toParent: self)
+
+    empty.font = UIFont.preferredFont(forTextStyle: .body)
+    empty.adjustsFontForContentSizeCategory = true
+    empty.textColor = UIColor { traits in
+      UIColor(traits.userInterfaceStyle == .dark ? SurfacePalette.moon2 : SurfacePalette.ink3)
+    }
+    empty.textAlignment = .center
+    empty.numberOfLines = 0
+    empty.isHidden = true
+    empty.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(empty)
+    NSLayoutConstraint.activate([
+      empty.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+      empty.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+      empty.leadingAnchor.constraint(greaterThanOrEqualTo: view.layoutMarginsGuide.leadingAnchor),
+      empty.trailingAnchor.constraint(lessThanOrEqualTo: view.layoutMarginsGuide.trailingAnchor),
+    ])
   }
 
   override func willBecomeActive(with conversation: MSConversation) {
     super.willBecomeActive(with: conversation)
     browser.stickers = Self.load()
     browser.stickerBrowserView.reloadData()
+    empty.text = SurfaceCopy(lang: SurfaceData.read()?.lang).text("stickers.empty")
+    empty.isHidden = !browser.stickers.isEmpty
+    browser.view.isHidden = browser.stickers.isEmpty
   }
 
   /// `manifest.json`, written by the app after the stickers: each file in order, with its words
@@ -47,14 +69,18 @@ final class StickersViewController: MSMessagesAppViewController {
     if let data = try? Data(contentsOf: folder.appendingPathComponent("manifest.json")),
       let manifest = try? JSONDecoder().decode(Manifest.self, from: data)
     {
-      entries = manifest.stickers.map { (folder.appendingPathComponent($0.file), $0.label) }
+      entries = manifest.stickers.map { entry in
+        let file = folder.appendingPathComponent(entry.file)
+        let label = entry.label.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (file, label.isEmpty ? spoken(file) : label)
+      }
     } else {
       // Before the app has written a manifest: every sticker file, by name.
       entries =
         files
         .filter { ["png", "apng", "gif"].contains($0.pathExtension.lowercased()) }
         .sorted { $0.lastPathComponent < $1.lastPathComponent }
-        .map { ($0, $0.deletingPathExtension().lastPathComponent) }
+        .map { ($0, spoken($0)) }
     }
     let stickers = entries.compactMap { file, label -> MSSticker? in
       guard FileManager.default.fileExists(atPath: file.path) else { return nil }
@@ -67,6 +93,16 @@ final class StickersViewController: MSMessagesAppViewController {
     }
     log.notice("Offering \(stickers.count) stickers")
     return stickers
+  }
+
+  /// Without the manifest's words, the file's name as VoiceOver can say it: "01-good-morning.png"
+  /// is "good morning".
+  private static func spoken(_ file: URL) -> String {
+    let words = file.deletingPathExtension().lastPathComponent
+      .split(whereSeparator: { $0 == "-" || $0 == "_" })
+      .drop(while: { $0.allSatisfy(\.isNumber) })
+      .joined(separator: " ")
+    return words.isEmpty ? file.deletingPathExtension().lastPathComponent : words
   }
 }
 

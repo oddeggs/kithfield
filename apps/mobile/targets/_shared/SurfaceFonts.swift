@@ -26,8 +26,40 @@ enum SurfaceFonts {
     return Font.custom(handwritten, fixedSize: size)
   }
 
+  /// Gaegu at the design's size, growing and shrinking with the person's text size as `style`
+  /// does.
+  static func gaegu(_ size: CGFloat, relativeTo style: Font.TextStyle) -> Font {
+    _ = registered
+    return Font.custom(handwritten, size: size, relativeTo: style)
+  }
+
   static func youngSerif(_ size: CGFloat) -> Font {
     _ = registered
     return Font.custom(serif, fixedSize: size)
+  }
+}
+
+/// The system face at the design's size, scaled with the person's text size as `style` is (and
+/// held by any `dynamicTypeSize` limit above it).
+private struct ScaledSystemFont: ViewModifier {
+  @ScaledMetric private var size: CGFloat
+  private let weight: Font.Weight
+
+  init(size: CGFloat, weight: Font.Weight, relativeTo style: Font.TextStyle) {
+    _size = ScaledMetric(wrappedValue: size, relativeTo: style)
+    self.weight = weight
+  }
+
+  func body(content: Content) -> some View {
+    content.font(.system(size: size, weight: weight))
+  }
+}
+
+extension View {
+  /// `.font(.system(size:weight:))` that follows Dynamic Type along `style`.
+  func scaledFont(_ size: CGFloat, weight: Font.Weight = .regular, relativeTo style: Font.TextStyle)
+    -> some View
+  {
+    modifier(ScaledSystemFont(size: size, weight: weight, relativeTo: style))
   }
 }

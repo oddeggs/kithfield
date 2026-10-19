@@ -30,6 +30,13 @@ export const surfacesEn = {
   'surfaces.native.widget.byTheFireLabel': 'By the fire',
   /** The small widget with no plan and no fire. */
   'surfaces.native.widget.noPlan': 'No plans yet',
+  /** A friend's window, read aloud by its kind when the friend's name is gone. */
+  'surfaces.native.species.rabbit': 'Rabbit',
+  'surfaces.native.species.hedgehog': 'Hedgehog',
+  'surfaces.native.species.frog': 'Frog',
+  'surfaces.native.species.mole': 'Mole',
+  'surfaces.native.species.sheep': 'Sheep',
+  'surfaces.native.species.owl': 'Owl',
 
   /* The plan's day (10-02) */
   'surfaces.native.plan.onTheWay': '{count} on the way',
@@ -75,6 +82,10 @@ export const surfacesEn = {
   'surfaces.native.share.visit': 'a visit',
   'surfaces.native.share.noFarms': 'Open Kithfield once, then your farms show up here.',
   'surfaces.native.share.tooMany': 'Kithfield takes up to 10 at a time.',
+
+  /* The Messages sticker drawer */
+  /** Before the app has made any stickers. */
+  'surfaces.native.stickers.empty': 'Open Kithfield to make your stickers',
 
   /* In the app */
   /** A share that couldn't be sent: the farm is gone or the files went missing. */
