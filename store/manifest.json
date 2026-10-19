@@ -1,0 +1,1524 @@
+{
+  "generatedBy": "pnpm --filter @kithfield/launch bake",
+  "assets": [
+    {
+      "file": "android/en/feature-graphic.png",
+      "slot": "playFeature",
+      "width": 1024,
+      "height": 500,
+      "language": "en",
+      "source": "13-06 box 0",
+      "reference": { "render": "13-06", "rect": [14, 14, 512, 250] }
+    },
+    {
+      "file": "android/en/phone/01.png",
+      "slot": "playPhone",
+      "width": 1080,
+      "height": 2160,
+      "language": "en",
+      "source": "13-06 box 1, panel 1 of 6",
+      "reference": { "render": "13-06", "rect": [14, 311.59375, 255, 510] }
+    },
+    {
+      "file": "android/en/phone/02.png",
+      "slot": "playPhone",
+      "width": 1080,
+      "height": 2160,
+      "language": "en",
+      "source": "13-06 box 1, panel 2 of 6",
+      "reference": { "render": "13-06", "rect": [269, 311.59375, 255, 510] }
+    },
+    {
+      "file": "android/en/phone/03.png",
+      "slot": "playPhone",
+      "width": 1080,
+      "height": 2160,
+      "language": "en",
+      "source": "13-06 box 1, panel 3 of 6",
+      "reference": { "render": "13-06", "rect": [524, 311.59375, 255, 510] }
+    },
+    {
+      "file": "android/en/phone/04.png",
+      "slot": "playPhone",
+      "width": 1080,
+      "height": 2160,
+      "language": "en",
+      "source": "13-06 box 1, panel 4 of 6",
+      "reference": { "render": "13-06", "rect": [779, 311.59375, 255, 510] }
+    },
+    {
+      "file": "android/en/phone/05.png",
+      "slot": "playPhone",
+      "width": 1080,
+      "height": 2160,
+      "language": "en",
+      "source": "13-06 box 1, panel 5 of 6",
+      "reference": { "render": "13-06", "rect": [1034, 311.59375, 255, 510] }
+    },
+    {
+      "file": "android/en/phone/06.png",
+      "slot": "playPhone",
+      "width": 1080,
+      "height": 2160,
+      "language": "en",
+      "source": "13-06 box 1, panel 6 of 6",
+      "reference": { "render": "13-06", "rect": [1289, 311.59375, 255, 510] }
+    },
+    {
+      "file": "android/icon-512.png",
+      "slot": "playIcon",
+      "width": 512,
+      "height": 512,
+      "language": "en",
+      "source": "the art: icon2, option a"
+    },
+    {
+      "file": "android/vi/feature-graphic.png",
+      "slot": "playFeature",
+      "width": 1024,
+      "height": 500,
+      "language": "vi",
+      "source": "13-06 box 0",
+      "reference": { "render": "13-06", "rect": [14, 14, 512, 250] }
+    },
+    {
+      "file": "android/vi/phone/01.png",
+      "slot": "playPhone",
+      "width": 1080,
+      "height": 2160,
+      "language": "vi",
+      "source": "13-06 box 1, panel 1 of 6",
+      "reference": { "render": "13-06", "rect": [14, 311.59375, 255, 510] }
+    },
+    {
+      "file": "android/vi/phone/02.png",
+      "slot": "playPhone",
+      "width": 1080,
+      "height": 2160,
+      "language": "vi",
+      "source": "13-06 box 1, panel 2 of 6",
+      "reference": { "render": "13-06", "rect": [269, 311.59375, 255, 510] }
+    },
+    {
+      "file": "android/vi/phone/03.png",
+      "slot": "playPhone",
+      "width": 1080,
+      "height": 2160,
+      "language": "vi",
+      "source": "13-06 box 1, panel 3 of 6",
+      "reference": { "render": "13-06", "rect": [524, 311.59375, 255, 510] }
+    },
+    {
+      "file": "android/vi/phone/04.png",
+      "slot": "playPhone",
+      "width": 1080,
+      "height": 2160,
+      "language": "vi",
+      "source": "13-06 box 1, panel 4 of 6",
+      "reference": { "render": "13-06", "rect": [779, 311.59375, 255, 510] }
+    },
+    {
+      "file": "android/vi/phone/05.png",
+      "slot": "playPhone",
+      "width": 1080,
+      "height": 2160,
+      "language": "vi",
+      "source": "13-06 box 1, panel 5 of 6",
+      "reference": { "render": "13-06", "rect": [1034, 311.59375, 255, 510] }
+    },
+    {
+      "file": "android/vi/phone/06.png",
+      "slot": "playPhone",
+      "width": 1080,
+      "height": 2160,
+      "language": "vi",
+      "source": "13-06 box 1, panel 6 of 6",
+      "reference": { "render": "13-06", "rect": [1289, 311.59375, 255, 510] }
+    },
+    {
+      "file": "iap-review/kf.chipin.100.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-07, showing A chip-in (£1.00)",
+      "reference": { "render": "09-07", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.chipin.200.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-07, showing A chip-in (£2.00)",
+      "reference": { "render": "09-07", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.chipin.300.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-07, showing A chip-in (£3.00)",
+      "reference": { "render": "09-07", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.chipin.500.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-07, showing A chip-in (£5.00)",
+      "reference": { "render": "09-07", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.farmplus.monthly.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-22, showing Farm Plus (£8.99)",
+      "reference": { "render": "09-22", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.founding.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-22, showing Founding Farmer (£99.00)",
+      "reference": { "render": "09-22", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.gift.099.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-04, showing A gift (£0.99)",
+      "reference": { "render": "09-04", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.gift.149.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-04, showing A gift (£1.49)",
+      "reference": { "render": "09-04", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.gift.199.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-04, showing A gift (£1.99)",
+      "reference": { "render": "09-04", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.gift.299.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-04, showing A gift (£2.99)",
+      "reference": { "render": "09-04", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.gift.399.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-04, showing A gift (£3.99)",
+      "reference": { "render": "09-04", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.gift.499.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-04, showing A gift (£4.99)",
+      "reference": { "render": "09-04", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.aurora.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Aurora coat (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.bee.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Bumblebee (£2.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.big_feelings.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Big Feelings stickers (£1.49)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.birthday_bloom.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Birthday Bloom stickers (£0.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.blossom.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Blossom coat (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.breezy_scarf.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Breezy scarf (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.butterfly.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Marmalade butterfly (£2.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.calico.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Calico coat (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.carriage.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Train carriage (£4.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.chime.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Wind chime (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.cloud.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Cloud coat (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.cosy_weather.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Cosy Weather stickers (£0.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.duckling.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Duckling (£2.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.ember.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Ember coat (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.frost.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing First frost coat (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.golden.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Golden coat (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.good_luck.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Good Luck stickers (£0.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.houseboat.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Houseboat (£4.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.igloo.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Igloo (£3.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.ladybird.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Ladybird (£2.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.lighthouse.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Lighthouse (£4.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.lights.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Friend lights (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.mossy.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Mossy coat (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.moth.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Lantern moth (£2.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.out_and_about.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Out & About stickers (£0.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.pinwheel.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Pinwheel (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.skep.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Beehive skep (£4.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.snail.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Shoulder snail (£2.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.teacup.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Fireside teacup (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.teapot.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Teapot cottage (£4.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.treehouse.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Treehouse (£4.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.umbrella.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Rain umbrella (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.vane.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Weathervane (£1.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.item.windmill.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-02, showing Windmill (£4.99)",
+      "reference": { "render": "09-02", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.patron.monthly.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-22, showing Patron, monthly (£3.99)",
+      "reference": { "render": "09-22", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "iap-review/kf.patron.yearly.png",
+      "slot": "iapReview",
+      "width": 1179,
+      "height": 2556,
+      "language": "en",
+      "source": "09-22, showing Patron, yearly (£34.99)",
+      "reference": { "render": "09-22", "rect": [0, 0, 393, 852] }
+    },
+    {
+      "file": "ios/app-icon-1024.png",
+      "slot": "appIcon",
+      "width": 1024,
+      "height": 1024,
+      "language": "en",
+      "source": "the art: icon2, option a"
+    },
+    {
+      "file": "ios/en/app-preview-6.9.mp4",
+      "slot": "appPreview69",
+      "width": 886,
+      "height": 1920,
+      "language": "en",
+      "seconds": 29.9,
+      "source": "13-18 boxes 1, 2, 3, 4, 5, 6, drawn frame by frame at 30 fps"
+    },
+    {
+      "file": "ios/en/in-app-events/autumn-fair-card.png",
+      "slot": "inAppEventCard",
+      "width": 1920,
+      "height": 1080,
+      "language": "en",
+      "source": "13-20 box 0",
+      "reference": { "render": "13-20", "rect": [14, 14, 384, 216] }
+    },
+    {
+      "file": "ios/en/in-app-events/autumn-fair-detail.png",
+      "slot": "inAppEventDetail",
+      "width": 1080,
+      "height": 1920,
+      "language": "en",
+      "source": "13-20 box 1",
+      "reference": { "render": "13-20", "rect": [420, 14, 122, 216] }
+    },
+    {
+      "file": "ios/en/in-app-events/birthday-blooms-card.png",
+      "slot": "inAppEventCard",
+      "width": 1920,
+      "height": 1080,
+      "language": "en",
+      "source": "13-20 box 4",
+      "reference": { "render": "13-20", "rect": [14, 534, 384, 216] }
+    },
+    {
+      "file": "ios/en/in-app-events/birthday-blooms-detail.png",
+      "slot": "inAppEventDetail",
+      "width": 1080,
+      "height": 1920,
+      "language": "en",
+      "source": "13-20 box 5",
+      "reference": { "render": "13-20", "rect": [420, 534, 122, 216] }
+    },
+    {
+      "file": "ios/en/in-app-events/first-frost-card.png",
+      "slot": "inAppEventCard",
+      "width": 1920,
+      "height": 1080,
+      "language": "en",
+      "source": "13-20 box 2",
+      "reference": { "render": "13-20", "rect": [14, 274, 384, 216] }
+    },
+    {
+      "file": "ios/en/in-app-events/first-frost-detail.png",
+      "slot": "inAppEventDetail",
+      "width": 1080,
+      "height": 1920,
+      "language": "en",
+      "source": "13-20 box 3",
+      "reference": { "render": "13-20", "rect": [420, 274, 122, 216] }
+    },
+    {
+      "file": "ios/en/ipad-13/01.png",
+      "slot": "ipad13",
+      "width": 2752,
+      "height": 2064,
+      "language": "en",
+      "source": "13-05 box 0, panel 1 of 3",
+      "reference": { "render": "13-05", "rect": [14, 14, 480, 360] }
+    },
+    {
+      "file": "ios/en/ipad-13/02.png",
+      "slot": "ipad13",
+      "width": 2752,
+      "height": 2064,
+      "language": "en",
+      "source": "13-05 box 0, panel 2 of 3",
+      "reference": { "render": "13-05", "rect": [494, 14, 480, 360] }
+    },
+    {
+      "file": "ios/en/ipad-13/03.png",
+      "slot": "ipad13",
+      "width": 2752,
+      "height": 2064,
+      "language": "en",
+      "source": "13-05 box 0, panel 3 of 3",
+      "reference": { "render": "13-05", "rect": [974, 14, 480, 360] }
+    },
+    {
+      "file": "ios/en/iphone-6.5-night/01.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "en",
+      "source": "13-03 box 0, panel 1 of 6",
+      "reference": { "render": "13-03", "rect": [14, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/en/iphone-6.5-night/02.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "en",
+      "source": "13-03 box 0, panel 2 of 6",
+      "reference": { "render": "13-03", "rect": [184, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/en/iphone-6.5-night/03.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "en",
+      "source": "13-03 box 0, panel 3 of 6",
+      "reference": { "render": "13-03", "rect": [354, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/en/iphone-6.5-night/04.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "en",
+      "source": "13-03 box 0, panel 4 of 6",
+      "reference": { "render": "13-03", "rect": [524, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/en/iphone-6.5-night/05.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "en",
+      "source": "13-03 box 0, panel 5 of 6",
+      "reference": { "render": "13-03", "rect": [694, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/en/iphone-6.5-night/06.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "en",
+      "source": "13-03 box 0, panel 6 of 6",
+      "reference": { "render": "13-03", "rect": [864, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/en/iphone-6.5/01.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "en",
+      "source": "13-02 box 0, panel 1 of 6",
+      "reference": { "render": "13-02", "rect": [14, 39.59375, 340, 737] }
+    },
+    {
+      "file": "ios/en/iphone-6.5/02.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "en",
+      "source": "13-02 box 0, panel 2 of 6",
+      "reference": { "render": "13-02", "rect": [354, 39.59375, 340, 737] }
+    },
+    {
+      "file": "ios/en/iphone-6.5/03.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "en",
+      "source": "13-02 box 0, panel 3 of 6",
+      "reference": { "render": "13-02", "rect": [694, 39.59375, 340, 737] }
+    },
+    {
+      "file": "ios/en/iphone-6.5/04.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "en",
+      "source": "13-02 box 0, panel 4 of 6",
+      "reference": { "render": "13-02", "rect": [1034, 39.59375, 340, 737] }
+    },
+    {
+      "file": "ios/en/iphone-6.5/05.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "en",
+      "source": "13-02 box 0, panel 5 of 6",
+      "reference": { "render": "13-02", "rect": [1374, 39.59375, 340, 737] }
+    },
+    {
+      "file": "ios/en/iphone-6.5/06.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "en",
+      "source": "13-02 box 0, panel 6 of 6",
+      "reference": { "render": "13-02", "rect": [1714, 39.59375, 340, 737] }
+    },
+    {
+      "file": "ios/en/iphone-6.9-night/01.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-03 box 0, panel 1 of 6",
+      "reference": { "render": "13-03", "rect": [14, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/en/iphone-6.9-night/02.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-03 box 0, panel 2 of 6",
+      "reference": { "render": "13-03", "rect": [184, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/en/iphone-6.9-night/03.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-03 box 0, panel 3 of 6",
+      "reference": { "render": "13-03", "rect": [354, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/en/iphone-6.9-night/04.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-03 box 0, panel 4 of 6",
+      "reference": { "render": "13-03", "rect": [524, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/en/iphone-6.9-night/05.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-03 box 0, panel 5 of 6",
+      "reference": { "render": "13-03", "rect": [694, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/en/iphone-6.9-night/06.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-03 box 0, panel 6 of 6",
+      "reference": { "render": "13-03", "rect": [864, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/en/iphone-6.9/01.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-02 box 0, panel 1 of 6",
+      "reference": { "render": "13-02", "rect": [14, 39.59375, 340, 737] }
+    },
+    {
+      "file": "ios/en/iphone-6.9/02.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-02 box 0, panel 2 of 6",
+      "reference": { "render": "13-02", "rect": [354, 39.59375, 340, 737] }
+    },
+    {
+      "file": "ios/en/iphone-6.9/03.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-02 box 0, panel 3 of 6",
+      "reference": { "render": "13-02", "rect": [694, 39.59375, 340, 737] }
+    },
+    {
+      "file": "ios/en/iphone-6.9/04.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-02 box 0, panel 4 of 6",
+      "reference": { "render": "13-02", "rect": [1034, 39.59375, 340, 737] }
+    },
+    {
+      "file": "ios/en/iphone-6.9/05.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-02 box 0, panel 5 of 6",
+      "reference": { "render": "13-02", "rect": [1374, 39.59375, 340, 737] }
+    },
+    {
+      "file": "ios/en/iphone-6.9/06.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-02 box 0, panel 6 of 6",
+      "reference": { "render": "13-02", "rect": [1714, 39.59375, 340, 737] }
+    },
+    {
+      "file": "ios/en/product-pages/miles/01.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 4",
+      "reference": { "render": "13-21", "rect": [14, 698, 300, 650] }
+    },
+    {
+      "file": "ios/en/product-pages/miles/02.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 5",
+      "reference": { "render": "13-21", "rect": [332, 1045, 140, 303] }
+    },
+    {
+      "file": "ios/en/product-pages/miles/03.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 6",
+      "reference": { "render": "13-21", "rect": [490, 1045, 140, 303] }
+    },
+    {
+      "file": "ios/en/product-pages/miles/04.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 7",
+      "reference": { "render": "13-21", "rect": [648, 1045, 140, 303] }
+    },
+    {
+      "file": "ios/en/product-pages/quiet/01.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 0",
+      "reference": { "render": "13-21", "rect": [14, 14, 300, 650] }
+    },
+    {
+      "file": "ios/en/product-pages/quiet/02.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 1",
+      "reference": { "render": "13-21", "rect": [332, 361, 140, 303] }
+    },
+    {
+      "file": "ios/en/product-pages/quiet/03.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 2",
+      "reference": { "render": "13-21", "rect": [490, 361, 140, 303] }
+    },
+    {
+      "file": "ios/en/product-pages/quiet/04.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 3",
+      "reference": { "render": "13-21", "rect": [648, 361, 140, 303] }
+    },
+    {
+      "file": "ios/en/product-pages/stickers/01.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 8",
+      "reference": { "render": "13-21", "rect": [14, 1382, 300, 650] }
+    },
+    {
+      "file": "ios/en/product-pages/stickers/02.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 9",
+      "reference": { "render": "13-21", "rect": [332, 1729, 140, 303] }
+    },
+    {
+      "file": "ios/en/product-pages/stickers/03.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 10",
+      "reference": { "render": "13-21", "rect": [490, 1729, 140, 303] }
+    },
+    {
+      "file": "ios/en/product-pages/stickers/04.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 11",
+      "reference": { "render": "13-21", "rect": [648, 1729, 140, 303] }
+    },
+    {
+      "file": "ios/en/product-pages/teams/01.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 12",
+      "reference": { "render": "13-21", "rect": [14, 2066, 300, 650] }
+    },
+    {
+      "file": "ios/en/product-pages/teams/02.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 13",
+      "reference": { "render": "13-21", "rect": [332, 2413, 140, 303] }
+    },
+    {
+      "file": "ios/en/product-pages/teams/03.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 14",
+      "reference": { "render": "13-21", "rect": [490, 2413, 140, 303] }
+    },
+    {
+      "file": "ios/en/product-pages/teams/04.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "en",
+      "source": "13-21 box 15",
+      "reference": { "render": "13-21", "rect": [648, 2413, 140, 303] }
+    },
+    {
+      "file": "ios/vi/app-preview-6.9.mp4",
+      "slot": "appPreview69",
+      "width": 886,
+      "height": 1920,
+      "language": "vi",
+      "seconds": 29.9,
+      "source": "13-18 boxes 1, 2, 3, 4, 5, 6, drawn frame by frame at 30 fps"
+    },
+    {
+      "file": "ios/vi/ipad-13/01.png",
+      "slot": "ipad13",
+      "width": 2752,
+      "height": 2064,
+      "language": "vi",
+      "source": "13-05 box 0, panel 1 of 3",
+      "reference": { "render": "13-05", "rect": [14, 14, 480, 360] }
+    },
+    {
+      "file": "ios/vi/ipad-13/02.png",
+      "slot": "ipad13",
+      "width": 2752,
+      "height": 2064,
+      "language": "vi",
+      "source": "13-05 box 0, panel 2 of 3",
+      "reference": { "render": "13-05", "rect": [494, 14, 480, 360] }
+    },
+    {
+      "file": "ios/vi/ipad-13/03.png",
+      "slot": "ipad13",
+      "width": 2752,
+      "height": 2064,
+      "language": "vi",
+      "source": "13-05 box 0, panel 3 of 3",
+      "reference": { "render": "13-05", "rect": [974, 14, 480, 360] }
+    },
+    {
+      "file": "ios/vi/iphone-6.5-night/01.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "vi",
+      "source": "13-03 box 0, panel 1 of 6",
+      "reference": { "render": "13-03", "rect": [14, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.5-night/02.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "vi",
+      "source": "13-03 box 0, panel 2 of 6",
+      "reference": { "render": "13-03", "rect": [184, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.5-night/03.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "vi",
+      "source": "13-03 box 0, panel 3 of 6",
+      "reference": { "render": "13-03", "rect": [354, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.5-night/04.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "vi",
+      "source": "13-03 box 0, panel 4 of 6",
+      "reference": { "render": "13-03", "rect": [524, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.5-night/05.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "vi",
+      "source": "13-03 box 0, panel 5 of 6",
+      "reference": { "render": "13-03", "rect": [694, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.5-night/06.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "vi",
+      "source": "13-03 box 0, panel 6 of 6",
+      "reference": { "render": "13-03", "rect": [864, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.5/01.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "vi",
+      "source": "13-02 box 0, panel 1 of 6",
+      "reference": { "render": "13-04", "rect": [14, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.5/02.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "vi",
+      "source": "13-02 box 0, panel 2 of 6",
+      "reference": { "render": "13-04", "rect": [184, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.5/03.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "vi",
+      "source": "13-02 box 0, panel 3 of 6",
+      "reference": { "render": "13-04", "rect": [354, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.5/04.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "vi",
+      "source": "13-02 box 0, panel 4 of 6",
+      "reference": { "render": "13-04", "rect": [524, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.5/05.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "vi",
+      "source": "13-02 box 0, panel 5 of 6",
+      "reference": { "render": "13-04", "rect": [694, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.5/06.png",
+      "slot": "iphone65",
+      "width": 1284,
+      "height": 2778,
+      "language": "vi",
+      "source": "13-02 box 0, panel 6 of 6",
+      "reference": { "render": "13-04", "rect": [864, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.9-night/01.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "vi",
+      "source": "13-03 box 0, panel 1 of 6",
+      "reference": { "render": "13-03", "rect": [14, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.9-night/02.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "vi",
+      "source": "13-03 box 0, panel 2 of 6",
+      "reference": { "render": "13-03", "rect": [184, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.9-night/03.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "vi",
+      "source": "13-03 box 0, panel 3 of 6",
+      "reference": { "render": "13-03", "rect": [354, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.9-night/04.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "vi",
+      "source": "13-03 box 0, panel 4 of 6",
+      "reference": { "render": "13-03", "rect": [524, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.9-night/05.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "vi",
+      "source": "13-03 box 0, panel 5 of 6",
+      "reference": { "render": "13-03", "rect": [694, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.9-night/06.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "vi",
+      "source": "13-03 box 0, panel 6 of 6",
+      "reference": { "render": "13-03", "rect": [864, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.9/01.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "vi",
+      "source": "13-02 box 0, panel 1 of 6",
+      "reference": { "render": "13-04", "rect": [14, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.9/02.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "vi",
+      "source": "13-02 box 0, panel 2 of 6",
+      "reference": { "render": "13-04", "rect": [184, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.9/03.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "vi",
+      "source": "13-02 box 0, panel 3 of 6",
+      "reference": { "render": "13-04", "rect": [354, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.9/04.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "vi",
+      "source": "13-02 box 0, panel 4 of 6",
+      "reference": { "render": "13-04", "rect": [524, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.9/05.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "vi",
+      "source": "13-02 box 0, panel 5 of 6",
+      "reference": { "render": "13-04", "rect": [694, 39.59375, 170, 368] }
+    },
+    {
+      "file": "ios/vi/iphone-6.9/06.png",
+      "slot": "iphone69",
+      "width": 1320,
+      "height": 2868,
+      "language": "vi",
+      "source": "13-02 box 0, panel 6 of 6",
+      "reference": { "render": "13-04", "rect": [864, 39.59375, 170, 368] }
+    },
+    {
+      "file": "marketing/launch-film/storyboard-01.png",
+      "slot": "social",
+      "width": 1920,
+      "height": 1080,
+      "language": "en",
+      "source": "13-22 box 0",
+      "reference": { "render": "13-22", "rect": [14, 14, 240, 135] }
+    },
+    {
+      "file": "marketing/launch-film/storyboard-02.png",
+      "slot": "social",
+      "width": 1920,
+      "height": 1080,
+      "language": "en",
+      "source": "13-22 box 1",
+      "reference": { "render": "13-22", "rect": [268, 14, 240, 135] }
+    },
+    {
+      "file": "marketing/launch-film/storyboard-03.png",
+      "slot": "social",
+      "width": 1920,
+      "height": 1080,
+      "language": "en",
+      "source": "13-22 box 2",
+      "reference": { "render": "13-22", "rect": [522, 14, 240, 135] }
+    },
+    {
+      "file": "marketing/launch-film/storyboard-04.png",
+      "slot": "social",
+      "width": 1920,
+      "height": 1080,
+      "language": "en",
+      "source": "13-22 box 3",
+      "reference": { "render": "13-22", "rect": [776, 14, 240, 135] }
+    },
+    {
+      "file": "marketing/launch-film/storyboard-05.png",
+      "slot": "social",
+      "width": 1920,
+      "height": 1080,
+      "language": "en",
+      "source": "13-22 box 4",
+      "reference": { "render": "13-22", "rect": [1030, 14, 240, 135] }
+    },
+    {
+      "file": "marketing/launch-film/storyboard-06.png",
+      "slot": "social",
+      "width": 1920,
+      "height": 1080,
+      "language": "en",
+      "source": "13-22 box 5",
+      "reference": { "render": "13-22", "rect": [1284, 14, 240, 135] }
+    },
+    {
+      "file": "marketing/loops/campfire.mp4",
+      "slot": "social",
+      "width": 1080,
+      "height": 1920,
+      "language": "en",
+      "seconds": 6,
+      "source": "13-23 boxes 3, drawn frame by frame at 30 fps"
+    },
+    {
+      "file": "marketing/loops/farm-draw-in.mp4",
+      "slot": "social",
+      "width": 1080,
+      "height": 1920,
+      "language": "en",
+      "seconds": 7,
+      "source": "13-23 boxes 6, drawn frame by frame at 30 fps"
+    },
+    {
+      "file": "marketing/loops/firefly-door.mp4",
+      "slot": "social",
+      "width": 1080,
+      "height": 1920,
+      "language": "en",
+      "seconds": 5,
+      "source": "13-23 boxes 2, drawn frame by frame at 30 fps"
+    },
+    {
+      "file": "marketing/loops/otis-dozing.mp4",
+      "slot": "social",
+      "width": 1080,
+      "height": 1920,
+      "language": "en",
+      "seconds": 6,
+      "source": "13-23 boxes 1, drawn frame by frame at 30 fps"
+    },
+    {
+      "file": "marketing/loops/sticker-peel.mp4",
+      "slot": "social",
+      "width": 1080,
+      "height": 1920,
+      "language": "en",
+      "seconds": 4,
+      "source": "13-23 boxes 5, drawn frame by frame at 30 fps"
+    },
+    {
+      "file": "marketing/loops/widget-windows.mp4",
+      "slot": "social",
+      "width": 1080,
+      "height": 1920,
+      "language": "en",
+      "seconds": 5,
+      "source": "13-23 boxes 4, drawn frame by frame at 30 fps"
+    },
+    {
+      "file": "marketing/og/homepage.png",
+      "slot": "social",
+      "width": 1200,
+      "height": 630,
+      "language": "en",
+      "source": "13-27 box 0",
+      "reference": { "render": "13-27", "rect": [14, 14, 360, 189] }
+    },
+    {
+      "file": "marketing/og/launch-day.png",
+      "slot": "social",
+      "width": 1200,
+      "height": 630,
+      "language": "en",
+      "source": "13-27 box 1",
+      "reference": { "render": "13-27", "rect": [394, 14, 360, 189] }
+    },
+    {
+      "file": "marketing/press-hero.png",
+      "slot": "social",
+      "width": 3000,
+      "height": 2000,
+      "language": "en",
+      "source": "13-27 box 2",
+      "reference": { "render": "13-27", "rect": [774, 14, 450, 300] }
+    },
+    {
+      "file": "marketing/product-hunt/01.png",
+      "slot": "social",
+      "width": 1270,
+      "height": 760,
+      "language": "en",
+      "source": "13-24 box 0",
+      "reference": { "render": "13-24", "rect": [14, 14, 254, 152] }
+    },
+    {
+      "file": "marketing/product-hunt/02.png",
+      "slot": "social",
+      "width": 1270,
+      "height": 760,
+      "language": "en",
+      "source": "13-24 box 1",
+      "reference": { "render": "13-24", "rect": [282, 14, 254, 152] }
+    },
+    {
+      "file": "marketing/product-hunt/03.png",
+      "slot": "social",
+      "width": 1270,
+      "height": 760,
+      "language": "en",
+      "source": "13-24 box 2",
+      "reference": { "render": "13-24", "rect": [550, 14, 254, 152] }
+    },
+    {
+      "file": "marketing/product-hunt/04.png",
+      "slot": "social",
+      "width": 1270,
+      "height": 760,
+      "language": "en",
+      "source": "13-24 box 3",
+      "reference": { "render": "13-24", "rect": [818, 14, 254, 152] }
+    },
+    {
+      "file": "marketing/product-hunt/05.png",
+      "slot": "social",
+      "width": 1270,
+      "height": 760,
+      "language": "en",
+      "source": "13-24 box 4",
+      "reference": { "render": "13-24", "rect": [1086, 14, 254, 152] }
+    },
+    {
+      "file": "marketing/sticker-teaser.png",
+      "slot": "social",
+      "width": 1080,
+      "height": 1350,
+      "language": "en",
+      "source": "13-26 box 0",
+      "reference": { "render": "13-26", "rect": [14, 14, 270, 338] }
+    },
+    {
+      "file": "marketing/x-threads/01.png",
+      "slot": "social",
+      "width": 1600,
+      "height": 900,
+      "language": "en",
+      "source": "13-25 box 0",
+      "reference": { "render": "13-25", "rect": [80, 105.6875, 300, 169] }
+    },
+    {
+      "file": "marketing/x-threads/02.png",
+      "slot": "social",
+      "width": 1600,
+      "height": 900,
+      "language": "en",
+      "source": "13-25 box 1",
+      "reference": { "render": "13-25", "rect": [80, 392.375, 300, 169] }
+    },
+    {
+      "file": "marketing/x-threads/03.png",
+      "slot": "social",
+      "width": 1600,
+      "height": 900,
+      "language": "en",
+      "source": "13-25 box 2",
+      "reference": { "render": "13-25", "rect": [80, 679.0625, 300, 169] }
+    },
+    {
+      "file": "marketing/x-threads/04.png",
+      "slot": "social",
+      "width": 1600,
+      "height": 900,
+      "language": "en",
+      "source": "13-25 box 3",
+      "reference": { "render": "13-25", "rect": [80, 965.75, 300, 169] }
+    },
+    {
+      "file": "marketing/x-threads/05.png",
+      "slot": "social",
+      "width": 1600,
+      "height": 900,
+      "language": "en",
+      "source": "13-25 box 4",
+      "reference": { "render": "13-25", "rect": [80, 1252.4375, 300, 169] }
+    },
+    {
+      "file": "marketing/x-threads/06.png",
+      "slot": "social",
+      "width": 1600,
+      "height": 900,
+      "language": "en",
+      "source": "13-25 box 5",
+      "reference": { "render": "13-25", "rect": [80, 1517.375, 300, 169] }
+    }
+  ]
+}
