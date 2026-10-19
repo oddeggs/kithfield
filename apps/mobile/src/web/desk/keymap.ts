@@ -1,5 +1,5 @@
 /**
- * The desktop's keyboard shortcuts (`14 Platforms`, 14-12 and 14-15), as data: which keys do
+ * The desktop's keyboard shortcuts (`14 Platforms`), as data: which keys do
  * what, how each is drawn on its key caps, and reading a key press as one. ⌘ is Ctrl on Windows
  * and Linux.
  */

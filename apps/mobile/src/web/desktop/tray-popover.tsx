@@ -52,7 +52,7 @@ function PopButton({
 }
 
 /**
- * The critter's popover (14-11, 14-13, 14-15): the night widget, who left a firefly or who is
+ * The critter's popover: the night widget, who left a firefly or who is
  * by the fire, and a way to the farm. It draws only what the app's window sends it, and hands
  * its buttons back to that window, so it holds no data of its own.
  */

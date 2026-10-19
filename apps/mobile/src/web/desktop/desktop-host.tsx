@@ -119,7 +119,7 @@ function FireflyCard({
 }
 
 /**
- * The desktop app's own parts, around the web app (`14 Platforms`, 14-11 to 14-15): the menu
+ * The desktop app's own parts, around the web app (`14 Platforms`): the menu
  * bar's menus, the critter in the menu bar (Mac) or tray (Windows) that glows, breathing over
  * 2.4 s, while a firefly waits or friends are by the fire, its popover with the night widget, and
  * soft banners (no sound) for things on your step, knocks and words meant for you.

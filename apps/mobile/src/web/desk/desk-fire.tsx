@@ -8,7 +8,7 @@ import { useDesk } from './desk-context';
 import { useDeskKey } from './desk-keys';
 
 /**
- * The fire room in the right pane (14-15), in place of the farm while you sit by it; the chat
+ * The fire room in the right pane, in place of the farm while you sit by it; the chat
  * stays usable beside it. ⌥⌘M mutes, ⌥⌘L heads home, and Space talks while held with the pane
  * in focus. Heading home brings the farm back.
  */

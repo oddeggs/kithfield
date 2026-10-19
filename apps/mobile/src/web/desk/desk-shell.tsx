@@ -17,7 +17,7 @@ import { inDesktop } from '../desktop/tauri';
 import { DeskKeys } from './desk-keys';
 
 /**
- * The desktop's three panes (`14 Platforms`, 14-11): the farms and visits, the screen the route
+ * The desktop's three panes (`14 Platforms`): the farms and visits, the screen the route
  * shows (the chat, mostly), and the chosen farm alive, or the fire room while you sit by it.
  * Narrow, only the middle shows, and the tabs keep their bar.
  */

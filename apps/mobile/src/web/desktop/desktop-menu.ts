@@ -13,7 +13,7 @@ const farmItem = (t: Translate, copy: string, accelerator: string, action: DeskA
   });
 
 /**
- * The desktop's menu bar (14-11: Kithfield, File, Edit, Farm, Window). Edit's items are the
+ * The desktop's menu bar (Kithfield, File, Edit, Farm, Window). Edit's items are the
  * system's own, so copy and paste work in every field; Farm holds the shortcuts, which the menu
  * then takes before the page sees them, so both paths run the same action.
  */
