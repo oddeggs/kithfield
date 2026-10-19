@@ -1,11 +1,13 @@
 import { sizes } from '@kithfield/theme';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { haptics } from '../motion/haptics';
 import { fadeTo } from '../motion/motion';
 import { useTabDots, useYou } from './tab-activity';
+import { navBarHeight } from './material-bar';
 import { tabBarHidden, tabs, type TabName } from './tabs';
 import { TabBarView } from './tab-bar-view';
 
@@ -69,6 +71,8 @@ export function TabBar({ state, emitter, navigateToTab, insets }: BottomTabBarPr
 
 /** Room a tab's screen leaves at its bottom so its last row clears the floating bar. */
 export function tabBarClearance(bottomInset: number): number {
+  // Android's Material bar runs full width along the bottom edge (`14 Platforms`).
+  if (Platform.OS === 'android') return navBarHeight(bottomInset) + 12;
   const bottom = bottomInset > 0 ? bottomInset - LIFT_UNDER_INDICATOR : BOTTOM_WITHOUT_INDICATOR;
   return bottom + sizes.tabBar + 12;
 }
