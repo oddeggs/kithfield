@@ -34,7 +34,7 @@ function variantOf(f: Face, w: number): TypeVariant {
 
 /**
  * Text as the shop's designs set it: a face, a size and a line height, on the library's type
- * ramp for the face (and for Vietnamese, Lora and Patrick Hand) and its Dynamic Type style. A line
+ * ramp for the face (set in the app's faces, as `Txt` sets them) and its Dynamic Type style. A line
  * height never falls below what Vietnamese's stacked marks need.
  */
 export function SText({

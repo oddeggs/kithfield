@@ -110,7 +110,7 @@ export function PlantSheet({
     });
   };
 
-  const titleFont = fontFor(type.displayM, fontLocale);
+  const titleFont = fontFor({ ...type.displayM, size: 25, lineHeight: 27.5 }, fontLocale);
   return (
     <View
       style={{ flex: 1, backgroundColor: palette.sheet }}
@@ -157,10 +157,7 @@ export function PlantSheet({
               multiline
               maxLength={80}
               testID="plans-title"
-              style={[
-                titleFont,
-                { fontSize: 25, lineHeight: 27.5, color: palette.text, padding: 0 },
-              ]}
+              style={[titleFont, { color: palette.text, padding: 0 }]}
             />
             {author ? (
               <Txt variant="caption" color={palette.secondary} style={{ fontSize: 13, lineHeight: 17 }}>
