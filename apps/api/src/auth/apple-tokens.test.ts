@@ -130,7 +130,7 @@ describe('Sign in with Apple tokens', () => {
     expect((await post(keyed, person.token, { code: 'c1' })).status).toBe(204);
     expect(asked[0]?.path).toBe('/auth/token');
     expect(Object.fromEntries(asked[0]?.form ?? [])).toMatchObject({
-      client_id: env.APPLE_BUNDLE_ID,
+      client_id: env.APPLE_SIGN_IN_CLIENT_ID ?? env.APPLE_BUNDLE_ID,
       code: 'c1',
       grant_type: 'authorization_code',
     });

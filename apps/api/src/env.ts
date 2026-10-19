@@ -72,6 +72,11 @@ export type Bindings = Secrets & {
   readonly APPLE_BUNDLE_ID: string;
   /** Other apps' bundle ids allowed to sign in with Apple here, comma-separated (dev only). */
   readonly APPLE_EXTRA_BUNDLE_IDS?: string;
+  /**
+   * The app whose Sign in with Apple key this server holds, when it isn't `APPLE_BUNDLE_ID`: the
+   * dev server keeps the store app's key, as its beta builds are the ones people sign in with.
+   */
+  readonly APPLE_SIGN_IN_CLIENT_ID?: string;
   /** Other Google OAuth client ids allowed to sign in here, comma-separated (dev only). */
   readonly GOOGLE_EXTRA_CLIENT_IDS?: string;
   /** Google OAuth client ids an identity token may name: the iOS app's and the web/server one. */

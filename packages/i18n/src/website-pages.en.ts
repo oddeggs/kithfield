@@ -91,7 +91,7 @@ export const websitePagesEn = {
     'Kithfield is for friend groups who already know each other. You must be 13 or older (16 where local law requires).',
   'websitePages.terms.kindTitle': 'Be kind on every farm',
   'websitePages.terms.kind':
-    'No bullying, hate, harassment or unwanted contact. Keepers can remove critters; we can close accounts that break these rules.',
+    'There is no tolerance for objectionable content or abusive people: no bullying, hate, harassment, threats, unwanted contact, sexual content, violence, encouraging self-harm or anything illegal. Report it from the app and we act within a day, removing the content and closing the accounts that post it. Keepers can remove critters too.',
   'websitePages.terms.purchasesTitle': 'Purchases',
   'websitePages.terms.purchases':
     'Plus and items are sold through the App Store and Google Play. Items you buy are yours for as long as Kithfield runs.',
