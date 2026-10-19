@@ -82,7 +82,8 @@ function WishlistBody({ member }: { readonly member: MemberState | null }) {
         </View>
       </View>
       <WishLabel own />
-      {items.length === 0 ? (
+      {shop.wishlist === null ? null : items.length === 0 ? (
+        // Said only once the wishlist has come: never "nothing yet" while it loads.
         <SText s={13} lh={1.4} color={palette.secondary} multiline>
           {t('shop.wishlist.empty')}
         </SText>

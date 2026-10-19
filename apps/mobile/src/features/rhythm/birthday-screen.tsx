@@ -147,11 +147,11 @@ export function BirthdayScreen({
               </View>
             )}
           </>
-        ) : (
+        ) : state && view ? (
           <Txt variant="sheetBody" multiline color={palette.body}>
             {t('rhythm.birthday.over')}
           </Txt>
-        )}
+        ) : null}
       </Panel>
       {bloom && !bloom.you ? (
         <KeyboardStickyView

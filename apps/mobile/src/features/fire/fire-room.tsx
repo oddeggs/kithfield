@@ -309,7 +309,9 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
 
   /* Drawing */
 
-  const fireState = phase === 'unlit' ? 'unlit' : phase === 'quiet' ? 'quiet' : 'lit';
+  // Until the farm says how the fire stands, it is drawn unlit: never a lit fire that goes out.
+  const fireState =
+    phase === null || phase === 'unlit' ? 'unlit' : phase === 'quiet' ? 'quiet' : 'lit';
   const asking =
     phase === 'unlit' ||
     phase === 'joining' ||

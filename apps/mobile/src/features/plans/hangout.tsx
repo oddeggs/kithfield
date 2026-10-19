@@ -87,8 +87,10 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
   const people = seed && here ? seed.checkins.map((p) => personOn(here.state, p, me, t)) : [];
   const imHere = people.some((p) => p.you);
   const latest = [...people].reverse().find((p) => !p.you);
-  const line =
-    people.length === 0
+  // Nothing is said about who's here until the farm is read, so "nobody yet" never flashes.
+  const line = !here
+    ? ''
+    : people.length === 0
       ? t('plans.hangout.nobody')
       : people.length === 1
         ? imHere
