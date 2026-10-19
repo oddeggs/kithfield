@@ -24,27 +24,20 @@ apply. Screens that aren't app screens, or aren't built, have no cells.
 | Loading | 114 | 6 | 46 |
 | Empty | 52 | 3 | 111 |
 | Offline | 137 | 8 | 21 |
-| Error | 126 | 7 | 33 |
+| Error | 128 | 5 | 33 |
 | Night | 165 | 0 | 1 |
 | Reduce Motion | 146 | 0 | 20 |
-| AX5 | 154 | 9 | 3 |
+| AX5 | 163 | 0 | 3 |
 | Vietnamese | 166 | 0 | 0 |
-| VoiceOver | 157 | 7 | 2 |
+| VoiceOver | 164 | 0 | 2 |
 
 What is still open (each row's note has the detail):
 - **Loading, offline and error:** onboarding's busy and loading looks (03-02, 03-09, 03-10, 03-15),
-  the "say hi" and wave refusals on the farm moments (04-16, 04-19), remember-me offline (06-05),
-  cached copies for the recap, scrapbook and visit gates (07-02, 07-05, 07-06), owned sticker packs
+  remember-me offline (06-05), cached copies for the recap, scrapbook and visit gates (07-02, 07-05, 07-06), owned sticker packs
   offline (08-01), Quick Tend's blank load (08-03), the gift screens (08-05, 08-06), the lapsed patronage and costs page (09-03,
   09-12), the sound route sheet (10-11), and the farms list behind "history arriving" (11-16).
 - **Empty:** a restoration project with nothing chosen yet (07-04) and a contacts search with no
   match (03-09).
-- **AX5:** the plant-a-farm sheet (04-18), the removed-from-farm page (04-21), the hangout
-  (06-06), the together screen and gift opening (08-02, 08-06), the adding screen (10-07), and the
-  sound and ask sheets (10-11 to 10-13) still don't scroll at the largest sizes.
-- **VoiceOver:** vote buds don't say how many lean on them (06-02), gift wraps read raw ids
-  (08-05), the safety email isn't a link (11-21), and the fire room's frames don't say who talks
-  (16-12 to 16-16).
 - **Not built:** phone sign-in (03-13), the costs page, merch and teams (09-24 to 09-26), picture in
   picture (10-10), the later fire room screens (16-17 to 16-19), the launch icon and splash work in
   13 Launch, and all of 14 Platforms.
