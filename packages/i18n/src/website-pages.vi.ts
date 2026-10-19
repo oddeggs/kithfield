@@ -86,7 +86,7 @@ export const websitePagesVi: ViCatalogue<typeof websitePagesEn> = {
     'Kithfield dành cho những nhóm bạn đã quen biết nhau. Bạn phải từ 13 tuổi trở lên (16 tuổi nếu luật nơi bạn ở yêu cầu).',
   'websitePages.terms.kindTitle': 'Tử tế ở mọi nông trại',
   'websitePages.terms.kind':
-    'Không bắt nạt, thù ghét, quấy rối hay làm phiền người khác. Chủ nông trại có thể mời các bé rời đi; tụi mình có thể đóng tài khoản vi phạm nội quy.',
+    'Tụi mình không dung thứ nội dung phản cảm hay người cư xử tệ: không bắt nạt, thù ghét, quấy rối, đe doạ, làm phiền người khác, nội dung tình dục, bạo lực, cổ vũ tự làm hại bản thân hay bất cứ điều gì phạm pháp. Báo cáo ngay trong ứng dụng, tụi mình xử lý trong vòng một ngày: gỡ nội dung và đóng tài khoản đăng nó. Chủ nông trại cũng có thể mời các bé rời đi.',
   'websitePages.terms.purchasesTitle': 'Mua sắm',
   'websitePages.terms.purchases':
     'Plus và các món đồ được bán qua App Store và Google Play. Đồ bạn mua là của bạn chừng nào Kithfield còn hoạt động.',
