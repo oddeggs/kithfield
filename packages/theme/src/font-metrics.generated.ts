@@ -7,9 +7,11 @@ import type { FontName } from './fonts';
  * ascender − descender + line gap over unitsPerEm, as Core Text reads them).
  */
 export const FONT_LINE_HEIGHT: Readonly<Record<FontName, number>> = {
+  'Fraunces18ptSuperSoft-SemiBold': 1.233,
+  'Fraunces36ptSuperSoft-SemiBold': 1.233,
+  'Fraunces72ptSuperSoft-SemiBold': 1.233,
   'Gaegu-Bold': 1.25,
-  'Lora-Regular': 1.28,
-  'Lora-SemiBold': 1.28,
+  'KithfieldHand-Bold': 1.25,
   'PatrickHand-Regular': 1.354,
   'YoungSerif-Regular': 1.412,
 };

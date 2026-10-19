@@ -5,6 +5,7 @@ export * from './farm';
 export * from './field-guide';
 export * from './fire';
 export * from './fonts';
+export * from './hand';
 export * from './gestures';
 export * from './motion';
 export * from './plans';

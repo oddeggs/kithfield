@@ -10,7 +10,7 @@ import { Panel } from './panel';
 /**
  * The type ramp as `01 Foundations` sets it out, one sample per step, then two lines whose
  * Vietnamese stacks marks above capitals and tall letters: the text most likely to be cut off at
- * the top of its line.
+ * the top of its line. Last, a Vietnamese name in hand and display text, as English shows it too.
  */
 const SAMPLES = [
   ['displayXL', 'gallery.type.displayXL', 'gallery.type.sample.displayXL'],
@@ -26,6 +26,8 @@ const SAMPLES = [
   ['label', 'gallery.type.label', 'gallery.type.sample.label'],
   ['displayL', 'gallery.type.displayL', 'gallery.type.marks.display'],
   ['handL', 'gallery.type.handL', 'gallery.type.marks.hand'],
+  ['handS', 'gallery.type.handS', 'gallery.type.marks.name'],
+  ['displayS', 'gallery.type.displayS', 'gallery.type.marks.name'],
 ] as const satisfies readonly (readonly [TypeVariant, StringKey, StringKey])[];
 
 export function TypeSection() {

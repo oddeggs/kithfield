@@ -38,6 +38,8 @@ export const galleryVi: ViCatalogue<typeof galleryEn> = {
   'gallery.type.sample.label': 'Đã có trên Kithfield',
   'gallery.type.marks.display': 'Bạn là ai trên nông trại?',
   'gallery.type.marks.hand': 'Ừ, đã có ngày',
+  /** A Vietnamese name, in either language: hand text Gaegu cannot write. */
+  'gallery.type.marks.name': 'Đỗ Ngọc Ẩn',
   'gallery.button.primary': 'Chính',
   'gallery.button.go': 'Đi / xác nhận',
   'gallery.button.light': 'Ánh sáng và lửa',

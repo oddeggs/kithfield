@@ -1,5 +1,5 @@
 import type { SkTypeface } from '@shopify/react-native-skia';
-import { fontFaces, type FontFace } from '@kithfield/theme';
+import { artFontFaces, type FontFace } from '@kithfield/theme';
 
 import type { FaceEntry } from './canvas2d/font';
 import type { SkiaApi } from './canvas2d/skia-api';
@@ -13,17 +13,15 @@ export const TYPO_METRICS: Readonly<Record<string, readonly [number, number]>> =
   'YoungSerif-Regular.ttf': [1046, 366],
   'Gaegu-Bold.ttf': [760, 240],
   'PatrickHand-Regular.ttf': [1024, 312],
-  'Lora-Regular.ttf': [1006, 274],
-  'Lora-SemiBold.ttf': [1006, 274],
 };
 
 /**
- * The theme's embedded fonts as the renderer names them in CSS (`Gaegu`, `'Patrick Hand'`,
- * `'Young Serif'`, `Lora`), given a way to load each file as a typeface.
+ * The art's fonts as the renderer names them in CSS (`Gaegu`, `'Patrick Hand'`, `'Young Serif'`),
+ * given a way to load each file as a typeface.
  */
 export function faceEntries(load: (face: FontFace) => SkTypeface | null): FaceEntry[] {
   const out: FaceEntry[] = [];
-  for (const face of fontFaces) {
+  for (const face of artFontFaces) {
     const typeface = load(face);
     if (!typeface) throw new Error(`Could not load the font ${face.file}`);
     const typo = TYPO_METRICS[face.file];

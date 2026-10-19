@@ -25,8 +25,8 @@ export interface TextFieldProps extends Omit<
 }
 
 /**
- * Fields (`01 Foundations`): a labelled row 54 tall whose value is set in Young Serif (Lora in
- * Vietnamese), or a plain field 46 tall for a few words.
+ * Fields (`01 Foundations`): a labelled row 54 tall whose value is set in the display face, or a
+ * plain field 46 tall for a few words.
  */
 export function TextField({ label, multiline = false, ...input }: TextFieldProps) {
   const { palette } = useTheme();

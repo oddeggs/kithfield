@@ -72,13 +72,20 @@ export const EAS_PROJECT_ID = 'cb527a7c-d45c-4e14-98ca-5ecc3c3affaa';
 export const APPLE_TEAM_ID = 'YFND2EEW8S';
 const IOS_DEPLOYMENT_TARGET = '17.0';
 
-/** The theme's embedded fonts, by PostScript name; each is also its file name. */
+/**
+ * The theme's embedded fonts, by PostScript name; each is also its file name. Fraunces at three
+ * optical sizes and Kithfield Hand set the app's text; Young Serif, Gaegu and Patrick Hand are the
+ * art's, which it finds through the system's font manager. The extensions register their copy of
+ * Kithfield Hand from the app's bundle.
+ */
 export const FONTS = [
+  'Fraunces18ptSuperSoft-SemiBold',
+  'Fraunces36ptSuperSoft-SemiBold',
+  'Fraunces72ptSuperSoft-SemiBold',
+  'KithfieldHand-Bold',
   'YoungSerif-Regular',
   'Gaegu-Bold',
   'PatrickHand-Regular',
-  'Lora-Regular',
-  'Lora-SemiBold',
 ].map((name) => `../../packages/theme/fonts/${name}.ttf`);
 
 /** Bundle ids are placeholders until the Apple developer team registers them. */

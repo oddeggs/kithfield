@@ -38,10 +38,11 @@ describe('font line heights', () => {
   it('match what Core Text measures for the embedded fonts', () => {
     const source = metricsModule();
     for (const [name, value] of [
+      ['Fraunces36ptSuperSoft-SemiBold', 1.233],
+      ['KithfieldHand-Bold', 1.25],
       ['YoungSerif-Regular', 1.412],
       ['Gaegu-Bold', 1.25],
       ['PatrickHand-Regular', 1.354],
-      ['Lora-SemiBold', 1.28],
     ] as const)
       expect(source).toContain(`'${name}': ${value},`);
   });

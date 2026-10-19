@@ -1,4 +1,4 @@
-import { fontFor, motion } from '@kithfield/theme';
+import { motion } from '@kithfield/theme';
 import { forwardRef, useEffect, useImperativeHandle, useRef, type ComponentRef } from 'react';
 import { TextInput, View } from 'react-native';
 import Animated, {
@@ -15,7 +15,6 @@ import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { AX_FONT_SCALE } from '../../ui/type/accessibility-size';
-import { componentType } from '../../ui/type/styles';
 import { Txt } from '../../ui/type/text';
 import { useInks } from './kit';
 
@@ -43,7 +42,7 @@ export const CodeBoxes = forwardRef<
 >(function CodeBoxes({ value, onChange, label }, ref) {
   const { palette } = useTheme();
   const inks = useInks();
-  const { fontLocale, t } = useLocale();
+  const { t } = useLocale();
   const reduce = useReduceMotion();
   const input = useRef<ComponentRef<typeof TextInput>>(null);
   const x = useSharedValue(0);
@@ -70,7 +69,7 @@ export const CodeBoxes = forwardRef<
   }, []);
 
   const moved = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
-  const digitFont = fontFor({ ...componentType.fieldValue, size: 28, lineHeight: 28 }, fontLocale);
+  const digitFont = { fontSize: 28, lineHeight: 28 };
   const active = Math.min(value.length, CODE_LENGTH - 1);
 
   return (

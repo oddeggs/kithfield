@@ -31,9 +31,8 @@ export function pickLanguage(
 }
 
 /**
- * Which font stack a language reads in. Young Serif and Gaegu have no Vietnamese, so `vi` swaps
- * the whole stack (Lora for display, Patrick Hand for handwriting) rather than mixing typefaces
- * glyph by glyph; body text stays on the system font, which covers Vietnamese.
+ * Which font stack a language reads in. Both languages share the faces (Fraunces, Kithfield Hand
+ * and the system font all write Vietnamese); `vi` gives stacked marks taller lines.
  */
 export const fontLocales = ['default', 'vi'] as const;
 export type FontLocale = (typeof fontLocales)[number];

@@ -43,6 +43,8 @@ export const galleryEn = {
   'gallery.type.sample.label': 'Already on Kithfield',
   'gallery.type.marks.display': 'Who are you on the farm?',
   'gallery.type.marks.hand': 'yes, there’s a day',
+  /** A Vietnamese name, in either language: hand text Gaegu cannot write. */
+  'gallery.type.marks.name': 'Nguyễn Ngọc Ánh',
   'gallery.button.primary': 'Primary',
   'gallery.button.go': 'Go / confirm',
   'gallery.button.light': 'Light and fire',
