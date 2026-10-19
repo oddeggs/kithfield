@@ -130,4 +130,23 @@ describe('a sitting', () => {
     expect(session.heldLevels()).not.toContain('bea');
     await session.leave();
   });
+
+  it('shows caption lines from the server only, never one a phone sent', async () => {
+    const gate = tokenWhenReleased();
+    const session = new FireSession('farm-a', { token: gate.token });
+    gate.release();
+    await session.sit('join');
+    const room = standIn.last;
+    if (!room) throw new Error('no room');
+    const line = (text: string) =>
+      new TextEncoder().encode(
+        JSON.stringify({ speaker: 'bea', chunk: 1, said: 'en', text, translation: null }),
+      );
+    const forger = new standIn.Participant('kit');
+    room.emit('DataReceived', line('words Bea never said'), forger, undefined, 'captions');
+    expect(session.snapshot().captions).toEqual([]);
+    room.emit('DataReceived', line('hello'), undefined, undefined, 'captions');
+    expect(session.snapshot().captions).toMatchObject([{ kind: 'line', line: { text: 'hello' } }]);
+    await session.leave();
+  });
 });
