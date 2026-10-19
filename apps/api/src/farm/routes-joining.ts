@@ -18,7 +18,7 @@ import { Hono } from 'hono';
 
 import { isKnownTimeZone } from '@kithfield/farm';
 
-import { eitherBlocked, requireAgeCheck, type SessionEnv } from '../auth';
+import { eitherBlocked, mayWear, requireAgeCheck, type SessionEnv } from '../auth';
 import type { Bindings } from '../env';
 import { profileOf } from './adapters/identity';
 import {
@@ -193,6 +193,9 @@ export const joiningRoutes = (): Hono<SessionEnv> => {
     const person = c.get('person');
     const req = await body(c, JoinRequest);
     if (req instanceof Response) return req;
+    if (!(await mayWear(c.env, person, { critter: req.critter }))) {
+      return fail(c, 403, 'forbidden', ['critter']);
+    }
     const hash = await sha256Hex(c.req.param('code'));
     const invite = await liveInvite(c.env.DB, hash, Date.now());
     if (invite === null) return fail(c, 404, 'invite_invalid');

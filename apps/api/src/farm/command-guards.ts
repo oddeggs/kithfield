@@ -1,6 +1,6 @@
 import type { FarmCommand, PersonId, RejectReason } from '@kithfield/contracts';
 
-import { eitherBlocked } from '../auth';
+import { eitherBlocked, mayWear } from '../auth';
 import { cottageOf } from '../cottage/stub';
 import type { Bindings } from '../env';
 import { claimGift, claimOf, farmOwnsTheme } from '../purchases/gift-claims';
@@ -80,6 +80,14 @@ export const refusalOf = async (
     cmd.payload.setting === 'theme' &&
     cmd.payload.theme !== null &&
     !(await farmOwnsTheme(env.DB, farm, cmd.payload.theme))
+  ) {
+    return 'not_allowed';
+  }
+  // Rocco's cart's clothes are worn only by whoever owns them, whichever way the critter changes.
+  if (
+    cmd.kind === 'critter_changed' &&
+    cmd.payload.critter !== undefined &&
+    !(await mayWear(env, actor, { critter: cmd.payload.critter }))
   ) {
     return 'not_allowed';
   }
