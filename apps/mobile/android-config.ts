@@ -2,13 +2,20 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
 
 import type { ExpoConfig } from 'expo/config';
-import { type ConfigPlugin, withDangerousMod } from 'expo/config-plugins';
+import {
+  AndroidConfig,
+  type ConfigPlugin,
+  withAndroidColors,
+  withAndroidStyles,
+  withDangerousMod,
+} from 'expo/config-plugins';
 
 // The catalogue files themselves: the config runs in Node, outside Metro, so the path names the file.
 import { surfacesEn } from '../../packages/i18n/src/surfaces.en.ts';
 import { surfacesVi } from '../../packages/i18n/src/surfaces.vi.ts';
 import { androidEn } from '../../packages/i18n/src/android.en.ts';
 import { androidVi } from '../../packages/i18n/src/android.vi.ts';
+import { day } from '../../packages/theme/src/colour.ts';
 
 /*
  * The Android app's native config: what the Play build asks for, the links it opens, its
@@ -191,3 +198,28 @@ export const withWidgetLabels: ConfigPlugin = (config) =>
 /** The notification look: the critter's small white icon, tinted with the farm's moss. */
 export const NOTIFICATION_ICON = './assets/icon/android-notification.png';
 
+/**
+ * The app theme's accent: the farm's moss on the system's own dialogs (their buttons), the text
+ * cursor and selection handles, by day and night alike (`12 States` gives moss no night colour).
+ */
+export const ACCENT = day.moss;
+
+export const withMossAccent: ConfigPlugin = (config) =>
+  withAndroidStyles(
+    withAndroidColors(config, (mod) => {
+      mod.modResults = AndroidConfig.Colors.assignColorValue(mod.modResults, {
+        name: 'colorAccent',
+        value: ACCENT,
+      });
+      return mod;
+    }),
+    (mod) => {
+      mod.modResults = AndroidConfig.Styles.assignStylesValue(mod.modResults, {
+        add: true,
+        parent: AndroidConfig.Styles.getAppThemeGroup(),
+        name: 'colorAccent',
+        value: '@color/colorAccent',
+      });
+      return mod;
+    },
+  );
