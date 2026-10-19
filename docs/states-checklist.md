@@ -85,10 +85,10 @@ What is still open (each row's note has the detail):
 | 04-15 | Message states, link previews and typing | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 04-16 | Welcome back: hugs, never a list | ✓ | – | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: a refused "say hi" says why in a toast and stays on the moment; the resting sheet scrolls at AX5 |
 | 04-17 | A little valley of farms (switcher) | ✓ | – | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ |  |
-| 04-18 | Plant a new farm | – | – | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | AX5: the plant sheet does not scroll |
+| 04-18 | Plant a new farm | – | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: the plant sheet scrolls at AX5, the lands stack with their names beside them |
 | 04-19 | Move-in day: a new critter arrives | ✓ | – | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: a refused wave says why in a toast and stays on the moment; your own move-in opens after onboarding; sheet scrolls at AX5 |
 | 04-20 | Leaving a farm quietly | – | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: sheet scrolls at AX5 |
-| 04-21 | What you see if you're removed from a farm | – | – | ✓ | – | ✓ | ✓ | ✗ | ✓ | ✓ | AX5: absolutely placed text runs under the buttons |
+| 04-21 | What you see if you're removed from a farm | – | – | ✓ | – | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: art, words and buttons stack in one scrolling column at AX5 |
 | 04-22 | A sleeping cottage for someone who left | – | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: sheet scrolls at AX5 |
 | 04-23 | Speech bubbles: 24-hour statuses over each critter | – | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: bubbles grow with text up to 1.6 times, placed at that size; status read with its critter |
 | 05-01 | Long-press a message: tend, plant, keep | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
@@ -107,7 +107,7 @@ What is still open (each row's note has the detail):
 | 06-03 | The organiser's hat chases RSVPs so Pip doesn't have to | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 06-04 | Seed bed: plans live here, not in the chat | ✓ | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: the 12-13 empty state, calendar pill grows, first-run tip 3 of 3 |
 | 06-05 | Remember-me seed: interview Thursday becomes a Friday nudge | – | – | ✗ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ | offline: remember-me goes straight to the API, not the post bag; the envelope wobble is not built |
-| 06-06 | Hangout day: everyone at the campfire | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | fixed here: no "nobody here" flash; AX5: the hangout sheet does not scroll |
+| 06-06 | Hangout day: everyone at the campfire | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: no "nobody here" flash; the hangout sheet stops below the back button and scrolls at AX5 |
 | 07-01 | Birthday bloom over Bea's cottage | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: a refused dewdrop or signature says why |
 | 07-02 | Sunday harvest recap, with the best pollinator | ✓ fixed | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | fixed here: pencil rows while loading; offline: no cached copy |
 | 07-03 | Shared rain: three or more of you online at once | – | – | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: a refused wave says why |
@@ -115,11 +115,11 @@ What is still open (each row's note has the detail):
 | 07-05 | Visiting Kit's farm, where plums are in season | ✓ fixed | – | ✗ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: pencil rows while loading; offline: the gate needs the network |
 | 07-06 | The scrapbook: every hangout becomes a pressed flower | ✓ fixed | ✓ fixed | ✗ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: pencil rows while loading, refusals said, one tall page a row at AX5; offline: needs the network |
 | 08-01 | Sticker picker in the chat (tap the tabs) | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | fixed here: the preview no longer nests the sticker inside another button; offline: owned packs are kept in memory only |
-| 08-02 | Together stickers: pick friends (tap the faces) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | 12-16 counterpart; AX5: no scroll, face names one line |
+| 08-02 | Together stickers: pick friends (tap the faces) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | 12-16 counterpart; fixed here: one scrolling column at AX5, face names on two lines and faces wrapping |
 | 08-03 | Quick Tend: stickers as one-tap replies (tap one) | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | loading: blank while Quick Tend loads |
 | 08-04 | Sticker shop: themed packs | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ |  |
 | 08-05 | Send a pack as a gift | ✓ | ✓ | ✗ | ✓ | ✓ | – | ✓ fixed | ✓ | ✗ | offline: no "prices unavailable" line; VoiceOver: wrap names read as raw ids |
-| 08-06 | On Bea's phone: the gift opens | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ | ✓ | a failed fetch reads as "gone"; AX5: no scroll |
+| 08-06 | On Bea's phone: the gift opens | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | a failed fetch reads as "gone"; fixed here: one scrolling column at AX5, the two buttons stacked |
 | 09-01 | Rocco's cart: this week's rotation | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: names and lines wrap at AX5 |
 | 09-02 | Try it on live on the farm, by day and at night (tap) | ✓ | – | ✓ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ | fixed here: pills and buttons grow |
 | 09-20 | Preview it on your home-screen widget | ✓ | – | ✓ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ | fixed here: pills and buttons grow |
@@ -152,13 +152,13 @@ What is still open (each row's note has the detail):
 | 10-04 | Long-press a notification to answer from it | – | – | ✓ | ✓ | – | – | – | ✓ | – | system notification actions |
 | 10-05 | Export stickers: take your critter anywhere | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: pills grow |
 | 10-06 | In Messages: the Kithfield sticker drawer | – | ✓ fixed | ✓ | ✓ | ✓ | – | – | ✓ fixed | ✓ | native, fixed here (not seen on a device): an empty drawer says how to fill it; file names read as words |
-| 10-07 | Telegram and WhatsApp: the pack is ready to add | ✓ | – | ✓ | ✓ | ✓ | – | ✗ | ✓ | ✓ | AX5: no scroll |
+| 10-07 | Telegram and WhatsApp: the pack is ready to add | ✓ | – | ✓ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ | fixed here: one scrolling column at AX5, each card's Open wraps under its name |
 | 10-08 | Dynamic Island while you're by the fire | – | ✓ | – | – | ✓ fixed | ✓ | ✓ fixed | ✓ | ✓ fixed | native, fixed here (not seen on a device): theme colours, Dynamic Type with a cap, art hidden |
 | 10-09 | Lock screen while you're by the fire | – | ✓ | – | – | ✓ fixed | ✓ | ✓ fixed | ✓ | ✓ fixed | native, fixed here (not seen on a device): theme colours, Dynamic Type with a cap, art hidden |
 | 10-10 | Picture in picture: your lantern frame floats over other apps | – | – | – | – | – | – | – | – | – | not built (picture in picture) |
-| 10-11 | AirPods and switching where the sound goes | – | ✗ | – | ✗ | ✓ | ✓ | ✗ | ✓ | ✓ fixed | empty: nothing when no route is known; error: a failed route change is not caught; fixed here: the current route says it is selected |
-| 10-12 | Asking for the microphone, the first time you join in | – | – | – | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | AX5: the ask sheet does not scroll |
-| 10-13 | Asking for the camera, the first time you light your lantern | – | – | – | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | AX5: the ask sheet does not scroll |
+| 10-11 | AirPods and switching where the sound goes | – | ✗ | – | ✗ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | empty: nothing when no route is known; error: a failed route change is not caught; fixed here: the current route says it is selected; the routes scroll at AX5 |
+| 10-12 | Asking for the microphone, the first time you join in | – | – | – | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: the ask sheet scrolls at AX5 |
+| 10-13 | Asking for the camera, the first time you light your lantern | – | – | – | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: the ask sheet scrolls at AX5 |
 | 10-14 | Widget:  | ✓ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ fixed | ✓ | ✓ fixed | native, fixed here (not seen on a device): theme colours, Dynamic Type with a cap, window links say whose they are |
 | 11-01 | The You tab: social battery and Hibernate (tap them) | ✓ fixed | – | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: pencil rows, then "couldn’t reach" with Try again; your name wraps |
 | 11-02 | Settings: privacy, AI catch-up (off), account | ✓ | ✓ | ✓ fixed | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ | fixed here: a failed load says so over the rows |

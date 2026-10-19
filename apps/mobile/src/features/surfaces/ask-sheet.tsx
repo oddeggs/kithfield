@@ -1,11 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { ScrollView, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../../ui/components/button';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { Body, Eyebrow, PromiseRow, Title, useSceneAttrs } from '../onboarding/kit';
 import { SceneArt } from '../onboarding/scene-art';
@@ -27,6 +28,7 @@ export function AskSheet({ device }: { readonly device: Device }) {
   const params = useLocalSearchParams<{ name?: string }>();
   const name = typeof params.name === 'string' && params.name !== '' ? params.name : null;
   const answered = useRef(false);
+  const ax = useAccessibilitySize();
 
   // Closed by a swipe: that's a no.
   useEffect(
@@ -61,8 +63,8 @@ export function AskSheet({ device }: { readonly device: Device }) {
       ];
   const critter = name ?? '';
 
-  return (
-    <View style={{ flex: 1, paddingHorizontal: SIDE, paddingTop: 10, gap: 10 }}>
+  const body = (
+    <>
       <SceneArt
         scene="spot"
         width={width - 16 - SIDE * 2}
@@ -101,6 +103,15 @@ export function AskSheet({ device }: { readonly device: Device }) {
           onPress={() => answer(false)}
         />
       </View>
-    </View>
+    </>
+  );
+  const column = { paddingHorizontal: SIDE, paddingTop: 10, gap: 10 } as const;
+  // At the accessibility sizes the ask outgrows the sheet: it scrolls.
+  return ax ? (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ ...column, flexGrow: 1 }}>
+      {body}
+    </ScrollView>
+  ) : (
+    <View style={{ flex: 1, ...column }}>{body}</View>
   );
 }

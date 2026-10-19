@@ -5,6 +5,7 @@ import { Avatar } from '../../../ui/art/avatar';
 import { lookOf } from '../../../ui/art/critter-look';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
 import { useStickerColours } from './colours';
 
@@ -33,7 +34,9 @@ export function FaceRow({
 }) {
   const { palette } = useTheme();
   const sc = useStickerColours();
-  const many = faces.length > 5;
+  const ax = useAccessibilitySize();
+  // At the accessibility sizes names get two lines and the faces wrap onto as many rows as needed.
+  const many = faces.length > 5 && !ax;
   const items = faces.map((f) => {
     const on = picked.includes(f.person);
     return (
@@ -44,7 +47,7 @@ export function FaceRow({
         darken={false}
         accessibilityLabel={labelOf(f, on)}
         accessibilityState={{ selected: on }}
-        style={{ alignItems: 'center', gap: 5, width: size + 12 }}
+        style={{ alignItems: 'center', gap: 5, width: ax ? size + 44 : size + 12 }}
       >
         <View
           style={{
@@ -69,7 +72,8 @@ export function FaceRow({
         </View>
         <Txt
           variant="bubbleName"
-          numberOfLines={1}
+          numberOfLines={ax ? 2 : 1}
+          align="center"
           color={on ? palette.text : sc.faceName}
           style={{ marginTop: -2 }}
         >
@@ -87,6 +91,14 @@ export function FaceRow({
       {items}
     </ScrollView>
   ) : (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>{items}</View>
+    <View
+      style={
+        ax
+          ? { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', rowGap: 12 }
+          : { flexDirection: 'row', justifyContent: 'space-between' }
+      }
+    >
+      {items}
+    </View>
   );
 }

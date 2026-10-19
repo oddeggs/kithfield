@@ -3,7 +3,7 @@ import { radii } from '@kithfield/theme';
 import { getCalendars, getLocales } from 'expo-localization';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Share, View } from 'react-native';
+import { ScrollView, Share, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -17,6 +17,7 @@ import { sheetTo } from '../../ui/motion/motion';
 import { Press } from '../../ui/motion/press';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { deviceTimeZone, hemisphereOf } from './calendar';
 import { backToFarm } from './routes';
@@ -50,6 +51,8 @@ function LandTile({
 }) {
   const { palette } = useTheme();
   const reduce = useReduceMotion();
+  // At the accessibility sizes the label sits beside its tile, the lands one under another.
+  const ax = useAccessibilitySize();
   // The chosen land's tile grows to 1.04.
   const scale = useSharedValue(on ? 1.04 : 1);
   useEffect(() => {
@@ -64,7 +67,11 @@ function LandTile({
       accessibilityLabel={label}
       accessibilityRole="radio"
       accessibilityState={{ selected: on }}
-      style={{ alignItems: 'center', gap: 6 }}
+      style={
+        ax
+          ? { flexDirection: 'row', alignItems: 'center', gap: 14 }
+          : { alignItems: 'center', gap: 6 }
+      }
     >
       <Animated.View
         key={land}
@@ -105,6 +112,7 @@ export function NewFarm() {
   const [land, setLand] = useState<Land>('meadow');
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const ax = useAccessibilitySize();
 
   const plant = async () => {
     if (!validFarmName(name) || busy) return;
@@ -132,16 +140,23 @@ export function NewFarm() {
     }
   };
 
-  return (
-    <View style={{ flex: 1, paddingHorizontal: 18, paddingTop: 22, gap: 12 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+  const body = (
+    <>
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          ...(ax ? { flexWrap: 'wrap', columnGap: 16 } : {}),
+        }}
+      >
         <Press onPress={() => router.back()} darken={false} accessibilityRole="button" hitSlop={12}>
           <Txt variant="fieldLabel" style={{ fontSize: 16 }} color={palette.secondary}>
             {t('farm.new.cancel')}
           </Txt>
         </Press>
         <Txt variant="rowTitle">{t('farm.new.nav')}</Txt>
-        <View style={{ width: 50 }} />
+        {ax ? null : <View style={{ width: 50 }} />}
       </View>
       <Txt variant="errorTitle" multiline accessibilityRole="header">
         {t('farm.new.title')}
@@ -163,7 +178,7 @@ export function NewFarm() {
           {t('farm.new.land')}
         </Txt>
         <View
-          style={{ flexDirection: 'row', justifyContent: 'space-between' }}
+          style={ax ? { gap: 12 } : { flexDirection: 'row', justifyContent: 'space-between' }}
           accessibilityRole="radiogroup"
         >
           {LANDS.map((l) => (
@@ -212,6 +227,19 @@ export function NewFarm() {
           onPress={() => void plant()}
         />
       </View>
-    </View>
+    </>
+  );
+  const column = { paddingHorizontal: 18, paddingTop: 22, gap: 12 } as const;
+  // At the accessibility sizes the form outgrows the sheet: it scrolls.
+  return ax ? (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ ...column, flexGrow: 1 }}
+      keyboardShouldPersistTaps="handled"
+    >
+      {body}
+    </ScrollView>
+  ) : (
+    <View style={{ flex: 1, ...column }}>{body}</View>
   );
 }
