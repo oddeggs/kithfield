@@ -15,8 +15,9 @@ import { Txt } from '../../ui/type/text';
 import { sceneLook } from '../../ui/art/critter-look';
 import { castOf } from './farm-bake';
 import { listOf } from './farm-copy';
+import { MoveInScene } from './move-in-walk';
 import { withAlpha } from './over-art';
-import { GlyphButton, NightVeil, Panel, SceneArt, SceneLoop } from './panel';
+import { GlyphButton, Panel, SceneArt } from './panel';
 import { farmRoutes } from './routes';
 import { SpeechBubble } from './speech-bubble';
 import { typeAt } from './type-at';
@@ -95,7 +96,7 @@ export function WelcomeBack({ farm }: { readonly farm: FarmId }) {
   );
 }
 
-/** Confetti falls on twos for 4 seconds, then the scene rests. */
+/** Confetti falls on twos for 4 seconds, then the scene rests and the newcomer walks home. */
 const CONFETTI_MS = 4000;
 
 /** Move-in day: a new critter's cottage is lit, and the neighbours come out. */
@@ -110,8 +111,13 @@ export function MoveIn({ farm, person }: { readonly farm: FarmId; readonly perso
   const me = useSession().person?.id ?? null;
   const send = useSend(farm);
   const [celebrating, setCelebrating] = useState(!reduce);
+  // Once the confetti has fallen, the newcomer walks home.
+  const [walk, setWalk] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => setCelebrating(false), CONFETTI_MS);
+    const timer = setTimeout(() => {
+      setCelebrating(false);
+      setWalk(true);
+    }, CONFETTI_MS);
     return () => clearTimeout(timer);
   }, []);
   const newcomer = state?.members.find((m) => m.person === person) ?? null;
@@ -141,13 +147,16 @@ export function MoveIn({ farm, person }: { readonly farm: FarmId; readonly perso
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <SceneArt scene="movein" width={width} height={height} attrs={attrs} />
-      {celebrating ? (
-        // While the confetti falls the scene plays on twos, drawn lighter so the loop fits the
-        // art's budget; then the crisp still underneath shows.
-        <SceneLoop scene="movein" width={width} height={height} attrs={attrs} dpr={1.4} />
-      ) : null}
-      {celebrating ? <NightVeil width={width} height={height} /> : null}
+      <MoveInScene
+        farm={farm}
+        person={person}
+        critter={c}
+        attrs={attrs}
+        width={width}
+        height={height}
+        celebrating={celebrating}
+        walk={walk}
+      />
       <GlyphButton
         glyph="✕"
         label={t('farm.close')}

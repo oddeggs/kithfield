@@ -61,6 +61,7 @@ See them all in the motion lab (`kithfield-dev://motion-lab`, development builds
 |---|---|
 | A critter travels (bubble → farm → card) | `features/chat/room/message-row.tsx` and `meet.ts` (the face, and VoiceOver's "See {name} on the farm"), `features/farm/farm-scene.tsx` and `farm-canvas.tsx` (the critter's spot and drawing) |
 | Picker to farm (the carry to the stage) | `features/onboarding/screens/critter-screen.tsx` |
+| Picker to farm: the walk home | `features/farm/move-in-walk.tsx` (`MoveInScene`, on the move-in moment): once the confetti has fallen the newcomer hops from their place at the path's foot (a `TravelSpot` with the scene's own drawing of them) up to their cottage's door, waving, and the window lights; the scene draws itself without them (`movein`, `state: 'empty'`) from the moment they set off |
 | Planting a seed (→ Seed bed tab) | `features/plans/plant-sheet.tsx` |
 | A firefly's flight to a door | `features/gestures/firefly.tsx` |
 | A dewdrop's ripples | `features/chat/room/reactions.tsx` (the dew chip; `useRipples`) |
@@ -73,12 +74,6 @@ See them all in the motion lab (`kithfield-dev://motion-lab`, development builds
 | Harvest | `features/farm/scene-ways.ts` (`useHarvestWay`): the grown crops hop out of the patch into `travelIds.harvestBasket` (`features/rhythm/recap-screen.tsx`), which wobbles once |
 | A sticker | `features/stickers/picker/picker-screen.tsx` (each sticker a `TravelAnchor` in `sticker-grid.tsx`) to `travelIds.chatSticker`, the sticker's bubble in `features/chat/room/bubbles.tsx`, by the write's op id |
 | The farm reacts to a message | `features/farm/reactions.ts` and `farm-home.tsx`: a friend's words pop over their cottage, their lamp lights in two drawings (`farm-canvas.tsx`); not travel |
-
-## Played in the lab, waiting on their screens
-
-| Transition | Lab stage | What the feature needs |
-|---|---|---|
-| Picker to farm: the walk home | `lab/move-in-demo.tsx` | The move-in moment (`features/farm`, `MoveIn`) would fly `{ critter, hops }` from the path's foot to the new cottage's door spot, then light the window. The art's `movein` scene always draws the newcomer, so the walk would show them twice: it needs a way to draw the scene without them (as `porch` takes `state: 'empty'`) |
 
 ## Farm home ↔ chat, under the finger (not wired yet)
 
