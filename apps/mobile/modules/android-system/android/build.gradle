@@ -17,4 +17,8 @@ android {
 dependencies {
   // `OnBackPressedCallback` with the back gesture's progress (`BackEventCompat`), for the back preview.
   implementation 'androidx.activity:activity:1.8.2'
+  // Kithfield's notifications dispatcher builds on expo-notifications' (`notifications/`).
+  implementation project(':expo-notifications')
+  implementation 'com.google.firebase:firebase-messaging:25.0.1'
+  implementation 'androidx.lifecycle:lifecycle-process:2.9.3'
 }

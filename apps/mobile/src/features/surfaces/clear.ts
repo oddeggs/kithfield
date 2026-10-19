@@ -2,6 +2,7 @@ import { ExtensionStorage } from '@bacons/apple-targets';
 import { Platform } from 'react-native';
 
 import { surfaces } from '../../../modules/surfaces';
+import { androidSystem } from '../../../modules/android-system';
 import { androidSurfaceRoot } from '../android/surface-root';
 import { redrawWidgets } from '../android/widgets/redraw';
 import { groupRoot, nativeGroupStore, type GroupStore } from './group-store';
@@ -70,6 +71,8 @@ export function clearSurfacesForSignOut(): Promise<void> {
     reload: () => {
       if (android) {
         void redrawWidgets().catch(() => undefined);
+        // The farms' conversations in the shade and on the launcher go with the person.
+        androidSystem?.forgetConversations();
         return;
       }
       try {
