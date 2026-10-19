@@ -121,8 +121,10 @@ export function DeskKeys() {
       e.preventDefault();
       runDeskAction(hit.action, hit.index);
     };
-    window.addEventListener('keydown', down);
-    return () => window.removeEventListener('keydown', down);
+    // Heard on the way down: a text field (React Native for Web's) stops its key presses from
+    // bubbling, and the composer is where the keys are mostly pressed.
+    window.addEventListener('keydown', down, true);
+    return () => window.removeEventListener('keydown', down, true);
   }, [mac]);
 
   return list ? <ShortcutList mac={mac} onClose={() => setList(false)} /> : null;
