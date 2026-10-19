@@ -244,7 +244,7 @@ export function FireButton({
   const ink = kind === 'primary' ? fireLook.primaryInk : fireLook.text;
   const style: ViewStyleProp = [
     {
-      height,
+      minHeight: height,
       borderRadius: height / 2,
       backgroundColor: fill,
       flexDirection: 'row',

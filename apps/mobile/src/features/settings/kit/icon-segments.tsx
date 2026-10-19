@@ -110,7 +110,7 @@ export function IconSegments<T extends string>({
           accessibilityState={{ selected: s.value === value }}
           style={{
             flex: 1,
-            height: 36,
+            minHeight: 36,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',

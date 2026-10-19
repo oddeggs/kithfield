@@ -77,7 +77,7 @@ export function MarkOptions({
             accessibilityLabel={label}
             accessibilityState={{ selected: on }}
             style={{
-              height: 36,
+              minHeight: 36,
               paddingHorizontal: 14,
               borderRadius: 18,
               justifyContent: 'center',

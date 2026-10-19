@@ -75,7 +75,7 @@ export function PickerSheet<T extends string | number>({
                 accessibilityLabel={option.label}
                 accessibilityState={{ selected }}
                 style={{
-                  height: ROW,
+                  minHeight: ROW,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',

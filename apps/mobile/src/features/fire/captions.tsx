@@ -433,7 +433,7 @@ export function CaptionsSheet({
                 darken={false}
                 accessibilityRole="button"
                 accessibilityLabel={t('fire.captions.notNow')}
-                style={{ height: 46, alignItems: 'center', justifyContent: 'center' }}
+                style={{ minHeight: 46, alignItems: 'center', justifyContent: 'center' }}
               >
                 <FireTxt
                   variant="button"

@@ -34,7 +34,7 @@ function QuickChip({
       accessibilityState={{ selected: sent }}
       hitSlop={5}
       style={{
-        height: 34,
+        minHeight: 34,
         paddingHorizontal: 13,
         borderRadius: 17,
         justifyContent: 'center',

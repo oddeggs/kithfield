@@ -185,7 +185,7 @@ export function RememberSheet({
                 accessibilityLabel={label(c)}
                 accessibilityState={{ selected: on }}
                 style={{
-                  height: 34,
+                  minHeight: 34,
                   paddingHorizontal: 13,
                   borderRadius: 17,
                   justifyContent: 'center',

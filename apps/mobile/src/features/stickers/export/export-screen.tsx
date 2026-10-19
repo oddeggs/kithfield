@@ -159,7 +159,7 @@ export function ExportScreen() {
               <View
                 accessibilityLiveRegion="polite"
                 style={{
-                  height: 30,
+                  minHeight: 30,
                   paddingHorizontal: 13,
                   borderRadius: 15,
                   flexDirection: 'row',
@@ -308,7 +308,7 @@ export function Pill({
       radius={16}
       accessibilityLabel={label}
       style={{
-        height: ink ? 30 : 32,
+        minHeight: ink ? 30 : 32,
         paddingHorizontal: 13,
         borderRadius: 16,
         justifyContent: 'center',

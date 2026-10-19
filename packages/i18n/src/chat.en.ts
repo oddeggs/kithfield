@@ -158,6 +158,8 @@ export const chatEn = {
 
   /* The composer */
   'chat.composer.placeholder': 'Say something, or just wave',
+  /** The field's hint at the largest text sizes, where the full one doesn't fit. */
+  'chat.composer.placeholderShort': 'Say something',
   'chat.composer.tray': 'More ways to tend',
   'chat.composer.dewdrop': 'Leave a dewdrop',
   'chat.composer.dewdropLeft': 'Dewdrop left',

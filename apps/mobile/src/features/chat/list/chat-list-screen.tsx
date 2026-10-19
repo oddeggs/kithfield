@@ -110,7 +110,7 @@ export function ChatListScreen() {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          height: Math.max(insets.top, 20) + 3 + 44,
+          minHeight: Math.max(insets.top, 20) + 3 + 44,
         }}
       >
         <Txt variant="displayL" accessibilityRole="header">

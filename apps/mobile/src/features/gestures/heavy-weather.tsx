@@ -185,7 +185,7 @@ export function HeavyWeatherScreen() {
               accessibilityLabel={t(`gestures.weather.${tile.warmth}`)}
               style={{
                 flex: 1,
-                height: 84,
+                minHeight: 84,
                 borderRadius: 18,
                 backgroundColor: tile.night ? palette.firefly.bg : palette.card,
                 borderWidth: 1,

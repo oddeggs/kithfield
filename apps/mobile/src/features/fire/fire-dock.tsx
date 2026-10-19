@@ -198,7 +198,7 @@ function GestureRow({
 }) {
   const { t } = useLocale();
   const tile = {
-    height: fireSize.tile,
+    minHeight: fireSize.tile,
     borderRadius: 18,
     backgroundColor: fireLook.tile,
     alignItems: 'center',

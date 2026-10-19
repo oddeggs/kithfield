@@ -470,7 +470,7 @@ export function Pill({
       accessibilityLabel={label}
       style={[
         {
-          height,
+          minHeight: height,
           borderRadius: height / 2,
           backgroundColor: colours.bg,
           flexDirection: 'row',

@@ -87,7 +87,7 @@ export function WidgetPreviewScreen() {
                 position: 'absolute',
                 right: 12,
                 top: 12,
-                height: 24,
+                minHeight: 24,
                 paddingHorizontal: 9,
                 borderRadius: 12,
                 justifyContent: 'center',
@@ -142,7 +142,7 @@ export function WidgetPreviewScreen() {
           style={{
             flex: 1,
             flexBasis: 0,
-            height: 54,
+            minHeight: 54,
             borderRadius: 27,
             alignItems: 'center',
             justifyContent: 'center',

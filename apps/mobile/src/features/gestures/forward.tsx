@@ -180,7 +180,7 @@ export function ForwardScreen() {
           top: insets.top - 1,
           left: 16,
           right: 16,
-          height: 44,
+          minHeight: 44,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',

@@ -143,6 +143,7 @@ export const chatVi: ViCatalogue<typeof chatEn> = {
   'chat.typing.many': '{a}, {b} và những bạn khác đang viết thư…',
 
   'chat.composer.placeholder': 'Nói gì đó, hoặc chỉ vẫy tay',
+  'chat.composer.placeholderShort': 'Nói gì đó',
   'chat.composer.tray': 'Thêm cách chăm sóc',
   'chat.composer.dewdrop': 'Để lại một giọt sương',
   'chat.composer.dewdropLeft': 'Đã để lại giọt sương',

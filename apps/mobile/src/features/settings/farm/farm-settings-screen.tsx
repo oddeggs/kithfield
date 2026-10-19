@@ -71,7 +71,7 @@ export function FarmSettingsScreen({ farm }: { readonly farm: FarmId }) {
               position: 'absolute',
               right: 10,
               bottom: 10,
-              height: 32,
+              minHeight: 32,
               paddingHorizontal: 12,
               borderRadius: 16,
               backgroundColor: kit.glass.fill,

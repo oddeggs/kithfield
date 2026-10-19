@@ -75,7 +75,7 @@ function Select({
       accessibilityLabel={value ? `${label}, ${value}` : label}
       style={{
         flex: 1,
-        height: 54,
+        minHeight: 54,
         borderRadius: 16,
         backgroundColor: palette.card,
         borderWidth: open ? 2 : 1,

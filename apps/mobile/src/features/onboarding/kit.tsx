@@ -116,7 +116,7 @@ export function TopBar({
         top: top(designTop),
         left: inset,
         right: inset,
-        height: 44,
+        minHeight: 44,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',

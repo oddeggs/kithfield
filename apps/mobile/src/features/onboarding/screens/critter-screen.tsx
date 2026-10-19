@@ -36,7 +36,7 @@ function ShapeChip({
       accessibilityLabel={label}
       accessibilityState={{ selected: on }}
       style={{
-        height: 32,
+        minHeight: 32,
         paddingHorizontal: 13,
         borderRadius: 16,
         justifyContent: 'center',

@@ -69,7 +69,7 @@ export function Pill({
       accessibilityState={{ disabled: off, busy }}
       style={[
         {
-          height: sub ? 64 : 54,
+          minHeight: sub ? 64 : 54,
           borderRadius: sub ? 32 : 27,
           backgroundColor: colours.bg,
           paddingHorizontal: 16,
@@ -196,7 +196,7 @@ export function Tabs<T extends string>({
             accessibilityState={{ selected: on }}
             accessibilityLabel={tab.label}
             style={{
-              height: 32,
+              minHeight: 32,
               paddingHorizontal: 12,
               borderRadius: 16,
               justifyContent: 'center',

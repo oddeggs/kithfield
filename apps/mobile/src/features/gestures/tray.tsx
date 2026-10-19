@@ -87,7 +87,7 @@ export function TrayScreen() {
       accessibilityLabel={label}
       style={{
         flex: 1,
-        height: 46,
+        minHeight: 46,
         borderRadius: 23,
         backgroundColor: palette.fillSoft,
         flexDirection: 'row',

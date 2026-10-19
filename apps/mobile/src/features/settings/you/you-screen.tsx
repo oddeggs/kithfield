@@ -105,7 +105,7 @@ export function YouScreen() {
       >
         <View
           style={{
-            height: 44,
+            minHeight: 44,
             paddingLeft: 20,
             paddingRight: 16,
             flexDirection: 'row',
@@ -208,7 +208,7 @@ export function YouScreen() {
             accessibilityRole="button"
             accessibilityLabel={t('settings.you.wardrobe')}
             style={{
-              height: 34,
+              minHeight: 34,
               paddingHorizontal: 14,
               borderRadius: 17,
               justifyContent: 'center',

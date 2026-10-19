@@ -46,7 +46,7 @@ export function WeatherChip({
       fill={palette.glassButton.fill}
       border={palette.glassButton.border}
       style={{
-        height: 36,
+        minHeight: 36,
         paddingHorizontal: 12,
         flexDirection: 'row',
         alignItems: 'center',
@@ -132,7 +132,7 @@ export function WeatherScreen({ farm }: { readonly farm: FarmId }) {
             fill={palette.glassButton.fill}
             border={palette.glassButton.border}
             shadow={farmTheme.shadows.glassPill}
-            style={{ height: 44, paddingHorizontal: 14, justifyContent: 'center' }}
+            style={{ minHeight: 44, paddingHorizontal: 14, justifyContent: 'center' }}
           >
             <Txt
               variant="displayS"

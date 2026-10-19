@@ -178,7 +178,7 @@ export function AddingScreen() {
                   radius={18}
                   accessibilityLabel={`${t('stickers.adding.open')} ${c.id === 'telegram' ? t('stickers.export.telegram') : t('stickers.export.whatsapp')}`}
                   style={{
-                    height: 36,
+                    minHeight: 36,
                     borderRadius: 18,
                     paddingHorizontal: 14,
                     justifyContent: 'center',

@@ -120,7 +120,7 @@ export function RainScreen({ farm }: { readonly farm: FarmId }) {
             bg={palette.fillSecondary}
             fg={palette.text}
             small
-            style={{ flex: 1, height: 48 }}
+            style={{ flex: 1, minHeight: 48 }}
           />
           <ActionButton
             label={t('rhythm.rain.photo')}
@@ -132,7 +132,7 @@ export function RainScreen({ farm }: { readonly farm: FarmId }) {
             bg={palette.fillSecondary}
             fg={palette.text}
             small
-            style={{ flex: 1, height: 48 }}
+            style={{ flex: 1, minHeight: 48 }}
           />
         </View>
       </Panel>

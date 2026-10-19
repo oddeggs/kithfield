@@ -154,7 +154,7 @@ export function BigPill({
       accessibilityLabel={sub ? `${label}, ${sub}` : label}
       accessibilityState={{ busy }}
       style={{
-        height: 54,
+        minHeight: 54,
         borderRadius: 27,
         backgroundColor: c.bg,
         paddingHorizontal: 16,

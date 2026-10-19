@@ -165,3 +165,12 @@ const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 export function headcount(t: Translate, n: number): string {
   return capital(t('farm.crowd.title', { count: n, number: numberWord(t, n) }));
 }
+
+/**
+ * The farm's short name, for the largest text sizes (`12 States`, AX5): "The Thursday Lot" reads
+ * "Thursday Lot". A name that is only an article stays whole.
+ */
+export function shortName(name: string): string {
+  const short = name.replace(/^(the|a|an)\s+/i, '').trim();
+  return short.length > 0 ? short : name;
+}

@@ -54,7 +54,7 @@ function DayNight({
       accessibilityState={{ selected: night === isNight }}
       accessibilityLabel={label}
       style={{
-        height: 34,
+        minHeight: 34,
         paddingHorizontal: 12,
         borderRadius: 11,
         justifyContent: 'center',
