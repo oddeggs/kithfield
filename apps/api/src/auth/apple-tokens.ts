@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import type { Bindings } from '../env';
-import { appleRevocation } from './purge';
 import { errorResponse, requireSession, type SessionEnv } from './session';
 
 /*
@@ -172,18 +171,17 @@ export function appleTokenRoutes(): Hono<SessionEnv> {
   return routes;
 }
 
-appleRevocation.current = {
-  async revoke(env, { person }) {
-    const key = appleKeyOf(env);
-    if (key === null) return;
-    const { results } = await env.DB.prepare(
-      `SELECT refresh_token FROM accounts
-       WHERE person_id = ? AND provider_id = 'apple' AND refresh_token IS NOT NULL`,
-    )
-      .bind(person)
-      .all<{ refresh_token: string }>();
-    for (const row of results) {
-      await revokeToken(key, row.refresh_token, Date.now(), appleFetch.current);
-    }
-  },
-};
+/** Revokes every Apple refresh token the person's identities hold; the purge calls it. */
+export async function revokeAppleTokens(env: Bindings, person: string): Promise<void> {
+  const key = appleKeyOf(env);
+  if (key === null) return;
+  const { results } = await env.DB.prepare(
+    `SELECT refresh_token FROM accounts
+     WHERE person_id = ? AND provider_id = 'apple' AND refresh_token IS NOT NULL`,
+  )
+    .bind(person)
+    .all<{ refresh_token: string }>();
+  for (const row of results) {
+    await revokeToken(key, row.refresh_token, Date.now(), appleFetch.current);
+  }
+}
