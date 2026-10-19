@@ -20,3 +20,7 @@ coverage/
 # Reference renders are regenerated from the design export (tools/design); only comparison sheets are kept.
 /design/renders/*
 !/design/renders/compare/
+# Copied from the installed packages by apps/mobile/web/copy-assets.mjs.
+/apps/mobile/public/*.wasm
+/apps/mobile/public/fonts/
+/apps/mobile/dist-web/

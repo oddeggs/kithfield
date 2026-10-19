@@ -65,10 +65,26 @@ const GESTURE_ICON: Readonly<Record<string, string>> = {
   hug: 'heart',
 };
 
-export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
+/** What a room shown in a pane offers its keys (the desktop: ⌥⌘M mutes, ⌥⌘L heads home). */
+export interface FireControls {
+  readonly toggleMic: () => void;
+  readonly headHome: () => void;
+}
+
+export function FireRoomScreen({
+  farm,
+  size,
+  onControls,
+}: {
+  readonly farm: FarmId;
+  /** The room's size when it fills a pane rather than the screen (the desktop). */
+  readonly size?: { readonly width: number; readonly height: number };
+  readonly onControls?: (controls: FireControls) => void;
+}) {
   useOpenFarm(farm);
   const { t, language } = useLocale();
-  const { width, height } = useWindowDimensions();
+  const screen = useWindowDimensions();
+  const { width, height } = size ?? screen;
   const scale = width / 393;
   const toast = useToast();
   const me = useSession().person?.id ?? null;
@@ -295,6 +311,10 @@ export function FireRoomScreen({ farm }: { readonly farm: FarmId }) {
     await session.leave();
     setTimeout(() => (last ? setPhase('quiet') : leaveRoom()), WALK_HOME_MS);
   };
+  // Every render, so a pane's keys always reach the room as it is now.
+  useEffect(() => {
+    onControls?.({ toggleMic: () => void mic(), headHome: () => void walkHome() });
+  });
 
   // The fire's Live Activity while you sit, and where the sound goes.
   useFireSurfaces({

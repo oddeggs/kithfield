@@ -1,0 +1,4 @@
+# Built by cargo and tauri; generated from the art (`pnpm icons`).
+/target/
+/gen/
+/icons/

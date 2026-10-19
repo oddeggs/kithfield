@@ -1,6 +1,7 @@
 import { fontFor, motion } from '@kithfield/theme';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
+  Platform,
   TextInput,
   View,
   type TextInputInstance,
@@ -339,21 +340,45 @@ export function Composer({
           font,
           { flex: 1, color: palette.text, paddingTop: 10, paddingBottom: 10, maxHeight: 132 },
         ]}
+        // A browser's text area takes its text as a value, not styled children, and sends on
+        // Return (Shift-Return for a new line), as a keyboard on a computer expects. Return that
+        // ends an input method's composing (Vietnamese Telex, say) only commits the letters.
+        {...(Platform.OS === 'web'
+          ? {
+              value: text,
+              onKeyPress: (e: {
+                nativeEvent: {
+                  key: string;
+                  shiftKey?: boolean;
+                  isComposing?: boolean;
+                  keyCode?: number;
+                };
+                preventDefault: () => void;
+              }) => {
+                const { key, shiftKey, isComposing, keyCode } = e.nativeEvent;
+                if (key !== 'Enter' || shiftKey || isComposing || keyCode === 229) return;
+                e.preventDefault();
+                send();
+              },
+            }
+          : {})}
       >
-        {draftSegments(text, names, caret).map((s, i) =>
-          s.mention ? (
-            <Txt
-              key={i}
-              variant="fieldText"
-              color={colours.mentionFg}
-              style={{ fontWeight: '600', backgroundColor: colours.mentionBg }}
-            >
-              {s.text}
-            </Txt>
-          ) : (
-            s.text
-          ),
-        )}
+        {Platform.OS === 'web'
+          ? null
+          : draftSegments(text, names, caret).map((s, i) =>
+              s.mention ? (
+                <Txt
+                  key={i}
+                  variant="fieldText"
+                  color={colours.mentionFg}
+                  style={{ fontWeight: '600', backgroundColor: colours.mentionBg }}
+                >
+                  {s.text}
+                </Txt>
+              ) : (
+                s.text
+              ),
+            )}
       </TextInput>
       {ax ? null : dewdrop}
     </View>

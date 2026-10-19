@@ -35,9 +35,18 @@ export function useHeaderTop(): number {
   return top + (fireSize.headerTop - DESIGN_TOP_INSET);
 }
 
+/** Where leaving goes instead, while the room sits in a pane beside the chat (the desktop). */
+let leaveInstead: (() => void) | null = null;
+
+/** Sends leaving the room to `leave` (null puts it back). */
+export function setLeaveRoom(leave: (() => void) | null): void {
+  leaveInstead = leave;
+}
+
 /** Back to the farm: the screen under the room, or the farm tab when the room was opened by a link. */
 export function leaveRoom(): void {
-  if (router.canGoBack()) router.back();
+  if (leaveInstead) leaveInstead();
+  else if (router.canGoBack()) router.back();
   else router.replace('/farm');
 }
 

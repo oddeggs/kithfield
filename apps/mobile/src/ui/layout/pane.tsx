@@ -8,9 +8,14 @@ import {
 
 import { layoutFor, type LayoutKind } from './size-class';
 
-/** How the app lays out in the window as it is now; it changes as the window resizes. */
+/**
+ * How the app lays out in the window as it is now; it changes as the window resizes. The browser
+ * is always `phone` here: a wide browser window is neither an iPad nor an opened foldable, and the
+ * web lays out its own panes around the phone's screens (`app/(tabs)/_layout.web.tsx`).
+ */
 export function useScreenLayout(): LayoutKind {
   const { width, height } = useWindowDimensions();
+  if (Platform.OS === 'web') return 'phone';
   return layoutFor({ width, height, pad: Platform.OS === 'ios' && Platform.isPad });
 }
 

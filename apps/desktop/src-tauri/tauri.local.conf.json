@@ -1,0 +1,7 @@
+{
+  "identifier": "com.kithfield.desktop.dev",
+  "productName": "Kithfield Dev",
+  "build": {
+    "frontendDist": "http://localhost:8190/"
+  }
+}

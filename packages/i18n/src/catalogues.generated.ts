@@ -41,6 +41,8 @@ import { onboardingCrittersEn } from './onboarding-critters.en';
 import { onboardingCrittersVi } from './onboarding-critters.vi';
 import { plansEn } from './plans.en';
 import { plansSameInBoth, plansVi } from './plans.vi';
+import { platformsEn } from './platforms.en';
+import { platformsSameInBoth, platformsVi } from './platforms.vi';
 import { pushEn } from './push.en';
 import { pushSameInBoth, pushVi } from './push.vi';
 import { rhythmEn } from './rhythm.en';
@@ -94,6 +96,7 @@ export const features: readonly FeatureCatalogues[] = [
   { name: 'onboarding', file: 'onboarding', en: onboardingEn, vi: onboardingVi, sameInBoth: onboardingSameInBoth },
   { name: 'onboardingCritters', file: 'onboarding-critters', en: onboardingCrittersEn, vi: onboardingCrittersVi, sameInBoth: [] },
   { name: 'plans', file: 'plans', en: plansEn, vi: plansVi, sameInBoth: plansSameInBoth },
+  { name: 'platforms', file: 'platforms', en: platformsEn, vi: platformsVi, sameInBoth: platformsSameInBoth },
   { name: 'push', file: 'push', en: pushEn, vi: pushVi, sameInBoth: pushSameInBoth },
   { name: 'rhythm', file: 'rhythm', en: rhythmEn, vi: rhythmVi, sameInBoth: rhythmSameInBoth },
   { name: 'safety', file: 'safety', en: safetyEn, vi: safetyVi, sameInBoth: safetySameInBoth },
@@ -133,6 +136,7 @@ export const en = {
   ...onboardingEn,
   ...onboardingCrittersEn,
   ...plansEn,
+  ...platformsEn,
   ...pushEn,
   ...rhythmEn,
   ...safetyEn,
@@ -172,6 +176,7 @@ export const vi = {
   ...onboardingVi,
   ...onboardingCrittersVi,
   ...plansVi,
+  ...platformsVi,
   ...pushVi,
   ...rhythmVi,
   ...safetyVi,

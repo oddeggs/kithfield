@@ -2,10 +2,14 @@
   "name": "@kithfield/mobile",
   "version": "0.0.0",
   "private": true,
-  "main": "index.ts",
+  "main": "index",
   "scripts": {
     "dev": "expo start --dev-client",
     "ios": "expo run:ios",
+    "web": "node web/copy-assets.mjs && expo start --web",
+    "web:proxy": "node web/dev-proxy.mjs",
+    "web:build": "node web/build.mjs",
+    "web:deploy:dry": "node web/build.mjs dev && wrangler deploy --dry-run --env dev -c web/wrangler.jsonc",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:e2e": "vitest run --config vitest.e2e.config.mts"
@@ -26,6 +30,8 @@
     "@react-native-documents/viewer": "catalog:",
     "@react-native/metro-config": "catalog:",
     "@shopify/react-native-skia": "catalog:",
+    "@tauri-apps/api": "catalog:",
+    "@tauri-apps/plugin-notification": "catalog:",
     "better-auth": "catalog:",
     "expo": "catalog:",
     "expo-apple-authentication": "catalog:",
@@ -69,6 +75,7 @@
     "expo-web-browser": "catalog:",
     "livekit-client": "catalog:",
     "react": "catalog:",
+    "react-dom": "catalog:",
     "react-native": "catalog:",
     "react-native-android-widget": "catalog:",
     "react-native-gesture-handler": "catalog:",
@@ -77,7 +84,9 @@
     "react-native-reanimated": "catalog:",
     "react-native-safe-area-context": "catalog:",
     "react-native-screens": "catalog:",
+    "react-native-web": "catalog:",
     "react-native-worklets": "catalog:",
+    "sql.js": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -85,13 +94,15 @@
     "@jest/globals": "catalog:",
     "@react-native/jest-preset": "catalog:",
     "@types/react": "catalog:",
+    "@types/sql.js": "catalog:",
     "babel-preset-expo": "catalog:",
     "expo-doctor": "catalog:",
     "jest": "catalog:",
     "jest-expo": "catalog:",
     "react-test-renderer": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
   },
   "expo": {
     "autolinking": {
