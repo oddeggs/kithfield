@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { HeldElsewhere } from '../data';
 import { clearMediaForSignOut, MediaUploads, pendingUploadCount } from '../features/media';
@@ -49,6 +49,7 @@ function Screens() {
   const { appearance, palette } = useTheme();
   const { status, onboarded } = useSession();
   const { height: screenH } = useWindowDimensions();
+  const { top, bottom } = useSafeAreaInsets();
   // The tabs for someone signed in and through the way in; onboarding for everyone else.
   const inside = status === 'signedIn' && onboarded;
   return (
@@ -58,7 +59,9 @@ function Screens() {
         // A feature adds a sheet with `app/(modal)/…` or a full-screen cover with `app/(cover)/…`,
         // and a sheet with its own heights to `SHEETS` in `ui/navigation/presentation`; see
         // `app/README.md`. Decided here, before the screen mounts, as native sheets need.
-        screenOptions={({ route }) => screenOptionsFor(route.name, { screenH, palette })}
+        screenOptions={({ route }) =>
+          screenOptionsFor(route.name, { screenH, insets: { top, bottom }, palette })
+        }
       >
         <Stack.Protected guard={inside}>
           <Stack.Screen name="(tabs)" />
