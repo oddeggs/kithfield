@@ -1,4 +1,6 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
+import { createMiddleware } from 'hono/factory';
 
 import { adminRoutes, safetyRoutes } from './admin/routes';
 import { voiceCaptionRoutes } from './ai';
@@ -14,9 +16,27 @@ import { rhythmRoutes } from './rhythm/routes';
 import { stickersRoutes } from './stickers/routes';
 import { waitlistRoutes } from './web/waitlist';
 
+/** The largest body any route reads whole; the biggest real one (a gift's or a plan's) is a few KB. */
+export const BODY_LIMIT_BYTES = 256 * 1024;
+
+/** Routes that check their own length before reading: the dev upload proxy and caption audio. */
+const ownLimit = (path: string) =>
+  path.startsWith('/api/v1/media/upload-proxy/') ||
+  /^\/api\/v1\/farms\/[^/]+\/fire\/captions$/.test(path);
+
 /** The API. The Worker owns `<host>/api/*`; the website serves everything else on the host. */
 export function createApp(): Hono<AppEnv> {
   const app = new Hono<AppEnv>().basePath('/api');
+
+  // Bodies are read whole before a schema looks at them, so none may be larger than this.
+  const limitBody = bodyLimit({
+    maxSize: BODY_LIMIT_BYTES,
+    onError: (c) => c.json({ error: { code: 'too_large' } }, 413),
+  });
+  app.use(
+    '*',
+    createMiddleware<AppEnv>((c, next) => (ownLimit(c.req.path) ? next() : limitBody(c, next))),
+  );
 
   app.get('/health', (c) =>
     c.json({ status: 'ok', environment: c.env.ENVIRONMENT, commit: c.env.COMMIT_SHA }),
