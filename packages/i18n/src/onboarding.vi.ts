@@ -189,6 +189,8 @@ export const onboardingVi: ViCatalogue<typeof onboardingEn> = {
   'onboarding.friends.byText': 'Nhận đường dẫn qua tin nhắn',
   'onboarding.friends.invite': 'Mời',
   'onboarding.friends.invited': 'Đã mời',
+  'onboarding.friends.inviteNamed': 'Mời {name}',
+  'onboarding.friends.invitedNamed': '{name}, đã mời',
   'onboarding.friends.done': 'Xong',
   'onboarding.friends.doneInvited': { other: 'Xong · đã mời {count}' },
   'onboarding.friends.none': 'Chưa có ai để hiện',

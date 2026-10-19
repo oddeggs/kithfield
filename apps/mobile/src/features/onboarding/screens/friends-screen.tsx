@@ -77,9 +77,17 @@ function FriendRow({
         {...(reduce ? {} : { entering: FadeIn.duration(motion.cross.durationMs) })}
       >
         {invited ? (
-          <Chip label={t('onboarding.friends.invited')} kind="invited" />
+          <Chip
+            label={t('onboarding.friends.invited')}
+            kind="invited"
+            accessibilityLabel={t('onboarding.friends.invitedNamed', { name: friend.name })}
+          />
         ) : (
-          <Chip label={t('onboarding.friends.invite')} onPress={onInvite} />
+          <Chip
+            label={t('onboarding.friends.invite')}
+            onPress={onInvite}
+            accessibilityLabel={t('onboarding.friends.inviteNamed', { name: friend.name })}
+          />
         )}
       </Animated.View>
     </View>

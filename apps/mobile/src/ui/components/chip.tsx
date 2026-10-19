@@ -16,10 +16,13 @@ export function Chip({
   label,
   kind = 'default',
   onPress,
+  accessibilityLabel,
 }: {
   readonly label: string;
   readonly kind?: ChipKind;
   readonly onPress?: () => void;
+  /** What VoiceOver reads when the chip's own word isn't enough ("Invite Fig", not "Invite"). */
+  readonly accessibilityLabel?: string;
 }) {
   const { palette } = useTheme();
   const c = palette.chip;
@@ -55,7 +58,7 @@ export function Chip({
   );
   if (!onPress) {
     return (
-      <View accessible accessibilityLabel={label} style={surface}>
+      <View accessible accessibilityLabel={accessibilityLabel ?? label} style={surface}>
         {content}
       </View>
     );
@@ -65,7 +68,7 @@ export function Chip({
       onPress={onPress}
       haptic="select"
       radius={pill(height)}
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ selected: kind === 'selected' }}
       hitSlop={(44 - height) / 2}
       style={surface}
