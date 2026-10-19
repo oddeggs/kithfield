@@ -1,5 +1,6 @@
 import {
   APP_GROUP_PATHS,
+  HttpUrl,
   LIMITS,
   ShareDraft,
   type FarmList,
@@ -7,7 +8,11 @@ import {
 } from '@kithfield/contracts';
 import { File } from 'expo-file-system';
 
-import { androidSystem, type SharedIntent } from '../../../modules/android-system';
+import {
+  androidSystem,
+  type SharedIntent,
+  type SharedIntentFile,
+} from '../../../modules/android-system';
 import type { GroupStore } from '../surfaces/group-store';
 
 /*
@@ -26,6 +31,38 @@ export interface ShareIntentDeps {
 }
 
 const URL_ONLY = /^https?:\/\/\S+$/;
+const MIME = /^[a-z]+\/[a-z0-9.+-]{1,80}$/;
+
+/** Words cut to the message limit, never halfway through a character. */
+export function limitedText(words: string): string {
+  if (words.length <= LIMITS.message) return words;
+  const cut = words.slice(0, LIMITS.message);
+  const last = cut.charCodeAt(cut.length - 1);
+  return last >= 0xd800 && last <= 0xdbff ? cut.slice(0, -1) : cut;
+}
+
+/**
+ * The shared files a draft can carry: another app says what each is, so an empty file, one past
+ * the upload limit, or one beyond the share's count is left out rather than losing the share.
+ */
+export function keptFiles(files: readonly SharedIntentFile[]): SharedIntentFile[] {
+  return files
+    .filter((f) => f.bytes >= 1 && f.bytes <= LIMITS.uploadBytes)
+    .slice(0, LIMITS.mediaItems);
+}
+
+/** The file's type as the draft writes it; one another app named oddly is just bytes. */
+const mimeOf = (f: SharedIntentFile) => {
+  const mime = f.mime.toLowerCase();
+  return MIME.test(mime) ? mime : 'application/octet-stream';
+};
+
+/** A file name's extension, letters and digits only, as the outbox names its files. */
+export function extensionOf(name: string): string {
+  const dot = name.lastIndexOf('.');
+  const ext = dot < 0 ? '' : name.slice(dot + 1).replace(/[^A-Za-z0-9]/g, '');
+  return ext === '' ? 'bin' : ext.slice(0, 8).toLowerCase();
+}
 
 /** A farm's name as the list shows it: its own, or the friend's on a visit. */
 const nameOf = (row: FarmList['farms'][number]) => row.name ?? row.with?.name ?? '';
@@ -39,8 +76,8 @@ export function draftFor(
   files: ShareDraft['files'],
 ): ShareDraft | null {
   const words = share.text?.trim() ?? '';
-  const url = URL_ONLY.test(words) ? words : undefined;
-  const text = url === undefined && words !== '' ? words.slice(0, LIMITS.message) : undefined;
+  const url = URL_ONLY.test(words) && HttpUrl.safeParse(words).success ? words : undefined;
+  const text = url === undefined && words !== '' ? limitedText(words) : undefined;
   const parsed = ShareDraft.safeParse({
     opId,
     farm,
@@ -74,11 +111,10 @@ export async function takeShareIntent(deps: ShareIntentDeps): Promise<boolean> {
   }
   const opId = deps.newOpId();
   const files: ShareDraft['files'][number][] = [];
-  for (const [i, f] of share.files.slice(0, LIMITS.mediaItems).entries()) {
-    const ext = f.name.includes('.') ? f.name.slice(f.name.lastIndexOf('.') + 1) : 'bin';
-    const path = `${APP_GROUP_PATHS.shareOutbox}${opId}-${i}.${ext.replace(/[^A-Za-z0-9]/g, '')}`;
+  for (const [i, f] of keptFiles(share.files).entries()) {
+    const path = `${APP_GROUP_PATHS.shareOutbox}${opId}-${i}.${extensionOf(f.name)}`;
     await deps.group.write(path, new File(f.uri).bytesSync());
-    files.push({ path, mime: f.mime.toLowerCase(), bytes: f.bytes });
+    files.push({ path, mime: mimeOf(f), bytes: f.bytes });
   }
   discard();
   const draft = draftFor(share, row.farm, opId, deps.now(), files);

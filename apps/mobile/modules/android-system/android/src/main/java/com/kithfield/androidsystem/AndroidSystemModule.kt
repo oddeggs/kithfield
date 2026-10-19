@@ -20,6 +20,8 @@ import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.kotlin.records.Field
 import expo.modules.kotlin.records.Record
 import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 import java.util.UUID
 
 /** A list of choices, as iOS's action sheet offers them. */
@@ -182,7 +184,12 @@ class AndroidSystemModule : Module() {
       streamsOf(intent)?.let { streams.addAll(it) }
     }
     val dir = File(context.cacheDir, "shared").apply { mkdirs() }
-    val files = streams.take(MAX_FILES).mapNotNull { uri ->
+    // Only another app's content: a `file://` stream could name the app's own private files.
+    val shared = streams.filter { uri ->
+      uri.scheme == "content" && uri.authority?.startsWith(context.packageName) != true
+    }
+    val files = shared.take(MAX_FILES).mapNotNull { uri ->
+      var out: File? = null
       try {
         val mime = context.contentResolver.getType(uri) ?: "application/octet-stream"
         var name: String? = null
@@ -190,12 +197,18 @@ class AndroidSystemModule : Module() {
           if (cursor.moveToFirst()) name = cursor.getString(0)
         }
         val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "bin"
-        val out = File(dir, "${UUID.randomUUID()}.$ext")
-        context.contentResolver.openInputStream(uri)?.use { input ->
-          out.outputStream().use { input.copyTo(it) }
-        } ?: return@mapNotNull null
-        mapOf("uri" to Uri.fromFile(out).toString(), "mime" to mime, "name" to (name ?: out.name), "bytes" to out.length().toDouble())
+        val copy = File(dir, "${UUID.randomUUID()}.$ext")
+        out = copy
+        val bytes = context.contentResolver.openInputStream(uri)?.use { input ->
+          copy.outputStream().use { copyAtMost(input, it, MAX_BYTES) }
+        } ?: -1L
+        if (bytes < 1 || bytes > MAX_BYTES) {
+          copy.delete()
+          return@mapNotNull null
+        }
+        mapOf("uri" to Uri.fromFile(copy).toString(), "mime" to mime, "name" to (name ?: copy.name), "bytes" to bytes.toDouble())
       } catch (e: Exception) {
+        out?.delete()
         null
       }
     }
@@ -206,6 +219,19 @@ class AndroidSystemModule : Module() {
     // Taken once: a relaunch from recents doesn't share it again.
     intent.action = Intent.ACTION_MAIN
     if (emit) sendEvent("onShare", mapOf("pending" to true))
+  }
+
+  /** Copies up to `limit` bytes and one more, so a stream past the limit is known to be. */
+  private fun copyAtMost(input: InputStream, output: OutputStream, limit: Long): Long {
+    val buffer = ByteArray(64 * 1024)
+    var total = 0L
+    while (total <= limit) {
+      val read = input.read(buffer)
+      if (read < 0) break
+      output.write(buffer, 0, read)
+      total += read
+    }
+    return total
   }
 
   @Suppress("DEPRECATION")
@@ -221,5 +247,7 @@ class AndroidSystemModule : Module() {
   companion object {
     /** As many as the iOS share extension takes. */
     private const val MAX_FILES = 10
+    /** The upload limit (`LIMITS.uploadBytes`): a larger file is left out, as on iOS. */
+    private const val MAX_BYTES = 100L * 1024 * 1024
   }
 }
