@@ -74,6 +74,7 @@ export function SoundSheet() {
           onPress={() => choose(row)}
           darken={false}
           accessibilityLabel={`${title(row)}, ${subtitle(row)}`}
+          accessibilityState={{ selected: row.current }}
           style={{
             flexDirection: 'row',
             alignItems: 'center',

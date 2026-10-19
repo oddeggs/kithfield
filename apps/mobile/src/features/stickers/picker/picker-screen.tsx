@@ -214,7 +214,10 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
             backgroundColor: palette.sheet,
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View
+            accessibilityRole="tablist"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          >
             {tabs.map((x) => {
               const on = x.id === current.id;
               const icon = draw(iconOf(x), false);
@@ -225,6 +228,7 @@ export function PickerScreen({ farm }: { readonly farm: string }) {
                   haptic="select"
                   radius={14}
                   darken={false}
+                  accessibilityRole="tab"
                   accessibilityLabel={labelOf(x).label}
                   accessibilityState={{ selected: on }}
                   style={{

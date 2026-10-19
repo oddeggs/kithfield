@@ -304,6 +304,7 @@ export function CaptionsSheet({
       </Animated.View>
       <Animated.View
         accessibilityViewIsModal
+        onAccessibilityEscape={onClose}
         style={[
           {
             position: 'absolute',

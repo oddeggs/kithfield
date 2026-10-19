@@ -89,11 +89,12 @@ export function LegalLinks() {
   const { t, language } = useLocale();
   const inks = useInks();
   const restore = useRestore();
-  const link = (label: string, onPress: () => void) => (
+  // Terms and Privacy open pages; Restore does something here, so it is a button.
+  const link = (label: string, onPress: () => void, role: 'link' | 'button' = 'link') => (
     <Press
       onPress={onPress}
       darken={false}
-      accessibilityRole="link"
+      accessibilityRole={role}
       accessibilityLabel={label}
       hitSlop={10}
     >
@@ -120,7 +121,7 @@ export function LegalLinks() {
     >
       {link(t('shop.legal.terms'), () => openShopPage('terms', language))}
       {link(t('shop.legal.privacy'), () => openShopPage('privacy', language))}
-      {link(t('shop.legal.restore'), () => void restore())}
+      {link(t('shop.legal.restore'), () => void restore(), 'button')}
     </View>
   );
 }

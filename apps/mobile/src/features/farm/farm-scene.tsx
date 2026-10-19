@@ -177,6 +177,16 @@ export function FarmScene({
   }
   const placed = layoutBubbles(wishes, width, 110);
 
+  // A critter's label carries its status, so VoiceOver reads the words with whose they are; the
+  // bubbles themselves stay out of its way.
+  const labelOf = (person: PersonId) => {
+    const name = person === me ? t('farm.crowd.you') : nameOf(t, state, person);
+    const status = view?.critters.find((c) => c.person === person)?.status ?? null;
+    return status
+      ? t('farm.critter.labelStatus', { name, state: stateOf(person), status })
+      : t('farm.critter.label', { name, state: stateOf(person) });
+  };
+
   // The spotlight of the first tip, round your own critter as the design draws it.
   const mine = scene.critters.find((c) => c.person === me) ?? null;
   const spot = mine
@@ -271,31 +281,35 @@ export function FarmScene({
             y={height * c.spot.y - s * 0.55}
             w={s * 0.9}
             h={s * 1.1}
-            label={t('farm.critter.label', {
-              name: c.person === me ? t('farm.crowd.you') : nameOf(t, state, c.person),
-              state: stateOf(c.person),
-            })}
+            label={labelOf(c.person)}
             onPress={() => targets.onCritter(c.person)}
           />
         );
       })}
-      {placed.map((p, i) => {
-        const w = wishes.find((x) => x.key === p.key);
-        return w ? (
-          <SpeechBubble
-            key={p.key}
-            text={w.text}
-            {...(w.metaText ? { meta: w.metaText } : {})}
-            mine={w.mine}
-            tail={p.tail}
-            maxWidth={w.maxWidth}
-            width={p.width}
-            running={running}
-            phase={(i * 0.29) % 1}
-            style={{ left: p.left, top: p.top }}
-          />
-        ) : null;
-      })}
+      <View
+        pointerEvents="box-none"
+        importantForAccessibility="no-hide-descendants"
+        accessibilityElementsHidden
+        style={{ position: 'absolute', left: 0, top: 0, width, height }}
+      >
+        {placed.map((p, i) => {
+          const w = wishes.find((x) => x.key === p.key);
+          return w ? (
+            <SpeechBubble
+              key={p.key}
+              text={w.text}
+              {...(w.metaText ? { meta: w.metaText } : {})}
+              mine={w.mine}
+              tail={p.tail}
+              maxWidth={w.maxWidth}
+              width={p.width}
+              running={running}
+              phase={(i * 0.29) % 1}
+              style={{ left: p.left, top: p.top }}
+            />
+          ) : null;
+        })}
+      </View>
       <HintOverlay hint="critter" show={hints && spot !== null} spot={spot} />
     </View>
   );
