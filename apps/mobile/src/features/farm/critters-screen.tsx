@@ -11,7 +11,7 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { Press } from '../../ui/motion/press';
 import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
-import { useAccessibilitySize } from '../../ui/type/accessibility-size';
+import { AX_FONT_SCALE } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { castOf, lookOf } from './farm-bake';
 import { crowdLine, headcount } from './farm-copy';
@@ -30,8 +30,10 @@ export function CrittersScreen({ farm }: { readonly farm: FarmId }) {
   const { t, fontLocale } = useLocale();
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
   const k = width / W;
+  // Four to a row, or two at the accessibility sizes so names and states have room to wrap.
+  const ax = fontScale >= AX_FONT_SCALE;
   const now = useNow();
   const me = useSession().person?.id ?? null;
   const state = useFarm(farm)?.state ?? null;
@@ -48,8 +50,6 @@ export function CrittersScreen({ farm }: { readonly farm: FarmId }) {
     members.map((m) => m.critter.species),
   );
   const sleeper = members.find((m) => m.person !== me && sleepy.has(m.person));
-  // Four to a row, or two at the accessibility sizes so names and states have room to wrap.
-  const ax = useAccessibilitySize();
   const cols = ax ? 2 : 4;
   const tileWidth = (width - 36 - (cols - 1) * 8) / cols;
 
