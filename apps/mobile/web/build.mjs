@@ -4,7 +4,7 @@
 //   node web/build.mjs dev    (dev.kithfield.com)
 //   node web/build.mjs prd    (kithfield.com)
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, rmSync } from 'node:fs';
+import { copyFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const variant = process.argv[2] === 'prd' ? 'prd' : 'dev';
@@ -29,4 +29,40 @@ execFileSync(
   },
 );
 copyFileSync(path.join(out, 'app', 'index.html'), path.join(out, 'index.html'));
+
+/**
+ * The page shares its origin with the API and keeps the session in the browser's storage, so
+ * nothing but its own scripts may run in it (WebAssembly for Skia and SQLite), nothing may frame
+ * it, and nothing is read as another kind than it is served. Styles are inline (React Native for
+ * Web writes them), and media, link previews and the fire's calls reach other hosts over TLS.
+ */
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "connect-src 'self' https: wss: data: blob:",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+writeFileSync(
+  path.join(out, '_headers'),
+  [
+    '/*',
+    `  Content-Security-Policy: ${CSP}`,
+    '  X-Frame-Options: DENY',
+    '  X-Content-Type-Options: nosniff',
+    '  Referrer-Policy: strict-origin-when-cross-origin',
+    '',
+    // Named by their content's hash: never changes under the same name.
+    '/app/_expo/static/*',
+    '  Cache-Control: public, max-age=31536000, immutable',
+    '',
+  ].join('\n'),
+);
 console.log(`built the web app for https://${host}/app in ${out}`);
