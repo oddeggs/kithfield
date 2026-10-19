@@ -9,7 +9,8 @@
     "dev:vars": "node scripts/dev-vars.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:auth": "vitest run src/auth"
+    "test:auth": "vitest run src/auth",
+    "seed:review": "tsx scripts/seed-review.ts"
   },
   "dependencies": {
     "@kithfield/contracts": "workspace:*",
