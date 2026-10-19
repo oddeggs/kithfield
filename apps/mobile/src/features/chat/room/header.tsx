@@ -111,7 +111,8 @@ export function HeaderBar({
 }: {
   readonly title: string;
   readonly subtitle: string;
-  readonly onBack: () => void;
+  /** None where the chat list sits beside the chat rather than behind it (a large screen). */
+  readonly onBack: (() => void) | null;
   readonly backLabel: string;
   readonly onTitle?: () => void;
   readonly titleLabel?: string;
@@ -154,9 +155,13 @@ export function HeaderBar({
         gap: 8,
       }}
     >
-      <GlassCircle label={backLabel} onPress={onBack}>
-        <BackGlyph />
-      </GlassCircle>
+      {onBack ? (
+        <GlassCircle label={backLabel} onPress={onBack}>
+          <BackGlyph />
+        </GlassCircle>
+      ) : (
+        <View style={{ width: 44 }} />
+      )}
       <Glass
         radius={22}
         fill={colours.glassFill}

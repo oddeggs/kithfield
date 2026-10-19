@@ -1,6 +1,8 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback } from 'react';
 
 import { ChatScreen } from '../../../features/chat/room/chat-screen';
+import { setOpenChat } from '../../../ui/layout/open-chat';
 
 const seqOf = (value: string | string[] | undefined): number | undefined => {
   const n = Number(Array.isArray(value) ? value[0] : value);
@@ -21,6 +23,8 @@ export default function ChatRoute() {
   const seq = seqOf(params.seq);
   const reply = seqOf(params.replyTo);
   const edit = seqOf(params.edit);
+  // The chat in front is the one a large screen's sidebar marks, and keeps open as it resizes.
+  useFocusEffect(useCallback(() => setOpenChat(params.farm), [params.farm]));
   return (
     <ChatScreen
       key={params.farm}
