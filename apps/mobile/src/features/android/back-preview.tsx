@@ -10,7 +10,7 @@ import { fadeTo } from '../../ui/motion/motion';
 import { Txt } from '../../ui/type/text';
 
 /*
- * Android 14's predictive back on a chat (`14 Platforms`, 14-06): as the finger comes in from the
+ * Android 14's predictive back on a chat (`14 Platforms`): as the finger comes in from the
  * edge, a 120-point shade grows along it and, when the chat was opened from the farm, "back to the
  * farm" waits beside the system's own back arrow at the finger's height. Letting go past the edge
  * goes back; letting go before it puts everything away.

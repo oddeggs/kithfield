@@ -187,7 +187,7 @@ export function HeaderBar({
         <View style={{ width: 44 }} />
       )}
       {Platform.OS === 'android' ? (
-        // Android's top app bar (`14 Platforms`, 14-06): the title starts after the arrow, on the art.
+        // Android's top app bar (`14 Platforms`): the title starts after the arrow, on the art.
         <View style={{ flex: 1, minWidth: 0, paddingLeft: 6 }}>
           {onTitle ? (
             <Press

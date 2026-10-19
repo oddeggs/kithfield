@@ -1,5 +1,5 @@
 /**
- * The Material navigation bar's measures in `14 Platforms` (14-05): items 12 below its top edge, a
+ * The Material navigation bar's measures in `14 Platforms`: items 12 below its top edge, a
  * 64×32 pill round a 24 icon, the label 4 under it in 12-point medium type.
  */
 export const NAV_BAR = {

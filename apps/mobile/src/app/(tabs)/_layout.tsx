@@ -26,7 +26,7 @@ export default function TabsLayout() {
       tabBar={(props) => {
         if (rail) return <RailTabBar {...props} />;
         if (kind === 'phone') {
-          // Android's Material navigation bar (`14 Platforms`, 14-05).
+          // Android's Material navigation bar (`14 Platforms`).
           if (Platform.OS === 'android') return <NavigationBar {...props} />;
           return <TabBar {...props} />;
         }

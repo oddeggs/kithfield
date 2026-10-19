@@ -11,7 +11,7 @@ import { useTheme } from '../../ui/theme/theme-provider';
 import { androidColours } from './android-colours';
 
 /**
- * Android's floating action for the dewdrop (`14 Platforms`, 14-05): over the farm home's sheet,
+ * Android's floating action for the dewdrop (`14 Platforms`): over the farm home's sheet,
  * just above the navigation bar. A tap leaves a dewdrop on the farm, as the chat's dewdrop does.
  */
 export function DewdropFab({ farm }: { readonly farm: FarmId }) {

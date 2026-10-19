@@ -1,11 +1,11 @@
 import type { EnCatalogue } from './catalogue-types';
 
 /**
- * Android's own words (`14 Platforms`, 14-05 to 14-08): the notification channels people see in
+ * Android's own words (`14 Platforms`): the notification channels people see in
  * system settings, the home-screen widgets beside "Your farm", and the predictive back preview.
  */
 export const androidEn = {
-  /* Notification channels (14-07) */
+  /* Notification channels */
   'android.channel.plans.name': 'Plans & doorstep',
   'android.channel.plans.description':
     'Plans that need your yes, things on your doorstep, and @mentions.',
@@ -15,7 +15,7 @@ export const androidEn = {
   'android.channel.quiet.description':
     'The quiet roundup when a farm has been busy. Never a sound.',
 
-  /* Widgets (14-08) */
+  /* Widgets */
   'android.widget.nextPlan.name': 'Next plan',
   'android.widget.nextPlan.description': 'The next plan, or who’s by the fire when it’s lit.',
   'android.widget.dewdrop.name': 'Quick dewdrop',
@@ -25,7 +25,7 @@ export const androidEn = {
   'android.widget.dewdrop.row': 'Leave a dewdrop for {name}',
   'android.widget.dewdrop.empty': 'Friends show up here once your farm has some.',
 
-  /* Predictive back (14-06) */
+  /* Predictive back */
   'android.back.toFarm': 'back to the farm',
 
   /* The system share sheet: something shared into Kithfield picks its farm in a list */

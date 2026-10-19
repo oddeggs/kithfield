@@ -70,7 +70,7 @@ export function notificationCategoryOf(
 }
 
 /**
- * The Android channel a push arrives in (`14 Platforms`, 14-07): every message on a farm in
+ * The Android channel a push arrives in (`14 Platforms`): every message on a farm in
  * "Every message", the quiet "a few things" in its own soundless channel, and everything else
  * (plans, the doorstep, mentions, knocks, reminders) in "Plans & doorstep".
  */

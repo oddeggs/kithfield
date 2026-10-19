@@ -129,7 +129,7 @@ function Destination({
 }
 
 /**
- * Android's Material 3 navigation bar (`14 Platforms`, 14-05): full width along the bottom edge,
+ * Android's Material 3 navigation bar (`14 Platforms`): full width along the bottom edge,
  * under the system's gesture handle, the chosen tab on a moss pill. It takes the iOS floating
  * bar's place and steps aside the same way when a tab's stack goes deeper.
  */

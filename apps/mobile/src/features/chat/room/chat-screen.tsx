@@ -439,7 +439,7 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
           bottomInset={insets.bottom}
         />
         <Noticeboard open={board} pinned={pinned} onClose={() => setBoard(false)} />
-        {/* Android 14's back preview over the chat (`14 Platforms`, 14-06). */}
+        {/* Android 14's back preview over the chat (`14 Platforms`). */}
         {pane.back ? (
           <BackPreview onBack={() => (router.canGoBack() ? router.back() : go.chatList())} />
         ) : null}

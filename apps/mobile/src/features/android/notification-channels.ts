@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import type { Translate } from '@kithfield/i18n';
 
 /*
- * Android's notification channels (`14 Platforms`, 14-07), named in the person's language. The
+ * Android's notification channels (`14 Platforms`), named in the person's language. The
  * server picks one for each push (`androidChannelOf` in the api): plans, the doorstep, mentions
  * and knocks in "Plans & doorstep"; every other message in "Every message", which the app's own
  * setting keeps off for most people; and the quiet "a few things" with no sound at all. People

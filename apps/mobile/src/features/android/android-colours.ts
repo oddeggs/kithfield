@@ -1,7 +1,7 @@
 import { day, material, night, type Appearance } from '@kithfield/theme';
 
 /*
- * The Material surfaces `14 Platforms` draws for Android (14-05 to 14-08), by appearance: the
+ * The Material surfaces `14 Platforms` draws for Android, by appearance: the
  * navigation bar and its active pill (the theme's `material` tokens by day) and the dewdrop FAB.
  * Night follows `12 States`: the night panel, a lifted bubble for the pill, moonlight on it.
  */

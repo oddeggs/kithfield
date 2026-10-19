@@ -105,7 +105,7 @@ export function googleServicesFile(raw: string | undefined, root: string): strin
   return existsSync(path) ? path : undefined;
 }
 
-/** The widgets on the home screen (`14 Platforms`, 14-08), by the name the task handler draws. */
+/** The widgets on the home screen (`14 Platforms`), by the name the task handler draws. */
 export const ANDROID_WIDGETS = [
   {
     name: 'Farm',

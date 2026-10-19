@@ -323,7 +323,7 @@ function FarmFor({
           </SheetScrollView>
         </Sheet>
       ) : null}
-      {/* Android's dewdrop FAB over the sheet (`14 Platforms`, 14-05). */}
+      {/* Android's dewdrop FAB over the sheet (`14 Platforms`). */}
       {Platform.OS === 'android' && state && !large ? <DewdropFab farm={farm} /> : null}
     </View>
   );

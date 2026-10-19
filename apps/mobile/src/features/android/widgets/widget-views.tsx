@@ -7,7 +7,7 @@ import { planLabel, type WidgetCopy } from './widget-copy';
 import { litKinds, titleOf, type WidgetState } from './widget-state';
 
 /*
- * The home-screen widgets (`14 Platforms`, 14-08), drawn from the same files as the iOS widgets:
+ * The home-screen widgets (`14 Platforms`), drawn from the same files as the iOS widgets:
  * the farm at night with who's up (4×2), the next plan or the fire (2×2), and quick dewdrops
  * (2×2). Static frames: Android redraws them when the app writes, and every half hour.
  */
