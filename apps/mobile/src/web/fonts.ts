@@ -1,14 +1,15 @@
-import { fontFaces, type FontFace } from '@kithfield/theme';
+import { artFontFaces, fontFaces, type FontFace } from '@kithfield/theme';
 import { Skia, type FontStyle, type SkTypeface } from '@shopify/react-native-skia';
 
 import { webAsset } from './base-url';
 
 /**
- * The theme's fonts in the browser. On the phone they are embedded natively and both the text
- * and the art's renderer (through Skia's system font manager) find them by name. Here the files
- * are served beside the app (`web/copy-assets.mjs`): the page's text gets them as `@font-face`s
- * under the same PostScript names, and Skia gets them as typefaces through a font manager that
- * answers `matchFamilyStyle` (CanvasKit's own `System()` has no fonts and can't match).
+ * The theme's fonts in the browser. On the phone they are embedded natively: the text finds the
+ * app's faces (Fraunces and Kithfield Hand) by name, and the art's renderer finds its own faces
+ * through Skia's system font manager. Here the files are served beside the app
+ * (`web/copy-assets.mjs`): the page's text gets the app's faces as `@font-face`s under the same
+ * PostScript names, and Skia gets every face as a typeface through a font manager that answers
+ * `matchFamilyStyle` (CanvasKit's own `System()` has no fonts and can't match).
  */
 const url = (face: FontFace) => webAsset(`fonts/${face.file}`);
 
@@ -28,7 +29,7 @@ function addFontFaces(): void {
 async function typefaces(): Promise<Map<FontFace, SkTypeface>> {
   const out = new Map<FontFace, SkTypeface>();
   await Promise.all(
-    fontFaces.map(async (face) => {
+    [...fontFaces, ...artFontFaces].map(async (face) => {
       const bytes = new Uint8Array(await (await fetch(url(face))).arrayBuffer());
       const typeface = Skia.Typeface.MakeFreeTypeFaceFromData(Skia.Data.fromBytes(bytes));
       if (typeface) out.set(face, typeface);
