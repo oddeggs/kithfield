@@ -1,6 +1,7 @@
 import { type PersonMerge, registerAccountDeletionStep, registerMergeStep } from '../auth';
 import { closeChipIn, GONE, type Row } from './chip-in-settle';
 import { transferWrites } from './revenuecat';
+import { forgetRevenueCatCustomer } from './revenuecat-forget';
 
 /*
  * The shop's part of deleting an account and of merging an anonymous person into a returning one.
@@ -28,6 +29,9 @@ const deleteShop = async (db: D1Database, person: string, now: number) => {
 };
 
 registerAccountDeletionStep('shop', (env, person) => deleteShop(env.DB, person, Date.now()));
+registerAccountDeletionStep('revenuecat', async (env, person) => {
+  await forgetRevenueCatCustomer(env, person);
+});
 
 const moveRows =
   (table: string, key: string, columns: string) => (db: D1Database, m: PersonMerge) => [
