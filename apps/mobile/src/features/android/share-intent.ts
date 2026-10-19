@@ -90,6 +90,18 @@ export function draftFor(
 }
 
 /**
+ * Moves a shared file from the cache into the outbox, on disk: a share can be ten photos of up to
+ * 100 MB each, which never pass through JavaScript's memory. The draft is written after its files,
+ * so the outbox never sees a draft whose files are still arriving.
+ */
+async function moveInto(group: GroupStore, path: string, from: string): Promise<void> {
+  const target = new File(group.uri(path));
+  const folder = target.parentDirectory;
+  if (!folder.exists) folder.create({ intermediates: true, idempotent: true });
+  await new File(from).move(target, { overwrite: true });
+}
+
+/**
  * Takes what was shared, if anything: asks which farm and leaves the draft. True when a draft is
  * waiting for the surfaces to send.
  */
@@ -113,7 +125,7 @@ export async function takeShareIntent(deps: ShareIntentDeps): Promise<boolean> {
   const files: ShareDraft['files'][number][] = [];
   for (const [i, f] of keptFiles(share.files).entries()) {
     const path = `${APP_GROUP_PATHS.shareOutbox}${opId}-${i}.${extensionOf(f.name)}`;
-    await deps.group.write(path, new File(f.uri).bytesSync());
+    await moveInto(deps.group, path, f.uri);
     files.push({ path, mime: mimeOf(f), bytes: f.bytes });
   }
   discard();
