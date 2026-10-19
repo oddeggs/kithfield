@@ -1,13 +1,17 @@
 import type { ChipIn } from '@kithfield/contracts';
 import { localDay } from '@kithfield/farm';
 import { env } from 'cloudflare:workers';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { api, cast, plantFarm, type Person, useTestPorts } from '../farm/support/doubles';
-import { boughtConsumable, entitlements } from './support';
+import { api, cast, plantFarm, type Person } from '../farm/support/doubles';
+import { boughtConsumable, entitlements, holdClock } from './support';
 
 beforeEach(() => {
-  useTestPorts({ at: Date.now() });
+  holdClock();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 const pledge = (person: Person, id: string, tier: string, transaction: string | null) =>

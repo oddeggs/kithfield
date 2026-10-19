@@ -24,27 +24,20 @@ apply. Screens that aren't app screens, or aren't built, have no cells.
 | Loading | 114 | 6 | 46 |
 | Empty | 52 | 3 | 111 |
 | Offline | 137 | 8 | 21 |
-| Error | 126 | 7 | 33 |
+| Error | 128 | 5 | 33 |
 | Night | 165 | 0 | 1 |
 | Reduce Motion | 146 | 0 | 20 |
-| AX5 | 154 | 9 | 3 |
+| AX5 | 163 | 0 | 3 |
 | Vietnamese | 166 | 0 | 0 |
-| VoiceOver | 157 | 7 | 2 |
+| VoiceOver | 164 | 0 | 2 |
 
 What is still open (each row's note has the detail):
 - **Loading, offline and error:** onboarding's busy and loading looks (03-02, 03-09, 03-10, 03-15),
-  the "say hi" and wave refusals on the farm moments (04-16, 04-19), remember-me offline (06-05),
-  cached copies for the recap, scrapbook and visit gates (07-02, 07-05, 07-06), owned sticker packs
+  remember-me offline (06-05), cached copies for the recap, scrapbook and visit gates (07-02, 07-05, 07-06), owned sticker packs
   offline (08-01), Quick Tend's blank load (08-03), the gift screens (08-05, 08-06), the lapsed patronage and costs page (09-03,
   09-12), the sound route sheet (10-11), and the farms list behind "history arriving" (11-16).
 - **Empty:** a restoration project with nothing chosen yet (07-04) and a contacts search with no
   match (03-09).
-- **AX5:** the plant-a-farm sheet (04-18), the removed-from-farm page (04-21), the hangout
-  (06-06), the together screen and gift opening (08-02, 08-06), the adding screen (10-07), and the
-  sound and ask sheets (10-11 to 10-13) still don't scroll at the largest sizes.
-- **VoiceOver:** vote buds don't say how many lean on them (06-02), gift wraps read raw ids
-  (08-05), the safety email isn't a link (11-21), and the fire room's frames don't say who talks
-  (16-12 to 16-16).
 - **Not built:** phone sign-in (03-13), the costs page, merch and teams (09-24 to 09-26), picture in
   picture (10-10), the later fire room screens (16-17 to 16-19), the launch icon and splash work in
   13 Launch, and all of 14 Platforms.
@@ -83,12 +76,12 @@ What is still open (each row's note has the detail):
 | 04-13 | Photo and video viewer | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 04-14 | Shared on the farm: photos, videos, links, voice | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 04-15 | Message states, link previews and typing | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
-| 04-16 | Welcome back: hugs, never a list | ✓ | – | ✓ | ✗ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | error: "say hi" ignores a refused wave; fixed here: the resting sheet scrolls at AX5 |
+| 04-16 | Welcome back: hugs, never a list | ✓ | – | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: a refused "say hi" says why in a toast and stays on the moment; the resting sheet scrolls at AX5 |
 | 04-17 | A little valley of farms (switcher) | ✓ | – | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ |  |
-| 04-18 | Plant a new farm | – | – | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | AX5: the plant sheet does not scroll |
-| 04-19 | Move-in day: a new critter arrives | ✓ | – | ✓ | ✗ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | error: the wave ignores a refusal; fixed here: sheet scrolls at AX5 |
+| 04-18 | Plant a new farm | – | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: the plant sheet scrolls at AX5, the lands stack with their names beside them |
+| 04-19 | Move-in day: a new critter arrives | ✓ | – | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: a refused wave says why in a toast and stays on the moment; your own move-in opens after onboarding; sheet scrolls at AX5 |
 | 04-20 | Leaving a farm quietly | – | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: sheet scrolls at AX5 |
-| 04-21 | What you see if you're removed from a farm | – | – | ✓ | – | ✓ | ✓ | ✗ | ✓ | ✓ | AX5: absolutely placed text runs under the buttons |
+| 04-21 | What you see if you're removed from a farm | – | – | ✓ | – | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: art, words and buttons stack in one scrolling column at AX5 |
 | 04-22 | A sleeping cottage for someone who left | – | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: sheet scrolls at AX5 |
 | 04-23 | Speech bubbles: 24-hour statuses over each critter | – | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: bubbles grow with text up to 1.6 times, placed at that size; status read with its critter |
 | 05-01 | Long-press a message: tend, plant, keep | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
@@ -103,11 +96,11 @@ What is still open (each row's note has the detail):
 | 05-10 | Sending a file or document | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 05-11 | Every warm reaction, with what it means | – | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: scene and overlay sheets scroll at AX5; pills grow |
 | 06-01 | Plant a seed (pick a day and place, watch it grow) | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: Cancel keeps room for its word |
-| 06-02 | Picking a day: voting buds and the sun patch (tap a bud) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✗ | fixed here: buds and sun patches grow; VoiceOver: a bud does not say how many lean on it |
+| 06-02 | Picking a day: voting buds and the sun patch (tap a bud) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: buds and sun patches grow; a bud says who leans on it, by name and never as a count |
 | 06-03 | The organiser's hat chases RSVPs so Pip doesn't have to | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 06-04 | Seed bed: plans live here, not in the chat | ✓ | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: the 12-13 empty state, calendar pill grows, first-run tip 3 of 3 |
 | 06-05 | Remember-me seed: interview Thursday becomes a Friday nudge | – | – | ✗ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ | offline: remember-me goes straight to the API, not the post bag; the envelope wobble is not built |
-| 06-06 | Hangout day: everyone at the campfire | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | fixed here: no "nobody here" flash; AX5: the hangout sheet does not scroll |
+| 06-06 | Hangout day: everyone at the campfire | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: no "nobody here" flash; the hangout sheet stops below the back button and scrolls at AX5 |
 | 07-01 | Birthday bloom over Bea's cottage | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: a refused dewdrop or signature says why |
 | 07-02 | Sunday harvest recap, with the best pollinator | ✓ fixed | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | fixed here: pencil rows while loading; offline: no cached copy |
 | 07-03 | Shared rain: three or more of you online at once | – | – | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: a refused wave says why |
@@ -115,11 +108,11 @@ What is still open (each row's note has the detail):
 | 07-05 | Visiting Kit's farm, where plums are in season | ✓ fixed | – | ✗ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: pencil rows while loading; offline: the gate needs the network |
 | 07-06 | The scrapbook: every hangout becomes a pressed flower | ✓ fixed | ✓ fixed | ✗ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: pencil rows while loading, refusals said, one tall page a row at AX5; offline: needs the network |
 | 08-01 | Sticker picker in the chat (tap the tabs) | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | fixed here: the preview no longer nests the sticker inside another button; offline: owned packs are kept in memory only |
-| 08-02 | Together stickers: pick friends (tap the faces) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | 12-16 counterpart; AX5: no scroll, face names one line |
+| 08-02 | Together stickers: pick friends (tap the faces) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | 12-16 counterpart; fixed here: one scrolling column at AX5, face names on two lines and faces wrapping |
 | 08-03 | Quick Tend: stickers as one-tap replies (tap one) | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | loading: blank while Quick Tend loads |
 | 08-04 | Sticker shop: themed packs | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ |  |
-| 08-05 | Send a pack as a gift | ✓ | ✓ | ✗ | ✓ | ✓ | – | ✓ fixed | ✓ | ✗ | offline: no "prices unavailable" line; VoiceOver: wrap names read as raw ids |
-| 08-06 | On Bea's phone: the gift opens | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ | ✓ | a failed fetch reads as "gone"; AX5: no scroll |
+| 08-05 | Send a pack as a gift | ✓ | ✓ | ✗ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ fixed | offline: no "prices unavailable" line; fixed here: each wrap is read by its name |
+| 08-06 | On Bea's phone: the gift opens | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | a failed fetch reads as "gone"; fixed here: one scrolling column at AX5, the two buttons stacked |
 | 09-01 | Rocco's cart: this week's rotation | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: names and lines wrap at AX5 |
 | 09-02 | Try it on live on the farm, by day and at night (tap) | ✓ | – | ✓ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ | fixed here: pills and buttons grow |
 | 09-20 | Preview it on your home-screen widget | ✓ | – | ✓ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ | fixed here: pills and buttons grow |
@@ -152,13 +145,13 @@ What is still open (each row's note has the detail):
 | 10-04 | Long-press a notification to answer from it | – | – | ✓ | ✓ | – | – | – | ✓ | – | system notification actions |
 | 10-05 | Export stickers: take your critter anywhere | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: pills grow |
 | 10-06 | In Messages: the Kithfield sticker drawer | – | ✓ fixed | ✓ | ✓ | ✓ | – | – | ✓ fixed | ✓ | native, fixed here (not seen on a device): an empty drawer says how to fill it; file names read as words |
-| 10-07 | Telegram and WhatsApp: the pack is ready to add | ✓ | – | ✓ | ✓ | ✓ | – | ✗ | ✓ | ✓ | AX5: no scroll |
+| 10-07 | Telegram and WhatsApp: the pack is ready to add | ✓ | – | ✓ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ | fixed here: one scrolling column at AX5, each card's Open wraps under its name |
 | 10-08 | Dynamic Island while you're by the fire | – | ✓ | – | – | ✓ fixed | ✓ | ✓ fixed | ✓ | ✓ fixed | native, fixed here (not seen on a device): theme colours, Dynamic Type with a cap, art hidden |
 | 10-09 | Lock screen while you're by the fire | – | ✓ | – | – | ✓ fixed | ✓ | ✓ fixed | ✓ | ✓ fixed | native, fixed here (not seen on a device): theme colours, Dynamic Type with a cap, art hidden |
 | 10-10 | Picture in picture: your lantern frame floats over other apps | – | – | – | – | – | – | – | – | – | not built (picture in picture) |
-| 10-11 | AirPods and switching where the sound goes | – | ✗ | – | ✗ | ✓ | ✓ | ✗ | ✓ | ✓ fixed | empty: nothing when no route is known; error: a failed route change is not caught; fixed here: the current route says it is selected |
-| 10-12 | Asking for the microphone, the first time you join in | – | – | – | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | AX5: the ask sheet does not scroll |
-| 10-13 | Asking for the camera, the first time you light your lantern | – | – | – | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | AX5: the ask sheet does not scroll |
+| 10-11 | AirPods and switching where the sound goes | – | ✗ | – | ✗ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | empty: nothing when no route is known; error: a failed route change is not caught; fixed here: the current route says it is selected; the routes scroll at AX5 |
+| 10-12 | Asking for the microphone, the first time you join in | – | – | – | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: the ask sheet scrolls at AX5 |
+| 10-13 | Asking for the camera, the first time you light your lantern | – | – | – | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: the ask sheet scrolls at AX5 |
 | 10-14 | Widget:  | ✓ | ✓ | ✓ | – | ✓ fixed | ✓ | ✓ fixed | ✓ | ✓ fixed | native, fixed here (not seen on a device): theme colours, Dynamic Type with a cap, window links say whose they are |
 | 11-01 | The You tab: social battery and Hibernate (tap them) | ✓ fixed | – | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: pencil rows, then "couldn’t reach" with Try again; your name wraps |
 | 11-02 | Settings: privacy, AI catch-up (off), account | ✓ | ✓ | ✓ fixed | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ | fixed here: a failed load says so over the rows |
@@ -180,7 +173,7 @@ What is still open (each row's note has the detail):
 | 11-18 | Asking first: captions use an outside AI (from 16-10) | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 11-19 | Asking first: an AI-written Sunday recap (from 07-02) | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | 11-20 | Settings › AI and your data: every switch, and taking it back | ✓ | – | ✓ fixed | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ | fixed here: switches wait, never read "off", and a failure says so |
-| 11-21 | The reporter hears back, kindly and within a day | ✓ fixed | ✓ | ✓ fixed | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✗ | fixed here: loading and failure in the sheet and the list; VoiceOver: the safety email is not a link |
+| 11-21 | The reporter hears back, kindly and within a day | ✓ fixed | ✓ | ✓ fixed | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ fixed | fixed here: loading and failure in the sheet and the list; the safety email is a link that writes to it |
 | 11-22 | The reported person: what was removed, and asking for another look | ✓ fixed | – | ✓ fixed | ✓ fixed | ✓ | ✓ | ✓ | ✓ | ✓ | fixed here: loading and failure in the sheet |
 | 12-01 | Loading: the farm draws itself in | ✓ fixed | – | – | – | ✓ | ✓ fixed | ✓ | ✓ | ✓ fixed | built here: paper, pencil rows, "drawing the farm…", the wobbly reveal; Reduce Motion cross-fades |
 | 12-02 | Empty: a brand-new farm with just you | ✓ fixed | ✓ fixed | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | built here |
@@ -264,11 +257,11 @@ What is still open (each row's note has the detail):
 | 16-09 | The room goes quiet as the last person leaves | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | fixed here: buttons and tiles grow |
 | 16-10 | Live captions and translation (Plus) | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: the captions sheet closes with the escape gesture |
 | 16-11 | Hear it, read it: captions, translation and expressions | ✓ | – | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |  |
-| 16-12 | Light your lantern: two people | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✗ | fixed here: name chips grow; VoiceOver: frames do not say who talks |
-| 16-13 | Lanterns for 3–4 people | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✗ | fixed here: name chips grow; VoiceOver: frames do not say who talks |
-| 16-14 | Lanterns for 6–8: the frames sit around the fire | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✗ | fixed here: name chips grow; VoiceOver: frames do not say who talks |
+| 16-12 | Light your lantern: two people | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: name chips grow; each frame says who it is, talking or muted, lantern lit or camera off |
+| 16-13 | Lanterns for 3–4 people | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: name chips grow; each frame says who it is, talking or muted, lantern lit or camera off |
+| 16-14 | Lanterns for 6–8: the frames sit around the fire | ✓ | – | ✓ | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: name chips grow; each frame says who it is, talking or muted, lantern lit or camera off |
 | 16-15 | Sharing your screen by the fire | ✓ | – | – | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ | partly built: sharing from your own phone is not ready |
-| 16-16 |  | ✓ | – | – | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✗ | VoiceOver: your own frame is labelled with only your name |
+| 16-16 |  | ✓ | – | – | ✓ | ✓ | ✓ | ✓ fixed | ✓ | ✓ fixed | fixed here: your own frame says it is yours, muted or talking, and your lantern |
 | 16-17 | Critter mask: your face drives your critter | – | – | – | – | – | – | – | – | – | not built (marked later in the design) |
 | 16-18 | A visit call: Otis knocks on your porch door | – | – | – | – | – | – | – | – | – | not built (marked later in the design) |
 | 16-19 | Declined with a sticker, and a missed knock | – | – | – | – | – | – | – | – | – | not built (marked later in the design) |

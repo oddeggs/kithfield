@@ -44,21 +44,21 @@ import {
   FarmLoadFailed,
   FarmReveal,
   PencilRows,
-  useFarmLoading,
   useOffline,
 } from './farm-states';
+import { useFarmLoading } from './farm-loading';
 import { JustYou } from './just-you';
 import { Panel } from './panel';
 import { OfflineBanner, PostBag } from './post-bag';
 import { FarmSheetContent } from './farm-sheet';
-import { momentFor, visitBefore } from './moments';
 import { removalNote } from './removal-note';
 import { farmRoutes } from './routes';
 import { sceneHeight } from './scene-layout';
 import { useFireWay, useHarvestWay } from './scene-ways';
 import { reactionTo, SAID_MS, type FarmReaction } from './reactions';
 import { useNow } from './use-now';
-import { useFarmFlags, useValley } from './valley-store';
+import { useOpenMoments } from './use-open-moments';
+import { useValley } from './valley-store';
 
 /** The sheet overlaps the bottom of the farm by this much (the farm is drawn 540 tall, the sheet rests at 500). */
 const OVERLAP = 40;
@@ -93,65 +93,6 @@ function useFarmReaction(farm: FarmId, me: string | null): FarmReaction | null {
   return said;
 }
 
-/**
- * The welcome-back and move-in moments, decided as the farm opens and again when someone new
- * moves in while it is open. Each shows once (see `moments.ts`).
- */
-function useMoments(farm: FarmId, me: string | null) {
-  const client = useDataClient();
-  const held = useFarm(farm);
-  const state = held?.state ?? null;
-  const flags = useFarmFlags(farm);
-  const latestJoin = state?.members.reduce((a, m) => Math.max(a, m.joinedAt), 0) ?? null;
-  const handled = useRef<number | null>(null);
-  const openedAt = useRef(Date.now());
-  const heldRef = useRef(held);
-  heldRef.current = held;
-  useEffect(() => {
-    const current = heldRef.current;
-    if (!current?.state || !me || latestJoin === null || handled.current === latestJoin) return;
-    const first = handled.current === null;
-    handled.current = latestJoin;
-    const farmState = current.state;
-    let live = true;
-    void (async () => {
-      const [welcomed, joins] = await Promise.all([
-        flags.read('welcomed'),
-        flags.read('joinsSeen'),
-      ]);
-      // A farm first read from the server (a fresh install) already counts this visit as the
-      // last one: the visit before it is looked up in the log instead.
-      const self = farmState.members.find((m) => m.person === me);
-      const thisVisit = openedAt.current - 60_000;
-      let lastVisit: number | null | undefined;
-      if (first && self?.lastOpenedAt != null && self.lastOpenedAt >= thisVisit) {
-        // The log's newest page, if the server answers soon; what the phone holds otherwise.
-        await Promise.race([
-          client.pageHistory(farm, current.lastSeq + 1, 200).catch(() => false),
-          new Promise((resolve) => setTimeout(resolve, 3000)),
-        ]);
-        lastVisit = visitBefore(await client.events(farm, { limit: 200 }), me, thisVisit);
-      }
-      if (!live) return;
-      const moment = momentFor(farmState, me, Date.now(), {
-        welcomed: welcomed === null ? null : Number(welcomed),
-        joinsSeen: joins === null ? null : Number(joins),
-        ...(lastVisit === undefined ? {} : { lastVisit }),
-      });
-      if (moment.kind === 'welcome') {
-        await flags.write('welcomed', String(moment.since));
-        router.push(farmRoutes.welcome(farm));
-        return;
-      }
-      if (moment.upTo !== null) await flags.write('joinsSeen', String(moment.upTo));
-      if (moment.kind === 'moveIn') router.push(farmRoutes.moveIn(farm, moment.person));
-    })();
-    return () => {
-      live = false;
-    };
-  }, [client, farm, me, latestJoin, flags]);
-}
-
 /** Where the scene is drawn for a farm with only you on it, at the design's 393 points wide. */
 const ALONE = { scene: 470, sheet: 440 } as const;
 /** Where "drawing the farm…" sits over the scene, at the design's 393 points wide. */
@@ -177,7 +118,10 @@ function FarmFor({
   const view = useFarmView<FarmView>(farm, now);
   const link = useFarmLink(farm);
   const offline = useOffline(link);
-  const loading = useFarmLoading(state !== null);
+  const alone = state !== null && state.members.length === 1 && state.former.length === 0;
+  // The farm is revealed once it is on the phone and drawn (a farm with only you on it draws at once).
+  const [drawn, setDrawn] = useState(false);
+  const loading = useFarmLoading(state !== null, alone || drawn);
   const k = width / 393;
   const send = useSend(farm);
   const { appearance, palette } = useTheme();
@@ -207,7 +151,7 @@ function FarmFor({
 
   useSunPlace(state?.place ? { lat: state.place.lat, lng: state.place.lng } : null);
   useYouCritter(self ? { kind: self.critter.species, look: lookOf(self.critter) } : null);
-  useMoments(farm, me);
+  useOpenMoments(farm, me);
   useRhythmMoments(farm, view, me);
   // Turned away by the farm (a removal the phone never saw, or a farm that is gone).
   const { lost } = useValley();
@@ -236,7 +180,6 @@ function FarmFor({
   }
 
   // Only you on the farm so far: the sketched cottages wait for friends.
-  const alone = state !== null && state.members.length === 1 && state.former.length === 0;
   const sceneH = alone ? ALONE.scene * k : height;
   const restingTop = alone ? ALONE.sheet * k : height - OVERLAP;
   const farmName = state?.name ?? name ?? '';
@@ -269,6 +212,7 @@ function FarmFor({
             // The farm rests while the sheet covers it at full height.
             running={visible && !reduce && sheet === 0}
             hints={visible && sheet === 0 && !offline && !loading.revealing && state !== null}
+            onDrawn={() => setDrawn(true)}
             now={now}
             fire={fire}
             coverTop={height - OVERLAP}
@@ -284,11 +228,16 @@ function FarmFor({
           />
         </Animated.View>
       )}
-      {loading.revealing ? (
-        <FarmReveal width={width} height={sceneH} ready={state !== null} onDone={loading.done} />
+      {loading.covered ? (
+        <FarmReveal
+          width={width}
+          height={sceneH}
+          ready={loading.revealing && loading.ready}
+          onDone={loading.done}
+        />
       ) : null}
       <FarmFog width={width} height={sceneH} on={offline && state !== null} />
-      {loading.loading ? <DrawingLabel top={DRAWING_TOP * k} /> : null}
+      {loading.revealing && !loading.ready ? <DrawingLabel top={DRAWING_TOP * k} /> : null}
       {farmName && (state === null || view) ? (
         <FarmHeader
           name={farmName}

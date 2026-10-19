@@ -4,20 +4,22 @@ import { useEffect, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useFarm, useSend } from '../../data';
+import { useFarm } from '../../data';
 import { Button } from '../../ui/components/button';
 import { useLocale } from '../../ui/locale/locale-provider';
-import { haptics } from '../../ui/motion/haptics';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { sceneLook } from '../../ui/art/critter-look';
+// A wave goes through the gestures' send, which explains a refusal in a toast.
+import { useGestureSend } from '../gestures/send';
 import { castOf } from './farm-bake';
 import { listOf } from './farm-copy';
 import { MoveInScene } from './move-in-walk';
 import { withAlpha } from './over-art';
 import { GlyphButton, Panel, SceneArt } from './panel';
+import { waveThenGo } from './moments';
 import { farmRoutes } from './routes';
 import { SpeechBubble } from './speech-bubble';
 import { typeAt } from './type-at';
@@ -33,14 +35,17 @@ export function WelcomeBack({ farm }: { readonly farm: FarmId }) {
   const k = width / W;
   const state = useFarm(farm)?.state ?? null;
   const me = useSession().person?.id ?? null;
-  const send = useSend(farm);
+  const send = useGestureSend(farm);
   const name = state?.members.find((m) => m.person === me)?.name ?? '';
-  const sayHi = async () => {
-    haptics.soft();
-    await send('wave', {});
-    router.back();
-    router.navigate(farmRoutes.chat(farm));
-  };
+  // A refused wave says why in a toast and stays here.
+  const sayHi = () =>
+    waveThenGo(
+      () => send('wave', {}, { haptic: 'soft' }),
+      () => {
+        router.back();
+        router.navigate(farmRoutes.chat(farm));
+      },
+    );
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       {/* The rabbit is up and everyone leans in: the scene a few seconds into its wake-up. */}
@@ -109,7 +114,7 @@ export function MoveIn({ farm, person }: { readonly farm: FarmId; readonly perso
   const k = width / W;
   const state = useFarm(farm)?.state ?? null;
   const me = useSession().person?.id ?? null;
-  const send = useSend(farm);
+  const send = useGestureSend(farm);
   const [celebrating, setCelebrating] = useState(!reduce);
   // Once the confetti has fallen, the newcomer walks home.
   const [walk, setWalk] = useState(false);
@@ -138,12 +143,14 @@ export function MoveIn({ farm, person }: { readonly farm: FarmId; readonly perso
   };
   const height = 540 * k;
   const close = () => router.back();
-  const wave = async () => {
-    haptics.soft();
-    await send('wave', { to: person });
-    router.back();
-    router.navigate(farmRoutes.chat(farm));
-  };
+  const wave = () =>
+    waveThenGo(
+      () => send('wave', { to: person }, { haptic: 'soft' }),
+      () => {
+        router.back();
+        router.navigate(farmRoutes.chat(farm));
+      },
+    );
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>

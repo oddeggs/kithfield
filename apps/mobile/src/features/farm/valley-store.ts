@@ -1,5 +1,5 @@
 import type { FarmId, FarmList } from '@kithfield/contracts';
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 
 import { useCottage, useDataClient, type DataClient } from '../../data';
 
@@ -168,5 +168,5 @@ export function useFarmFlags(farm: FarmId) {
       client.store.transaction(() => client.store.setMeta(flagKey(flag, farm), value)),
     [client, farm],
   );
-  return { read, write };
+  return useMemo(() => ({ read, write }), [read, write]);
 }

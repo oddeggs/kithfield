@@ -1,9 +1,20 @@
 import type { Entitlements, RevenueCatEvent } from '@kithfield/contracts';
 import { env } from 'cloudflare:workers';
-import { expect } from 'vitest';
+import { expect, vi } from 'vitest';
 
 import { call } from '../../src/auth/testing/client';
-import { api, type Person } from '../farm/support/doubles';
+import { api, type Person, useTestPorts } from '../farm/support/doubles';
+
+/**
+ * Holds the wall clock (the Worker's and the farm's) at a London afternoon, well clear of
+ * midnight: chip-ins are for a birthday in the farm's time zone, and gifts and pledges are
+ * dated by it. Pair it with `vi.useRealTimers()` after each test.
+ */
+export const holdClock = (iso = '2026-10-18T14:00:00Z') => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(iso));
+  useTestPorts({ at: Date.now() });
+};
 
 /* RevenueCat as the purchases tests see it: contract-shaped webhooks, posted with its secret. */
 

@@ -1,13 +1,17 @@
 import type { GiftStart, GiftView } from '@kithfield/contracts';
 import { env } from 'cloudflare:workers';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { op } from '../farm/support/client';
-import { api, cast, plantFarm, useTestPorts } from '../farm/support/doubles';
-import { boughtConsumable, entitlements, tell, rcEvent } from './support';
+import { api, cast, plantFarm } from '../farm/support/doubles';
+import { boughtConsumable, entitlements, holdClock, rcEvent, tell } from './support';
 
 beforeEach(() => {
-  useTestPorts({ at: Date.now() });
+  holdClock();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 const giftState = (gift: string) =>

@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { openBrowserAsync } from 'expo-web-browser';
 import { useState } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFarm, useSend } from '../../data';
@@ -15,6 +15,7 @@ import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { useSession } from '../../ui/session/session';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { monthOf } from './critter-card';
 import { lookOf } from './farm-bake';
@@ -119,25 +120,66 @@ export function RemovedFromFarm({
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const k = width / W;
+  const ax = useAccessibilitySize();
   const state = useFarm(farm)?.state ?? null;
   const name = state?.name ?? null;
+  const art = (
+    <ArtStill
+      scene="spot"
+      width={width}
+      height={280 * k}
+      attrs={{ name: 'removed', season: state?.season.season ?? 'spring' }}
+    />
+  );
+  const words = (
+    <>
+      <Txt variant="errorTitle" multiline align="center" accessibilityRole="header">
+        {name ? t('farm.removed.title', { name }) : t('farm.removed.titleUnnamed')}
+      </Txt>
+      <Txt variant="sheetBody" multiline align="center" color={palette.body}>
+        {by === 'keeper' ? t('farm.removed.body') : t('farm.removed.bodyNeutral')}
+      </Txt>
+    </>
+  );
+  const buttons = (
+    <>
+      <Button
+        label={t('farm.removed.farms')}
+        onPress={() => {
+          router.back();
+          router.navigate(farmRoutes.valley());
+        }}
+      />
+      <Button
+        label={t('farm.removed.rules')}
+        kind="text"
+        onPress={() => void openBrowserAsync(rulesUrl(language))}
+      />
+    </>
+  );
+  // At the accessibility sizes the words outgrow the space between the art and the buttons:
+  // everything goes in one column that scrolls.
+  if (ax) {
+    return (
+      <ScrollView
+        style={{ flex: 1, backgroundColor: palette.background }}
+        contentContainerStyle={{
+          paddingTop: insets.top + 24,
+          paddingBottom: Math.max(insets.bottom, 34),
+          gap: 16,
+        }}
+      >
+        {art}
+        <View style={{ paddingHorizontal: 28, gap: 10 }}>{words}</View>
+        <View style={{ paddingHorizontal: 24, gap: 6 }}>{buttons}</View>
+      </ScrollView>
+    );
+  }
   return (
     <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <View style={{ position: 'absolute', top: 110 * k, left: 0 }}>
-        <ArtStill
-          scene="spot"
-          width={width}
-          height={280 * k}
-          attrs={{ name: 'removed', season: state?.season.season ?? 'spring' }}
-        />
-      </View>
+      <View style={{ position: 'absolute', top: 110 * k, left: 0 }}>{art}</View>
       <View style={{ position: 'absolute', top: 410 * k, left: 28, right: 28, gap: 10 }}>
-        <Txt variant="errorTitle" multiline align="center" accessibilityRole="header">
-          {name ? t('farm.removed.title', { name }) : t('farm.removed.titleUnnamed')}
-        </Txt>
-        <Txt variant="sheetBody" multiline align="center" color={palette.body}>
-          {by === 'keeper' ? t('farm.removed.body') : t('farm.removed.bodyNeutral')}
-        </Txt>
+        {words}
       </View>
       <View
         style={{
@@ -148,18 +190,7 @@ export function RemovedFromFarm({
           gap: 6,
         }}
       >
-        <Button
-          label={t('farm.removed.farms')}
-          onPress={() => {
-            router.back();
-            router.navigate(farmRoutes.valley());
-          }}
-        />
-        <Button
-          label={t('farm.removed.rules')}
-          kind="text"
-          onPress={() => void openBrowserAsync(rulesUrl(language))}
-        />
+        {buttons}
       </View>
     </View>
   );

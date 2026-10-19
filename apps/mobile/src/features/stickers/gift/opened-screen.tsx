@@ -1,7 +1,7 @@
 import { GiftPayload, type StickerPayload } from '@kithfield/contracts';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { ScrollView, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useDataClient, useFarm, useSend, type StoredEvent } from '../../../data';
@@ -13,12 +13,13 @@ import { EmptyState } from '../../../ui/components/state-shell';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
 import { offered, OWN, packOf, type PackId } from '../model/catalogue';
 import { sceneOfSticker, type StickerPerson } from '../model/look';
 import { stickerRoutes } from '../routes';
 import { useStickerColours } from '../ui/colours';
-import { leave, ScreenHeader } from '../ui/header';
+import { HEADER_BOTTOM, leave, ScreenHeader } from '../ui/header';
 import { StickerArt } from '../ui/sticker';
 import { useMe } from '../ui/use-me';
 import { wornName } from '../ui/worn';
@@ -69,6 +70,7 @@ export function OpenedScreen({ farm, seq }: { readonly farm: string; readonly se
   const { palette } = useTheme();
   const sc = useStickerColours();
   const insets = useSafeAreaInsets();
+  const ax = useAccessibilitySize();
   const { width } = useWindowDimensions();
   const client = useDataClient();
   const send = useSend(farm);
@@ -140,46 +142,48 @@ export function OpenedScreen({ farm, seq }: { readonly farm: string; readonly se
     void send('sticker', say).then(() => leave());
   };
 
-  return (
-    <View style={{ flex: 1, backgroundColor: sc.openedBg }}>
-      <ScreenHeader glass={false} />
-      <View style={{ position: 'absolute', top: insets.top + 11, left: 0, right: 0, height: 320 }}>
+  // At the accessibility sizes the blocks the design places on the screen stack in one column
+  // that scrolls, under the header.
+  const at = (place: { top: number; left: number; right: number }) =>
+    ax ? { marginHorizontal: place.left } : ({ position: 'absolute', ...place } as const);
+  // The parcel and the two stickers tossed out of it, as one block 320 high.
+  const ART_TOP = insets.top + 11;
+  const blocks = (
+    <>
+      <View style={[at({ top: ART_TOP, left: 0, right: 0 }), { height: 320 }]}>
         <GiftOpening
           width={width}
           height={320}
           color={sc.wraps[given?.gift.wrap ?? 'clay'] ?? sc.wraps['clay'] ?? ''}
         />
+        {pack && stickers[0] && stickers[1] ? (
+          <>
+            <View
+              style={{
+                position: 'absolute',
+                top: 39 - 11,
+                left: 22,
+                transform: [{ rotate: '-10deg' }],
+              }}
+            >
+              <StickerArt attrs={draw(stickers[0].id, false)} size={92} />
+            </View>
+            <View
+              style={{
+                position: 'absolute',
+                top: 25 - 11,
+                right: 22,
+                transform: [{ rotate: '9deg' }],
+              }}
+            >
+              <StickerArt attrs={draw(stickers[1].id, false)} size={92} />
+            </View>
+          </>
+        ) : null}
       </View>
-      {pack && stickers[0] && stickers[1] ? (
-        <>
-          <View
-            style={{
-              position: 'absolute',
-              top: insets.top + 39,
-              left: 22,
-              transform: [{ rotate: '-10deg' }],
-            }}
-          >
-            <StickerArt attrs={draw(stickers[0].id, false)} size={92} />
-          </View>
-          <View
-            style={{
-              position: 'absolute',
-              top: insets.top + 25,
-              right: 22,
-              transform: [{ rotate: '9deg' }],
-            }}
-          >
-            <StickerArt attrs={draw(stickers[1].id, false)} size={92} />
-          </View>
-        </>
-      ) : null}
       <View
         style={{
-          position: 'absolute',
-          top: insets.top + 339,
-          left: 24,
-          right: 24,
+          ...at({ top: insets.top + 339, left: 24, right: 24 }),
           gap: 8,
           alignItems: 'center',
         }}
@@ -207,10 +211,7 @@ export function OpenedScreen({ farm, seq }: { readonly farm: string; readonly se
       {gift?.note ? (
         <View
           style={{
-            position: 'absolute',
-            top: insets.top + 489,
-            left: 20,
-            right: 20,
+            ...at({ top: insets.top + 489, left: 20, right: 20 }),
             borderRadius: 22,
             backgroundColor: palette.card,
             borderWidth: 1,
@@ -232,10 +233,7 @@ export function OpenedScreen({ farm, seq }: { readonly farm: string; readonly se
       ) : null}
       <View
         style={{
-          position: 'absolute',
-          top: insets.top + 581,
-          left: 16,
-          right: 16,
+          ...at({ top: insets.top + 581, left: 16, right: 16 }),
           flexDirection: 'row',
           gap: 2,
         }}
@@ -246,6 +244,57 @@ export function OpenedScreen({ farm, seq }: { readonly farm: string; readonly se
           </View>
         ))}
       </View>
+    </>
+  );
+  const buttons = (
+    <>
+      <Press
+        onPress={() => router.replace(stickerRoutes.picker(farm))}
+        radius={28}
+        accessibilityLabel={t('stickers.opened.open')}
+        style={{
+          ...(ax ? { paddingVertical: 12, paddingHorizontal: 20 } : { flex: 1 }),
+          minHeight: 56,
+          borderRadius: 28,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: sc.soft,
+        }}
+      >
+        <Txt
+          variant="buttonText"
+          {...(ax ? { multiline: true, align: 'center' } : { numberOfLines: 1 })}
+        >
+          {t('stickers.opened.open')}
+        </Txt>
+      </Press>
+      <View style={ax ? {} : { flex: 1.3 }}>
+        <Button label={t('stickers.opened.thanks')} kind="primary" onPress={thanks} />
+      </View>
+    </>
+  );
+  if (ax) {
+    return (
+      <View style={{ flex: 1, backgroundColor: sc.openedBg }}>
+        <ScreenHeader glass={false} />
+        <ScrollView
+          // Below the header, so nothing scrolls under its back button.
+          style={{ marginTop: insets.top + HEADER_BOTTOM }}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + 16,
+            gap: 20,
+          }}
+        >
+          {blocks}
+          <View style={{ marginHorizontal: 24, gap: 10 }}>{buttons}</View>
+        </ScrollView>
+      </View>
+    );
+  }
+  return (
+    <View style={{ flex: 1, backgroundColor: sc.openedBg }}>
+      <ScreenHeader glass={false} />
+      {blocks}
       <View
         style={{
           position: 'absolute',
@@ -256,26 +305,7 @@ export function OpenedScreen({ farm, seq }: { readonly farm: string; readonly se
           gap: 10,
         }}
       >
-        <Press
-          onPress={() => router.replace(stickerRoutes.picker(farm))}
-          radius={28}
-          accessibilityLabel={t('stickers.opened.open')}
-          style={{
-            flex: 1,
-            minHeight: 56,
-            borderRadius: 28,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: sc.soft,
-          }}
-        >
-          <Txt variant="buttonText" numberOfLines={1}>
-            {t('stickers.opened.open')}
-          </Txt>
-        </Press>
-        <View style={{ flex: 1.3 }}>
-          <Button label={t('stickers.opened.thanks')} kind="primary" onPress={thanks} />
-        </View>
+        {buttons}
       </View>
     </View>
   );

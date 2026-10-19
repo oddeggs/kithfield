@@ -1,6 +1,6 @@
 import { motion } from '@kithfield/theme';
 import { Canvas, Group, Path, RadialGradient, Rect, Skia, vec } from '@shopify/react-native-skia';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import Animated, {
   Easing,
@@ -20,35 +20,11 @@ import { useLocale } from '../../ui/locale/locale-provider';
 import { easings, fadeTo } from '../../ui/motion/motion';
 import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
+import { LOADER_AFTER_MS } from './farm-loading';
 import { Txt } from '../../ui/type/text';
 
-/** A farm that arrives sooner than this shows no loader at all (`12 States`, loading). */
-export const LOADER_AFTER_MS = 300;
 /** The fog lifts over this long when the signal comes back (`12 States`, offline). */
 const FOG_LIFT_MS = 1500;
-
-/**
- * Whether the farm is drawing itself in: nothing of it on the phone for longer than the loader's
- * wait, then until the reveal says it is done. A farm already on the phone never shows a loader.
- */
-export function useFarmLoading(ready: boolean): {
-  readonly revealing: boolean;
-  readonly loading: boolean;
-  readonly done: () => void;
-} {
-  const [phase, setPhase] = useState<'wait' | 'reveal' | 'done'>(ready ? 'done' : 'wait');
-  useEffect(() => {
-    if (phase !== 'wait') return;
-    if (ready) {
-      setPhase('done');
-      return;
-    }
-    const timer = setTimeout(() => setPhase('reveal'), LOADER_AFTER_MS);
-    return () => clearTimeout(timer);
-  }, [ready, phase]);
-  const done = useCallback(() => setPhase('done'), []);
-  return { revealing: phase === 'reveal', loading: !ready && phase === 'reveal', done };
-}
 
 /**
  * The renderer's `hash`: the reveal's wobble comes from the same numbers the design draws with.

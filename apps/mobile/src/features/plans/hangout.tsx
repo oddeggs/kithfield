@@ -1,8 +1,8 @@
 import type { FarmId, Seq } from '@kithfield/contracts';
 import { isHangoutDay, planDay } from '@kithfield/farm';
 import { StatusBar } from 'expo-status-bar';
-import { useRef, useState } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { useRef, useState, type ReactNode } from 'react';
+import { ScrollView, useWindowDimensions, View } from 'react-native';
 
 import { useOpenFarm } from '../../data';
 import { pickFromLibrary, useUpload } from '../media';
@@ -12,6 +12,7 @@ import { useToast } from '../../ui/components/toast';
 import { useLocale } from '../../ui/locale/locale-provider';
 import { haptics } from '../../ui/motion/haptics';
 import { Press } from '../../ui/motion/press';
+import { useAccessibilitySize } from '../../ui/type/accessibility-size';
 import { Txt } from '../../ui/type/text';
 import { GlassBack, useFromTop } from './chrome';
 import { formatTime } from './dates';
@@ -60,6 +61,20 @@ function FireButton({
   );
 }
 
+/** Its children in a column that scrolls when `when`, as they are otherwise. */
+function Scrolls({ when, children }: { readonly when: boolean; readonly children: ReactNode }) {
+  if (!when) return <>{children}</>;
+  return (
+    <ScrollView
+      style={{ flexShrink: 1 }}
+      contentContainerStyle={{ gap: 14, paddingBottom: 30 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {children}
+    </ScrollView>
+  );
+}
+
 /**
  * Hangout day: everyone at the campfire. "I'm here" checks in; a lone check-in grows
  * nothing, and when a second friend arrives the hangout grows the farm for everyone there.
@@ -76,6 +91,7 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
   const send = usePlanSend(farm);
   const here = usePlan(farm, seq);
   const [busy, setBusy] = useState(false);
+  const ax = useAccessibilitySize();
   const seenAtOpen = useRef<ReadonlySet<string> | null>(null);
   const plan = here?.plan;
   const season = here?.state.season.season ?? 'spring';
@@ -171,10 +187,13 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
           bottom: 10,
           paddingTop: 18,
           paddingHorizontal: 18,
-          paddingBottom: 30,
+          paddingBottom: ax ? 0 : 30,
           gap: 14,
+          // At the accessibility sizes the sheet stops below the back button and scrolls.
+          ...(ax ? { maxHeight: height - fromTop(110) } : {}),
         }}
       >
+        <Scrolls when={ax}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <View style={{ flex: 1, gap: 3 }} accessible accessibilityLiveRegion="polite">
             <Txt variant="rowTitle" color={fireside.label} style={{ fontSize: 13, lineHeight: 16, marginVertical: -1.5 }}>
@@ -232,6 +251,7 @@ export function Hangout({ farm, seq }: { readonly farm: FarmId; readonly seq: Se
             }}
           />
         </View>
+        </Scrolls>
       </Glass>
     </View>
   );

@@ -91,3 +91,19 @@ export function joinNames(t: Translate, names: readonly string[]): string {
   const last = names[names.length - 1] ?? '';
   return t('plans.people.two', { first: names.slice(0, -1).join(', '), second: last });
 }
+
+/**
+ * Who leans on a day's bud, as VoiceOver says it: their names with you last, never how many
+ * (the buds' size already shows that, and care isn't counted out loud).
+ */
+export function leaningOn(
+  t: Translate,
+  voters: readonly { readonly name: string; readonly you: boolean }[],
+): string {
+  if (voters.length === 0) return t('plans.vote.nobody');
+  const others = voters.filter((v) => !v.you).map((v) => v.name);
+  const you = voters.some((v) => v.you);
+  return t('plans.vote.leaning', {
+    names: joinNames(t, you ? [...others, t('plans.people.you')] : others),
+  });
+}

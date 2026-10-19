@@ -11,6 +11,7 @@ import { useReduceMotion } from '../../ui/motion/reduce-motion';
 import { useTheme } from '../../ui/theme/theme-provider';
 import { Txt } from '../../ui/type/text';
 import { formatDay, weekdayName, weekdayShort, weekOf } from './dates';
+import { leaningOn } from './draft';
 import type { PlanPerson } from './people';
 import { Critters } from './plan-sections';
 import { sunPatch, usePlanLook } from './plan-look';
@@ -63,6 +64,7 @@ export function VoteBud({
       haptic="select"
       radius={26}
       accessibilityLabel={t('plans.vote.lean', { day: label })}
+      accessibilityValue={{ text: leaningOn(t, voters) }}
       accessibilityState={{ selected: mine }}
       style={{
         flex: 1,

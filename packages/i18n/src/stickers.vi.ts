@@ -177,6 +177,8 @@ export const stickersVi: ViCatalogue<typeof stickersEn> = {
   'stickers.gift.wrap': 'Gói lại · {price}',
   'stickers.gift.wrapNoPrice': 'Gói lại',
   'stickers.gift.wrapName': 'Giấy gói {wrap}',
+  'stickers.gift.wrapHoney': 'Mật ong',
+  'stickers.gift.wrapNumber': 'Giấy gói {n}',
   'stickers.gift.alreadyHas': '{name} đã có bộ này rồi',
   'stickers.gift.nobody': 'Quà dành cho bạn bè ở nông trại của bạn. Ở đây chưa có ai.',
   'stickers.gift.sent': 'Món quà đã ở trước cửa nhà {name}',

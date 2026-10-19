@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useArt } from '../../../ui/art/art-provider';
@@ -10,11 +10,12 @@ import { useToast } from '../../../ui/components/toast';
 import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
 import { OWN } from '../model/catalogue';
 import { sceneOfSticker } from '../model/look';
 import { useStickerColours } from '../ui/colours';
-import { leave, ScreenHeader } from '../ui/header';
+import { HEADER_BOTTOM, leave, ScreenHeader } from '../ui/header';
 import { useMe } from '../ui/use-me';
 import { ownPack } from './pack';
 import { bakeWhatsAppPack, openInWhatsApp, whatsappInstalled, type WhatsAppPack } from './whatsapp';
@@ -40,6 +41,7 @@ export function AddingScreen() {
   const sc = useStickerColours();
   const toast = useToast();
   const insets = useSafeAreaInsets();
+  const ax = useAccessibilitySize();
   const store = useArt();
   const me = useMe();
   const critter = me.critter;
@@ -104,10 +106,13 @@ export function AddingScreen() {
     { id: 'whatsapp', state: whatsapp },
   ];
 
-  return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScreenHeader title={t('stickers.adding.title')} glass={false} />
-      <View style={{ position: 'absolute', top: insets.top + 45, left: 46 }}>
+  // At the accessibility sizes the blocks the design places on the screen stack in one column
+  // that scrolls, under the header.
+  const at = (place: { top: number; left: number; right?: number }) =>
+    ax ? { marginHorizontal: place.left } : ({ position: 'absolute', ...place } as const);
+  const blocks = (
+    <>
+      <View style={at({ top: insets.top + 45, left: 46 })}>
         <ArtStill
           scene="spot"
           width={300}
@@ -115,7 +120,7 @@ export function AddingScreen() {
           attrs={{ name: 'done', ...(critter ? sceneLook(critter) : {}) }}
         />
       </View>
-      <View style={{ position: 'absolute', top: insets.top + 237, left: 20, right: 20, gap: 12 }}>
+      <View style={[at({ top: insets.top + 237, left: 20, right: 20 }), { gap: 12 }]}>
         <Txt
           variant="displayM"
           multiline
@@ -139,7 +144,14 @@ export function AddingScreen() {
               gap: 10,
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                ...(ax ? { flexWrap: 'wrap' } : {}),
+              }}
+            >
               <View
                 style={{
                   width: 40,
@@ -152,7 +164,7 @@ export function AddingScreen() {
               >
                 <ArtIcon name="share" size={22} color={sc.tileIcon} />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={ax ? { flexGrow: 1, flexBasis: 160 } : { flex: 1 }}>
                 <Txt variant="rowTitle">
                   {c.id === 'telegram'
                     ? t('stickers.export.telegram')
@@ -205,8 +217,34 @@ export function AddingScreen() {
           </View>
         ))}
       </View>
+    </>
+  );
+  const done = <Button label={t('stickers.done')} kind="secondary" onPress={leave} />;
+  if (ax) {
+    return (
+      <View style={{ flex: 1, backgroundColor: palette.background }}>
+        <ScreenHeader title={t('stickers.adding.title')} glass={false} />
+        <ScrollView
+          // Below the header, so nothing scrolls under its back button.
+          style={{ marginTop: insets.top + HEADER_BOTTOM }}
+          contentContainerStyle={{
+            paddingTop: 45 - HEADER_BOTTOM,
+            paddingBottom: insets.bottom + 16,
+            gap: 12,
+          }}
+        >
+          {blocks}
+          <View style={{ marginHorizontal: 24 }}>{done}</View>
+        </ScrollView>
+      </View>
+    );
+  }
+  return (
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
+      <ScreenHeader title={t('stickers.adding.title')} glass={false} />
+      {blocks}
       <View style={{ position: 'absolute', left: 24, right: 24, bottom: insets.bottom }}>
-        <Button label={t('stickers.done')} kind="secondary" onPress={leave} />
+        {done}
       </View>
     </View>
   );

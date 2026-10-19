@@ -98,6 +98,8 @@ export const plansVi: ViCatalogue<typeof plansEn> = {
   'plans.vote.leadOpen': 'Chạm vào một nụ để nghiêng về nó.',
   'plans.vote.settle': 'Cho nảy mầm vào {weekday}',
   'plans.vote.lean': 'Nghiêng về {day}',
+  'plans.vote.leaning': 'Đang nghiêng về nụ này: {names}',
+  'plans.vote.nobody': 'Chưa ai nghiêng về nụ này',
   'plans.sun.title': 'Mảng nắng',
   'plans.sun.eyebrow': 'tuần của {day}',
   'plans.sun.leading': '{day} đang có nhiều người đồng ý nhất.',

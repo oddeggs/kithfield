@@ -2,7 +2,7 @@ import type { FarmState, StickerPayload } from '@kithfield/contracts';
 import { springs } from '@kithfield/theme';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -21,6 +21,7 @@ import { useLocale } from '../../../ui/locale/locale-provider';
 import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
+import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
 import { stickersApi } from '../api';
 import { rememberTogetherExport } from '../export/together-export';
@@ -30,7 +31,7 @@ import { sceneOfSticker, type StickerPerson } from '../model/look';
 import { keepDrawable, togetherOffers, togglePick, type TogetherOffer } from '../model/together';
 import { useStickerColours } from '../ui/colours';
 import { FaceRow, type Face } from '../ui/face-row';
-import { leave, ScreenHeader } from '../ui/header';
+import { HEADER_BOTTOM, leave, ScreenHeader } from '../ui/header';
 import { StickerArt } from '../ui/sticker';
 import { useMe } from '../ui/use-me';
 
@@ -64,6 +65,7 @@ export function TogetherScreen({
   const sc = useStickerColours();
   const toast = useToast();
   const insets = useSafeAreaInsets();
+  const ax = useAccessibilitySize();
   const reduce = useReduceMotion();
   const client = useDataClient();
   const state = useFarm(farm)?.state ?? null;
@@ -177,10 +179,13 @@ export function TogetherScreen({
     );
   }
 
-  return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScreenHeader title={t('stickers.together.title')} />
-      <View style={{ position: 'absolute', top: insets.top + 57, left: 20, right: 20, gap: 12 }}>
+  // At the accessibility sizes the blocks the design places on the screen stack in one column
+  // that scrolls, under the header.
+  const at = (place: { top: number; left: number; right: number }) =>
+    ax ? { marginHorizontal: place.left } : ({ position: 'absolute', ...place } as const);
+  const blocks = (
+    <>
+      <View style={[at({ top: insets.top + 57, left: 20, right: 20 }), { gap: 12 }]}>
         <FaceRow
           faces={faces}
           picked={picked}
@@ -201,28 +206,15 @@ export function TogetherScreen({
       {big ? (
         <Animated.View
           style={[
-            {
-              position: 'absolute',
-              top: insets.top + 177,
-              left: 0,
-              right: 0,
-              alignItems: 'center',
-            },
+            at({ top: insets.top + 177, left: 0, right: 0 }),
+            { alignItems: 'center' },
             hopStyle,
           ]}
         >
           <StickerArt attrs={attrsOf(big)} size={MAIN} />
         </Animated.View>
       ) : null}
-      <View
-        style={{
-          position: 'absolute',
-          top: insets.top + 419,
-          left: 16,
-          right: 16,
-          flexDirection: 'row',
-        }}
-      >
+      <View style={[at({ top: insets.top + 419, left: 16, right: 16 }), { flexDirection: 'row' }]}>
         {smalls.map((o) => (
           <View key={o.def.id} style={{ flex: 1, alignItems: 'center' }}>
             <Press
@@ -238,10 +230,7 @@ export function TogetherScreen({
       </View>
       <View
         style={{
-          position: 'absolute',
-          top: insets.top + 531,
-          left: 20,
-          right: 20,
+          ...at({ top: insets.top + 531, left: 20, right: 20 }),
           borderRadius: 22,
           backgroundColor: palette.card,
           borderWidth: 1,
@@ -258,13 +247,41 @@ export function TogetherScreen({
           {t('stickers.together.note', { name: names[0] ?? '' })}
         </Txt>
       </View>
+    </>
+  );
+  const sendButton = (
+    <Button
+      label={ask ? t('stickers.ask.send') : t('stickers.together.send', { farm: farmName })}
+      kind="primary"
+      disabled={!big}
+      onPress={onSend}
+    />
+  );
+  if (ax) {
+    return (
+      <View style={{ flex: 1, backgroundColor: palette.background }}>
+        <ScreenHeader title={t('stickers.together.title')} />
+        <ScrollView
+          // Below the header, so nothing scrolls under its back button.
+          style={{ marginTop: insets.top + HEADER_BOTTOM }}
+          contentContainerStyle={{
+            paddingTop: 57 - HEADER_BOTTOM,
+            paddingBottom: insets.bottom + 16,
+            gap: 20,
+          }}
+        >
+          {blocks}
+          <View style={{ marginHorizontal: 24 }}>{sendButton}</View>
+        </ScrollView>
+      </View>
+    );
+  }
+  return (
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
+      <ScreenHeader title={t('stickers.together.title')} />
+      {blocks}
       <View style={{ position: 'absolute', left: 24, right: 24, bottom: insets.bottom + 0 }}>
-        <Button
-          label={ask ? t('stickers.ask.send') : t('stickers.together.send', { farm: farmName })}
-          kind="primary"
-          disabled={!big}
-          onPress={onSend}
-        />
+        {sendButton}
       </View>
     </View>
   );
