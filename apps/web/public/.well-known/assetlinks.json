@@ -1,0 +1,16 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.kithfield.app",
+      "sha256_cert_fingerprints": [
+        "D0:B2:12:B5:A4:3F:8D:61:E0:81:94:E6:3D:94:C4:21:0B:29:D5:FE:F8:B6:D2:BB:B9:6C:4C:00:A5:3E:EE:48",
+        "47:06:CA:82:40:45:A4:47:BA:80:99:D2:09:B6:C1:71:6B:D7:45:3C:BC:26:03:82:BD:3B:77:B9:4D:08:33:56"
+      ]
+    }
+  }
+]
