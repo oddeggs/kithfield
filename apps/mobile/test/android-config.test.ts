@@ -4,6 +4,7 @@ import { describe, expect, it } from '@jest/globals';
 
 import {
   ANDROID_BLOCKED,
+  androidIntentFilters,
   APP_LINK_PATHS,
   googleServicesFile,
   PROGUARD_RULES,
@@ -40,18 +41,21 @@ describe('the Android app', () => {
   });
 
   it('claims the Google redirect only once an Android client exists, and hands the app its id', () => {
-    const none = buildConfig({}, 'prd', unset);
-    expect(none.extra?.['googleAndroidClientId']).toBeUndefined();
-    const schemes = (none.android?.intentFilters ?? []).flatMap((f) =>
-      [f.data ?? []].flat().map((d) => d.scheme ?? ''),
+    const schemesOf = (filters: ReturnType<typeof androidIntentFilters>) =>
+      filters.flatMap((f) => [f.data ?? []].flat().map((d) => d.scheme ?? ''));
+    expect(schemesOf(androidIntentFilters('kithfield.com', null))).not.toContain(
+      'com.kithfield.app',
     );
-    expect(schemes).not.toContain('com.kithfield.app');
+    const prd = buildConfig({}, 'prd', unset);
+    expect(prd.extra?.['googleAndroidClientId']).toBe(
+      '564934268570-sf0uogqbvmcauiuhe3gu1nukfmmmknm2.apps.googleusercontent.com',
+    );
+    expect(prd.android?.intentFilters).toContainEqual(
+      expect.objectContaining({ data: [{ scheme: 'com.kithfield.app' }] }),
+    );
     const id = '564934268570-android.apps.googleusercontent.com';
     const set = buildConfig({}, 'prd', { ...unset, googleAndroidClientId: id });
     expect(set.extra?.['googleAndroidClientId']).toBe(id);
-    expect(set.android?.intentFilters).toContainEqual(
-      expect.objectContaining({ data: [{ scheme: 'com.kithfield.app' }] }),
-    );
   });
 
   it('turns on the back preview, and asks for no badge counts, calendar reads or contact writes', () => {

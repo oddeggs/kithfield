@@ -124,7 +124,9 @@ export const VARIANTS: Record<AppVariant, VariantConfig> = {
     scheme: 'kithfield',
     host: 'kithfield.com',
     googleIosClientId: '564934268570-jr7d94ci3jtb88sm4uqio1pjoatb3l31.apps.googleusercontent.com',
-    googleAndroidClientId: null,
+    // Signed by Play's app signing key: only builds installed from Play sign in with Google.
+    googleAndroidClientId:
+      '564934268570-sf0uogqbvmcauiuhe3gu1nukfmmmknm2.apps.googleusercontent.com',
   },
 };
 
