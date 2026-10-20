@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
 
 import type { ExpoConfig } from 'expo/config';
@@ -223,3 +223,27 @@ export const withMossAccent: ConfigPlugin = (config) =>
       return mod;
     },
   );
+
+/**
+ * Keep rules for the release build's shrinker. LiveKit's WebRTC keeps its JNI bridge, which names
+ * a generated class the library never ships; R8 stops on a missing class unless told it is known.
+ */
+export const PROGUARD_RULES = ['-dontwarn livekit.org.jni_zero.JniZeroJni'];
+
+/** The rules not yet in the app's proguard file, appended so a second prebuild adds nothing. */
+export function withRules(file: string, rules: readonly string[]): string {
+  const missing = rules.filter((rule) => !file.split('\n').includes(rule));
+  if (missing.length === 0) return file;
+  return `${file.replace(/\n*$/, '\n')}${missing.join('\n')}\n`;
+}
+
+export const withProguardRules: ConfigPlugin = (config) =>
+  withDangerousMod(config, [
+    'android',
+    (mod) => {
+      const path = join(mod.modRequest.platformProjectRoot, 'app/proguard-rules.pro');
+      const file = existsSync(path) ? readFileSync(path, 'utf8') : '';
+      writeFileSync(path, withRules(file, PROGUARD_RULES));
+      return mod;
+    },
+  ]);

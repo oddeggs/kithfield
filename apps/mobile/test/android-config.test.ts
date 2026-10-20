@@ -2,7 +2,14 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from '@jest/globals';
 
-import { ANDROID_BLOCKED, APP_LINK_PATHS, googleServicesFile, stringsXml } from '../android-config';
+import {
+  ANDROID_BLOCKED,
+  APP_LINK_PATHS,
+  googleServicesFile,
+  PROGUARD_RULES,
+  stringsXml,
+  withRules,
+} from '../android-config';
 import { buildConfig } from '../app.config';
 
 const unset = { apiBase: undefined, revenueCatIosKey: undefined };
@@ -96,5 +103,14 @@ describe('the Android app', () => {
       '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n' +
         '  <string name="widget_farm_label">Bea’s &amp; Pip\\\'s &lt;farm></string>\n</resources>\n',
     );
+  });
+
+  it('adds the shrinker rules once, after what the template already keeps', () => {
+    const template =
+      '# Add project specific ProGuard rules here.\n-keep class com.facebook.** { *; }';
+    const once = withRules(template, PROGUARD_RULES);
+    expect(once).toBe(`${template}\n${PROGUARD_RULES.join('\n')}\n`);
+    expect(withRules(once, PROGUARD_RULES)).toBe(once);
+    expect(withRules('', PROGUARD_RULES)).toBe(`\n${PROGUARD_RULES.join('\n')}\n`);
   });
 });
