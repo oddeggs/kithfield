@@ -26,14 +26,15 @@ import type { BubbleItem } from '../model/timeline';
 import { go } from '../routes';
 import { useChatColours } from '../ui/chat-colours';
 import { Composer, type MentionRow } from './composer';
-import { FarmHeaderArt, PorchArt } from './header-art';
+import { FarmHeaderArt, PorchArt, useHeaderSurface } from './header-art';
 import {
   FARM_HEADER,
+  foldedHeight,
   HeaderArtFrame,
   HeaderBar,
   PORCH_HEADER,
   SHEET_OVERLAP,
-  useHeaderHeight,
+  useHeaderFold,
 } from './header';
 import { RoomNotice, useRoomNotice } from './room-notice';
 import { Noticeboard, PinBar, usePinned } from './noticeboard';
@@ -54,6 +55,8 @@ import { TypingLine } from './lines';
 import { sprouted, useMentionRows, useOutLine } from './room-people';
 
 const PIN_BAR = 46;
+/** The bar over the art before it has been measured: the title pill's height at the default size. */
+const BAR_GUESS = 55;
 /** The composer sits 32 points above the bottom edge (over the home indicator), as drawn. */
 const COMPOSER_BOTTOM = 32;
 /** With the keyboard up, the composer keeps 14 points above it, as drawn. */
@@ -87,10 +90,23 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
   const visit = state?.kind === 'visit';
   const flat = pane.chrome === 'flat' && !visit;
   const flatHeight = usePaneHeaderHeight();
-  const size = flat ? { full: flatHeight, min: flatHeight } : visit ? PORCH_HEADER : FARM_HEADER;
+  // The bar's measured height sizes the folded header (it grows at the accessibility sizes).
+  const [barH, setBarH] = useState(BAR_GUESS);
+  const size = useMemo(
+    () =>
+      flat
+        ? { full: flatHeight, min: flatHeight }
+        : { full: visit ? PORCH_HEADER : FARM_HEADER, min: foldedHeight(insets.top, barH) },
+    [flat, flatHeight, visit, insets.top, barH],
+  );
+  const night = palette.appearance === 'night';
+  const surface = useHeaderSurface(state?.season.season ?? 'spring', night);
   const overlap = flat ? 0 : SHEET_OVERLAP;
   const scrollY = useSharedValue(0);
-  const height = useHeaderHeight(scrollY, size);
+  const keyboard = useReanimatedKeyboardAnimation();
+  // The whole farm on the way in, folded to its strip once the chat is in use.
+  const fold = useHeaderFold(scrollY, keyboard.progress, size);
+  const { height, interact } = fold;
   const collapsed = useDerivedValue<number>(() => (height.get() <= size.min + 0.5 ? 1 : 0));
   const [replyTo, setReplyTo] = useState<BubbleItem | null>(null);
   const [editing, setEditing] = useState<BubbleItem | null>(null);
@@ -100,7 +116,6 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
   const [toNewest, setToNewest] = useState(0);
   const pinned = usePinned(farm, state?.pins ?? [], (s) => bubbles.get(s) ?? null);
   const notice = useRoomNotice(data.link, state, data.me, data.now);
-  const keyboard = useReanimatedKeyboardAnimation();
 
   // What this phone has shown of the chat, kept on the phone only, for the chat list's honey dot.
   const showing = useArtVisible();
@@ -237,7 +252,13 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
     <RoomProvider value={room}>
       <View style={{ flex: 1, backgroundColor: palette.background }}>
         {flat ? null : (
-          <HeaderArtFrame height={height} size={size}>
+          <HeaderArtFrame
+            fold={fold}
+            size={size}
+            surface={surface}
+            label={t(visit ? 'chat.room.scene.porch' : 'chat.room.scene.farm')}
+            hint={t(fold.open ? 'chat.room.scene.fold' : 'chat.room.scene.show')}
+          >
             {visit ? (
               <PorchArt
                 cast={porchCast.map((m) => castOf(m.critter)).join(',')}
@@ -269,6 +290,7 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
           </HeaderArtFrame>
         )}
         <Animated.View
+          onTouchStart={interact}
           style={[
             {
               position: 'absolute',
@@ -380,6 +402,7 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
             backLabel={t('chat.room.back')}
             onTitle={() => go.media(farm)}
             titleLabel={`${title}, ${subtitle}. ${t('chat.room.media')}`}
+            onHeight={setBarH}
             right={
               visit && peer
                 ? {
@@ -396,6 +419,7 @@ export function ChatScreen({ farm, seq, reply, edit }: ChatScreenProps) {
           style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}
         >
           <View
+            onTouchStart={interact}
             onLayout={(e) => setComposerH(e.nativeEvent.layout.height)}
             style={{
               paddingTop: 16,

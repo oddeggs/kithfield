@@ -20,7 +20,20 @@ import { TravelSpot, useTravelShownAll } from '../../../ui/travel';
 import { useArt, useArtStill } from '../../../ui/art/art-provider';
 import { Press } from '../../../ui/motion/press';
 import { useReduceMotion } from '../../../ui/motion/reduce-motion';
+import { useTheme } from '../../../ui/theme/theme-provider';
 import { lookOf } from '../model/people';
+
+/**
+ * The plain tone a folded header leaves behind: the season's own sky, as the art paints it, or
+ * the night sky after dark.
+ */
+export function useHeaderSurface(season: string, night: boolean): string {
+  const store = useArt();
+  const { palette } = useTheme();
+  if (night) return palette.background;
+  const sky = store.art.internals.SEASONS[season]?.['sky'];
+  return typeof sky === 'string' ? sky : palette.background;
+}
 
 /** A critter on the header: who, how they look and whether they're dozing. */
 export interface HeaderCritter {
