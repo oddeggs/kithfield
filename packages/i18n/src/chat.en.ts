@@ -64,6 +64,10 @@ export const chatEn = {
   'chat.room.more': 'More',
   /** The visit's porch pot in the porch art: opens its page. */
   'chat.room.porchPot': 'Our porch pot',
+  'chat.room.scene.farm': 'The farm',
+  'chat.room.scene.porch': 'The porch',
+  'chat.room.scene.show': 'Shows all of it above the chat',
+  'chat.room.scene.fold': 'Folds it into a strip above the chat',
   'chat.room.media': 'Shared on the farm',
   'chat.room.search': 'Search this farm',
   'chat.room.out.one': '{a} is out',

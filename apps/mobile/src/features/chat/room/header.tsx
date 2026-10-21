@@ -1,15 +1,22 @@
-import type { ReactNode } from 'react';
-import { Platform, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
 import Animated, {
+  useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
+  useSharedValue,
+  withSequence,
+  withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { ArtIcon } from '../../../ui/art/art-view';
 import { Glass } from '../../../ui/components/glass';
+import { fadeTo, sheetTo } from '../../../ui/motion/motion';
 import { Press } from '../../../ui/motion/press';
+import { useReduceMotion } from '../../../ui/motion/reduce-motion';
 import { useTheme } from '../../../ui/theme/theme-provider';
 import { useAccessibilitySize } from '../../../ui/type/accessibility-size';
 import { Txt } from '../../../ui/type/text';
@@ -17,6 +24,7 @@ import { Txt } from '../../../ui/type/text';
 import { shortName } from '../../farm/farm-copy';
 import { useChatColours } from '../ui/chat-colours';
 import { ANDROID_BACK, AndroidBackArrow } from '../../android/back-arrow';
+import { foldClock, type FoldClock } from './header-fold';
 
 /** How a chat's header sizes: the farm 236 points tall shrinking to 150, the porch 300 to 170. */
 export interface HeaderSize {
@@ -29,33 +37,129 @@ export const PORCH_HEADER: HeaderSize = { full: 300, min: 170 };
 /** The chat's sheet overlaps the art by this much, its rounded corners over the farm. */
 export const SHEET_OVERLAP = 16;
 
-/** The header's height for a scroll offset: it tracks the finger 1:1, then holds at its least. */
-export function useHeaderHeight(scrollY: SharedValue<number>, size: HeaderSize) {
-  return useDerivedValue(() =>
-    Math.min(size.full, Math.max(size.min, size.full - Math.max(0, scrollY.get()))),
-  );
+/** How far the chat scrolls before that counts as using it. */
+const SCROLL_SLOP = 4;
+
+/** A chat header's fold: its height, its art's opacity, and whether the whole farm shows. */
+export interface HeaderFold {
+  readonly height: SharedValue<number>;
+  /** The art's opacity: under Reduce Motion the fold lands at once and the art fades back in. */
+  readonly shown: SharedValue<number>;
+  readonly open: boolean;
+  /** Someone used the chat: fold the farm away. */
+  readonly interact: () => void;
+  /** The header was tapped: show the whole farm again, or fold it. */
+  readonly toggle: () => void;
 }
 
 /**
- * The art at the top of a chat. It shrinks as the chat scrolls, keeping its bottom (where the
- * critters stand) in view; the art moves, it is never redrawn.
+ * The header shows its whole farm on the way in, then folds to the strip after a few seconds or
+ * at the first use of the chat; a tap on it shows the farm again. While it's open, the first
+ * points of a scroll still fold it under the finger, 1:1, as the farm's header always has.
+ */
+export function useHeaderFold(
+  scrollY: SharedValue<number>,
+  keyboard: SharedValue<number>,
+  size: HeaderSize,
+): HeaderFold {
+  const reduce = useReduceMotion();
+  const reader = useScreenReader();
+  const fold = useSharedValue(0);
+  // Where the chat was scrolled when the farm last opened: scrolling away from here folds it.
+  const base = useSharedValue(0);
+  const shown = useSharedValue(1);
+  const [open, setOpen] = useState(true);
+  const reduced = useRef(reduce);
+  reduced.current = reduce;
+  const clock = useRef<FoldClock | null>(null);
+  useEffect(() => {
+    const c = foldClock((next) => {
+      setOpen(next);
+      if (next) base.set(scrollY.get());
+      fold.set(sheetTo(next ? 0 : 1, reduced.current));
+      if (reduced.current) shown.set(withSequence(withTiming(0, { duration: 0 }), fadeTo(1)));
+    });
+    clock.current = c;
+    return () => {
+      c.dispose();
+      clock.current = null;
+    };
+  }, [base, fold, scrollY, shown]);
+  useEffect(() => clock.current?.hold(reader), [reader]);
+  const interact = useCallback(() => clock.current?.interact(), []);
+  const toggle = useCallback(() => clock.current?.toggle(), []);
+  useAnimatedReaction(
+    () => Math.abs(scrollY.get() - base.get()) > SCROLL_SLOP,
+    (moved, before) => {
+      if (moved && before === false) scheduleOnRN(interact);
+    },
+  );
+  useAnimatedReaction(
+    () => keyboard.get() > 0.5,
+    (up, before) => {
+      if (up && before === false) scheduleOnRN(interact);
+    },
+  );
+  const height = useDerivedValue(() => {
+    const span = size.full - size.min;
+    if (span <= 0) return size.full;
+    const scrolled = Math.min(1, Math.max(0, (scrollY.get() - base.get()) / span));
+    const folded = Math.min(1, Math.max(0, fold.get()));
+    return size.full - span * Math.max(folded, scrolled);
+  });
+  return { height, shown, open, interact, toggle };
+}
+
+/** Whether VoiceOver or TalkBack is running, kept current. */
+function useScreenReader(): boolean {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const sub = AccessibilityInfo.addEventListener('screenReaderChanged', setOn);
+    void AccessibilityInfo.isScreenReaderEnabled().then(setOn);
+    return () => sub.remove();
+  }, []);
+  return on;
+}
+
+/**
+ * The art at the top of a chat. It folds keeping its bottom (where the critters stand) in view;
+ * the art moves, it is never redrawn. The art itself is the button that shows it again or folds
+ * it, behind the bar's own buttons.
  */
 export function HeaderArtFrame({
-  height,
+  fold,
   size,
+  label,
+  hint,
   children,
 }: {
-  readonly height: SharedValue<number>;
+  readonly fold: HeaderFold;
   readonly size: HeaderSize;
+  readonly label: string;
+  readonly hint: string;
   readonly children: ReactNode;
 }) {
+  const { height, shown } = fold;
   const frame = useAnimatedStyle(() => ({ height: height.get() }));
-  const art = useAnimatedStyle(() => ({ transform: [{ translateY: height.get() - size.full }] }));
+  const art = useAnimatedStyle(() => ({
+    opacity: shown.get(),
+    transform: [{ translateY: height.get() - size.full }],
+  }));
   return (
     <Animated.View
       style={[{ position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' }, frame]}
     >
-      <Animated.View style={art}>{children}</Animated.View>
+      <Press
+        onPress={fold.toggle}
+        darken={false}
+        accessibilityLabel={label}
+        accessibilityHint={hint}
+        accessibilityState={{ expanded: fold.open }}
+        style={StyleSheet.absoluteFill}
+      />
+      <Animated.View style={art} pointerEvents="box-none">
+        {children}
+      </Animated.View>
     </Animated.View>
   );
 }
