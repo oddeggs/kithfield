@@ -42,7 +42,10 @@ export type ReportCategory = z.infer<typeof ReportCategory>;
 export const ReportStatus = z.enum(['open', 'claimed', 'actioned', 'dismissed', 'escalated']);
 export type ReportStatus = z.infer<typeof ReportStatus>;
 
-/** `GET /admin/v1/queue?category=&cursor=`: urgent first, then oldest first. */
+/**
+ * `GET /admin/v1/queue?category=&cursor=`: child safety first, then the other urgent reports, then
+ * the rest, oldest first within each.
+ */
 export const QueueQuery = z.object({
   category: ReportCategory.optional(),
   cursor: z.string().max(256).optional(),
