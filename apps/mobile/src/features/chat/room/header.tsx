@@ -5,11 +5,10 @@ import Animated, {
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
-  withSequence,
-  withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { Spacing } from '@kithfield/theme';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { ArtIcon } from '../../../ui/art/art-view';
@@ -26,16 +25,32 @@ import { useChatColours } from '../ui/chat-colours';
 import { ANDROID_BACK, AndroidBackArrow } from '../../android/back-arrow';
 import { foldClock, type FoldClock } from './header-fold';
 
-/** How a chat's header sizes: the farm 236 points tall shrinking to 150, the porch 300 to 170. */
+/** How a chat's header sizes: its whole scene, and the plain strip it folds to. */
 export interface HeaderSize {
   readonly full: number;
   readonly min: number;
 }
 
-export const FARM_HEADER: HeaderSize = { full: 236, min: 150 };
-export const PORCH_HEADER: HeaderSize = { full: 300, min: 170 };
+/** The whole scene's height: the farm 236 points, the porch 300. */
+export const FARM_HEADER = 236;
+export const PORCH_HEADER = 300;
 /** The chat's sheet overlaps the art by this much, its rounded corners over the farm. */
 export const SHEET_OVERLAP = 16;
+/** Between the bar and the chat's sheet once the header has folded. */
+const BAR_GAP: Spacing = 12;
+
+/** Where the bar over the art starts: just under the status bar. */
+export function barTop(insetTop: number): number {
+  return Math.max(insetTop - 1, 20);
+}
+
+/**
+ * The folded header: only as tall as the status bar and the bar under it (back, title, the one
+ * more button), then the sheet, with nothing of the scene left to look at.
+ */
+export function foldedHeight(insetTop: number, barHeight: number): number {
+  return barTop(insetTop) + barHeight + BAR_GAP + SHEET_OVERLAP;
+}
 
 /** How far the chat scrolls before that counts as using it. */
 const SCROLL_SLOP = 4;
@@ -43,7 +58,10 @@ const SCROLL_SLOP = 4;
 /** A chat header's fold: its height, its art's opacity, and whether the whole farm shows. */
 export interface HeaderFold {
   readonly height: SharedValue<number>;
-  /** The art's opacity: under Reduce Motion the fold lands at once and the art fades back in. */
+  /**
+   * The art's opacity: gone as the header folds, back as it opens. Under Reduce Motion the height
+   * lands at once and the art fades instead.
+   */
   readonly shown: SharedValue<number>;
   readonly open: boolean;
   /** Someone used the chat: fold the farm away. */
@@ -53,8 +71,8 @@ export interface HeaderFold {
 }
 
 /**
- * The header shows its whole farm on the way in, then folds to the strip after a few seconds or
- * at the first use of the chat; a tap on it shows the farm again. While it's open, the first
+ * The header shows its whole farm on the way in, then folds to a plain strip after a few seconds
+ * or at the first use of the chat, the scene fading as it goes; a tap on it shows the farm again. While it's open, the first
  * points of a scroll still fold it under the finger, 1:1, as the farm's header always has.
  */
 export function useHeaderFold(
@@ -67,7 +85,7 @@ export function useHeaderFold(
   const fold = useSharedValue(0);
   // Where the chat was scrolled when the farm last opened: scrolling away from here folds it.
   const base = useSharedValue(0);
-  const shown = useSharedValue(1);
+  const artIn = useSharedValue(1);
   const [open, setOpen] = useState(true);
   const reduced = useRef(reduce);
   reduced.current = reduce;
@@ -77,14 +95,14 @@ export function useHeaderFold(
       setOpen(next);
       if (next) base.set(scrollY.get());
       fold.set(sheetTo(next ? 0 : 1, reduced.current));
-      if (reduced.current) shown.set(withSequence(withTiming(0, { duration: 0 }), fadeTo(1)));
+      artIn.set(reduced.current ? fadeTo(next ? 1 : 0) : next ? 1 : 0);
     });
     clock.current = c;
     return () => {
       c.dispose();
       clock.current = null;
     };
-  }, [base, fold, scrollY, shown]);
+  }, [artIn, base, fold, scrollY]);
   useEffect(() => clock.current?.hold(reader), [reader]);
   const interact = useCallback(() => clock.current?.interact(), []);
   const toggle = useCallback(() => clock.current?.toggle(), []);
@@ -100,13 +118,15 @@ export function useHeaderFold(
       if (up && before === false) scheduleOnRN(interact);
     },
   );
-  const height = useDerivedValue(() => {
+  // How far folded, 0 to 1: the fold itself, or the finger while it's open.
+  const progress = useDerivedValue(() => {
     const span = size.full - size.min;
-    if (span <= 0) return size.full;
+    if (span <= 0) return 0;
     const scrolled = Math.min(1, Math.max(0, (scrollY.get() - base.get()) / span));
-    const folded = Math.min(1, Math.max(0, fold.get()));
-    return size.full - span * Math.max(folded, scrolled);
+    return Math.max(Math.min(1, Math.max(0, fold.get())), scrolled);
   });
+  const height = useDerivedValue(() => size.full - (size.full - size.min) * progress.get());
+  const shown = useDerivedValue(() => (reduce ? artIn.get() : 1 - progress.get()));
   return { height, shown, open, interact, toggle };
 }
 
@@ -122,19 +142,22 @@ function useScreenReader(): boolean {
 }
 
 /**
- * The art at the top of a chat. It folds keeping its bottom (where the critters stand) in view;
- * the art moves, it is never redrawn. The art itself is the button that shows it again or folds
+ * The art at the top of a chat. It folds keeping its bottom (where the critters stand) in view
+ * and fades to the plain surface under it; the art moves, it is never redrawn. The art itself is the button that shows it again or folds
  * it, behind the bar's own buttons.
  */
 export function HeaderArtFrame({
   fold,
   size,
+  surface,
   label,
   hint,
   children,
 }: {
   readonly fold: HeaderFold;
   readonly size: HeaderSize;
+  /** The plain tone left once the scene has faded: its own sky, or the night's. */
+  readonly surface: string;
   readonly label: string;
   readonly hint: string;
   readonly children: ReactNode;
@@ -147,7 +170,17 @@ export function HeaderArtFrame({
   }));
   return (
     <Animated.View
-      style={[{ position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' }, frame]}
+      style={[
+        {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          overflow: 'hidden',
+          backgroundColor: surface,
+        },
+        frame,
+      ]}
     >
       <Press
         onPress={fold.toggle}
@@ -214,6 +247,7 @@ export function HeaderBar({
   onTitle,
   titleLabel,
   right,
+  onHeight,
 }: {
   readonly title: string;
   readonly subtitle: string;
@@ -223,6 +257,8 @@ export function HeaderBar({
   readonly onTitle?: () => void;
   readonly titleLabel?: string;
   readonly right: { readonly icon: string; readonly label: string; readonly onPress: () => void };
+  /** The bar's own height once laid out, which sizes the folded header. */
+  readonly onHeight?: (height: number) => void;
 }) {
   const insets = useSafeAreaInsets();
   const { palette } = useTheme();
@@ -262,9 +298,10 @@ export function HeaderBar({
   return (
     <View
       pointerEvents="box-none"
+      onLayout={onHeight ? (e) => onHeight(e.nativeEvent.layout.height) : undefined}
       style={{
         position: 'absolute',
-        top: Math.max(insets.top - 1, 20),
+        top: barTop(insets.top),
         left: 16,
         right: 16,
         flexDirection: 'row',
