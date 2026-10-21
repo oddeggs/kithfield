@@ -4,25 +4,28 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   AUDIT_KEPT_MS,
+  CHILD_SAFETY_KEPT_AFTER_CLOSE_MS,
   clearOldEvidence,
   CONTEXT_KEPT_AFTER_CLOSE_MS,
   keepModerationTidy,
 } from '../../src/admin/retention';
 import { ANA, desk, notesOf, report, type TestAccess, thursdayLot, useTestAccess } from './support';
 
+const DAY = 24 * 60 * 60_000;
+
 let access: TestAccess;
 beforeEach(async () => {
   access = await useTestAccess();
 });
 
-async function handled() {
+async function handled(reason: 'unkind' | 'child_safety' = 'unkind') {
   const lot = await thursdayLot();
   const { report: id } = ReportResponse.parse(
     (
       await report(lot.june, {
         farm: lot.farm,
         about: { about: 'event', seq: lot.unkind },
-        reason: 'unkind',
+        reason,
         note: 'third time this week',
         alsoBlock: false,
       })
@@ -171,5 +174,27 @@ describe('report retention', () => {
     expect(removal).toMatchObject({ note: 'content_removed', excerpt: null });
     const kept = ReportDetail.parse((await desk(access, ANA, 'GET', `/reports/${stillOpen}`)).body);
     expect(kept.context.length).toBeGreaterThan(0);
+  });
+
+  it('keeps a child-safety case’s evidence a year after it closes, then clears it', async () => {
+    const { id } = await handled('child_safety');
+    const ordinary = await handled();
+    const detail = async (report: string) =>
+      ReportDetail.parse((await desk(access, ANA, 'GET', `/reports/${report}`)).body);
+    const now = Date.now();
+
+    await clearOldEvidence(env.DB, now + CONTEXT_KEPT_AFTER_CLOSE_MS + 1000);
+    const held = await detail(id);
+    expect(held.category).toBe('child_safety');
+    expect(held.context.length).toBeGreaterThan(0);
+    expect(held.notes).toEqual(['third time this week']);
+    expect((await detail(ordinary.id)).context).toEqual([]);
+
+    await clearOldEvidence(env.DB, now + CHILD_SAFETY_KEPT_AFTER_CLOSE_MS - DAY);
+    expect((await detail(id)).context.length).toBeGreaterThan(0);
+    await clearOldEvidence(env.DB, now + CHILD_SAFETY_KEPT_AFTER_CLOSE_MS + 1000);
+    const cleared = await detail(id);
+    expect(cleared.context).toEqual([]);
+    expect(cleared.notes).toEqual([]);
   });
 });

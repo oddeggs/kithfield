@@ -12,6 +12,7 @@ import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { readSignIn, sendCode, signInWithCode, watchLetters } from '../../src/auth/testing/client';
+import { CHILD_SAFETY_KEPT_AFTER_CLOSE_MS, clearOldEvidence } from '../../src/admin/retention';
 import { consumeDeletion } from '../../src/deletion';
 import { api, critter, farmStub, type Person, profile } from '../farm/support/doubles';
 import {
@@ -186,6 +187,39 @@ describe('an account purged', () => {
     expect(await count('SELECT COUNT(*) AS n FROM audit_log WHERE item = ?', id)).toBeGreaterThan(
       0,
     );
+  });
+
+  it('keeps a child-safety case’s evidence and filings until a year after it closes', async () => {
+    const lot = await thursdayLot();
+    const id = ReportResponse.parse(
+      (
+        await report(lot.june, {
+          farm: lot.farm,
+          about: { about: 'event', seq: lot.unkind },
+          reason: 'child_safety',
+          note: 'he asked my sister for photos',
+          alsoBlock: false,
+        })
+      ).body,
+    ).report;
+    await decide(id);
+    const before = await detailOf(id);
+    expect(before.category).toBe('child_safety');
+
+    await purge(lot.june.id);
+    await purge(lot.bram.id);
+    const after = await detailOf(id);
+    expect(after.reasons).toEqual(['child_safety']);
+    expect(after.notes).toEqual(['he asked my sister for photos']);
+    expect(after.context).toEqual(before.context);
+    expect(after.context.some((e) => e.actor === lot.bram.id && !isTombstone(e.payload))).toBe(
+      true,
+    );
+
+    await clearOldEvidence(env.DB, Date.now() + CHILD_SAFETY_KEPT_AFTER_CLOSE_MS + 1000);
+    const cleared = await detailOf(id);
+    expect(cleared.context).toEqual([]);
+    expect(cleared.notes).toEqual([]);
   });
 });
 
