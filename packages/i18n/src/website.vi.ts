@@ -119,6 +119,7 @@ export const websiteVi: ViCatalogue<typeof websiteEn> = {
   'website.footer.made': 'Làm bởi oddeggs, nhóm làm ra 6pm.',
   'website.footer.privacy': 'Quyền riêng tư',
   'website.footer.terms': 'Điều khoản',
+  'website.footer.childSafety': 'An toàn trẻ em',
   'website.footer.support': 'Hỗ trợ',
   'website.footer.press': 'Báo chí',
   'website.footer.github': 'GitHub',
