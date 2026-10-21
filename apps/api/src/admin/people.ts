@@ -21,27 +21,36 @@ const tombstoned = (event: unknown): unknown => {
   };
 };
 
+/** Child-safety cases, whose evidence only the desk's retention clears (`retention.ts`). */
+const CHILD_SAFETY = `SELECT id FROM reports WHERE category = 'child_safety'`;
+
 /**
  * A deleted account: their notes go, their appeal texts are blanked, their reports of others are
  * withdrawn, the context of reports about them is cleared (unless escalated, which keeps it for
- * the senior or legal look), and their words in other reports' context become tombstones.
+ * the senior or legal look), and their words in other reports' context become tombstones. A
+ * child-safety case keeps all of it, their filing included, until a year after it closes.
  */
 export async function purgeModeration(db: D1Database, person: string): Promise<void> {
   await db.batch([
     db.prepare('DELETE FROM safety_notes WHERE person_id = ?').bind(person),
     db.prepare("UPDATE appeals SET text = '' WHERE person_id = ?").bind(person),
-    db.prepare('DELETE FROM report_filings WHERE reporter_id = ?').bind(person),
+    db
+      .prepare(
+        `DELETE FROM report_filings WHERE reporter_id = ? AND report_id NOT IN (${CHILD_SAFETY})`,
+      )
+      .bind(person),
     db
       .prepare(
         `UPDATE reports SET context_json = NULL, excerpt = NULL
-         WHERE reported_id = ? AND status != 'escalated'`,
+         WHERE reported_id = ? AND status != 'escalated' AND category != 'child_safety'`,
       )
       .bind(person),
   ]);
   const { results } = await db
     .prepare(
       `SELECT id, context_json FROM reports
-       WHERE context_json IS NOT NULL AND instr(context_json, ?) > 0`,
+       WHERE context_json IS NOT NULL AND instr(context_json, ?) > 0
+         AND category != 'child_safety'`,
     )
     .bind(JSON.stringify(person))
     .all<{ id: string; context_json: string }>();

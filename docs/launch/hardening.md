@@ -83,7 +83,7 @@ Reviewed on 19 October 2026 against `integrate/core` with the fixes on `feat/har
 | Media signing key | Confirm `MEDIA_SIGNING_KEY` differs between dev and prd, or a dev read URL is valid on prd |
 | Photo scanning | Confirm Cloudflare's CSAM Scanning Tool is turned on for the media host's zone; the review notes say photos are scanned |
 | RevenueCat key | `REVENUECAT_IOS_KEY` must be set for the store build (it isn't in `eas.json`) |
-| Content and EULA (Guideline 1.2) | The Terms don't yet say "no tolerance for objectionable content or abusive users"; add it to the house rules or link Apple's Standard EULA. The report reasons lack sexual content, violence and self-harm; the fire room and gate gestures can't be reported as items; text and names aren't filtered (photos are hash-scanned) |
+| Content and EULA (Guideline 1.2) | The Terms don't yet say "no tolerance for objectionable content or abusive users"; add it to the house rules or link Apple's Standard EULA. The report reasons now include sexual content, child safety, violence and self-harm, and the Terms forbid child sexual abuse and exploitation, linking the child safety standards (kithfield.com/child-safety); the fire room and gate gestures can't be reported as items; text and names aren't filtered (photos are hash-scanned) |
 | Broken links | kithfield.com/costs and /acknowledgements have no page yet |
 | Restore purchases | Shown on the patron screens, not on the cart or Sticker packs; acceptable, mention if asked |
 | Device check | §11.2 on the oldest supported iPhone |

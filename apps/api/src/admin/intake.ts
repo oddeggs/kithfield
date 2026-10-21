@@ -9,7 +9,7 @@ import { blockPerson } from '../auth';
 import type { Bindings } from '../env';
 import { farmStub } from '../farm/http';
 import { mintId, ruleToDb } from './ids';
-import { aimedAt, categorize, dueAfter, excerptOf, suggestedRule } from './signals';
+import { aimedAt, categorize, dueAfter, excerptOf, moreSerious, suggestedRule } from './signals';
 import { filingsOf, openReportFor } from './store';
 
 /*
@@ -166,13 +166,20 @@ export async function takeReport(
   const filings = await filingsOf(env.DB, report.id);
   const reasons: ReportReason[] = filings.map((f) => f.reason);
   const lifted = categorize(reasons, [report.excerpt, ...filings.map((f) => f.note)]);
-  if (lifted.urgent && !report.urgent) {
+  const category = moreSerious(lifted.category, report.category)
+    ? lifted.category
+    : report.category;
+  const urgent = report.urgent || lifted.urgent;
+  if (category !== report.category || urgent !== report.urgent) {
     await env.DB.prepare(
-      'UPDATE reports SET category = ?, urgent = 1, suggested_rule = ?, due_at = MIN(due_at, ?) WHERE id = ?',
+      `UPDATE reports SET category = ?, urgent = ?, suggested_rule = ?,
+         due_at = CASE WHEN ? THEN MIN(due_at, ?) ELSE due_at END WHERE id = ?`,
     )
       .bind(
-        lifted.category,
-        ruleToDb(suggestedRule(lifted.category)),
+        category,
+        urgent ? 1 : 0,
+        ruleToDb(category === report.category ? report.suggestedRule : suggestedRule(category)),
+        urgent ? 1 : 0,
         report.receivedAt + dueAfter(true),
         report.id,
       )

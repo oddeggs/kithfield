@@ -86,13 +86,36 @@ export const websitePagesVi: ViCatalogue<typeof websitePagesEn> = {
     'Kithfield dành cho những nhóm bạn đã quen biết nhau. Bạn phải từ 13 tuổi trở lên (16 tuổi nếu luật nơi bạn ở yêu cầu).',
   'websitePages.terms.kindTitle': 'Tử tế ở mọi nông trại',
   'websitePages.terms.kind':
-    'Tụi mình không dung thứ nội dung phản cảm hay người cư xử tệ: không bắt nạt, thù ghét, quấy rối, đe doạ, làm phiền người khác, nội dung tình dục, bạo lực, cổ vũ tự làm hại bản thân hay bất cứ điều gì phạm pháp. Báo cáo ngay trong ứng dụng, tụi mình xử lý trong vòng một ngày: gỡ nội dung và đóng tài khoản đăng nó. Chủ nông trại cũng có thể mời các bé rời đi.',
+    'Tụi mình không dung thứ nội dung phản cảm hay người cư xử tệ: không bắt nạt, thù ghét, quấy rối, đe doạ, làm phiền người khác, nội dung tình dục, bạo lực, cổ vũ tự làm hại bản thân hay bất cứ điều gì phạm pháp. Mọi hình thức xâm hại và bóc lột tình dục trẻ em đều bị cấm, và tụi mình báo cáo chúng cho cơ quan chức năng (xem {link}). Báo cáo ngay trong ứng dụng, tụi mình xử lý trong vòng một ngày: gỡ nội dung và đóng tài khoản đăng nó. Chủ nông trại cũng có thể mời các bé rời đi.',
+  'websitePages.terms.childSafetyLink': 'tiêu chuẩn an toàn trẻ em',
   'websitePages.terms.purchasesTitle': 'Mua sắm',
   'websitePages.terms.purchases':
     'Plus và các món đồ được bán qua App Store và Google Play. Đồ bạn mua là của bạn chừng nào Kithfield còn hoạt động.',
   'websitePages.terms.leavingTitle': 'Rời đi',
   'websitePages.terms.leaving':
     'Bạn có thể lặng lẽ rời bất kỳ nông trại nào, hoặc xoá tài khoản. Xoá tài khoản bắt đầu 30 ngày chờ, trong thời gian đó đăng nhập lại là huỷ; sau đó tụi mình xoá dữ liệu của bạn.',
+
+  'websitePages.childSafety.title': 'Tiêu chuẩn an toàn trẻ em',
+  'websitePages.childSafety.lead':
+    'Cập nhật ngày 21 tháng 10 năm 2026. Kithfield tuyệt đối không dung thứ việc xâm hại và bóc lột tình dục trẻ em (CSAE). Tụi mình gỡ bỏ nội dung đó, đóng các tài khoản đứng sau nó và báo cáo cho cơ quan chức năng.',
+  'websitePages.childSafety.neverTitle': 'Những điều không bao giờ được phép',
+  'websitePages.childSafety.never':
+    'Xâm hại và bóc lột tình dục trẻ em dưới mọi hình thức: chia sẻ, xin hay gửi link tới tài liệu xâm hại tình dục trẻ em (CSAM), kể cả hình vẽ hay hình do AI tạo ra; tin nhắn tình dục gửi tới hoặc nói về người dưới 18 tuổi; dụ dỗ, tức là làm quen với người trẻ để xâm hại họ; tống tiền tình dục, tức là doạ phát tán hình ảnh của ai đó; và bất cứ điều gì khác tình dục hoá trẻ em. Dù chỉ là đùa, hay ai là người gửi, cũng vậy.',
+  'websitePages.childSafety.ageTitle': 'Kithfield dành cho ai',
+  'websitePages.childSafety.age':
+    'Kithfield dành cho những nhóm bạn từ 13 tuổi trở lên, hoặc lớn hơn nếu luật nơi bạn ở quy định tuổi cao hơn (tới 16 tuổi). Tụi mình hỏi năm sinh khi bạn tham gia và không nhận người chưa đủ tuổi. Nếu biết một tài khoản thuộc về người dưới độ tuổi đó, tụi mình sẽ đóng tài khoản.',
+  'websitePages.childSafety.reportTitle': 'Cách báo cáo',
+  'websitePages.childSafety.report':
+    'Trong ứng dụng, nhấn giữ tin nhắn, ảnh hay tin thoại, hoặc mở thẻ của bé và chạm Thêm, rồi Báo cáo, và chọn “Nội dung hoặc hành vi tình dục liên quan đến trẻ vị thành niên”. Những báo cáo này được đưa thẳng lên đầu hàng chờ của đội an toàn, với mục tiêu xem trong vòng một giờ, và người bị báo cáo không bao giờ biết ai đã báo cáo. Bạn cũng có thể viết tới {email}, dù bạn có dùng Kithfield hay không. Xin đừng gửi hình ảnh cho tụi mình: hãy cho biết nông trại, người đó và khoảng thời gian, tụi mình sẽ tự tìm.',
+  'websitePages.childSafety.actTitle': 'Tụi mình làm gì',
+  'websitePages.childSafety.act':
+    'Một người trong đội an toàn xem xét từng báo cáo. Khi phát hiện xâm hại hay bóc lột tình dục trẻ em, tụi mình gỡ nội dung ngay, đưa các tài khoản liên quan ra khỏi Kithfield vĩnh viễn, và có thể đóng băng một nông trại trong lúc xem xét. Tin nhắn bị báo cáo được sao lại ngay lúc báo cáo, nên thu hồi tin nhắn không xoá được bằng chứng. Với một vụ việc về an toàn trẻ em, tụi mình giữ bản sao đó và ghi chú của người báo cáo trong suốt thời gian vụ việc còn mở và thêm một năm sau khi đóng, kể cả khi một tài khoản liên quan bị xoá, rồi mới xoá đi. Ảnh được cất riêng ở nơi mà thu hồi, xoá tài khoản hay xoá nông trại đều không chạm tới, và ở đó cho tới khi tụi mình tự tay xoá lúc luật không còn yêu cầu giữ. Tụi mình báo cáo những gì phát hiện cho Trung tâm Quốc gia về Trẻ em Mất tích và Bị bóc lột của Hoa Kỳ (NCMEC) cùng công an hoặc cơ quan chức năng nơi áp dụng. Tụi mình tuân thủ luật bảo vệ trẻ em ở mọi nơi Kithfield có mặt.',
+  'websitePages.childSafety.scanTitle': 'Ảnh được kiểm tra',
+  'websitePages.childSafety.scan':
+    'Ảnh chia sẻ trong Kithfield được đối chiếu với dấu vân tay của các hình ảnh xâm hại tình dục trẻ em đã biết, bằng Công cụ quét CSAM của Cloudflare. Ảnh trùng khớp bị chặn ngay; sau đó tụi mình cất riêng ảnh làm bằng chứng và mở một vụ việc khẩn cấp cho đội an toàn.',
+  'websitePages.childSafety.contactTitle': 'Liên hệ về an toàn trẻ em',
+  'websitePages.childSafety.contact':
+    'Viết tới {email} về bất cứ điều gì trên trang này. Thư tới thẳng những người phụ trách đội an toàn, những người có thể trả lời về cách Kithfield phòng ngừa và xử lý xâm hại, bóc lột tình dục trẻ em. Nếu một đứa trẻ đang gặp nguy hiểm ngay lúc này, hãy gọi số khẩn cấp ở nơi bạn trước.',
 
   'websitePages.support.title': 'Trợ giúp và câu hỏi',
   'websitePages.support.search': 'Tìm trợ giúp',

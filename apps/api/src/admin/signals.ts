@@ -3,8 +3,8 @@ import type { EventEnvelope, ReportCategory, ReportReason, RuleRef } from '@kith
 /*
  * What the desk reads from a report before anyone opens it: its category, whether it is urgent,
  * the rule it most likely touches, who it seems aimed at and a short excerpt. Urgent reports
- * (child safety, credible threats, self-harm) go to the top of the queue with a 1-hour target;
- * the rest are due within 24 hours.
+ * (child safety, credible threats, self-harm) go to the top of the queue with a 1-hour target,
+ * child safety above every other; the rest are due within 24 hours.
  */
 
 export const URGENT_CATEGORIES: ReadonlySet<ReportCategory> = new Set([
@@ -21,9 +21,33 @@ export const dueAfter = (urgent: boolean) => (urgent ? URGENT_DUE_MS : STANDARD_
 const fromReason: Record<ReportReason, ReportCategory> = {
   unkind: 'harassment',
   unwanted_contact: 'harassment',
+  sexual_content: 'sexual_content',
+  child_safety: 'child_safety',
+  violence: 'credible_threat',
+  self_harm: 'self_harm',
   spam: 'spam',
   something_else: 'other',
 };
+
+/** Every category, most serious first: a case files under the most serious it shows. */
+const SEVERITY: readonly ReportCategory[] = [
+  'child_safety',
+  'credible_threat',
+  'self_harm',
+  'under_13',
+  'sexual_content',
+  'hate',
+  'harassment',
+  'impersonation',
+  'spam',
+  'other',
+];
+
+const severityOf = (category: ReportCategory) => SEVERITY.indexOf(category);
+
+/** True when `next` is more serious than `current`. */
+export const moreSerious = (next: ReportCategory, current: ReportCategory) =>
+  severityOf(next) < severityOf(current);
 
 /** Words that lift a report out of its reason, most serious first. English and Vietnamese. */
 const textSignals: readonly [ReportCategory, RegExp][] = [
@@ -45,17 +69,20 @@ const textSignals: readonly [ReportCategory, RegExp][] = [
   ],
 ];
 
-/** The category a report files under, from its reasons and the words it carries. */
+/**
+ * The category a report files under: the most serious of its reasons and the words it carries.
+ * Sexual content that also points at someone under 13 is a child-safety case.
+ */
 export function categorize(
   reasons: readonly ReportReason[],
   texts: readonly (string | null)[],
 ): { category: ReportCategory; urgent: boolean } {
   const joined = texts.filter((t): t is string => t !== null).join('\n');
-  for (const [category, pattern] of textSignals) {
-    if (pattern.test(joined)) return { category, urgent: URGENT_CATEGORIES.has(category) };
-  }
-  const first = reasons[0] ?? 'something_else';
-  return { category: fromReason[first], urgent: false };
+  const seen = new Set<ReportCategory>(reasons.map((r) => fromReason[r]));
+  for (const [category, pattern] of textSignals) if (pattern.test(joined)) seen.add(category);
+  if (seen.has('sexual_content') && seen.has('under_13')) seen.add('child_safety');
+  const category = SEVERITY.find((c) => seen.has(c)) ?? 'other';
+  return { category, urgent: URGENT_CATEGORIES.has(category) };
 }
 
 const suggested: Partial<Record<ReportCategory, RuleRef>> = {

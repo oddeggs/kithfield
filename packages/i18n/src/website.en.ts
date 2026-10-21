@@ -125,6 +125,7 @@ export const websiteEn = {
   'website.footer.made': 'Made by oddeggs, the makers of 6pm.',
   'website.footer.privacy': 'Privacy',
   'website.footer.terms': 'Terms',
+  'website.footer.childSafety': 'Child safety',
   'website.footer.support': 'Support',
   'website.footer.press': 'Press kit',
   'website.footer.github': 'GitHub',

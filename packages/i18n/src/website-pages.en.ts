@@ -91,13 +91,36 @@ export const websitePagesEn = {
     'Kithfield is for friend groups who already know each other. You must be 13 or older (16 where local law requires).',
   'websitePages.terms.kindTitle': 'Be kind on every farm',
   'websitePages.terms.kind':
-    'There is no tolerance for objectionable content or abusive people: no bullying, hate, harassment, threats, unwanted contact, sexual content, violence, encouraging self-harm or anything illegal. Report it from the app and we act within a day, removing the content and closing the accounts that post it. Keepers can remove critters too.',
+    'There is no tolerance for objectionable content or abusive people: no bullying, hate, harassment, threats, unwanted contact, sexual content, violence, encouraging self-harm or anything illegal. Child sexual abuse and exploitation of any kind is forbidden, and we report it to the authorities (see our {link}). Report it from the app and we act within a day, removing the content and closing the accounts that post it. Keepers can remove critters too.',
+  'websitePages.terms.childSafetyLink': 'child safety standards',
   'websitePages.terms.purchasesTitle': 'Purchases',
   'websitePages.terms.purchases':
     'Plus and items are sold through the App Store and Google Play. Items you buy are yours for as long as Kithfield runs.',
   'websitePages.terms.leavingTitle': 'Leaving',
   'websitePages.terms.leaving':
     'You can leave any farm quietly, or delete your account. Deleting starts a 30-day wait in which signing in cancels it; after that we delete your data.',
+
+  'websitePages.childSafety.title': 'Child safety standards',
+  'websitePages.childSafety.lead':
+    'Last updated 21 October 2026. Kithfield has zero tolerance for child sexual abuse and exploitation (CSAE). We remove it, close the accounts behind it and report it to the authorities.',
+  'websitePages.childSafety.neverTitle': 'What is never allowed',
+  'websitePages.childSafety.never':
+    'Child sexual abuse and exploitation in any form: sharing, asking for or linking to child sexual abuse material (CSAM), drawn or AI-made imagery included; sexual messages to or about anyone under 18; grooming, which is befriending a young person in order to abuse them; sextortion, which is threatening to share someone’s images; and anything else that sexualises a child. It makes no difference whether it is meant as a joke, or who sends it.',
+  'websitePages.childSafety.ageTitle': 'Who Kithfield is for',
+  'websitePages.childSafety.age':
+    'Kithfield is for friend groups aged 13 and over, or older where local law sets a higher age (up to 16). We ask for your birth year when you join and turn away anyone too young. If we learn that an account belongs to someone under that age, we close it.',
+  'websitePages.childSafety.reportTitle': 'How to report it',
+  'websitePages.childSafety.report':
+    'In the app, long-press the message, photo or voice note, or open the person’s critter card and tap More, then Report, and choose “Sexual content or contact involving a minor”. These reports go straight to the top of our safety team’s queue, with a target of one hour, and the person you report never learns who reported them. You can also write to {email}, whether or not you use Kithfield. Please don’t send us the images: tell us the farm, the person and roughly when, and we will find it.',
+  'websitePages.childSafety.actTitle': 'What we do',
+  'websitePages.childSafety.act':
+    'A person on our safety team reviews every report. When we find child sexual abuse or exploitation, we take the content down at once, remove the accounts involved from Kithfield for good, and can freeze a farm while we look into it. Reported messages are copied when they are reported, so unsending them doesn’t erase the evidence. For a child-safety case we keep that copy and the reporters’ notes while the case is open and for one year after it closes, even if an account involved is deleted, and then delete them. Photos are locked away where unsending, deleting an account or deleting a farm can’t reach them, and stay there until we delete them by hand once the law no longer requires them. We report what we find to the National Center for Missing & Exploited Children (NCMEC) and to the police or other authorities where it applies. We comply with child safety law wherever Kithfield is offered.',
+  'websitePages.childSafety.scanTitle': 'Photos are checked',
+  'websitePages.childSafety.scan':
+    'Photos shared in Kithfield are checked against the fingerprints of known child sexual abuse imagery with Cloudflare’s CSAM Scanning Tool. A match is blocked straight away; we then lock the photo away as evidence and open an urgent case for our safety team.',
+  'websitePages.childSafety.contactTitle': 'Our child safety contact',
+  'websitePages.childSafety.contact':
+    'Write to {email} about anything on this page. It reaches the people who run our safety team, who can answer for how Kithfield prevents and handles child sexual abuse and exploitation. If a child is in immediate danger, call your local emergency number first.',
 
   'websitePages.support.title': 'Help and questions',
   'websitePages.support.search': 'Search help',

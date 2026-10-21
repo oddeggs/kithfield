@@ -3,8 +3,20 @@ import { z } from 'zod';
 import { AnyEventKind } from '../events';
 import { EpochMs, FarmId, FarmName, Id, PersonId, RuleRef, Seq, text } from '../primitives';
 
-/** What a member can pick when reporting a message. */
-export const ReportReason = z.enum(['unkind', 'unwanted_contact', 'spam', 'something_else']);
+/**
+ * What a member can pick when reporting a message or a person, in the order the sheet lists them.
+ * `child_safety` is sexual content involving, or the sexual exploitation of, a minor.
+ */
+export const ReportReason = z.enum([
+  'unkind',
+  'unwanted_contact',
+  'sexual_content',
+  'child_safety',
+  'violence',
+  'self_harm',
+  'spam',
+  'something_else',
+]);
 export type ReportReason = z.infer<typeof ReportReason>;
 
 /**
