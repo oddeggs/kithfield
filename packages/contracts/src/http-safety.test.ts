@@ -55,7 +55,20 @@ const appealRow = {
 };
 
 const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
-  ReportReason: [['unkind', 'something_else'], ['rude']],
+  ReportReason: [
+    // Every reason a stored filing can hold stays valid; the serious ones sit beside them.
+    [
+      'unkind',
+      'unwanted_contact',
+      'spam',
+      'something_else',
+      'sexual_content',
+      'child_safety',
+      'violence',
+      'self_harm',
+    ],
+    ['rude', 'Child_safety', 'violent', ''],
+  ],
   ReportRequest: [
     [
       {
@@ -71,6 +84,8 @@ const samples: Record<string, [valid: unknown[], invalid: unknown[]]> = {
         reason: 'unwanted_contact',
         alsoBlock: false,
       },
+      { farm, about: { about: 'event', seq: 41 }, reason: 'child_safety', alsoBlock: true },
+      { farm, about: { about: 'person', person: pip }, reason: 'self_harm', alsoBlock: false },
     ],
     [{ farm, about: { about: 'event' }, reason: 'unkind', alsoBlock: false }],
   ],

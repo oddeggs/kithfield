@@ -113,6 +113,8 @@ The waitlist is double opt-in. A daily job deletes rows nobody confirmed within 
 
 Farm content never lives in D1. A report copies its context (the reported event and up to 20 events around it) into `reports.context_json`, so evidence survives an unsend; it is deleted when the report closes, plus 90 days.
 
+A report files under the most serious category its reasons and words show. Child safety (the `child_safety` reason, or sexual content pointing at someone under 13), threats (`violence`) and self-harm are urgent, due within an hour; child-safety cases sit above every other report in the desk's queue. A later filing can make a case more serious, never less.
+
 ## 5. Media
 
 - `POST /v1/media/upload-url {farm, kind, bytes, mime}` (kind: photo, video, voice or file; up to 100 MB) returns a presigned R2 PUT, or presigned parts above 50 MB, finished with `POST /v1/media/complete {key, uploadId, parts}`. Keys are `farm/<farm>/<uuid>`.

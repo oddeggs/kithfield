@@ -16,7 +16,10 @@ import { auditStatement } from './audit';
 import type { Moderator } from './moderator';
 import { farmNameOf, filingsOf, loadReport, namesOf, personOf, toReport } from './store';
 
-/* The queue (urgent first, then oldest first), a single report, and claiming one. */
+/*
+ * The queue (child safety first, then the other urgent reports, then the rest; oldest first within
+ * each), a single report, and claiming one.
+ */
 
 const PAGE = 100;
 const DAY_MS = 24 * 60 * 60_000;
@@ -41,16 +44,24 @@ const shownName = (name: string | null | undefined): string | null => {
 const quoted = (words: string | null, max: number): string | null =>
   words === null || words.trim() === '' ? null : words.slice(0, max);
 
-/** Keyset cursor over (urgent desc, received asc, id asc). */
-const encodeCursor = (row: QueueRow) => `${row.urgent ? 1 : 0}.${row.receivedAt}.${row.report}`;
+/** Where a report stands in the queue: child safety 2, other urgent reports 1, the rest 0. */
+const RANK_SQL = `(CASE WHEN r.category = 'child_safety' THEN 2 WHEN r.urgent = 1 THEN 1 ELSE 0 END)`;
+const rankOf = (row: QueueRow) => (row.category === 'child_safety' ? 2 : row.urgent ? 1 : 0);
+
+/** Keyset cursor over (rank desc, received asc, id asc). */
+const encodeCursor = (row: QueueRow) => `${rankOf(row)}.${row.receivedAt}.${row.report}`;
 const decodeCursor = (cursor: string | undefined) => {
-  const match = cursor === undefined ? null : /^([01])\.(\d+)\.([A-Za-z0-9_-]{1,64})$/.exec(cursor);
+  const match =
+    cursor === undefined ? null : /^([012])\.(\d+)\.([A-Za-z0-9_-]{1,64})$/.exec(cursor);
   return match === null
     ? null
-    : { urgent: Number(match[1]), at: Number(match[2]), id: match[3] ?? '' };
+    : { rank: Number(match[1]), at: Number(match[2]), id: match[3] ?? '' };
 };
 
-/** `GET /admin/v1/queue`: every open report, urgent first, then oldest first. */
+/**
+ * `GET /admin/v1/queue`: every open report, child safety first, then the other urgent reports,
+ * then the rest, oldest first within each.
+ */
 export async function queuePage(db: D1Database, query: QueueQuery): Promise<QueuePage> {
   const where = ['r.closed_at IS NULL'];
   const params: (string | number)[] = [];
@@ -61,9 +72,9 @@ export async function queuePage(db: D1Database, query: QueueQuery): Promise<Queu
   const after = decodeCursor(query.cursor);
   if (after !== null) {
     where.push(
-      '(r.urgent < ? OR (r.urgent = ? AND (r.received_at > ? OR (r.received_at = ? AND r.id > ?))))',
+      `(${RANK_SQL} < ? OR (${RANK_SQL} = ? AND (r.received_at > ? OR (r.received_at = ? AND r.id > ?))))`,
     );
-    params.push(after.urgent, after.urgent, after.at, after.at, after.id);
+    params.push(after.rank, after.rank, after.at, after.at, after.id);
   }
   const { results } = await db
     .prepare(
@@ -80,7 +91,7 @@ export async function queuePage(db: D1Database, query: QueueQuery): Promise<Queu
          LEFT JOIN people pr ON pr.id = r.reported_id
          LEFT JOIN people pa ON pa.id = r.aimed_at
        WHERE ${where.join(' AND ')}
-       ORDER BY r.urgent DESC, r.received_at ASC, r.id ASC LIMIT ?`,
+       ORDER BY ${RANK_SQL} DESC, r.received_at ASC, r.id ASC LIMIT ?`,
     )
     .bind(...params, PAGE + 1)
     .all<QueueRaw>();

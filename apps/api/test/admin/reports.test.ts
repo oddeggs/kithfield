@@ -1,4 +1,10 @@
-import { FarmEvent, QueuePage, ReportDetail, ReportResponse } from '@kithfield/contracts';
+import {
+  FarmEvent,
+  QueuePage,
+  ReportDetail,
+  type ReportRequest,
+  ReportResponse,
+} from '@kithfield/contracts';
 import { env } from 'cloudflare:workers';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -173,6 +179,65 @@ describe('reporting from the app', () => {
     expect((await desk(access, ANA, 'GET', '/queue?category=nonsense')).status).toBe(400);
   });
 
+  it('files the serious reasons urgently, with child safety above every other report', async () => {
+    const { ada, ben, cy } = await cast('ada', 'ben', 'cy');
+    const farm = await plantThrough(ada, [ben, cy]);
+    const sad = await say(cy, farm, 'I don’t think I can keep doing this');
+    const threat = await say(ben, farm, 'watch yourself');
+    const lewd = await say(ben, farm, 'look at this');
+    const worst = await say(ben, farm, 'send me a picture, don’t tell your mum');
+    const filed = async (seq: number, reason: ReportRequest['reason']) =>
+      ReportResponse.parse(
+        (await report(ada, { farm, about: { about: 'event', seq }, reason, alsoBlock: false }))
+          .body,
+      ).report;
+    const selfHarm = await filed(sad, 'self_harm');
+    const violence = await filed(threat, 'violence');
+    const sexual = await filed(lewd, 'sexual_content');
+    const child = await filed(worst, 'child_safety');
+
+    const rows = (await queue()).rows;
+    const row = (id: string) => rows.find((r) => r.report === id);
+    expect(rows[0]).toMatchObject({ report: child, category: 'child_safety', urgent: true });
+    expect((rows[0]?.dueAt ?? 0) - (rows[0]?.receivedAt ?? 0)).toBe(60 * 60_000);
+    expect(row(selfHarm)).toMatchObject({ category: 'self_harm', urgent: true });
+    expect(row(violence)).toMatchObject({ category: 'credible_threat', urgent: true });
+    expect(row(sexual)).toMatchObject({ category: 'sexual_content', urgent: false });
+    const order = rows.map((r) => r.report);
+    expect(order.indexOf(selfHarm)).toBeLessThan(order.indexOf(violence));
+    expect(order.indexOf(violence)).toBeLessThan(order.indexOf(sexual));
+    const detail = ReportDetail.parse((await desk(access, ANA, 'GET', `/reports/${child}`)).body);
+    expect(detail.reasons).toEqual(['child_safety']);
+    expect(detail.signals.suggestedRule).toBe('child_safety');
+
+    // The next page starts after the child-safety report, with the other urgent ones.
+    const top = rows[0];
+    const after = await queue(`?cursor=2.${top?.receivedAt ?? 0}.${child}`);
+    expect(after.rows.map((r) => r.report)).toEqual(order.slice(1));
+  });
+
+  it('makes a case more serious when a later report names a graver reason', async () => {
+    const lot = await thursdayLot();
+    const about = { about: 'event' as const, seq: lot.unkind };
+    const first = ReportResponse.parse(
+      (await report(lot.june, { farm: lot.farm, about, reason: 'spam', alsoBlock: false })).body,
+    ).report;
+    expect((await queue()).rows.find((r) => r.report === first)).toMatchObject({
+      category: 'spam',
+      urgent: false,
+    });
+    await report(lot.pip, { farm: lot.farm, about, reason: 'child_safety', alsoBlock: false });
+    const lifted = (await queue()).rows.find((r) => r.report === first);
+    expect(lifted).toMatchObject({ category: 'child_safety', urgent: true });
+    expect((lifted?.dueAt ?? 0) - (lifted?.receivedAt ?? 0)).toBe(60 * 60_000);
+    // A lighter reason afterwards never makes it less serious.
+    await report(lot.fig, { farm: lot.farm, about, reason: 'unkind', alsoBlock: false });
+    expect((await queue()).rows.find((r) => r.report === first)).toMatchObject({
+      category: 'child_safety',
+      urgent: true,
+    });
+  });
+
   it('reports a person from the members list with the farm’s latest events', async () => {
     const lot = await thursdayLot();
     const sent = await report(lot.june, {
@@ -211,6 +276,9 @@ describe('reporting from the app', () => {
       (await report(lot.june, { ...base, about: { about: 'person', person: stranger.id } })).status,
     ).toBe(404);
     expect((await api(lot.june, 'POST', '/v1/reports', { farm: lot.farm })).status).toBe(400);
+    expect(
+      (await api(lot.june, 'POST', '/v1/reports', { ...base, about, reason: 'rude' })).status,
+    ).toBe(400);
     expect((await api(null, 'POST', '/v1/reports', { ...base, about })).status).toBe(401);
   });
 

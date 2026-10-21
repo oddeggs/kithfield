@@ -64,7 +64,7 @@ function useReported(farm: FarmId, target: ReportTarget) {
 }
 
 /**
- * Report a message or a person: one of four reasons, a few words if they like, and
+ * Report a message or a person: one of the reasons, a few words if they like, and
  * whether to block them too. The server copies the context; the reported person never learns who.
  */
 export function ReportSheet({
